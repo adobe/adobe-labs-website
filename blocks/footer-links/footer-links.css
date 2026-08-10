@@ -1,0 +1,25 @@
+.footer-links__list {
+  list-style-type: none;
+  padding-inline-start: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: var(--spectrum-font-size-200);
+
+  & li {
+    flex: 1 0 45%;
+    min-height: 1.5rem;
+  }
+
+  & a {
+    color: var(--spectrum-gray-700);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+

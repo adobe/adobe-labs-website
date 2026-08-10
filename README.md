@@ -1,0 +1,35 @@
+# Block Collection
+
+This project contains code that is featured in the [AEM Block Collection](https://www.aem.live/developer/block-collection#block-collection-1) documentation.
+
+## Environments
+
+- Preview: https://main--adobe-design-website--adobe.aem.page/
+- Live: https://main--adobe-design-website--adobe.aem.live/
+
+## Quick Start
+
+```sh
+npm i
+npm start
+```
+
+## Local development
+
+1. Install the [AEM CLI](https://github.com/adobe/helix-cli): `npm install -g @adobe/aem-cli`
+1. Start AEM Proxy: `npm start` (opens your browser at `http://localhost:3000`)
+1. Open the `adobe-design-website` directory in your favorite IDE and start coding
+
+## Code Quality
+
+To run ESLint and Stylelint:
+
+```sh
+npm run lint
+```
+
+To run Jest, ensure you've got the application running locally, and then:
+
+```sh
+npm test
+```

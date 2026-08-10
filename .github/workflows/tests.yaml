@@ -1,0 +1,36 @@
+name: Run Jest Puppeteer Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          # Use 24.15 as a workaround for Puppeteer Chrome install issue 14957, until fully upgrading to Puppeteer 25+.
+          node-version: 24.15
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Set BASE_URL environment variable
+        run: |
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF##*/}}"
+          echo "Branch Name: ${BRANCH_NAME}"
+          BASE_URL="https://${BRANCH_NAME}--adobe-design-website--adobe.aem.page/"
+          echo "BASE_URL=${BASE_URL}"
+          echo "BASE_URL=${BASE_URL}" >> $GITHUB_ENV
+
+      - name: Run Jest Puppeteer tests
+        run: npm test
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
