@@ -18,7 +18,7 @@ npm start
 
 1. Install the [AEM CLI](https://github.com/adobe/helix-cli): `npm install -g @adobe/aem-cli`
 1. Start AEM Proxy: `npm start` (opens your browser at `http://localhost:3000`)
-1. Open the `adobe-design-website` directory in your favorite IDE and start coding
+1. Open the `adobe-labs-website` directory in your favorite IDE and start coding
 
 ## Code Quality
 
