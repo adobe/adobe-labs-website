@@ -12,7 +12,8 @@
     "test": "jest",
     "prepare": "husky",
     "build:lenis": "mkdir -p deps/lenis/dist && esbuild --format=esm --minify ./deps/lenis/src/index.js --bundle --outfile=./deps/lenis/dist/index.js && cp node_modules/lenis/dist/lenis.css deps/lenis/dist/lenis.css",
-    "build:gsap": "mkdir -p deps/gsap/dist && esbuild --format=esm --minify ./deps/gsap/src/index.js --bundle --outfile=./deps/gsap/dist/index.js"
+    "build:gsap": "mkdir -p deps/gsap/dist && esbuild --format=esm --minify ./deps/gsap/src/index.js --bundle --outfile=./deps/gsap/dist/index.js",
+    "build:c2pa": "rm -rf deps/c2pa-web && mkdir -p deps/c2pa-web/resources && esbuild node_modules/@contentauth/c2pa-web/dist/index.js --format=esm --bundle --outfile=deps/c2pa-web/index.js && cp node_modules/@contentauth/c2pa-web/dist/c2pa_worker.js deps/c2pa-web/c2pa_worker.js && cp node_modules/@contentauth/c2pa-web/dist/resources/c2pa_bg.wasm deps/c2pa-web/resources/c2pa_bg.wasm"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@babel/core": "7.29.7",
     "@babel/eslint-parser": "7.29.9",
+    "@contentauth/c2pa-web": "0.15.1",
     "@babel/preset-env": "7.29.7",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "7.0.1",
