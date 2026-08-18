@@ -243,8 +243,11 @@ async function loadLazy(doc) {
  * without impacting the user experience.
  */
 function loadDelayed() {
-  import('./consent-check.js');
-  // load anything that can be postponed to the latest here
+  try {
+    import('./content-credentials.js');
+  } catch (error) {
+    
+  }
 }
 
 async function loadPage() {
