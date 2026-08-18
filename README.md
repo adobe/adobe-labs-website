@@ -280,6 +280,15 @@ Anything driven from `gsap.ticker` — Lenis is, in `scripts/section-scroll/init
 
 `scripts.js` may still emit a guarded `<link rel="modulepreload">` for the bundle, as `loadLazy` does for section overlays. A dynamic `import()` inside a module cannot be requested until that module's own imports have resolved, so a vendored bundle behind one starts downloading several round trips late. The hint starts the download early without placing the bundle in any import graph, and it must carry the same guard as the import it warms — otherwise it becomes an eager load for requests that never use it.
 
+### Updating the vendored c2pa-web library
+
+`@contentauth/c2pa-web` (used by [scripts/content-credentials.js](scripts/content-credentials.js)) is vendored this way. To rebuild it, e.g. after bumping the version in `package.json`:
+
+```sh
+npm install
+npm run build:c2pa
+```
+
 ## Query Indexes
 
 The following query indexes are configured for this site.
