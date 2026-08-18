@@ -225,6 +225,15 @@ import { loadCSS } from '../../scripts/aem.js';
 loadCSS(`${window.hlx.codeBasePath}/deps/lenis/dist/lenis.css`);
 ```
 
+### Updating the vendored c2pa-web library
+
+`@contentauth/c2pa-web` (used by [scripts/content-credentials.js](scripts/content-credentials.js)) is vendored this way. To rebuild it, e.g. after bumping the version in `package.json`:
+
+```sh
+npm install
+npm run build:c2pa
+```
+
 ## Query Indexes
 
 The following query indexes are configured for this site.
