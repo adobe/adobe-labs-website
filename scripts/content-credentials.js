@@ -40,8 +40,10 @@ const readCredentials = async (img) => {
 	}
 
 	// Fetch the image from its source.
-	// TODO: Must use original image without resized parameters; resized version doesn't have CR!
-	const response = await fetch(img.src);
+	// Must use original image without optimized/resized parameters; resized versions don't have the CR!
+	const urlWithoutQueryParams = new URL(img.src);
+	urlWithoutQueryParams.search = '';
+	const response = await fetch(urlWithoutQueryParams.toString());
 
 	// Read the response body as a Blob.
 	const blob = await response.blob();
