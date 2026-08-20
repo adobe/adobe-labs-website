@@ -1,3 +1,14 @@
+/**
+ * Page startup for this project. Runs on every page.
+ *
+ * This file owns the page lifecycle: it converts authored document content
+ * into the markup this site expects (decorateMain), then loads the page in
+ * three passes — what the visitor sees first (eager), the rest of the page
+ * (lazy), and non-essential extras a few seconds later (delayed).
+ *
+ * It does that work using the toolbox of functions provided by aem.js
+ * (aem.js should not be edited; project-specific behavior goes here).
+ */
 import {
   loadHeader,
   loadFooter,
