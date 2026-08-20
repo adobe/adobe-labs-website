@@ -4,8 +4,7 @@
 - Fix ???
 
 ## Relevant Links
-- Designs: [Figma](FIGMA_URL)
-- Story: [ADB-XX](https://sparkbox.atlassian.net/browse/ADB-XX)
+- Story: [ADBLABS-XX](https://sparkbox.atlassian.net/browse/ADBLABS-XX)
 
 ## Test URLs:
 - Before: https://main--adobe-design-website--adobe.aem.page/
