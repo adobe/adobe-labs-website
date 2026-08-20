@@ -13,12 +13,11 @@
 /* --- S2A design tokens --- */
 /* CSS variables for the design system, including some within media queries. */
 /* @see https://github.com/adobecom/consonant/tree/main/dist/packages/tokens */
-@import url("lib/s2a-tokens-0.0.21.min.css");
+@import url("lib/s2a-tokens-0.0.21/min/tokens.min.css");
 
 /* --- Project specific CSS variables --- */
 :root {
-  /* colors */
-  --background-color: white;
+  /* colors - TODO: we'll likely want to refactor these away from the boilerplate */
   --light-color: #f8f8f8;
   --dark-color: #505050;
   --text-color: #131313;
@@ -26,51 +25,23 @@
   --link-hover-color: #1d3ecf;
 
   /* fonts */
-  --body-font-family: roboto, roboto-fallback, sans-serif;
-  --heading-font-family: roboto-condensed, roboto-condensed-fallback, sans-serif;
-
-  /* body sizes */
-  --body-font-size-m: 22px;
-  --body-font-size-s: 19px;
-  --body-font-size-xs: 17px;
-
-  /* heading sizes */
-  --heading-font-size-xxl: 55px;
-  --heading-font-size-xl: 44px;
-  --heading-font-size-l: 34px;
-  --heading-font-size-m: 27px;
-  --heading-font-size-s: 24px;
-  --heading-font-size-xs: 22px;
+  --body-font-family: var(--s2a-font-family-default), adobe-clean, "Trebuchet MS", sans-serif;
+  --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, "Arial Bold Adjusted", sans-serif;
 
   /* nav height */
   --nav-height: 64px;
 }
 
-@media (width >= 900px) {
-  :root {
-    /* body sizes */
-    --body-font-size-m: 18px;
-    --body-font-size-s: 16px;
-    --body-font-size-xs: 14px;
-
-    /* heading sizes */
-    --heading-font-size-xxl: 45px;
-    --heading-font-size-xl: 36px;
-    --heading-font-size-l: 28px;
-    --heading-font-size-m: 22px;
-    --heading-font-size-s: 20px;
-    --heading-font-size-xs: 18px;
-  }
-}
-
 body {
   display: none;
   margin: 0;
-  background-color: var(--background-color);
-  color: var(--text-color);
   font-family: var(--body-font-family);
-  font-size: var(--body-font-size-m);
-  line-height: 1.6;
+  font-size: var(--s2a-typography-font-size-body-md);
+  font-weight: var(--s2a-font-weight-body);
+  line-height: var(--s2a-typography-line-height-body-md);
+  letter-spacing: var(--s2a-typography-letter-spacing-body-md);
+  background-color: var(--s2a-color-background-default);
+  color: var(--s2a-color-content-default);
 }
 
 body.appear {
@@ -92,6 +63,11 @@ footer .footer[data-block-status="loaded"] {
 }
 
 /* --- Base elements and resets --- */
+a {
+  color: var(--s2a-color-content-default);
+  text-decoration: solid underline currentColor;
+}
+
 h1,
 h2,
 h3,
@@ -106,12 +82,102 @@ h6 {
   scroll-margin: 40px;
 }
 
-h1 { font-size: var(--heading-font-size-xxl); }
-h2 { font-size: var(--heading-font-size-xl); }
-h3 { font-size: var(--heading-font-size-l); }
-h4 { font-size: var(--heading-font-size-m); }
-h5 { font-size: var(--heading-font-size-s); }
-h6 { font-size: var(--heading-font-size-xs); }
+h1, h2, h3, h4, h5, h6, [class*="heading-"] {
+  margin: 0;
+  font-family: var(--heading-font-family);
+  font-weight: var(--s2a-font-weight-heading);
+
+  strong {
+    font-weight: inherit;
+  }
+
+  a,
+  a:is(:hover, :focus-visible, :active) {
+    color: currentColor;
+  }
+}
+
+.heading-super {
+  font-size: var(--s2a-typography-font-size-super);
+  line-height: var(--s2a-typography-line-height-super);
+  letter-spacing: var(--s2a-typography-letter-spacing-super);
+}
+
+h1, .heading-1 {
+  font-size: var(--s2a-typography-font-size-heading-1);
+  line-height: var(--s2a-typography-line-height-heading-1);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-1);
+}
+
+h2, .heading-2 {
+  font-size: var(--s2a-typography-font-size-heading-2);
+  line-height: var(--s2a-typography-line-height-heading-2);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
+}
+
+h3, .heading-3 {
+  font-size: var(--s2a-typography-font-size-heading-3);
+  line-height: var(--s2a-typography-line-height-heading-3);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-3);
+}
+
+h4, .heading-4 {
+  font-size: var(--s2a-typography-font-size-heading-4);
+  line-height: var(--s2a-typography-line-height-heading-4);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-4);
+}
+
+h5, .heading-5 {
+  font-size: var(--s2a-typography-font-size-heading-5);
+  line-height: var(--s2a-typography-line-height-heading-5);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-5);
+}
+
+h6, .heading-6 {
+  font-size: var(--s2a-typography-font-size-heading-6);
+  line-height: var(--s2a-typography-line-height-heading-6);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+}
+
+.body-lg {
+  font-size: var(--s2a-typography-font-size-body-lg);
+  line-height: var(--s2a-typography-line-height-body-lg);
+  letter-spacing: var(--s2a-typography-letter-spacing-body-lg);
+}
+
+.body-md {
+  font-size: var(--s2a-typography-font-size-body-md);
+  line-height: var(--s2a-typography-line-height-body-md);
+  letter-spacing: var(--s2a-typography-letter-spacing-body-md);
+}
+
+.body-sm {
+  font-size: var(--s2a-typography-font-size-body-sm);
+  line-height: var(--s2a-typography-line-height-body-sm);
+  letter-spacing: var(--s2a-typography-letter-spacing-body-sm);
+}
+
+.eyebrow, [class*="eyebrow-"] {
+  font-weight: var(--s2a-font-weight-eyebrow);
+  font-size: var(--s2a-typography-font-size-eyebrow);
+  line-height: var(--s2a-typography-line-height-eyebrow);
+  letter-spacing: var(--s2a-typography-letter-spacing-eyebrow);
+  color: var(--s2a-color-content-eyebrow);
+}
+
+.label, [class*="label-"] {
+  font-weight: var(--s2a-font-weight-label);
+  font-size: var(--s2a-typography-font-size-label);
+  line-height: var(--s2a-typography-line-height-label);
+  letter-spacing: var(--s2a-typography-letter-spacing-label);
+}
+
+.caption, [class*="caption-"] {
+  font-weight: var(--s2a-font-weight-caption);
+  font-size: var(--s2a-typography-font-size-caption);
+  line-height: var(--s2a-typography-line-height-caption);
+  letter-spacing: var(--s2a-typography-letter-spacing-caption);
+}
 
 p,
 dl,
@@ -119,18 +185,17 @@ ol,
 ul,
 pre,
 blockquote {
-  margin-top: 0.8em;
-  margin-bottom: 0.25em;
+  margin-block: 1.0rem;
 }
 
-code,
-pre {
-  font-size: var(--body-font-size-s);
+img {
+  max-width: 100%;
+  height: auto;
 }
 
 pre {
-  padding: 16px;
-  border-radius: 8px;
+  padding: 1.0rem;
+  border-radius: 0.5rem;
   background-color: var(--light-color);
   overflow-x: auto;
   white-space: pre;
@@ -148,24 +213,19 @@ main > div {
   margin: 40px 16px;
 }
 
-main img {
-  max-width: 100%;
-  width: auto;
-  height: auto;
+/* Visually hidden content that's needed for accessibility / screen readers. */
+.sr-only,
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
-
-/* --- Links --- */
-a:any-link {
-  color: var(--link-color);
-  text-decoration: none;
-  overflow-wrap: break-word;
-}
-
-a:hover {
-  color: var(--link-hover-color);
-  text-decoration: underline;
-}
-
 /* --- Buttons --- */
 p.button-wrapper {
   margin: 12px 0;
@@ -202,7 +262,7 @@ a.button.primary,
 button.button.primary {
   border-color: var(--text-color);
   background-color: var(--text-color);
-  color: var(--background-color);
+  color: var(--s2a-color-background-default);
 }
 
 a.button.primary:hover,
@@ -257,7 +317,7 @@ a.button.accent,
 button.button.accent {
   border-color: var(--link-color);
   background-color: var(--link-color);
-  color: var(--background-color);
+  color: var(--s2a-color-background-default);
 }
 
 a.button.accent:hover,
