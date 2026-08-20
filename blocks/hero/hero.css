@@ -1,20 +1,19 @@
-.hero-container {
+.hero-container .hero-wrapper {
   max-width: unset;
   padding: 0;
 }
 
 .hero {
   position: relative;
-  max-width: unset;
-  padding: 2.5rem 1.5rem;
-  min-height: 18.75rem;
+  padding: 40px 24px;
+  min-height: 300px;
 }
 
 .hero h1 {
-  max-width: 75rem;
+  max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
-  color: var(--spectrum-white);
+  color: var(--background-color);
 }
 
 .hero picture {
@@ -31,9 +30,8 @@
   height: 100%;
 }
 
-@media (min-width: 48rem) {
-  /* !! min-width MQ needs refactor */
+@media (width >= 900px) {
   .hero {
-    padding: 2.5rem 2rem;
+    padding: 40px 32px;
   }
 }
