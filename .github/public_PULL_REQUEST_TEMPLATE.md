@@ -3,5 +3,5 @@ Please always provide the [GitHub issue(s)](../issues) your PR is for, as well a
 Fix #<gh-issue-id>
 
 Test URLs:
-- Before: https://main--adobe-design-website--adobe.aem.page/
-- After: https://<branch>--adobe-design-website--adobe.aem.page/
+- Before: https://main--adobe-labs-website--adobe.aem.page/
+- After: https://<branch>--adobe-labs-website--adobe.aem.page/

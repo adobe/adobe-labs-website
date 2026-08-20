@@ -7,8 +7,8 @@
 - Story: [ADBLABS-XX](https://sparkbox.atlassian.net/browse/ADBLABS-XX)
 
 ## Test URLs:
-- Before: https://main--adobe-design-website--adobe.aem.page/
-- After: https://<branch>--adobe-design-website--adobe.aem.page/
+- Before: https://main--adobe-labs-website--adobe.aem.page/
+- After: https://<branch>--adobe-labs-website--adobe.aem.page/
 
 ## Checklist
 <!-- Delete anything irrelevant to this PR -->
