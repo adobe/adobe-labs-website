@@ -10,6 +10,12 @@
  * governing permissions and limitations under the License.
  */
 
+/* --- S2A design tokens --- */
+/* CSS variables for the design system, including some within media queries. */
+/* @see https://github.com/adobecom/consonant/tree/main/dist/packages/tokens */
+@import url("lib/s2a-tokens-0.0.21.min.css");
+
+/* --- Project specific CSS variables --- */
 :root {
   /* colors */
   --background-color: white;
@@ -38,19 +44,6 @@
 
   /* nav height */
   --nav-height: 64px;
-}
-
-/* fallback fonts */
-@font-face {
-  font-family: roboto-condensed-fallback;
-  size-adjust: 88.82%;
-  src: local('Arial');
-}
-
-@font-face {
-  font-family: roboto-fallback;
-  size-adjust: 99.529%;
-  src: local('Arial');
 }
 
 @media (width >= 900px) {
@@ -98,6 +91,7 @@ footer .footer[data-block-status="loaded"] {
   visibility: visible;
 }
 
+/* --- Base elements and resets --- */
 h1,
 h2,
 h3,
@@ -142,10 +136,6 @@ pre {
   white-space: pre;
 }
 
-main > div {
-  margin: 40px 16px;
-}
-
 input,
 textarea,
 select,
@@ -153,7 +143,18 @@ button {
   font: inherit;
 }
 
-/* links */
+/* --- Main / containers --- */
+main > div {
+  margin: 40px 16px;
+}
+
+main img {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+}
+
+/* --- Links --- */
 a:any-link {
   color: var(--link-color);
   text-decoration: none;
@@ -165,7 +166,7 @@ a:hover {
   text-decoration: underline;
 }
 
-/* buttons */
+/* --- Buttons --- */
 p.button-wrapper {
   margin: 12px 0;
 }
@@ -278,12 +279,7 @@ button.button.accent:disabled:focus-visible {
   color: var(--dark-color);
 }
 
-main img {
-  max-width: 100%;
-  width: auto;
-  height: auto;
-}
-
+/* --- Icons --- */
 .icon {
   display: inline-block;
   height: 24px;
@@ -295,7 +291,7 @@ main img {
   width: 100%;
 }
 
-/* sections */
+/* --- Sections --- */
 main > .section {
   margin: 40px 0;
 }
