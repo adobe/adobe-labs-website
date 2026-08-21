@@ -29,9 +29,13 @@
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, "Arial Bold Adjusted", sans-serif;
+  --typography-font-weight-heading-2: var(--s2a-font-weight-adobe-clean-display-black);
 
   /* nav height */
   --nav-height: 64px;
+
+  /* sizing */
+  --site-max-inline-size: 90rem; /* 1440px */
 }
 
 body {
@@ -111,10 +115,11 @@ h1, .heading-1 {
   letter-spacing: var(--s2a-typography-letter-spacing-heading-1);
 }
 
-h2, .heading-2 {
+h2, .heading-2, blockquote {
   font-size: var(--s2a-typography-font-size-heading-2);
   line-height: var(--s2a-typography-line-height-heading-2);
   letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
+  font-weight: var(--typography-font-weight-heading-2);
 }
 
 h3, .heading-3 {
@@ -362,9 +367,9 @@ main > .section {
 }
 
 main > .section > div {
-  max-width: 1200px;
+  max-inline-size: var(--site-max-inline-size, 90rem);
   margin: auto;
-  padding: 0 24px;
+  padding: 0 var(--s2a-spacing-md, 1.0rem);
 }
 
 main > .section:first-of-type {
@@ -373,7 +378,7 @@ main > .section:first-of-type {
 
 @media (width >= 900px) {
   main > .section > div {
-    padding: 0 32px;
+    padding: 0 var(--s2a-spacing-lg, 1.5rem);
   }
 }
 

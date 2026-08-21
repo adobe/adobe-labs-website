@@ -7,6 +7,15 @@
   position: relative;
   padding: 40px 24px;
   min-height: 300px;
+  color: var(--s2a-color-gray-25, #fff);
+  font-size: var(--s2a-typography-font-size-heading-2);
+  line-height: var(--s2a-typography-line-height-heading-2);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
+  font-weight: var(--typography-font-weight-heading-2);
+}
+
+.hero a {
+  color: var(--s2a-color-gray-25, #fff);
 }
 
 .hero h1 {
