@@ -21,8 +21,12 @@
 
 ## Validation
 1. Make sure all PR checks have passed.
-2. Pull down all related branches.
-<!-- Add additional validation steps here -->
+2. Pull down the branch and run locally or view on the PR testing link.
+3. Verify the implementation against the design and story requirements.
+
+### Validation steps
+- [ ] <!-- Add acceptance criteria specific to this PR -->
+- [ ] <!-- Add additional reviewer checks -->
 
 ---
 
