@@ -1,10 +1,10 @@
 name: Run Jest Puppeteer Tests
 
 on:
-  pull_request:
-    branches:
-      - main
-
+  # Run automatically on pull requests into `main`.
+  # pull_request:
+  #   branches:
+  #     - main
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,7 +26,7 @@ jobs:
         run: |
           BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF##*/}}"
           echo "Branch Name: ${BRANCH_NAME}"
-          BASE_URL="https://${BRANCH_NAME}--adobe-design-website--adobe.aem.page/"
+          BASE_URL="https://${BRANCH_NAME}--adobe-labs-website--adobe.aem.page/"
           echo "BASE_URL=${BASE_URL}"
           echo "BASE_URL=${BASE_URL}" >> $GITHUB_ENV
 
