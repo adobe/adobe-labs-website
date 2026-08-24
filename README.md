@@ -39,3 +39,15 @@ To run ESLint and Stylelint:
 ```sh
 npm run lint
 ```
+
+## Testing
+
+To run tests:
+
+```sh
+npm test
+```
+
+### Writing Block Tests
+
+See the [write-block-tests](.ai/skills/write-block-tests/SKILL.md) skill for instructions and guidelines on writing unit tests for blocks.
