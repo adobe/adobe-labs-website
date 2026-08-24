@@ -93,8 +93,8 @@ Skills are used on-demand. When a task matches a skill's purpose, the agent read
 #### EDS performance & lifecycle review
 
 - **File**: [`.ai/skills/eds-performance-review/SKILL.md`](./skills/eds-performance-review/SKILL.md)
-- **Purpose**: Reviews a diff against the actual page-load lifecycle in `scripts.js`/`ak.js`/`lazy.js`/`postlcp.js` — flags fragile, duplicative, or unmeasured "performance" code added to the core loader instead of a block's own `init()`. Walks the lifecycle step-by-step, gives a ruthless CLS/LCP test for anything proposed ahead of `loadArea`, and includes a worked case study (the `component-status` prefetch hook) of the pattern to catch.
-- **How to invoke**: Ask before opening a PR that touches `scripts.js` or `ak.js` (e.g. "review this against the performance skill", "does this belong in scripts.js"), or when auditing for CLS/LCP regressions or speculative optimizations.
+- **Purpose**: Reviews a diff against the actual page-load lifecycle in `scripts.js`/`aem.js` (`loadEager`/`loadLazy`/`loadDelayed`) — flags fragile, duplicative, or unmeasured "performance" code added to the core loader instead of a block's own `init()`. Walks the lifecycle step-by-step and gives a ruthless CLS/LCP test for anything proposed ahead of `loadSections`.
+- **How to invoke**: Ask before opening a PR that touches `scripts.js` or `aem.js` (e.g. "review this against the performance skill", "does this belong in scripts.js"), or when auditing for CLS/LCP regressions or speculative optimizations.
 
 ## Specs and plans
 
