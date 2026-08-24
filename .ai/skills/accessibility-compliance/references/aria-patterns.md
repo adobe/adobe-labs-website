@@ -4,7 +4,7 @@
 
 ARIA (Accessible Rich Internet Applications) provides attributes to enhance accessibility when native HTML semantics are insufficient. The first rule of ARIA is: don't use ARIA if native HTML can do the job.
 
-Examples in this document use **Lit** (the library used by Spectrum Web Components) so patterns match SWC implementation context.
+Examples in this document use vanilla JavaScript and native DOM APIs (no framework or build step required), so patterns can be dropped into any codebase.
 
 ## ARIA Fundamentals
 
@@ -51,460 +51,386 @@ aria-owns="id-of-owned-element" aria-live="polite|assertive|off"
 
 ### Accordion
 
-```ts
-import { LitElement, html } from 'lit';
-import { property, state } from 'lit/decorators.js';
+```html
+<div class="accordion">
+  <h3>
+    <button id="accordion-heading-0" aria-expanded="false" aria-controls="accordion-panel-0">
+      Section 1
+      <span aria-hidden="true">+</span>
+    </button>
+  </h3>
+  <div id="accordion-panel-0" role="region" aria-labelledby="accordion-heading-0" hidden>
+    Panel content
+  </div>
+  <!-- Repeat the heading/panel pair for each item -->
+</div>
+```
 
-export class Accordion extends LitElement {
-  @property({ type: Array }) items: { title: string; content: string }[] = [];
-  @state() private openIndex = -1;
+```js
+function initAccordion(root) {
+  const headers = root.querySelectorAll('h3 > button');
 
-  private toggle(index: number) {
-    this.openIndex = this.openIndex === index ? -1 : index;
-  }
+  headers.forEach((button) => {
+    button.addEventListener('click', () => {
+      const panel = document.getElementById(button.getAttribute('aria-controls'));
+      const isOpen = button.getAttribute('aria-expanded') === 'true';
 
-  override render() {
-    return html`
-      <div class="accordion">
-        ${this.items.map((item, index) => {
-          const isOpen = this.openIndex === index;
-          const headingId = `accordion-heading-${index}`;
-          const panelId = `accordion-panel-${index}`;
-          return html`
-            <div>
-              <h3>
-                <button
-                  id=${headingId}
-                  aria-expanded=${isOpen}
-                  aria-controls=${panelId}
-                  @click=${() => this.toggle(index)}
-                >
-                  ${item.title}
-                  <span aria-hidden="true">${isOpen ? '−' : '+'}</span>
-                </button>
-              </h3>
-              <div
-                id=${panelId}
-                role="region"
-                aria-labelledby=${headingId}
-                ?hidden=${!isOpen}
-              >
-                ${item.content}
-              </div>
-            </div>
-          `;
-        })}
-      </div>
-    `;
-  }
+      button.setAttribute('aria-expanded', String(!isOpen));
+      panel.hidden = isOpen;
+      button.querySelector('[aria-hidden]').textContent = isOpen ? '+' : '−';
+    });
+  });
 }
 ```
 
 ### Tabs
 
-```ts
-import { LitElement, html } from 'lit';
-import { property, state, query } from 'lit/decorators.js';
+```html
+<div class="tabs">
+  <div role="tablist" aria-label="Content tabs">
+    <button role="tab" id="tab-0" aria-selected="true" aria-controls="panel-0" tabindex="0">
+      Tab 1
+    </button>
+    <button role="tab" id="tab-1" aria-selected="false" aria-controls="panel-1" tabindex="-1">
+      Tab 2
+    </button>
+  </div>
+  <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" tabindex="0">Panel 1 content</div>
+  <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" tabindex="0" hidden>Panel 2 content</div>
+</div>
+```
 
-export class Tabs extends LitElement {
-  @property({ type: Array }) tabs: { label: string; content: string }[] = [];
-  @state() private activeIndex = 0;
-  @query('[role="tablist"]') private tabList!: HTMLDivElement;
+```js
+function initTabs(root) {
+  const tabs = [...root.querySelectorAll('[role="tab"]')];
 
-  private handleKeyDown(e: KeyboardEvent, index: number) {
-    let newIndex = index;
-    switch (e.key) {
-      case 'ArrowRight':
-        newIndex = (index + 1) % this.tabs.length;
-        break;
-      case 'ArrowLeft':
-        newIndex = (index - 1 + this.tabs.length) % this.tabs.length;
-        break;
-      case 'Home':
-        newIndex = 0;
-        break;
-      case 'End':
-        newIndex = this.tabs.length - 1;
-        break;
-      default:
-        return;
-    }
-    e.preventDefault();
-    this.activeIndex = newIndex;
-    (this.tabList?.children[newIndex] as HTMLElement)?.focus();
+  function selectTab(index) {
+    tabs.forEach((tab, i) => {
+      const selected = i === index;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected;
+    });
+    tabs[index].focus();
   }
 
-  override render() {
-    return html`
-      <div>
-        <div role="tablist" aria-label="Content tabs">
-          ${this.tabs.map(
-            (tab, index) => html`
-              <button
-                role="tab"
-                id="tab-${index}"
-                aria-selected=${index === this.activeIndex}
-                aria-controls="panel-${index}"
-                tabindex=${index === this.activeIndex ? 0 : -1}
-                @click=${() => (this.activeIndex = index)}
-                @keydown=${(e: KeyboardEvent) => this.handleKeyDown(e, index)}
-              >
-                ${tab.label}
-              </button>
-            `
-          )}
-        </div>
-        ${this.tabs.map(
-          (tab, index) => html`
-            <div
-              role="tabpanel"
-              id="panel-${index}"
-              aria-labelledby="tab-${index}"
-              ?hidden=${index !== this.activeIndex}
-              tabindex="0"
-            >
-              ${tab.content}
-            </div>
-          `
-        )}
-      </div>
-    `;
-  }
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectTab(index));
+    tab.addEventListener('keydown', (e) => {
+      let newIndex = index;
+      switch (e.key) {
+        case 'ArrowRight':
+          newIndex = (index + 1) % tabs.length;
+          break;
+        case 'ArrowLeft':
+          newIndex = (index - 1 + tabs.length) % tabs.length;
+          break;
+        case 'Home':
+          newIndex = 0;
+          break;
+        case 'End':
+          newIndex = tabs.length - 1;
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
+      selectTab(newIndex);
+    });
+  });
 }
 ```
 
 ### Menu Button
 
-```ts
-import { LitElement, html } from 'lit';
-import { property, state, query } from 'lit/decorators.js';
-import { PropertyValues } from 'lit';
+```html
+<div class="menu-button">
+  <button id="menu-button-1" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-1">
+    Options
+  </button>
+  <ul id="menu-1" role="menu" aria-labelledby="menu-button-1" hidden>
+    <li role="menuitem" tabindex="-1">Edit</li>
+    <li role="menuitem" tabindex="-1">Duplicate</li>
+    <li role="menuitem" tabindex="-1">Delete</li>
+  </ul>
+</div>
+```
 
-interface MenuItem {
-  label: string;
-  onClick: () => void;
-}
+```js
+function initMenuButton(root, { onSelect } = {}) {
+  const button = root.querySelector('button[aria-haspopup="menu"]');
+  const menu = root.querySelector('[role="menu"]');
+  const items = [...menu.querySelectorAll('[role="menuitem"]')];
+  let activeIndex = -1;
 
-export class MenuButton extends LitElement {
-  @property() label = '';
-  @property({ type: Array }) items: MenuItem[] = [];
-  @state() private isOpen = false;
-  @state() private activeIndex = -1;
-  @query('button') private buttonRef!: HTMLButtonElement;
-  @query('[role="menu"]') private menuRef!: HTMLUListElement;
+  function open() {
+    button.setAttribute('aria-expanded', 'true');
+    menu.hidden = false;
+  }
 
-  private menuId = `menu-${crypto.randomUUID()}`;
+  function close() {
+    button.setAttribute('aria-expanded', 'false');
+    menu.hidden = true;
+    activeIndex = -1;
+  }
 
-  private handleKeyDown(e: KeyboardEvent) {
+  function focusItem(index) {
+    activeIndex = index;
+    items[index]?.focus();
+  }
+
+  button.addEventListener('click', () => {
+    if (menu.hidden) {
+      open();
+      focusItem(0);
+    } else {
+      close();
+    }
+  });
+
+  button.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      open();
+      focusItem(0);
+    }
+  });
+
+  menu.addEventListener('keydown', (e) => {
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        if (!this.isOpen) {
-          this.isOpen = true;
-          this.activeIndex = 0;
-        } else {
-          this.activeIndex = Math.min(
-            this.activeIndex + 1,
-            this.items.length - 1
-          );
-        }
+        focusItem(Math.min(activeIndex + 1, items.length - 1));
         break;
       case 'ArrowUp':
         e.preventDefault();
-        this.activeIndex = Math.max(this.activeIndex - 1, 0);
+        focusItem(Math.max(activeIndex - 1, 0));
         break;
       case 'Escape':
-        this.isOpen = false;
-        this.buttonRef?.focus();
+        close();
+        button.focus();
         break;
       case 'Enter':
       case ' ':
-        if (this.isOpen && this.activeIndex >= 0) {
-          e.preventDefault();
-          this.items[this.activeIndex].onClick();
-          this.isOpen = false;
-        }
+        e.preventDefault();
+        items[activeIndex]?.click();
+        break;
+      default:
         break;
     }
-  }
+  });
 
-  protected override updated(changes: PropertyValues) {
-    if (changes.has('isOpen') || changes.has('activeIndex')) {
-      if (this.isOpen && this.activeIndex >= 0 && this.menuRef) {
-        (this.menuRef.children[this.activeIndex] as HTMLElement)?.focus();
-      }
-    }
-  }
+  items.forEach((item, index) => {
+    item.addEventListener('click', () => {
+      onSelect?.(item, index);
+      close();
+      button.focus();
+    });
+  });
 
-  override render() {
-    return html`
-      <div>
-        <button
-          aria-haspopup="menu"
-          aria-expanded=${this.isOpen}
-          aria-controls=${this.menuId}
-          @click=${() => (this.isOpen = !this.isOpen)}
-          @keydown=${this.handleKeyDown}
-        >
-          ${this.label}
-        </button>
-        ${this.isOpen
-          ? html`
-              <ul
-                id=${this.menuId}
-                role="menu"
-                aria-label=${this.label}
-                @keydown=${this.handleKeyDown}
-              >
-                ${this.items.map(
-                  (item, index) => html`
-                    <li
-                      role="menuitem"
-                      tabindex="-1"
-                      @click=${() => {
-                        item.onClick();
-                        this.isOpen = false;
-                        this.buttonRef?.focus();
-                      }}
-                    >
-                      ${item.label}
-                    </li>
-                  `
-                )}
-              </ul>
-            `
-          : ''}
-      </div>
-    `;
-  }
+  document.addEventListener('click', (e) => {
+    if (!root.contains(e.target)) close();
+  });
 }
 ```
 
 ### Combobox (Autocomplete)
 
-```ts
-import { LitElement, html } from 'lit';
-import { property, state } from 'lit/decorators.js';
+```html
+<div class="combobox">
+  <input type="text" role="combobox" id="combobox-input" aria-expanded="false"
+    aria-controls="listbox-1" aria-autocomplete="list" />
+  <ul id="listbox-1" role="listbox" hidden></ul>
+</div>
+```
 
-export class Combobox extends LitElement {
-  @property({ type: Array }) options: string[] = [];
-  @property() placeholder = '';
-  @state() private inputValue = '';
-  @state() private isOpen = false;
-  @state() private activeIndex = -1;
+```js
+function initCombobox(root, options) {
+  const input = root.querySelector('input[role="combobox"]');
+  const listbox = root.querySelector('[role="listbox"]');
+  let activeIndex = -1;
+  let filtered = options;
 
-  private listboxId = `listbox-${crypto.randomUUID()}`;
-
-  private get filteredOptions() {
-    return this.options.filter((opt) =>
-      opt.toLowerCase().includes(this.inputValue.toLowerCase())
-    );
+  function renderOptions() {
+    listbox.innerHTML = '';
+    filtered.forEach((option, index) => {
+      const li = document.createElement('li');
+      li.id = `option-${index}`;
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', String(index === activeIndex));
+      li.textContent = option;
+      li.addEventListener('click', () => selectOption(option));
+      li.addEventListener('mouseenter', () => setActive(index));
+      listbox.append(li);
+    });
   }
 
-  private handleKeyDown(e: KeyboardEvent) {
-    const opts = this.filteredOptions;
+  function setActive(index) {
+    activeIndex = index;
+    input.setAttribute('aria-activedescendant', index >= 0 ? `option-${index}` : '');
+    renderOptions();
+  }
+
+  function open() {
+    filtered = options.filter((opt) => opt.toLowerCase().includes(input.value.toLowerCase()));
+    input.setAttribute('aria-expanded', 'true');
+    listbox.hidden = filtered.length === 0;
+    renderOptions();
+  }
+
+  function close() {
+    input.setAttribute('aria-expanded', 'false');
+    listbox.hidden = true;
+    activeIndex = -1;
+  }
+
+  function selectOption(option) {
+    input.value = option;
+    root.dispatchEvent(new CustomEvent('select', { detail: option, bubbles: true }));
+    close();
+  }
+
+  input.addEventListener('input', open);
+  input.addEventListener('focus', open);
+  input.addEventListener('blur', () => setTimeout(close, 200));
+  input.addEventListener('keydown', (e) => {
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        this.isOpen = true;
-        this.activeIndex = Math.min(this.activeIndex + 1, opts.length - 1);
+        open();
+        setActive(Math.min(activeIndex + 1, filtered.length - 1));
         break;
       case 'ArrowUp':
         e.preventDefault();
-        this.activeIndex = Math.max(this.activeIndex - 1, 0);
+        setActive(Math.max(activeIndex - 1, 0));
         break;
       case 'Enter':
-        if (this.activeIndex >= 0) {
+        if (activeIndex >= 0) {
           e.preventDefault();
-          this.selectOption(opts[this.activeIndex]);
+          selectOption(filtered[activeIndex]);
         }
         break;
       case 'Escape':
-        this.isOpen = false;
-        this.activeIndex = -1;
+        close();
+        break;
+      default:
         break;
     }
-  }
-
-  private selectOption(option: string) {
-    this.inputValue = option;
-    this.dispatchEvent(
-      new CustomEvent('select', { detail: option, bubbles: true })
-    );
-    this.isOpen = false;
-    this.activeIndex = -1;
-  }
-
-  override render() {
-    const opts = this.filteredOptions;
-    return html`
-      <div>
-        <input
-          type="text"
-          role="combobox"
-          aria-expanded=${this.isOpen}
-          aria-controls=${this.listboxId}
-          aria-activedescendant=${this.activeIndex >= 0
-            ? `option-${this.activeIndex}`
-            : ''}
-          aria-autocomplete="list"
-          .value=${this.inputValue}
-          placeholder=${this.placeholder}
-          @input=${(e: Event) => {
-            this.inputValue = (e.target as HTMLInputElement).value;
-            this.isOpen = true;
-            this.activeIndex = -1;
-          }}
-          @keydown=${this.handleKeyDown}
-          @focus=${() => (this.isOpen = true)}
-          @blur=${() => setTimeout(() => (this.isOpen = false), 200)}
-        />
-        ${this.isOpen && opts.length > 0
-          ? html`
-              <ul id=${this.listboxId} role="listbox">
-                ${opts.map(
-                  (option, index) => html`
-                    <li
-                      id="option-${index}"
-                      role="option"
-                      aria-selected=${index === this.activeIndex}
-                      @click=${() => this.selectOption(option)}
-                      @mouseenter=${() => (this.activeIndex = index)}
-                    >
-                      ${option}
-                    </li>
-                  `
-                )}
-              </ul>
-            `
-          : ''}
-      </div>
-    `;
-  }
+  });
 }
 ```
 
 ### Alert Dialog
 
-```ts
-import { LitElement, html } from 'lit';
-import { property, query } from 'lit/decorators.js';
-import { PropertyValues } from 'lit';
+```html
+<div class="alert-dialog" role="alertdialog" aria-modal="true"
+  aria-labelledby="dialog-title" aria-describedby="dialog-desc" hidden>
+  <div class="backdrop"></div>
+  <div class="dialog">
+    <h2 id="dialog-title">Delete item?</h2>
+    <p id="dialog-desc">This action cannot be undone.</p>
+    <div class="actions">
+      <button class="cancel-btn">Cancel</button>
+      <button class="confirm-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+```
 
-export class AlertDialog extends LitElement {
-  @property({ type: Boolean }) isOpen = false;
-  @property() title = '';
-  @property() message = '';
-  @query('.confirm-btn') private confirmRef!: HTMLButtonElement;
+```js
+function initAlertDialog(root, { onConfirm, onCancel } = {}) {
+  const backdrop = root.querySelector('.backdrop');
+  const confirmBtn = root.querySelector('.confirm-btn');
+  const cancelBtn = root.querySelector('.cancel-btn');
+  let previouslyFocused = null;
 
-  private dialogId = `dialog-${crypto.randomUUID()}`;
+  function open() {
+    previouslyFocused = document.activeElement;
+    root.hidden = false;
+    confirmBtn.focus();
+  }
 
-  protected override updated(changes: PropertyValues) {
-    if (changes.has('isOpen') && this.isOpen) {
-      this.confirmRef?.focus();
+  function close() {
+    root.hidden = true;
+    previouslyFocused?.focus();
+  }
+
+  confirmBtn.addEventListener('click', () => {
+    onConfirm?.();
+    close();
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    onCancel?.();
+    close();
+  });
+
+  backdrop.addEventListener('click', () => {
+    onCancel?.();
+    close();
+  });
+
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      onCancel?.();
+      close();
     }
-  }
+  });
 
-  override render() {
-    if (!this.isOpen) return html``;
-    const titleId = `${this.dialogId}-title`;
-    const descId = `${this.dialogId}-desc`;
-    return html`
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby=${titleId}
-        aria-describedby=${descId}
-      >
-        <div class="backdrop" @click=${this._onCancel}></div>
-        <div class="dialog">
-          <h2 id=${titleId}>${this.title}</h2>
-          <p id=${descId}>${this.message}</p>
-          <div class="actions">
-            <button @click=${this._onCancel}>Cancel</button>
-            <button class="confirm-btn" @click=${this._onConfirm}>
-              Confirm
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  private _onConfirm() {
-    this.dispatchEvent(new CustomEvent('confirm', { bubbles: true }));
-  }
-
-  private _onCancel() {
-    this.dispatchEvent(new CustomEvent('cancel', { bubbles: true }));
-  }
+  return { open, close };
 }
 ```
 
 ### Toolbar
 
-```ts
-import { LitElement, html } from 'lit';
-import { property, state, query } from 'lit/decorators.js';
+```html
+<div role="toolbar" aria-label="Text formatting">
+  <button tabindex="0" aria-pressed="false" aria-label="Bold">B</button>
+  <button tabindex="-1" aria-pressed="false" aria-label="Italic">I</button>
+  <button tabindex="-1" aria-pressed="false" aria-label="Underline">U</button>
+</div>
+```
 
-interface ToolbarItem {
-  label: string;
-  icon: string;
-  isActive: boolean;
-  onClick: () => void;
-}
+```js
+function initToolbar(root) {
+  const buttons = [...root.querySelectorAll('button')];
+  let activeIndex = 0;
 
-export class Toolbar extends LitElement {
-  @property({ type: Array }) items: ToolbarItem[] = [];
-  @state() private activeIndex = 0;
-  @query('[role="toolbar"]') private toolbarRef!: HTMLDivElement;
+  function focusButton(index) {
+    buttons[activeIndex].tabIndex = -1;
+    activeIndex = index;
+    buttons[activeIndex].tabIndex = 0;
+    buttons[activeIndex].focus();
+  }
 
-  private handleKeyDown(e: KeyboardEvent) {
-    let newIndex = this.activeIndex;
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const pressed = button.getAttribute('aria-pressed') === 'true';
+      button.setAttribute('aria-pressed', String(!pressed));
+    });
+  });
+
+  root.addEventListener('keydown', (e) => {
+    let newIndex = activeIndex;
     switch (e.key) {
       case 'ArrowRight':
-        newIndex = (this.activeIndex + 1) % this.items.length;
+        newIndex = (activeIndex + 1) % buttons.length;
         break;
       case 'ArrowLeft':
-        newIndex =
-          (this.activeIndex - 1 + this.items.length) % this.items.length;
+        newIndex = (activeIndex - 1 + buttons.length) % buttons.length;
         break;
       case 'Home':
         newIndex = 0;
         break;
       case 'End':
-        newIndex = this.items.length - 1;
+        newIndex = buttons.length - 1;
         break;
       default:
         return;
     }
     e.preventDefault();
-    this.activeIndex = newIndex;
-    this.toolbarRef?.querySelectorAll('button')[newIndex]?.focus();
-  }
-
-  override render() {
-    return html`
-      <div
-        role="toolbar"
-        aria-label="Text formatting"
-        @keydown=${this.handleKeyDown}
-      >
-        ${this.items.map(
-          (item, index) => html`
-            <button
-              tabindex=${index === this.activeIndex ? 0 : -1}
-              aria-pressed=${item.isActive}
-              aria-label=${item.label}
-              @click=${item.onClick}
-            >
-              ${item.icon}
-            </button>
-          `
-        )}
-      </div>
-    `;
-  }
+    focusButton(newIndex);
+  });
 }
 ```
 
@@ -512,101 +438,78 @@ export class Toolbar extends LitElement {
 
 ### Polite Announcements
 
-```ts
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
+```html
+<!-- Status messages that don't interrupt -->
+<div id="search-status" role="status" aria-live="polite" aria-atomic="true"></div>
 
-// Status messages that don't interrupt
-export class SearchStatus extends LitElement {
-  @property({ type: Number }) count = 0;
-  @property() query = '';
-  override render() {
-    return html`
-      <div role="status" aria-live="polite" aria-atomic="true">
-        ${this.count} results found for "${this.query}"
-      </div>
-    `;
-  }
+<!-- Progress indicator -->
+<div id="loading-status" role="status" aria-live="polite"></div>
+```
+
+```js
+function announceSearchStatus(count, query) {
+  document.getElementById('search-status').textContent = `${count} results found for "${query}"`;
 }
 
-// Progress indicator
-export class LoadingStatus extends LitElement {
-  @property({ type: Number }) progress = 0;
-  override render() {
-    return html`
-      <div role="status" aria-live="polite">
-        Loading: ${this.progress}% complete
-      </div>
-    `;
-  }
+function updateLoadingStatus(progress) {
+  document.getElementById('loading-status').textContent = `Loading: ${progress}% complete`;
 }
 ```
 
 ### Assertive Announcements
 
-```ts
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
+```html
+<!-- Important errors that should interrupt -->
+<div id="error-alert" role="alert" aria-live="assertive"></div>
+```
 
-// Important errors that should interrupt
-export class ErrorAlert extends LitElement {
-  @property() message = '';
-  override render() {
-    return html`
-      <div role="alert" aria-live="assertive">Error: ${this.message}</div>
-    `;
-  }
+```js
+function showError(message) {
+  document.getElementById('error-alert').textContent = `Error: ${message}`;
 }
 
 // Form validation summary
-export class ValidationSummary extends LitElement {
-  @property({ type: Array }) errors: string[] = [];
-  override render() {
-    if (this.errors.length === 0) return html``;
-    return html`
-      <div role="alert" aria-live="assertive">
-        <h2>Please fix the following errors:</h2>
-        <ul>
-          ${this.errors.map(
-            (err) => html`
-              <li>${err}</li>
-            `
-          )}
-        </ul>
-      </div>
-    `;
-  }
+function renderValidationSummary(root, errors) {
+  root.innerHTML = '';
+  if (errors.length === 0) return;
+
+  root.setAttribute('role', 'alert');
+  root.setAttribute('aria-live', 'assertive');
+
+  const heading = document.createElement('h2');
+  heading.textContent = 'Please fix the following errors:';
+
+  const list = document.createElement('ul');
+  errors.forEach((err) => {
+    const li = document.createElement('li');
+    li.textContent = err;
+    list.append(li);
+  });
+
+  root.append(heading, list);
 }
 ```
 
 ### Log Region
 
-```ts
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
+```html
+<div class="chat-log" role="log" aria-live="polite" aria-relevant="additions"></div>
+```
 
-interface LogMessage {
-  id: string;
-  author: string;
-  text: string;
-}
+```js
+function appendChatMessage(root, { author, text }) {
+  const message = document.createElement('div');
 
-export class ChatLog extends LitElement {
-  @property({ type: Array }) messages: LogMessage[] = [];
-  override render() {
-    return html`
-      <div role="log" aria-live="polite" aria-relevant="additions">
-        ${this.messages.map(
-          (msg) => html`
-            <div>
-              <span class="author">${msg.author}:</span>
-              <span class="text">${msg.text}</span>
-            </div>
-          `
-        )}
-      </div>
-    `;
-  }
+  const authorEl = document.createElement('span');
+  authorEl.className = 'author';
+  authorEl.textContent = `${author}:`;
+
+  const textEl = document.createElement('span');
+  textEl.className = 'text';
+  textEl.textContent = text;
+
+  message.append(authorEl, textEl);
+  root.append(message);
 }
 ```
 

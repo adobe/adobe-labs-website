@@ -4,7 +4,7 @@
 
 Mobile accessibility ensures apps work for users with disabilities on iOS and Android devices. This includes support for screen readers (VoiceOver, TalkBack), motor impairments, and various visual disabilities.
 
-Web examples in this document use **Lit** (the library used by Spectrum Web Components) so patterns more closely match SWC implementation context.
+Web examples in this document use vanilla JavaScript and native DOM APIs (no framework or build step required), so patterns can be dropped into any codebase.
 
 ## Touch Target Sizing
 
@@ -36,31 +36,21 @@ Web examples in this document use **Lit** (the library used by Spectrum Web Comp
 </div>
 ```
 
-```ts
+```js
 // Expand hit area without changing visual size (44x44 touch area)
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
+function createIconButton({ label, icon }) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.setAttribute('aria-label', label);
+  button.style.cssText = 'position: relative; padding: 12px; min-width: 44px; min-height: 44px;';
 
-export class IconButton extends LitElement {
-  @property() label = '';
-  @property() icon = '';
+  const iconSpan = document.createElement('span');
+  iconSpan.setAttribute('aria-hidden', 'true');
+  iconSpan.style.cssText = 'display: block; width: 20px; height: 20px;';
+  iconSpan.textContent = icon;
 
-  override render() {
-    return html`
-      <button
-        type="button"
-        aria-label=${this.label}
-        style="position: relative; padding: 12px; min-width: 44px; min-height: 44px;"
-      >
-        <span
-          aria-hidden="true"
-          style="display: block; width: 20px; height: 20px;"
-        >
-          ${this.icon}
-        </span>
-      </button>
-    `;
-  }
+  button.append(iconSpan);
+  return button;
 }
 ```
 
@@ -68,109 +58,97 @@ export class IconButton extends LitElement {
 
 On web, use ARIA attributes and live regions so VoiceOver (iOS Safari) and TalkBack (Android) get the same information.
 
-```ts
-import { LitElement, html } from 'lit';
-import { property, state } from 'lit/decorators.js';
-
+```js
 // Basic accessible button: label + hint
-export class AccessibleButton extends LitElement {
-  @property() title = '';
-  @property() hint = '';
+function createAccessibleButton({ title, hint }) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.setAttribute('aria-label', title);
+  button.textContent = title;
 
-  override render() {
-    return html`
-      <button
-        type="button"
-        aria-label=${this.title}
-        aria-describedby=${this.hint ? 'hint-id' : undefined}
-      >
-        ${this.title}
-      </button>
-      ${this.hint
-        ? html`
-            <span id="hint-id" class="visually-hidden">${this.hint}</span>
-          `
-        : ''}
-    `;
-  }
+  if (!hint) return [button];
+
+  const hintId = `hint-${crypto.randomUUID()}`;
+  button.setAttribute('aria-describedby', hintId);
+
+  const hintEl = document.createElement('span');
+  hintEl.id = hintId;
+  hintEl.className = 'visually-hidden';
+  hintEl.textContent = hint;
+
+  return [button, hintEl];
 }
 
 // Complex component with grouped content and custom actions
-export class ProductCard extends LitElement {
-  @property({ type: Object }) product!: {
-    name: string;
-    price: string;
-    rating: number;
-  };
+function createProductCard(product, { onViewDetails, onAddToCart }) {
+  const { name, price, rating } = product;
 
-  private _onViewDetails() {
-    /* navigate */
-  }
-  private _onAddToCart(e: Event) {
-    e.stopPropagation(); /* add to cart */
-  }
-  private _onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter' || e.key === ' ') this._onViewDetails();
-  }
+  const card = document.createElement('div');
+  card.setAttribute('role', 'button');
+  card.tabIndex = 0;
+  card.setAttribute('aria-label', `${name}, ${price}, ${rating} stars`);
 
-  override render() {
-    const { name, price, rating } = this.product;
-    return html`
-      <div
-        role="button"
-        tabindex="0"
-        aria-label="${name}, ${price}, ${rating} stars"
-        @click=${this._onViewDetails}
-        @keydown=${this._onKeyDown}
-      >
-        <img src="" alt="" aria-hidden="true" />
-        <span>${name}</span>
-        <span>${price}</span>
-        <a href="#" @click=${this._onAddToCart} aria-label="Add to cart">
-          Add to cart
-        </a>
-      </div>
-    `;
-  }
+  const img = document.createElement('img');
+  img.src = '';
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+
+  const nameEl = document.createElement('span');
+  nameEl.textContent = name;
+
+  const priceEl = document.createElement('span');
+  priceEl.textContent = price;
+
+  const addToCartLink = document.createElement('a');
+  addToCartLink.href = '#';
+  addToCartLink.setAttribute('aria-label', 'Add to cart');
+  addToCartLink.textContent = 'Add to cart';
+
+  card.append(img, nameEl, priceEl, addToCartLink);
+
+  card.addEventListener('click', () => onViewDetails(product));
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') onViewDetails(product);
+  });
+  addToCartLink.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onAddToCart(product);
+  });
+
+  return card;
 }
+```
 
-// Announcing dynamic changes (live region)
-export class Counter extends LitElement {
-  @state() private count = 0;
+```html
+<!-- Announcing dynamic changes (live region) -->
+<div class="counter">
+  <div role="status" aria-live="polite" aria-atomic="true">Count: 0</div>
+  <button type="button" aria-label="Increment" aria-describedby="counter-hint">+</button>
+  <span id="counter-hint" class="visually-hidden">Increases the counter by one</span>
+</div>
+```
 
-  private _increment() {
-    this.count += 1;
-    this.announce(`Count is now ${this.count}`);
-  }
+```js
+function initCounter(root) {
+  const statusEl = root.querySelector('[role="status"]');
+  const button = root.querySelector('button');
+  let count = 0;
 
-  private announce(message: string) {
+  function announce(message) {
     const el = document.createElement('div');
     el.setAttribute('role', 'status');
     el.setAttribute('aria-live', 'polite');
     el.className = 'visually-hidden';
     el.textContent = message;
-    document.body.appendChild(el);
+    document.body.append(el);
     setTimeout(() => el.remove(), 1000);
   }
 
-  override render() {
-    return html`
-      <div role="status" aria-live="polite" aria-atomic="true">
-        Count: ${this.count}
-      </div>
-      <button
-        type="button"
-        aria-label="Increment"
-        aria-describedby="counter-hint"
-        @click=${this._increment}
-      >
-        +
-      </button>
-      <span id="counter-hint" class="visually-hidden">
-        Increases the counter by one
-      </span>
-    `;
-  }
+  button.addEventListener('click', () => {
+    count += 1;
+    statusEl.textContent = `Count: ${count}`;
+    announce(`Count is now ${count}`);
+  });
 }
 ```
 
@@ -180,66 +158,31 @@ export class Counter extends LitElement {
 
 On web, provide a visible control for screen reader and keyboard users instead of relying on swipe-only actions.
 
-```ts
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
-
+```js
 // Provide alternatives to complex gestures: always-visible delete for a11y
-export class SwipeableCard extends LitElement {
-  @property({ type: Object }) item!: { title: string };
-  @property({ type: Function }) onDelete!: (item: { title: string }) => void;
+function createSwipeableCard(item, { onDelete }) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.setAttribute('role', 'listitem');
 
-  override render() {
-    const { item, onDelete } = this;
-    return html`
-      <div class="card" role="listitem">
-        <span class="card-title">${item.title}</span>
-        <button
-          type="button"
-          aria-label="Delete ${item.title}"
-          @click=${() => onDelete(item)}
-        >
-          Delete
-        </button>
-      </div>
-    `;
-  }
+  const title = document.createElement('span');
+  title.className = 'card-title';
+  title.textContent = item.title;
+
+  const deleteButton = document.createElement('button');
+  deleteButton.type = 'button';
+  deleteButton.setAttribute('aria-label', `Delete ${item.title}`);
+  deleteButton.textContent = 'Delete';
+  deleteButton.addEventListener('click', () => onDelete(item));
+
+  card.append(title, deleteButton);
+  return card;
 }
 ```
 
 ### Motion and Animation
 
 Respect the user's reduced motion preference (e.g. `prefers-reduced-motion: reduce`).
-
-```ts
-import { LitElement, html } from 'lit';
-import { query } from 'lit/decorators.js';
-
-export class AnimatedComponent extends LitElement {
-  @query('.animated') private animatedEl!: HTMLElement;
-
-  override connectedCallback() {
-    super.connectedCallback();
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => {
-      this.animatedEl?.style.setProperty(
-        'animation',
-        mq.matches ? 'none' : 'slide 0.3s ease'
-      );
-    };
-    mq.addEventListener('change', apply);
-    apply();
-  }
-
-  override render() {
-    return html`
-      <div class="animated">
-        <slot></slot>
-      </div>
-    `;
-  }
-}
-```
 
 ```css
 /* Prefer CSS so reduced motion is automatic */
@@ -251,6 +194,18 @@ export class AnimatedComponent extends LitElement {
   .animated {
     animation: none;
   }
+}
+```
+
+```js
+// Fallback for animations applied via JS rather than CSS
+function initAnimatedElement(el) {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const apply = () => {
+    el.style.animation = mq.matches ? 'none' : 'slide 0.3s ease';
+  };
+  mq.addEventListener('change', apply);
+  apply();
 }
 ```
 
@@ -274,25 +229,6 @@ body {
 
 .component-title {
   font-size: 1.25rem;
-}
-```
-
-```ts
-// Text scales with user's default font size
-import { LitElement, html, css } from 'lit';
-
-export class ScalableText extends LitElement {
-  static styles = css`
-    :host {
-      font-size: 1rem;
-    }
-  `;
-
-  override render() {
-    return html`
-      <slot></slot>
-    `;
-  }
 }
 ```
 
