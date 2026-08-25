@@ -1,7 +1,11 @@
 .*
 *.md
+*.test.js
+babel.config.cjs
+jest.config.mjs
 karma.config.js
 LICENSE
 package.json
 package-lock.json
 test/*
+tests/*

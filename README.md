@@ -68,3 +68,15 @@ Authors insert blocks from the Library in [Document Authoring](https://da.live/#
 4. Preview and publish the spreadsheet.
 
 Authors can then add the block from Library → Blocks. For more on library setup, see [Setup library](https://docs.da.live/administrators/guides/setup-library).
+
+## Testing
+
+To run tests:
+
+```sh
+npm test
+```
+
+### Writing Block Tests
+
+See the [write-block-tests](.ai/skills/write-block-tests/SKILL.md) skill for instructions and guidelines on writing unit tests for blocks.
