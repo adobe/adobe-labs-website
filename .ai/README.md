@@ -2,11 +2,11 @@
 
 Coding agents should start with [`AGENTS.md`](../AGENTS.md) at the repository root. It summarizes how to use this directory as the canonical source for skills.
 
-This directory contains skills and accumulated memory that coding agents use to enforce consistent formatting and structure in our codebase.
+This directory contains the skills coding agents use to enforce consistent formatting and structure in our codebase.
 
 ## Why `.ai/`
 
-All skills live in **`.ai/`** — a tool-agnostic, plain-markdown directory that any agent or tool can read. IDE-specific directories (e.g. `.claude/`) become thin adapters that point back to `.ai/` via symlinks:
+All skills live in **`.ai/`** — a tool-agnostic, plain-markdown directory that any agent or tool can read. IDE-specific directories (e.g. `.claude/`, `.cursor/`) become thin adapters that point back to `.ai/` via symlinks:
 
 - Edit once in `.ai/` → all tools see the update automatically
 - No sync step, no duplication, no drift between tools

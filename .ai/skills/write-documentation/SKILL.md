@@ -1,14 +1,13 @@
 ---
+name: write-documentation
 description: Follow Adobe content writing standards when writing documentation for the Adobe Labs website.
-globs: "**/*.md"
-alwaysApply: false
 ---
 
 # Documentation standards
 
 Follow and understand Adobe content writing standards when writing documentation for the Adobe Labs website.
 
-## When this rule applies
+## When this skill applies
 
 - Writing or updating documentation for this codebase
 - Writing any documentation that is shipped to external consumers

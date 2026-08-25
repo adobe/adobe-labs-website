@@ -1,6 +1,6 @@
 ---
+name: write-issues-tickets
 description: Guidelines for drafting and formatting Jira tickets and GitHub issues
-alwaysApply: false
 ---
 
 # Writing tickets/issues guidelines

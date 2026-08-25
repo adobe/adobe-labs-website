@@ -1,5 +1,5 @@
 ---
-name: performance-review
+name: eds-performance-review
 description: Review a diff for performance cost and lifecycle fragility — before opening a PR, when a change touches scripts.js, aem.js, head.html, images, fonts or dependencies, or when a block wants to hook into core page load for "speed". Analyses the change against the load lifecycle; does not measure.
 ---
 
