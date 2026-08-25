@@ -109,7 +109,7 @@ h2. Sample code or abstract reproduction which illustrates the problem
 (are there any design specs/files/mock-ups we can include here? Any other design notes?)
 
 h2. Severity
-(The severity of the issue according to the [documentation|https://github.com/adobe/spectrum-web-components/blob/main/CONTRIBUTING.md#issue-severity-classification])
+(The severity of the issue according to the classification below)
 ```
 
 ## Severity classification
@@ -123,7 +123,7 @@ h2. Severity
 ## Best practices
 
 - Link to relevant GitHub issues or pull requests using the format: `GH-{number}`
-- Include component name in brackets if applicable: `[sp-button]`
+- Include the block name in brackets if applicable: `[cards]`, `[header]`
 - Add relevant labels for easier filtering
 - Attach screenshots or videos for visual changes
 - Reference design specs or documentation when available

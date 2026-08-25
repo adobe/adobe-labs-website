@@ -1,12 +1,12 @@
 ---
-description: Follow Adobe content writing standards when writing documentation for Spectrum Hub.
+description: Follow Adobe content writing standards when writing documentation for the Adobe Labs website.
 globs: "**/*.md"
 alwaysApply: false
 ---
 
 # Documentation standards
 
-Follow and understand Adobe content writing standards when writing documentation for Spectrum Hub.
+Follow and understand Adobe content writing standards when writing documentation for the Adobe Labs website.
 
 ## When this rule applies
 
@@ -20,13 +20,11 @@ Follow and understand Adobe content writing standards when writing documentation
 
 ### 🚨 Not following Adobe content standards
 
-THE HERO BLOCK SUPPORTS TWO ROWS where the FIRST ROW is always the background (this can be a picture OR a video link!!!) and the second row is the foreground content which contains your text and headings and stuff, and you can also set a focal point on the background image by adding data-focal as an attribute with x% and y% values however be careful because if you don't set this correctly the image might not display properly on all screen sizes and you should always test on mobile AND desktop before publishing because otherwise it might look broken!!!
+THE COLUMNS BLOCK figures out how many columns you have based on however many cells are in the first row and it adds a class like columns-2-cols or columns-3-cols or whatever number applies to the block wrapper, and ALSO if a column's only content is a single picture it gets tagged with columns-img-col so you can target it in CSS, and this matters because otherwise your image columns won't get the special layout treatment and things might look broken on smaller screens if you forget this!!!
 
 ### ✅ Following Adobe content standards
 
-The hero block supports two rows. The first row is the background — either a picture or a video link. The second row is the foreground content, which contains headings, text, and calls to action.
-
-To set a focal point on the background image, add a `data-focal` attribute with `x%,y%` values (e.g. `data-focal:50%,30%`). This controls which part of the image stays visible when cropped on smaller screens.
+The columns block adds a `columns-<n>-cols` class to the block, where `<n>` is the number of cells in the first row. Any column whose only content is an image is also tagged `columns-img-col`, so image columns can be styled separately from text columns.
 
 ## Key patterns
 

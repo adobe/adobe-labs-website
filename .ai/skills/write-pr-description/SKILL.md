@@ -1,5 +1,5 @@
 ---
-description: Generates GitHub pull request title and body following Spectrum Hub conventions.
+description: Generates GitHub pull request title and body following Adobe Labs website conventions.
 alwaysApply: false
 ---
 
@@ -43,7 +43,7 @@ Examples:
 
 - Present title suggestion before description content
 - Description format and structure should follow the pull request template in the Templates section below
-- Accessibility testing checklist is required. Populate keyboard and screen reader with component-specific numbered steps (Storybook paths, expected focus behavior, what should be announced). For non-interactive components (e.g. static elements, dividers), state that clearly under Keyboard (e.g. no focusable parts; confirm no regressions in surrounding examples) and still document Screen reader checks (roles, structure, labels).
+- Accessibility testing checklist is required. Populate keyboard and screen reader with block-specific numbered steps (preview URL/path to the block, expected focus behavior, what should be announced). For non-interactive blocks (e.g. static content, dividers), state that clearly under Keyboard (e.g. no focusable parts; confirm no regressions in surrounding content) and still document Screen reader checks (roles, structure, labels).
 - Include links to related issues, RFCs, or documentation when applicable
 - All descriptions must include clear acceptance criteria and expected outcomes
 - Provide enough context so anyone can understand the objective
@@ -59,7 +59,7 @@ Examples:
 ## Best practices
 
 - Link to relevant issues using the format: `#issue-number`
-- Include component name in parentheses in title if applicable: `(button)`
+- Include the block name in parentheses in title if applicable: `(cards)`
 - Attach screenshots or videos for visual changes
 - Reference design specs or documentation when available
 - Use descriptive commit messages when linking to PRs
@@ -135,7 +135,7 @@ When returning the template, replace all placeholder information with the releva
 ### To Validate
 
 URL for testing:
-https://<branch-name>--spectrum-hub--adobe.aem.page/
+https://<branch-name>--adobe-labs-website--adobe.aem.page/
 
 - [ ] Make sure all PR Checks have passed
 - [ ] Pull down the branch locally or visit the branch preview

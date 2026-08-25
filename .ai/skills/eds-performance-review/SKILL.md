@@ -52,11 +52,11 @@ it delays every block after it:
 
 ```js
 const data = fetch(url).then((r) => r.json());   // started, not awaited
-// … later, in this block's own init(), where it is actually needed
+// … later, in this block's own decorate(), where it is actually needed
 render(await data);
 ```
 
-Starting the request at the top of a block's `init()` and awaiting it only where the result is
+Starting the request at the top of a block's `decorate()` and awaiting it only where the result is
 consumed costs nothing extra and doesn't block sibling blocks queued behind it. Awaiting immediately
 does block them — `loadBlock` awaits each block's module fully before starting the next.
 
@@ -64,7 +64,7 @@ does block them — `loadBlock` awaits each block's module fully before starting
 
 Flag: an `await` whose result nothing reads; a fetch awaited before the point that needs it; a block
 added anywhere in `loadEager`/`loadLazy`'s own awaited chain instead of doing its own work inside its
-`init(el)`.
+`decorate(block)`.
 
 ## Load what this request uses
 
@@ -103,7 +103,7 @@ Legitimate: a new autoblock pattern that builds markup for `decorateMain` to pic
 `consent-check.js`/`consented.js` pattern.
 
 Not legitimate: anything awaiting the network from `loadEager`, a new static import at the top of
-`scripts.js`, or work that could equally happen inside a block's own `init()` or in `loadDelayed`.
+`scripts.js`, or work that could equally happen inside a block's own `decorate()` or in `loadDelayed`.
 
 ## The ruthless test
 
@@ -112,7 +112,7 @@ For anything added to steps 1–6, ask in order:
 1. **CLS** — does removing this cause layout shift that reserved CSS space cannot fix?
 2. **LCP** — does removing this measurably delay paint of the actual LCP element?
 3. **Generic?** — does it work regardless of which blocks are on the page?
-4. **Could it live in the block?** — could the same work happen in that block's `init()`?
+4. **Could it live in the block?** — could the same work happen in that block's `decorate()`?
 5. **Wrong shelf?** — would `loadLazy` or `loadDelayed` produce an identical visible result?
 6. **Measured or imagined?** — is this fixing a profiled waterfall or a theorised one?
 

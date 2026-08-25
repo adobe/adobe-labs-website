@@ -1,6 +1,6 @@
 ---
 name: create-new-block
-description: Scaffold and implement a new EDS block for Spectrum Hub. Use when adding a new block — covers file structure, the init(el) function contract, template injection, CSS conventions, and when to use templates vs per-page authoring vs fragments.
+description: Scaffold and implement a new EDS block for the Adobe Labs website. Use when adding a new block — covers file structure, the decorate(block) function contract, autoblocking, CSS conventions, and when to use per-page authoring vs fragments vs an autoblock.
 ---
 
 # Create a New Block
@@ -20,86 +20,57 @@ blocks/
 
 ## How `loadBlock` resolves a block
 
+`loadBlock` lives in the vendored `scripts/aem.js` — never edit it directly.
+
 ```js
-export async function loadBlock(block) {
-  const { components } = getConfig();
-  const [name] = block.classList;       // first class = block name
-  block.dataset.blockName = name;
-  const style = !components.some((cmp) => name === cmp); // load CSS unless opted out
-  await loadExperience(block, 'blocks', name, style);
-  return block;
+// scripts/aem.js (vendored)
+async function loadBlock(block) {
+  const { blockName } = block.dataset;
+  const cssLoaded = loadCSS(`${window.hlx.codeBasePath}/blocks/${blockName}/${blockName}.css`);
+  const mod = await import(`${window.hlx.codeBasePath}/blocks/${blockName}/${blockName}.js`);
+  if (mod.default) await mod.default(block);
+  await Promise.all([cssLoaded, decorationComplete]);
 }
 ```
 
 Key rules:
-- The **first class** on the element is the block name — no secondary `block` class is needed.
-- `loadExperience` loads `blocks/<name>/<name>.js` and, if `style` is true, `blocks/<name>/<name>.css`.
-- CSS loads automatically for all blocks unless the block name is listed in the `components` array in `scripts.js` (currently `['fragment', 'schedule']`). Add a block there only if it manages its own CSS loading.
+- `block.dataset.blockName` (set by `decorateBlock` from the element's **first class**) determines which folder resolves — no secondary `block` class is needed to identify it, though `decorateBlock` does add one.
+- CSS and JS load together, unconditionally, for **every** block on the page — there is no opt-out list. If a block genuinely has nothing to load, an empty `<block-name>.css` is fine; don't invent a config flag to skip it.
 - **No registration required** — adding a folder under `blocks/` with matching JS and CSS files is sufficient.
 
-## The `init(el)` contract
+## The `decorate(block)` contract
 
 ```js
-export default async function init(el) {
-  // el is the block's DOM element
-  // populate it — don't create a new container
+export default function decorate(block) {
+  // block is the block's DOM element
+  // read its authored content, then replace/append into it
 }
 ```
 
-- `el` is whatever element was passed to `loadBlock` — could be a `<div>`, `<nav>`, `<aside>`, etc.
-- The caller (template or page) may have already set `className`, `aria-label`, and other attributes on `el`. **Do not overwrite them.**
-- Append content into `el` directly. Use `el.replaceChildren()` only when the block is authored directly in a page document with no template pre-creating it.
-- `init` is `async` — `await` any fetches before appending content.
+- The convention in this codebase is `decorate`, not `init` — see [cards.js](../../../blocks/cards/cards.js) and [columns.js](../../../blocks/columns/columns.js) for the pattern.
+- `block` is the element `loadBlock` found — its first class is the block name, already added by `decorateBlock` (`.block`, `data-block-name`, and a `<name>-wrapper` class on its parent, `<name>-container` on the enclosing `.section`).
+- `decorate` can be sync or `async` — `loadBlock` awaits the result either way. Use `async` only if the block needs to `await` something (e.g. `fetch`, `loadFragment`).
+- Read authored content from `block.children` (rows) → each row's `children` (cells) **before** mutating the DOM, since most blocks tear down and rebuild their own markup (see "Content wrappers" below for what that authored content looks like when the block is authored directly on a page).
 
-## How templates inject blocks
+## Autoblocking vs per-page authoring vs fragments
 
-Templates live in `templates/<name>/<name>.js` and run when a page's `template` metadata matches. They pre-create the block element and call `loadBlock`, which resolves the matching block JS by class name.
-
-```js
-import { loadBlock } from '../../scripts/ak.js';
-
-export default async function init() {
-  const main = document.querySelector('main');
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'template-wrapper';
-
-  const myBlock = document.createElement('div');
-  myBlock.className = 'my-block';           // must match blocks/my-block/ folder
-  myBlock.setAttribute('aria-label', '...'); // set accessibility attributes here
-
-  await loadBlock(myBlock); // triggers blocks/my-block/my-block.js init(el)
-
-  main.replaceWith(wrapper);
-  wrapper.append(myBlock, main);
-}
-```
-
-For multiple independent blocks, load them in parallel:
-
-```js
-await Promise.all([loadBlock(sitenav), loadBlock(inPageNav)]);
-```
-
-## When to use templates vs per-page authoring vs fragments
+There is no template-registration layer in this repo (no `templates/` directory) — every block gets onto the page one of these ways:
 
 | Approach | Use when |
 | --- | --- |
-| **Template** | Block appears on every page of a given type (e.g., sitenav on all `landing` and `detail` pages). Registered in `templates/<name>/`. |
-| **Per-page authoring** | Block is content-specific — authors add it to individual pages in the document editor via a table with the block name as the header. |
-| **Fragment** | Content is shared across pages but not global (not header/footer). Author a document at `/fragments/<path>` and reference it with a `fragment` block table on each page. |
+| **Per-page authoring** | Block is content-specific — authors add it to individual pages in the document editor via a table with the block name as the header. This is the default for most blocks. |
+| **Fragment** | Content is shared across pages but not global. Author a document at `/fragments/<path>` and reference it with a link; `buildAutoBlocks` in `scripts.js` turns any `a[href*="/fragments/"]` into a `fragment` block automatically (see `blocks/fragment/fragment.js`). |
+| **Autoblock** | Content should become a block based on a pattern in the markup, without the author adding a block table. `scripts.js`'s `buildAutoBlocks` is the place for this — see `buildWidgetAutoBlocks`, which turns any `a[href*="/widgets/"]` into a `widget` block. Add a new autoblock function alongside it and call it from `buildAutoBlocks`, following the same synthetic-block-then-`buildBlock` pattern. |
 
-Header and footer are special — they are baked into the HTML shell by the delivery pipeline, not authored per-page. `ak.js` finds those empty elements and calls `loadBlock` on them automatically.
+Header and footer are special: `loadHeader`/`loadFooter` in `scripts.js` target the `<header>`/`<footer>` elements already present in the page shell, build a synthetic `header`/`footer` block into them with `buildBlock`, and call `loadBlock` on it automatically — they are never authored per page.
 
 ## CSS file
 
-`loadBlock` automatically loads `blocks/<name>/<name>.css` alongside the JS — no import needed. The CSS file should scope all styles to the block root class and use BEM for any child elements.
-
-For the full CSS authoring reference — design tokens, light/dark mode, nesting conventions, media query syntax, reduced motion, and global utilities — see **[`.ai/skills/stylesheet-conventions/SKILL.md`](../stylesheet-conventions/SKILL.md)**.
+`loadBlock` automatically loads `blocks/<name>/<name>.css` alongside the JS — no import needed. Scope all styles to the block's own root class (`.blockname`); per `AGENTS.md`, `-wrapper`/`-container` suffixes are section-level classes added by `decorateBlock`, not part of the block's own naming.
 
 ## Querying data from the index
 
-Dynamic blocks (sitenav, in-page-nav) fetch data at runtime rather than reading authored content.
+If a block needs to fetch data at runtime rather than reading authored content (none in this repo do today, but it's a common EDS pattern for things like a site nav or a filtered listing):
 
 ```js
 const resp = await fetch('/query-index.json');
@@ -109,233 +80,61 @@ const { data } = await resp.json();
 
 `data` is an array of page objects: `{ path, title, description, ... }`.
 
-Filter by the current top-level URL section:
+## Content wrappers inside `block`
+
+When a block is authored directly in a page document, `decorateSections` (in `aem.js`) groups each section's top-level children into wrapper divs before blocks load:
+
+- Runs of non-`div` elements (paragraphs, headings, images, inline text) get wrapped in a `div.default-content-wrapper`.
+- Runs of `div` elements (nested block/table content, including the block's own row/cell markup) get wrapped too, but with no special class of their own.
+
+`decorateBlocks`/`decorateBlock` then walk `div.section > div > div` — so a block element's **parent** is one of these wrapper divs, and it's the parent that gets the `<name>-wrapper` class, not the block itself. Account for this when a block's authored content sits alongside unrelated default content in the same section; within the block element itself, authored rows are just nested `div > div` (row → cell), with no `.default-content-wrapper`/`.block-content` split — that split only applies at the section level, above the block.
+
+Blocks built synthetically (via `buildBlock`, e.g. `header`, `footer`, `widget`) have no authored wrappers — the element handed to `decorate` is whatever `buildBlock` constructed, with no children until `decorate` populates it.
+
+## Block authoring conventions, grounded in this repo's existing blocks
+
+### Class naming — flat, not BEM
+
+This codebase does not use BEM (`block__element--modifier`). Classes added by `decorate` are flat, hyphenated, and prefixed with the block name:
 
 ```js
-const [, topSection] = window.location.pathname.split('/');
-const sectionPages = data.filter(({ path }) => path.startsWith(`/${topSection}/`));
+// blocks/cards/cards.js
+div.className = 'cards-card-image'; // or 'cards-card-body'
 ```
-
-For reading headings from the current page (TOC/in-page-nav pattern):
 
 ```js
-const headings = [...document.querySelectorAll('main h2, main h3')]
-  .filter((h) => !el.contains(h)); // exclude any headings inside the block itself
+// blocks/columns/columns.js
+block.classList.add(`columns-${cols.length}-cols`); // e.g. columns-3-cols
+picWrapper.classList.add('columns-img-col');
 ```
 
-## Block variants and modifiers
+Follow this shape for new blocks: `<blockname>-<descriptor>`, not `<blockname>__<descriptor>`.
 
-Extra classes on a block element are variant/modifier flags. `loadBlock` always uses only the **first** class as the block name — additional classes do not affect which JS or CSS file loads. They are purely CSS targets.
+### Design tokens
 
-```html
-<!-- "centered" and "dark" are modifiers — only "hero" drives block resolution -->
-<div class="hero centered dark">...</div>
-```
-
-```css
-.hero {
-  /* base styles */
-
-  &.centered { text-align: center; }
-  &.dark { background-color: var(--s2-gray-1000); color: var(--s2-gray-25); }
-}
-```
-
-If a variant needs meaningfully different JS behavior, check for the modifier class inside `init`:
-
-```js
-export default async function init(el) {
-  const isDark = el.classList.contains('dark');
-  // ...
-}
-```
-
-## Content wrappers inside `el`
-
-When a block is authored directly in a page document, `ak.js` runs `groupChildren` on each section before loading blocks. It groups consecutive children into wrapper divs based on element type:
-
-- **`.default-content`** — wraps runs of non-`div` elements (paragraphs, headings, images, inline text)
-- **`.block-content`** — wraps runs of `div` elements (nested block containers)
-
-```js
-// ak.js — groupChildren (simplified)
-// non-div children → .default-content
-// div children     → .block-content
-```
-
-`loadBlock` preserves these wrappers — they are present in the DOM when `init(el)` runs. Individual block JS may choose to strip them after reading the content, but that is the block's own decision.
-
-Account for the wrappers when querying inside `el`:
-
-```js
-export default async function init(el) {
-  // Text/heading content sits inside .default-content, not directly in el
-  const defaultContent = el.querySelector('.default-content');
-  // Nested block divs sit inside .block-content
-  const blockContent = el.querySelector('.block-content');
-  // Or query specific elements regardless of nesting depth:
-  const links = el.querySelectorAll('a');
-}
-```
-
-Blocks injected by templates (e.g. sitenav, in-page-nav) are created programmatically with no authored content — `el` has no children when `init` starts, so no wrappers are present.
-
-## Block authoring conventions
+Reference existing design tokens (`--s2a-color-*`, `--s2a-typography-*`, from `styles/lib/s2a-tokens-*`) rather than hardcoding colors or type values — see `blocks/hero/hero.css` for examples like `var(--s2a-color-gray-25, #fff)`.
 
 ### Reduce div soup
 
-EDS decoration leaves unnecessary container elements in the DOM. Use `replaceWith` to swap wrapper divs for semantic elements rather than appending inside them.
-
-```js
-// Instead of appending into a generic div, replace it with a semantic element
-const section = el.querySelector('.default-content');
-const article = document.createElement('article');
-article.innerHTML = section.innerHTML;
-section.replaceWith(article);
-```
-
-Where it is necessary to retain classes from a parent or grandparent (e.g. EDS-injected classes), copy them onto the replacement element before calling `replaceWith`.
+EDS decoration leaves unnecessary container elements in the DOM. Use `replaceWith`/`replaceChildren` to swap wrapper divs for the real element structure rather than appending inside them — see how `cards.js` replaces each row with a semantic `<li>` inside a `<ul>`, and `footer.js`'s `decorate` replaces the block's own children with the loaded fragment's sections.
 
 ### Prefer object syntax for DOM data
 
-When reading block content from table rows, assign it to a named object first. This keeps optional chaining isolated to one place and makes the rest of the function readable.
+When reading block content from row/cell divs, assign it to a named object first. This keeps optional chaining isolated to one place and makes the rest of the function readable.
 
 ```js
 const data = {
-  backgroundColor: el.children?.[0]?.innerText?.trim(),
-  textContent: el.children?.[1]?.children?.[0],
-  imageContent: el.children?.[1]?.children?.[1],
-  altText: el.children?.[1]?.children?.[2]?.innerText?.trim(),
-  primaryVariant: Boolean(el.children?.[2]?.innerText?.trim()),
+  backgroundColor: block.children?.[0]?.innerText?.trim(),
+  imageCell: block.children?.[1]?.children?.[1],
 };
 
-// Now use the object — no optional chaining clutter in the logic
-if (data.primaryVariant) {
-  layout.classList.add('my-block--primary');
-} else {
-  layout.style.background = `var(--spectrum-${data.backgroundColor})`;
+if (data.backgroundColor) {
+  el.style.setProperty('--background-color', data.backgroundColor);
 }
 ```
 
-### Use BEM for class names
-
-Use `block__element--modifier` naming for classes added inside a block. The block folder name is the BEM block; elements and modifiers are scoped under it.
-
-```css
-/* block */
-.my-block { ... }
-
-/* element */
-.my-block__heading { ... }
-.my-block__image { ... }
-
-/* modifier on the block */
-.my-block--primary { ... }
-
-/* modifier on an element */
-.my-block__heading--large { ... }
-```
-
-The block root class (`my-block`) is set by `loadBlock` from the first class on the element. All additional classes added by `init` should follow BEM from there.
-
 ## Testing
 
-Every block has two kinds of tests.
+New blocks need a Jest unit test co-located with the block — see the [`write-block-tests`](../write-block-tests/SKILL.md) skill for the full pattern (fixtures, mocking `aem.js`/`fragment.js`, style, checklist). `blocks/footer/footer.test.js`, `blocks/columns/columns.test.js`, and `blocks/header/header.test.js` are working examples in this repo.
 
-### Unit tests
-
-Unit tests live in `test/blocks/<name>.test.js` and run in a real browser via `@web/test-runner`. They mount the block element directly and call `init(el)`, then assert on the resulting DOM. See existing tests for the pattern — `test/blocks/card.test.js` is a good reference.
-
-### Accessibility tests
-
-axe-core WCAG 2.2 AA scans run against every block and template via Playwright. **A new block is not done until it has both of these files** — a background check (`test/a11y/coverage.spec.js`) fails CI if a block under `blocks/` has no matching spec file, so don't skip this step when scaffolding.
-
-1. Create `test/a11y/fixtures/<name>.html`. The fixture is a minimal HTML page that loads the block's CSS with `<link>` and initializes it with `<script type="module">`. Use a `data:` URI image placeholder so fixture images never 404. Two easy-to-miss requirements that fail *silently* (the block just quietly renders nothing, with no error) rather than throwing: author the block's own markup in raw row → cell(div) → content shape, not simplified/decorated HTML, since `init()` reads it by walking `:scope > div`; and wrap the block in a `<div class="section">` — a block placed directly under `<main>` is hidden by EDS's flash-of-undecorated-content guard.
-
-   ```html
-   <!DOCTYPE html>
-   <html lang="en">
-   <head>
-     <meta charset="UTF-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <title>My-block fixture</title>
-     <link rel="stylesheet" href="/styles/styles.css">
-     <link rel="stylesheet" href="/blocks/my-block/my-block.css">
-   </head>
-   <body>
-     <main id="main-content">
-       <div class="section">
-         <div class="my-block">
-           <div>
-             <div><!-- cell content here --></div>
-           </div>
-         </div>
-       </div>
-     </main>
-     <script type="module">
-       import init from '/blocks/my-block/my-block.js';
-       document.querySelectorAll('.my-block').forEach(init);
-     </script>
-   </body>
-   </html>
-   ```
-
-2. Create `test/a11y/blocks/<name>.spec.js` — one file per block, no shared registry to edit. Copy [`test/a11y/blocks/card.spec.js`](../../../test/a11y/blocks/card.spec.js) as a starting template: a light-mode axe scan, an accessibility-tree snapshot, and a dark-mode axe scan, in that order:
-
-   ```js
-   import AxeBuilder from '@axe-core/playwright';
-   import { test, expect } from '../axe-test.js';
-   import { gotoBlock, formatViolations } from '../block-a11y.js';
-
-   const block = {
-     name: 'my-block',
-     path: '/test/a11y/fixtures/my-block.html',
-     readySelector: '.my-block-inner', // element that appears after init completes
-   };
-
-   test(`${block.name} block in light/default mode has no WCAG 2.2 AA violations`, async ({ page, makeAxeBuilder }) => {
-     await gotoBlock(page, block);
-
-     const results = await makeAxeBuilder()
-       .disableRules(block.disableRules ?? [])
-       .analyze();
-
-     expect(results.violations, formatViolations(results.violations)).toHaveLength(0);
-   });
-
-   test(`${block.name} block matches its expected accessibility tree`, async ({ page }, testInfo) => {
-     // Mobile Chrome also runs on the Chromium engine, so `browserName` alone can't isolate a
-     // single run — check the project by name to actually run this once, not twice.
-     test.skip(testInfo.project.name !== 'chromium', 'ARIA tree is browser/viewport-agnostic; only the chromium project needs to run it');
-
-     await gotoBlock(page, block);
-
-     await expect(page.locator(block.ariaRoot ?? `.${block.name}`)).toMatchAriaSnapshot(`
-       - ...
-     `);
-   });
-
-   test(`${block.name} block in dark mode has no WCAG 2.2 AA violations`, async ({ page }, testInfo) => {
-     await page.emulateMedia({ colorScheme: 'dark' });
-     await gotoBlock(page, block);
-
-     const results = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
-
-     await testInfo.attach('accessibility-scan-results', {
-       body: JSON.stringify(results, null, 2),
-       contentType: 'application/json',
-     });
-
-     expect(results.violations, formatViolations(results.violations)).toHaveLength(0);
-   });
-   ```
-
-   `readySelector` is a CSS selector for any element created by `init` — the test waits for it before running axe. If the block removes itself from the DOM on init (like `section-metadata`), use `{ selector: '.my-block', state: 'detached' }` instead of a string.
-
-   **All three `test(...)` calls must be written directly in this file**, not moved into a shared helper — Playwright reports a failing test's file/line as wherever `test()` is literally called, so hiding it in `block-a11y.js` would make every block's failures misreport as coming from that one shared file. Generate/update the accessibility-tree snapshot with `npx playwright test test/a11y/blocks/<name>.spec.js --project=chromium -g "accessibility tree" --update-snapshots`.
-
-   If the block fetches remote data at runtime, add a `routes` array to the `block` object to mock those requests — copy [`test/a11y/blocks/header.spec.js`](../../../test/a11y/blocks/header.spec.js) for a worked example. Add reusable mock strings to [`test/a11y/mocks.js`](../../../test/a11y/mocks.js); keep one-off mocks inline in the spec file.
-
-   The rare block that renders arbitrary passthrough content with no fixed structure to assert against (e.g. `fragment`) can be exempted instead of given a spec file — see the `EXCLUDED` set in `test/a11y/coverage.spec.js`. This should be an explicit, justified exception, not a default.
-
-For template-specific requirements (`setConfig`), the fixture-markup gotchas in full, and what to update when an existing block's behavior changes, see [`test/a11y/README.md`](../../../test/a11y/README.md).
+There is no accessibility-test scaffolding in this repo yet (no `test/a11y/`, no axe-core/Playwright wiring) — don't reference or scaffold it until that infrastructure actually exists.
