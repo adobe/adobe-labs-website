@@ -331,6 +331,13 @@ main > div {
   }
 }
 
+:root[data-theme="dark"] .button,
+body.color-scheme-dark .button {
+  --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-dark-default);
+  --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-dark-hover);
+  --color-button-text-primary: var(--s2a-color-button-content-primary-solid-inverse);
+}
+
 /* --- Icons --- */
 .icon {
   display: inline-block;
