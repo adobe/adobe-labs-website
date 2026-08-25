@@ -1,0 +1,134 @@
+function getFields(block) {
+  const fields = {};
+  [...block.children].forEach((row) => {
+    const [label, cell] = row.children;
+    if (!label || !cell) return;
+    const name = label.textContent.trim().toLowerCase().replace(/\s+/g, '-');
+    fields[name] = cell;
+  });
+  return fields;
+}
+
+function textFrom(cell) {
+  return cell?.textContent.trim() || '';
+}
+
+function hrefFrom(cell) {
+  if (!cell) return '';
+  const link = cell.querySelector('a[href]');
+  return link ? link.href : textFrom(cell);
+}
+
+function safeHref(value) {
+  if (!value) return '';
+  try {
+    const url = new URL(value, window.location.href);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+  } catch {
+    /* ignore invalid URLs */
+  }
+  return '';
+}
+
+function mediaFrom(cell) {
+  if (!cell) return null;
+  return cell.querySelector('picture') || cell.querySelector('img');
+}
+
+function htmlToFragment(html) {
+  const template = document.createElement('template');
+  template.innerHTML = html.trim();
+  return template.content;
+}
+
+function setText(root, selector, value) {
+  const el = root.querySelector(selector);
+  if (!el) return;
+  if (value) el.textContent = value;
+  else el.remove();
+}
+
+const CATEGORY_PATHS = {
+  research: '/research',
+  workflows: '/workflows',
+  sneaks: '/sneaks',
+  playground: '/playground',
+};
+
+function toSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^0-9a-z]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function categoryHref(name) {
+  return CATEGORY_PATHS[toSlug(name)] || '';
+}
+
+function isTrue(cell) {
+  return /^(true|yes|1)$/i.test(textFrom(cell));
+}
+
+export default function decorate(block) {
+  const fields = getFields(block);
+  const title = textFrom(fields.title);
+  const href = safeHref(hrefFrom(fields.url));
+  const category = textFrom(fields.category);
+  const categoryPath = category ? categoryHref(category) : '';
+  const subhead = textFrom(fields.subhead);
+  const alt = textFrom(fields['alt-text']);
+  const media = mediaFrom(fields.image);
+  const isVideo = isTrue(fields.isvideo || fields['is-video']);
+  const mainTag = href ? 'a' : 'div';
+  const categoryTag = categoryPath ? 'a' : 'span';
+
+  const root = htmlToFragment(`
+    ${category ? `<${categoryTag} class="grid-item-category label">
+      <span class="grid-item-category-swatch" aria-hidden="true"></span>
+      <span class="grid-item-category-name"></span>
+    </${categoryTag}>` : ''}
+    <${mainTag} class="grid-item-main">
+      ${isVideo ? '<span class="visually-hidden">Video article</span>' : ''}
+      <div class="grid-item-image">
+        ${isVideo ? `<span class="grid-item-play" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" width="12" height="12" focusable="false">
+            <path fill="currentColor" d="M9.95 5.079c.467.269.467.943 0 1.212L3.05 10.275C2.583 10.544 2 10.207 2 9.668V1.701c0-.539.583-.876 1.05-.606z"/>
+          </svg>
+        </span>` : ''}
+      </div>
+      <div class="grid-item-body">
+        <p class="grid-item-title heading-6"></p>
+        ${subhead ? '<p class="grid-item-subhead body-md"></p>' : ''}
+      </div>
+    </${mainTag}>
+  `);
+
+  const main = root.querySelector('.grid-item-main');
+  if (href) main.href = href;
+
+  if (media) {
+    const img = media.tagName === 'IMG' ? media : media.querySelector('img');
+    if (img) {
+      if (alt) img.alt = alt;
+      else if (title || subhead) img.alt = '';
+    }
+    const image = root.querySelector('.grid-item-image');
+    const play = image.querySelector('.grid-item-play');
+    if (play) play.before(media);
+    else image.append(media);
+  }
+
+  if (category) {
+    const categoryEl = root.querySelector('.grid-item-category');
+    if (categoryPath) categoryEl.href = categoryPath;
+    setText(root, '.grid-item-category-name', category);
+    block.dataset.category = toSlug(category);
+  }
+
+  if (subhead) setText(root, '.grid-item-subhead', subhead);
+  setText(root, '.grid-item-title', title);
+
+  block.replaceChildren(root);
+}

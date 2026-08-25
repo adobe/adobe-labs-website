@@ -26,6 +26,12 @@
   --link-color: #3b63fb;
   --link-hover-color: #1d3ecf;
 
+  /* grid-item category swatches (not in S2A) */
+  --color-category-research: #6491b1;
+  --color-category-workflows: #dc8f62;
+  --color-category-sneaks: #a179ec;
+  --color-category-playground: #64b180;
+
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, "Arial Bold Adjusted", sans-serif;
