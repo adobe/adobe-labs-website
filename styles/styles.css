@@ -315,13 +315,14 @@ main > div {
     outline-offset: var(--s2a-border-width-md);
   }
 
-  &:disabled,
-  &:disabled:hover {
+  &:is(:disabled, [aria-disabled="true"]),
+  &:is(:disabled, [aria-disabled="true"]):hover {
+    background-color: var(--color-button-background-primary-disabled);
     color: var(--color-button-text-disabled);
     cursor: unset;
   }
 
-  &:active {
+  &:active:not(:disabled, [aria-disabled="true"]) {
     transform:
       perspective(max(
         var(--active-downstate-height),
