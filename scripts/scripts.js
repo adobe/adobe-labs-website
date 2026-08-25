@@ -189,7 +189,25 @@ async function loadLazy(doc) {
   loadFooter(doc.querySelector('body > footer'));
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
+
+  // Down state: include widths and heights for elements that use S2 calculated perspective.
+  setCalculatedPerspective();
+  const setCalcPerspectiveDebounced = debounce(setCalculatedPerspective);
+  window.addEventListener('resize', setCalcPerspectiveDebounced);
 }
+
+/**
+ * Down state: include widths and heights for elements that use S2 calculated perspective.
+ * Sets custom property values used by the perspective CSS.
+ */
+const setCalculatedPerspective = () => {
+  const elements = document.querySelectorAll('.button, .filter-group__button');
+  elements.forEach(el => {
+    if (el.offsetWidth == 0 || el.offsetHeight == 0) return;
+    el.style.setProperty('--active-downstate-width', el.offsetWidth + 'px');
+    el.style.setProperty('--active-downstate-height', el.offsetHeight + 'px');
+  });
+};
 
 /**
  * Loads everything that happens a lot later,

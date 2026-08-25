@@ -274,6 +274,9 @@ main > div {
   --color-button-background-primary-disabled: var(--s2a-color-background-disabled);
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
   --color-button-text-disabled: var(--s2a-color-content-disabled);
+  --active-size-width-ratio-down: 0.3333;
+  --active-size-minimum-perspective-down: 1.5rem;
+  --active-size-difference-down: -2px;
 
   box-sizing: border-box;
   display: inline-flex;
@@ -299,6 +302,10 @@ main > div {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
+  transition-timing-function: cubic-bezier(.45,0,.4,1);
+  transition-duration: .13s;
+  transition-property: outline, border-color, color, background-color, transform;
+
   &:hover {
     text-decoration-line: none;
   }
@@ -317,9 +324,9 @@ main > div {
   &:active {
     transform:
       perspective(max(
-        var(--spectrum-downstate-height, 2.0rem),
-        var(--spectrum-downstate-width, 150px) * var(--spectrum-component-size-width-ratio-down)))
-      translateZ(var(--spectrum-component-size-difference-down));
+        var(--active-downstate-height),
+        var(--active-downstate-width) * var(--active-size-width-ratio-down)))
+      translateZ(var(--active-size-difference-down));
   }
 }
 
