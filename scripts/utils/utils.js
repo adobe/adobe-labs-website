@@ -92,14 +92,14 @@ export function isAuthoredTrue(cell) {
  * @param {Number} timeout - The number of milliseconds to wait prior to rerun.
  * @returns {Function}
  */
+// eslint-disable-next-line import/prefer-default-export
 export const debounce = (trigger, timeout = 200) => {
-    let timeoutId;
-  
-    return (...args) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        trigger(...args);
-      }, timeout);
-    };
+  let timeoutId;
+
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      trigger(...args);
+    }, timeout);
   };
-  
+};

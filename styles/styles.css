@@ -42,6 +42,11 @@
 
   /* sizing */
   --site-max-inline-size: 120rem; /* 1920px */
+
+  /* buttons */
+  --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
+  --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-light-hover);
+  --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
 }
 
 /* --- Reset --- */
@@ -95,6 +100,13 @@ body {
 
 body.appear {
   display: block;
+}
+
+:root[data-theme="dark"],
+body.color-scheme-dark {
+  --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-dark-default);
+  --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-dark-hover);
+  --color-button-text-primary: var(--s2a-color-button-content-primary-solid-inverse);
 }
 
 a {
@@ -269,10 +281,7 @@ main > div {
   --border-radius-button: var(--s2a-border-radius-round);
   --letter-spacing-button: var(--s2a-typography-letter-spacing-label);
   --focus-border-radius: var(--border-radius-button);
-  --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
-  --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-light-hover);
   --color-button-background-primary-disabled: var(--s2a-color-background-disabled);
-  --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
   --color-button-text-disabled: var(--s2a-color-content-disabled);
   --active-size-width-ratio-down: 0.3333;
   --active-size-minimum-perspective-down: 1.5rem;
@@ -295,13 +304,10 @@ main > div {
   text-align: center;
   text-decoration-line: none;
   cursor: pointer;
-
   background-color: var(--color-button-background-primary);
   color: var(--color-button-text-primary);
-
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
   transition-timing-function: cubic-bezier(.45,0,.4,1);
   transition-duration: .13s;
   transition-property: outline, border-color, color, background-color, transform;
@@ -329,13 +335,12 @@ main > div {
         var(--active-downstate-width) * var(--active-size-width-ratio-down)))
       translateZ(var(--active-size-difference-down));
   }
-}
 
-:root[data-theme="dark"] .button,
-body.color-scheme-dark .button {
-  --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-dark-default);
-  --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-dark-hover);
-  --color-button-text-primary: var(--s2a-color-button-content-primary-solid-inverse);
+  &--static-white {
+    --color-button-background-primary: var(--s2a-color-gray-25);
+    --color-button-background-primary-hover: var(--s2a-color-transparent-white-64);
+    --color-button-text-primary: var(--s2a-color-gray-1000);
+  }
 }
 
 /* --- Icons --- */

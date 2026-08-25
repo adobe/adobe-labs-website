@@ -22,8 +22,8 @@ import {
   loadCSS,
   buildBlock,
 } from './aem.js';
-import { 
-  debounce 
+import {
+  debounce,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -173,6 +173,19 @@ async function loadEager(doc) {
 }
 
 /**
+ * Down state: include widths and heights for elements that use S2 calculated perspective.
+ * Sets custom property values used by the perspective CSS.
+ */
+function setCalculatedPerspective() {
+  const elements = document.querySelectorAll('.button, .filter-group__button');
+  elements.forEach((el) => {
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
+    el.style.setProperty('--active-downstate-width', `${el.offsetWidth}px`);
+    el.style.setProperty('--active-downstate-height', `${el.offsetHeight}px`);
+  });
+}
+
+/**
  * Loads everything that doesn't need to be delayed.
  * @param {Element} doc The container element
  */
@@ -195,19 +208,6 @@ async function loadLazy(doc) {
   const setCalcPerspectiveDebounced = debounce(setCalculatedPerspective);
   window.addEventListener('resize', setCalcPerspectiveDebounced);
 }
-
-/**
- * Down state: include widths and heights for elements that use S2 calculated perspective.
- * Sets custom property values used by the perspective CSS.
- */
-const setCalculatedPerspective = () => {
-  const elements = document.querySelectorAll('.button, .filter-group__button');
-  elements.forEach(el => {
-    if (el.offsetWidth == 0 || el.offsetHeight == 0) return;
-    el.style.setProperty('--active-downstate-width', el.offsetWidth + 'px');
-    el.style.setProperty('--active-downstate-height', el.offsetHeight + 'px');
-  });
-};
 
 /**
  * Loads everything that happens a lot later,
