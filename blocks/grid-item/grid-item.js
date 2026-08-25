@@ -63,8 +63,12 @@ function toSlug(name) {
     .replace(/^-|-$/g, '');
 }
 
-function categoryHref(name) {
-  return CATEGORY_PATHS[toSlug(name)] || '';
+function resolveCategory(name) {
+  if (!name) return null;
+  const slug = toSlug(name);
+  const path = CATEGORY_PATHS[slug];
+  if (!path) return null;
+  return { slug, path, label: name };
 }
 
 function isTrue(cell) {
@@ -75,20 +79,18 @@ export default function decorate(block) {
   const fields = getFields(block);
   const title = textFrom(fields.title);
   const href = safeHref(hrefFrom(fields.url));
-  const category = textFrom(fields.category);
-  const categoryPath = category ? categoryHref(category) : '';
+  const category = resolveCategory(textFrom(fields.category));
   const subhead = textFrom(fields.subhead);
   const alt = textFrom(fields['alt-text']);
   const media = mediaFrom(fields.image);
   const isVideo = isTrue(fields.isvideo || fields['is-video']);
   const mainTag = href ? 'a' : 'div';
-  const categoryTag = categoryPath ? 'a' : 'span';
 
   const root = htmlToFragment(`
-    ${category ? `<${categoryTag} class="grid-item-category label">
+    ${category ? `<a class="grid-item-category label">
       <span class="grid-item-category-swatch" aria-hidden="true"></span>
       <span class="grid-item-category-name"></span>
-    </${categoryTag}>` : ''}
+    </a>` : ''}
     <${mainTag} class="grid-item-main">
       ${isVideo ? '<span class="visually-hidden">Video article</span>' : ''}
       <div class="grid-item-image">
@@ -122,9 +124,9 @@ export default function decorate(block) {
 
   if (category) {
     const categoryEl = root.querySelector('.grid-item-category');
-    if (categoryPath) categoryEl.href = categoryPath;
-    setText(root, '.grid-item-category-name', category);
-    block.dataset.category = toSlug(category);
+    categoryEl.href = category.path;
+    setText(root, '.grid-item-category-name', category.label);
+    block.dataset.category = category.slug;
   }
 
   if (subhead) setText(root, '.grid-item-subhead', subhead);
