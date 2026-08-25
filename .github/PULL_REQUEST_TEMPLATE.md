@@ -35,7 +35,18 @@ We should aim to support the latest version of the listed browsers. For older ve
 
 Developers should test as they work in the browsers available on their machines. If they have access to other devices to test other browser/OS combinations, they should do that when possible.
 
-Use [BrowserStack](https://www.browserstack.com/) for cross-browser and device testing. Credentials are in the Sparkbox 1Password.
+### Testing Blocks
+
+Blocks should undergo comprehensive testing within the context of full pages to ensure they work as expected in real-use scenarios.
+
+**MacOS**
+* [ ] Firefox
+* [ ] Chrome
+* [ ] Safari
+
+### Testing Pages
+
+By sharing components across multiple pages, we aim to minimize duplicated browser testing and fixes. This approach also enables us to prioritize testing and fixes based on the market share of key OS and browser combinations.
 
 **Windows**
 * [ ] Firefox
