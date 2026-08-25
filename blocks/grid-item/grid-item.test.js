@@ -134,4 +134,64 @@ describe('grid-item block', () => {
 
     expect(block.querySelector('img')).toHaveAttribute('alt', '');
   });
+
+  describe('date subhead', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date(2026, 7, 25));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('fills the subhead with a formatted date by default', () => {
+      const block = createBlock({
+        Title: 'Lab project',
+        Date: '2026-10-21',
+      });
+
+      decorate(block);
+
+      expect(within(block).getByText('Oct 21')).toHaveClass('grid-item-subhead');
+    });
+
+    it('includes the year when the date is not this year', () => {
+      const block = createBlock({
+        Title: 'Lab project',
+        Date: '2027-10-21',
+      });
+
+      decorate(block);
+
+      expect(within(block).getByText('Oct 21, 2027')).toHaveClass('grid-item-subhead');
+    });
+
+    it('prefers the formatted date over an authored subhead by default', () => {
+      const block = createBlock({
+        Title: 'Lab project',
+        Date: '2026-10-21',
+        Subhead: 'A short description',
+      });
+
+      decorate(block);
+
+      expect(within(block).getByText('Oct 21')).toHaveClass('grid-item-subhead');
+      expect(within(block).queryByText('A short description')).toBeNull();
+    });
+
+    it('uses the authored subhead when subhead-description is set', () => {
+      const block = createBlock({
+        Title: 'Lab project',
+        Date: '2026-10-21',
+        Subhead: 'A short description',
+      });
+      block.classList.add('subhead-description');
+
+      decorate(block);
+
+      expect(within(block).getByText('A short description')).toHaveClass('grid-item-subhead');
+      expect(within(block).queryByText('Oct 21')).toBeNull();
+    });
+  });
 });

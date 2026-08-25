@@ -51,7 +51,7 @@ A block is a named table in a document. Authors insert it; developers style and 
 
 1. Create `blocks/<block-name>/` with a CSS file, and a JS file if the block needs decoration.
 2. Scope CSS to `.block-name`. Section wrappers use `.block-name-wrapper` / `.block-name-container` — do not put block layout CSS only on those unless you mean to style the section shell.
-3. Authors can omit cells and add options in the table header, for example `grid-item (aspect-4/5)`. Options become extra classes on the block (`aspect-4-5`). Decorate defensively.
+3. Authors can omit cells and add options in the table header, for example `grid-item (aspect-4/5)` or `grid-item (subhead-description)`. Options become extra classes on the block (`aspect-4-5`, `subhead-description`). Decorate defensively.
 4. Run `npm start` and place the block on a preview page to verify. Inspect `http://localhost:3000/<path>.plain.html` if the authored markup is unclear.
 
 See [The Anatomy of a Project](https://www.aem.live/developer/anatomy-of-a-project) and [Exploring blocks](https://www.aem.live/docs/exploring-blocks).
@@ -68,6 +68,30 @@ Authors insert blocks from the Library in [Document Authoring](https://da.live/#
 4. Preview and publish the spreadsheet.
 
 Authors can then add the block from Library → Blocks. For more on library setup, see [Setup library](https://docs.da.live/administrators/guides/setup-library).
+
+### content-grid (query-driven)
+
+The homepage **Latest Content** section uses `content-grid` with a key/value table:
+
+| Field | Meaning |
+| --- | --- |
+| Content Type | `All` (no filter) or a page `content-type` value (`article`, `video`) |
+| Category | `All` (no filter) or Research, Workflows, Sneaks, Playground — matched from the page folder (`/research/...`) |
+| Count | How many cards to show (defaults to 8) |
+
+The block fetches `/query-index.json?limit=1000`, filters client-side, and renders each hit as a `grid-item` (3:2). Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Category comes from the first path segment; optional page metadata `category` overrides that when it is one of the four known values.
+
+Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the block header (`content-grid (subhead-description)` or `grid-item (subhead-description)`) to use the description / Subhead cell instead.
+
+Cards stay empty until indexed article pages exist. Index config lives at [tools.aem.live](https://www.aem.live/developer/indexing) (this repo does not contain `helix-query.yaml`).
+
+**Index properties** (reindex after saving):
+
+- Keep `title`, `image`, `description`, `publicationDate`, `robots`
+- Add `contentType` from `meta[name="content-type"]` if you filter by Content Type
+- Add `isVideo` from `meta[name="isvideo"]` so the play icon can follow page metadata outside `/sneaks/`
+
+**On each Labs article in DA**, put the page under `/research`, `/workflows`, `/sneaks`, or `/playground`, and author description, `og:image`, and publication date. The block drops `noindex` pages and paths under `/docs` or `/fragments`.
 
 ## Testing
 

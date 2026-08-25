@@ -1,0 +1,32 @@
+.content-grid-wrapper {
+  container: content-grid / inline-size;
+}
+
+.content-grid > ul {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s2a-spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.content-grid > ul > li {
+  min-inline-size: 0;
+}
+
+.content-grid .grid-item {
+  max-width: none;
+}
+
+@container content-grid (inline-size >= 700px) {
+  .content-grid > ul {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@container content-grid (inline-size >= 1024px) {
+  .content-grid > ul {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

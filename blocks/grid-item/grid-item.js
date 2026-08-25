@@ -1,3 +1,5 @@
+import { formatCardDate } from '../../scripts/utils/utils.js';
+
 function getFields(block) {
   const fields = {};
   [...block.children].forEach((row) => {
@@ -80,7 +82,11 @@ export default function decorate(block) {
   const title = textFrom(fields.title);
   const href = safeHref(hrefFrom(fields.url));
   const category = resolveCategory(textFrom(fields.category));
-  const subhead = textFrom(fields.subhead);
+  const dateLabel = formatCardDate(textFrom(fields.date) || textFrom(fields['publication-date']));
+  const description = textFrom(fields.subhead);
+  const subhead = block.classList.contains('subhead-description')
+    ? description
+    : (dateLabel || description);
   const alt = textFrom(fields['alt-text']);
   const media = mediaFrom(fields.image);
   const isVideo = isTrue(fields.isvideo || fields['is-video']);

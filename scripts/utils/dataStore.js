@@ -29,11 +29,9 @@ const currentRequests = new Map();
 
 /**
  * Commonly used endpoints for the project.
- *
- * TODO: Update for Adobe Labs.
  */
 const commonEndpoints = {
-  queryIndex: '/query-index.json',
+  queryIndex: '/query-index.json?limit=1000',
   ideas: '/query-index.json?sheet=ideas',
   authors: '/query-index.json?sheet=authors',
   careers: '/query-index.json?sheet=careers',
