@@ -22,6 +22,9 @@ import {
   loadCSS,
   buildBlock,
 } from './aem.js';
+import { 
+  debounce 
+} from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
   const innerTT = window.trustedTypes.createPolicy('tt-inner', {
