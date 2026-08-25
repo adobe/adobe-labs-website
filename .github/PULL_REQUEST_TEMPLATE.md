@@ -35,6 +35,8 @@ We should aim to support the latest version of the listed browsers. For older ve
 
 Developers should test as they work in the browsers available on their machines. If they have access to other devices to test other browser/OS combinations, they should do that when possible.
 
+Use [BrowserStack](https://www.browserstack.com/) for cross-browser and device testing. Credentials are in the Sparkbox 1Password.
+
 **Windows**
 * [ ] Firefox
 * [ ] Chrome
