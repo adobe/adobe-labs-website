@@ -265,13 +265,14 @@ main > div {
 
 /* Default .button uses the Primary button style. */
 .button {
-  --button-height: 2.5rem;
+  --height-button: 2.5rem;
   --border-radius-button: var(--s2a-border-radius-round);
+  --letter-spacing-button: var(--s2a-typography-letter-spacing-label);
   --focus-border-radius: var(--border-radius-button);
-  --color-button-background-primary: var(--s2a-color-background-inverse);
+  --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
   --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-light-hover);
   --color-button-background-primary-disabled: var(--s2a-color-background-disabled);
-  --color-button-text-primary: var(--s2a-color-content-inverse);
+  --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
   --color-button-text-disabled: var(--s2a-color-content-disabled);
 
   box-sizing: border-box;
@@ -279,15 +280,15 @@ main > div {
   align-items: center;
   justify-content: center;
   max-width: 100%;
-  height: var(--button-height);
+  height: var(--height-button);
   padding: 0 var(--s2a-spacing-lg);
-  border: none;
   border-radius: var(--border-radius-button);
   font-family: var(--body-font-family);
   font-size: var(--s2a-typography-font-size-label);
   font-style: normal;
   font-weight: var(--s2a-font-weight-label);
   line-height: var(--s2a-typography-line-height-label);
+  letter-spacing: var(--letter-spacing-button);
   text-align: center;
   text-decoration-line: none;
   cursor: pointer;
@@ -315,13 +316,6 @@ main > div {
         var(--spectrum-downstate-width, 150px) * var(--spectrum-component-size-width-ratio-down)))
       translateZ(var(--spectrum-component-size-difference-down));
   }
-}
-
-body.color-scheme-dark .button--primary {
-  --color-button-background-primary: var(--spectrum-transparent-white-800);
-  --color-button-background-primary-hover: var(--spectrum-transparent-white-900);
-  --color-button-background-primary-disabled: var(--spectrum-transparent-white-100);
-  --color-button-text-primary: var(--spectrum-gray-25);
 }
 
 /* --- Icons --- */
