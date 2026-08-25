@@ -403,8 +403,8 @@ main > .section:first-of-type {
   }
 }
 
-/* section metadata */
-/* TODO: boilerplate - will these be used and can they be removed? */
+/* section metadata 
+   TODO: boilerplate - will these be used and can they be removed? */
 main .section.light,
 main .section.highlight {
   background-color: var(--light-color);
