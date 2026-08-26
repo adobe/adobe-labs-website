@@ -1,36 +1,33 @@
 @import url("./menu/menu.css");
 
-footer {
-  background-color: var(--s2a-color-gray-1000, #000);
-}
-
-footer .footer {
-  --footer-text: var(--s2a-color-gray-25, #fff);
-  --footer-text-subtle: var(--s2a-color-transparent-white-64, rgb(255 255 255 / 64%));
+.footer {
+  --footer-text: var(--s2a-color-gray-25);
+  --footer-text-subtle: var(--s2a-color-transparent-white-64);
 
   position: relative;
   color: var(--footer-text);
   font-size: var(--s2a-typography-font-size-body-md);
   text-size-adjust: none;
+  background-color: var(--s2a-color-gray-1000);
 }
 
-footer .footer ul {
+.footer ul {
   list-style-type: none;
   margin: 0;
   padding: 0;
 }
 
-footer .footer a {
+.footer a {
   color: var(--footer-text-subtle);
   text-decoration: none;
 }
 
-footer .footer a:hover,
-footer .footer a:focus-visible {
+.footer a:hover,
+.footer a:focus-visible {
   color: var(--footer-text);
 }
 
-footer .footer button {
+.footer button {
   background: none;
   border: none;
   cursor: pointer;
@@ -38,29 +35,29 @@ footer .footer button {
   color: inherit;
 }
 
-footer .footer-icons {
+.footer-icons {
   display: none;
 }
 
-footer .footer-wrapper {
+.footer-inner {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  max-inline-size: var(--site-max-inline-size, 90rem);
+  max-inline-size: var(--site-max-inline-size);
   margin-inline: auto;
-  padding-block: var(--s2a-layout-sm, 5rem) var(--s2a-spacing-2xl, 2.5rem);
-  padding-inline: var(--s2a-spacing-lg, 1.5rem);
-  background-color: var(--s2a-color-gray-1000, #000);
+  padding-block: var(--s2a-layout-sm) var(--s2a-spacing-2xl);
+  padding-inline: var(--s2a-spacing-lg);
+  background-color: var(--s2a-color-gray-1000);
 }
 
-footer .footer-content {
+.footer-content {
   display: flex;
   flex-direction: column;
-  gap: var(--s2a-spacing-2xl, 2.5rem);
+  gap: var(--s2a-spacing-2xl);
 }
 
-footer .footer-newsletter-description {
+.footer-newsletter-description {
   margin: 0;
   color: var(--footer-text-subtle);
   font-size: var(--s2a-typography-font-size-body-md);
@@ -68,18 +65,18 @@ footer .footer-newsletter-description {
   letter-spacing: var(--s2a-typography-letter-spacing-body-md);
 }
 
-footer .footer-newsletter-form {
+.footer-newsletter-form {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s2a-spacing-xs, 0.5rem);
-  block-size: 2.5rem;
-  padding-inline: var(--s2a-spacing-sm, 0.75rem) var(--s2a-spacing-xs, 0.5rem);
-  background-color: var(--s2a-color-transparent-white-16, rgb(255 255 255 / 16%));
-  border-radius: var(--s2a-border-radius-sm, 0.625rem);
+  gap: var(--s2a-spacing-xs);
+  block-size: var(--s2a-spacing-2xl);
+  padding-inline: var(--s2a-spacing-sm) var(--s2a-spacing-xs);
+  background-color: var(--s2a-color-transparent-white-16);
+  border-radius: var(--s2a-border-radius-sm);
 }
 
-footer .footer-newsletter-label {
+.footer-newsletter-label {
   position: absolute;
   inline-size: 1px;
   block-size: 1px;
@@ -91,7 +88,7 @@ footer .footer-newsletter-label {
   border: 0;
 }
 
-footer .footer-newsletter-input {
+.footer-newsletter-input {
   flex: 1;
   min-inline-size: 0;
   border: none;
@@ -101,52 +98,52 @@ footer .footer-newsletter-input {
   line-height: var(--s2a-typography-line-height-body-sm);
 }
 
-footer .footer-newsletter-input::placeholder {
+.footer-newsletter-input::placeholder {
   color: var(--footer-text-subtle);
   opacity: 1;
 }
 
-footer .footer-newsletter-input:focus {
+.footer-newsletter-input:focus {
   outline: none;
 }
 
-footer .footer button.footer-newsletter-submit {
+.footer button.footer-newsletter-submit {
   flex-shrink: 0;
-  inline-size: 1.5rem;
-  block-size: 1.5rem;
+  inline-size: var(--s2a-spacing-lg);
+  block-size: var(--s2a-spacing-lg);
   padding: 0;
   background: url('./img/newsletter-submit.svg') center / contain no-repeat;
 }
 
-footer .footer-newsletter-form:focus-within {
+.footer-newsletter-form:focus-within {
   outline: 2px solid var(--footer-text);
   outline-offset: 2px;
 }
 
-footer .footer-options {
+.footer-options {
   display: flex;
   flex-direction: column;
-  gap: var(--s2a-spacing-xl, 2rem);
+  gap: var(--s2a-spacing-xl);
 }
 
-footer .footer-legal-row {
+.footer-legal-row {
   display: flex;
   flex-direction: column;
-  gap: var(--s2a-spacing-sm, 0.75rem);
+  gap: var(--s2a-spacing-sm);
 }
 
-footer .footer-mark {
+.footer-mark {
   line-height: 0;
   order: 1;
 }
 
-footer .footer-mark-image {
+.footer-mark-image {
   display: block;
   block-size: 0.8125rem;
   inline-size: auto;
 }
 
-footer .footer-legal {
+.footer-legal {
   order: 2;
   color: var(--footer-text-subtle);
   font-size: var(--s2a-typography-font-size-caption);
@@ -155,59 +152,59 @@ footer .footer-legal {
   font-weight: var(--s2a-font-weight-adobe-clean-bold);
 }
 
-footer .footer-privacy-section {
+.footer-privacy-section {
   display: flex;
   flex-direction: column;
-  gap: var(--s2a-spacing-xs, 0.5rem);
+  gap: var(--s2a-spacing-xs);
 }
 
-footer .footer-privacy-item {
+.footer-privacy-item {
   color: var(--footer-text-subtle);
 }
 
-footer .footer-privacy-link {
+.footer-privacy-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--s2a-spacing-2xs);
   color: inherit;
 }
 
-footer .footer-privacy-link:hover,
-footer .footer-privacy-link:focus {
+.footer-privacy-link:hover,
+.footer-privacy-link:focus {
   color: var(--footer-text);
 }
 
-footer .footer-adchoices-icon {
-  inline-size: 0.75rem;
-  block-size: 0.75rem;
+.footer-adchoices-icon {
+  inline-size: var(--s2a-spacing-sm);
+  block-size: var(--s2a-spacing-sm);
   fill: currentcolor;
 }
 
-footer .footer-social {
+.footer-social {
   display: flex;
   align-items: center;
-  gap: var(--s2a-spacing-lg, 1.5rem);
+  gap: var(--s2a-spacing-lg);
 }
 
-footer .footer-social-link {
+.footer-social-link {
   display: block;
-  color: var(--s2a-color-gray-500, #8f8f8f);
+  color: var(--s2a-color-gray-500);
 }
 
-footer .footer-social-link:hover,
-footer .footer-social-link:focus {
+.footer-social-link:hover,
+.footer-social-link:focus {
   color: var(--footer-text);
 }
 
-footer .footer-social-icon {
+.footer-social-icon {
   display: block;
   inline-size: 1.125rem;
   block-size: 1.125rem;
 }
 
-footer .footer-logo {
+.footer-logo {
   line-height: 0;
-  max-inline-size: var(--site-max-inline-size, 90rem);
+  max-inline-size: var(--site-max-inline-size);
   margin-inline: auto;
   overflow: hidden;
   display: flex;
@@ -218,7 +215,7 @@ footer .footer-logo {
   pointer-events: none;
 }
 
-footer .footer-logo-image {
+.footer-logo-image {
   display: block;
   inline-size: calc(100% + 3.5rem);
   max-inline-size: none;
@@ -227,56 +224,50 @@ footer .footer-logo-image {
   transform: translateY(calc((1 - (var(--footer-logo-entry-progress, 0) / 100)) * 50%));
 }
 
-footer .footer button:focus-visible,
-footer .footer [role="button"]:focus-visible {
+.footer button:focus-visible,
+.footer [role="button"]:focus-visible {
   outline: 2px solid var(--footer-text);
   outline-offset: 2px;
 }
 
 @media (width >= 1024px) {
-  footer .footer-wrapper {
-    padding-inline: var(--s2a-spacing-2xl, 2.5rem);
+  .footer-inner {
+    padding-inline: var(--s2a-spacing-2xl);
   }
 
-  footer .footer-content {
-    gap: var(--s2a-spacing-2xl, 2.5rem);
+  .footer-content {
+    gap: var(--s2a-spacing-2xl);
   }
 
-  footer .footer-options {
+  .footer-options {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
   }
 
-  footer .footer-legal-row {
+  .footer-legal-row {
     flex-direction: row;
     align-items: center;
-    gap: var(--s2a-spacing-xl, 2rem);
+    gap: var(--s2a-spacing-xl);
   }
 
-  footer .footer-mark {
+  .footer-mark {
     order: 2;
   }
 
-  footer .footer-legal {
+  .footer-legal {
     order: 1;
   }
 
-  footer .footer-privacy-section {
+  .footer-privacy-section {
     flex-flow: row wrap;
     align-items: center;
-    gap: var(--s2a-spacing-xl, 2rem);
-  }
-}
-
-@media (width >= 1440px) {
-  footer .footer-wrapper {
-    padding-inline: 6.25rem;
+    gap: var(--s2a-spacing-xl);
   }
 }
 
 @media (width >= 1920px) {
-  footer .footer-logo-image {
+  .footer-logo-image {
     inline-size: 100%;
   }
 }

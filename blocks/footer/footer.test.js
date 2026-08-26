@@ -149,8 +149,8 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    expect(block.querySelector('.footer-wrapper')).toBeTruthy();
-    expect(block.querySelector('.footer-wrapper').nextElementSibling).toHaveClass('footer-logo');
+    expect(block.querySelector('.footer-inner')).toBeTruthy();
+    expect(block.querySelector('.footer-inner').nextElementSibling).toHaveClass('footer-logo');
     expect(block.querySelector('.footer-logo-image')).toHaveAttribute('alt', 'Adobe');
     expect(block.querySelector('.footer-logo')).toBeTruthy();
   });

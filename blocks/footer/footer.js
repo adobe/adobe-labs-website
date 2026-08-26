@@ -279,7 +279,7 @@ export default async function decorate(block) {
   block.textContent = '';
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'footer-wrapper';
+  wrapper.className = 'footer-inner';
 
   const content = document.createElement('div');
   content.className = 'footer-content';
