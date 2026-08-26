@@ -45,7 +45,6 @@
 
   /* buttons */
   --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
-  --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-light-hover);
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
 }
 
@@ -117,8 +116,8 @@ h1, h2, h3, h4, h5, h6, [class*="heading-"] {
     font-weight: inherit;
   }
 
-  a,
-  a:is(:hover, :focus-visible, :active) {
+  a:not(.button),
+  a:not(.button):is(:hover, :focus-visible, :active) {
     color: currentcolor;
   }
 }
@@ -273,12 +272,10 @@ main > div {
   --height-button: 2.5rem;
   --border-radius-button: var(--s2a-border-radius-round);
   --letter-spacing-button: var(--s2a-typography-letter-spacing-label);
-  --focus-border-radius: var(--border-radius-button);
   --active-size-width-ratio-down: 0.3333;
   --active-size-minimum-perspective-down: 1.5rem;
   --active-size-difference-down: -2px;
 
-  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -334,13 +331,11 @@ main > div {
     
     background-color: var(--color-button-background-primary-disabled);
     color: var(--color-button-text-disabled);
-    cursor: default;
     pointer-events: none;
   }
 
   &.button--static-white {
     --color-button-background-primary: var(--s2a-color-gray-25);
-    --color-button-background-primary-hover: var(--s2a-color-transparent-white-64);
     --color-button-text-primary: var(--s2a-color-gray-1000);
 
     &:focus-visible {
