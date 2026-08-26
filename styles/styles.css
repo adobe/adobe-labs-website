@@ -46,6 +46,14 @@
   /* buttons */
   --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
+  --color-button-focus-ring: var(--s2a-color-focus-ring-default);
+}
+
+  /* Bundled s2a tokens don't include dynamic light/dark for focus ring.
+     TODO: update selectors when dark mode is supported. */
+:root[data-theme="dark"],
+body.color-scheme-dark {
+  --color-button-focus-ring: var(--s2a-color-focus-ring-knockout);
 }
 
 /* --- Reset --- */
@@ -309,7 +317,7 @@ main > div {
   }
 
   &:focus-visible {
-    outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default, var(--s2a-color-blue-900));
+    outline: var(--s2a-border-width-md) solid var(--color-button-focus-ring);
     outline-offset: var(--s2a-border-width-md);
   }
 
@@ -333,10 +341,7 @@ main > div {
   &.button-static-white {
     --color-button-background-primary: var(--s2a-color-gray-25);
     --color-button-text-primary: var(--s2a-color-gray-1000);
-
-    &:focus-visible {
-      outline-color: var(--s2a-color-focus-ring-knockout);
-    }
+    --color-button-focus-ring: var(--s2a-color-focus-ring-knockout);
   }
 }
 
