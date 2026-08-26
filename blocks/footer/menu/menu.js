@@ -2,17 +2,24 @@ function getDesktopQuery() {
   return window.matchMedia('(min-width: 1024px)');
 }
 
+function isNewsletterColumn(column) {
+  return column.classList.contains('footer-menu__column--newsletter')
+    || column.classList.contains('footer-newsletter');
+}
+
 function toggleSection(headline, expanded) {
-  const section = headline.closest('.footer-menu-section');
-  const items = section?.querySelector('.footer-menu-items');
+  const section = headline.closest('.footer-menu__section');
+  const items = section?.querySelector('.footer-menu__items');
   if (!items) return;
   headline.setAttribute('aria-expanded', expanded ? 'true' : 'false');
   items.hidden = !expanded;
 }
 
-function decorateHeadline(elem, items) {
+function decorateHeadline(elem, items, { toggle = false } = {}) {
   const headline = document.createElement('div');
-  headline.className = 'footer-menu-headline';
+  headline.className = toggle
+    ? 'footer-menu__headline footer-menu__headline--toggle'
+    : 'footer-menu__headline';
   headline.textContent = elem.textContent.trim();
   elem.remove();
 
@@ -41,31 +48,35 @@ function decorateHeadline(elem, items) {
     toggleSection(headline, !expanded);
   };
 
-  headline.addEventListener('click', handleActivate);
-  headline.addEventListener('keydown', handleActivate);
-
-  setHeadlineAttributes();
-  getDesktopQuery().addEventListener('change', setHeadlineAttributes);
+  if (toggle) {
+    headline.addEventListener('click', handleActivate);
+    headline.addEventListener('keydown', handleActivate);
+    setHeadlineAttributes();
+    getDesktopQuery().addEventListener('change', setHeadlineAttributes);
+  } else {
+    headline.setAttribute('role', 'heading');
+    headline.setAttribute('aria-level', '2');
+  }
 
   return headline;
 }
 
 function decorateLink(link) {
-  link.classList.add('footer-nav-link');
+  link.classList.add('footer-menu__link');
   return link;
 }
 
 function decorateColumn(column) {
   const wrapper = document.createElement('div');
-  wrapper.className = 'footer-menu-column';
+  wrapper.className = 'footer-menu__column footer-menu__column--nav';
 
   const heading = column.querySelector('h2');
   if (heading) {
     const section = document.createElement('div');
-    section.className = 'footer-menu-section';
+    section.className = 'footer-menu__section';
     const items = document.createElement('div');
-    items.className = 'footer-menu-items';
-    section.append(decorateHeadline(heading, items), items);
+    items.className = 'footer-menu__items';
+    section.append(decorateHeadline(heading, items, { toggle: true }), items);
     column.querySelectorAll('p a').forEach((link) => {
       items.append(decorateLink(link));
     });
@@ -80,13 +91,13 @@ export default function decorateMenuColumns(columns) {
   if (!columns?.length) return null;
 
   const menu = document.createElement('div');
-  menu.className = 'footer-menu-columns';
+  menu.className = 'footer-menu';
 
   const navColumns = document.createElement('div');
-  navColumns.className = 'footer-menu-nav-columns';
+  navColumns.className = 'footer-menu__nav';
 
   columns.forEach((column) => {
-    if (column.classList.contains('footer-newsletter')) {
+    if (isNewsletterColumn(column)) {
       menu.append(column);
       return;
     }

@@ -92,11 +92,11 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    const form = block.querySelector('.footer-newsletter-form');
+    const form = block.querySelector('.footer__form');
     expect(form).toHaveAttribute('action', 'https://example.com/subscribe');
     expect(form).toHaveAttribute('method', 'post');
     expect(within(block).getByLabelText('Your email address')).toHaveAttribute('type', 'email');
-    expect(block.querySelector('.footer-newsletter-submit')).toHaveAttribute('aria-label', 'Subscribe');
+    expect(block.querySelector('.footer__submit')).toHaveAttribute('aria-label', 'Subscribe');
   });
 
   it('parses menu columns from h2 groups', async () => {
@@ -105,11 +105,11 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    expect(block.querySelectorAll('.footer-menu-column')).toHaveLength(3);
-    expect(block.querySelector('.footer-menu-columns').children).toHaveLength(2);
-    expect(block.querySelector('.footer-menu-nav-columns')).toBeTruthy();
-    expect(block.querySelector('.footer-newsletter')).toHaveClass('footer-menu-column');
-    expect(block.querySelector('.footer-newsletter .footer-menu-headline').tagName).toBe('H2');
+    expect(block.querySelectorAll('.footer-menu__column')).toHaveLength(3);
+    expect(block.querySelector('.footer-menu').children).toHaveLength(2);
+    expect(block.querySelector('.footer-menu__nav')).toBeTruthy();
+    expect(block.querySelector('.footer-menu__column--newsletter')).toBeTruthy();
+    expect(block.querySelector('.footer-menu__column--newsletter .footer-menu__headline').tagName).toBe('H2');
     expect(block).toHaveTextContent('Connect');
     expect(block).toHaveTextContent('Collaborate');
     expect(block).toHaveTextContent('Research');
@@ -121,8 +121,8 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    expect(block.querySelectorAll('.footer-social-link')).toHaveLength(2);
-    expect(block.querySelector('a[aria-label="Facebook"] .footer-social-icon use'))
+    expect(block.querySelectorAll('.footer__social-link')).toHaveLength(2);
+    expect(block.querySelector('a[aria-label="Facebook"] .footer__social-icon use'))
       .toHaveAttribute('href', '#footer-icon-facebook');
     expect(block.querySelector('a[aria-label="LinkedIn"]')).toHaveAttribute(
       'href',
@@ -139,8 +139,8 @@ describe('footer block', () => {
 
     expect(block).toHaveTextContent(`© ${year} Adobe Inc. All rights reserved.`);
     expect(block).toHaveTextContent('Do not sell or share my personal information');
-    expect(block.querySelector('.footer-adchoices-icon')).toBeTruthy();
-    expect(block.querySelector('.footer-mark-image')).toBeTruthy();
+    expect(block.querySelector('.footer__adchoices-icon')).toBeTruthy();
+    expect(block.querySelector('.footer__mark-image')).toBeTruthy();
   });
 
   it('assembles the footer wrapper with parallax logo', async () => {
@@ -149,10 +149,10 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    expect(block.querySelector('.footer-inner')).toBeTruthy();
-    expect(block.querySelector('.footer-inner').nextElementSibling).toHaveClass('footer-logo');
-    expect(block.querySelector('.footer-logo-image')).toHaveAttribute('alt', 'Adobe');
-    expect(block.querySelector('.footer-logo')).toBeTruthy();
+    expect(block.querySelector('.footer__inner')).toBeTruthy();
+    expect(block.querySelector('.footer__inner').nextElementSibling).toHaveClass('footer__logo');
+    expect(block.querySelector('.footer__logo-image')).toHaveAttribute('alt', 'Adobe');
+    expect(block.querySelector('.footer__logo')).toBeTruthy();
   });
 
   it('registers scroll listeners for the parallax logo', async () => {
@@ -179,8 +179,8 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    const headline = block.querySelector('.footer-menu-column:not(.footer-newsletter) .footer-menu-headline');
-    const items = headline.closest('.footer-menu-section').querySelector('.footer-menu-items');
+    const headline = block.querySelector('.footer-menu__headline--toggle');
+    const items = headline.closest('.footer-menu__section').querySelector('.footer-menu__items');
 
     expect(headline).toHaveAttribute('aria-expanded', 'false');
     expect(items).toHaveAttribute('hidden');

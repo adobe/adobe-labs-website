@@ -15,13 +15,13 @@ export function createFooterLogoImage() {
   img.src = getFooterAsset('img/adobe-logo-full.svg');
   img.alt = 'Adobe';
   img.loading = 'lazy';
-  img.className = 'footer-logo-image';
+  img.className = 'footer__logo-image';
   return img;
 }
 
 export function createFooterMark() {
   const mark = document.createElement('span');
-  mark.className = 'footer-mark';
+  mark.className = 'footer__mark';
   mark.setAttribute('role', 'img');
   mark.setAttribute('aria-label', 'Adobe');
 
@@ -29,7 +29,7 @@ export function createFooterMark() {
   img.src = getFooterAsset('img/adobe-logo-mark.svg');
   img.alt = '';
   img.loading = 'lazy';
-  img.className = 'footer-mark-image';
+  img.className = 'footer__mark-image';
   mark.append(img);
 
   return mark;

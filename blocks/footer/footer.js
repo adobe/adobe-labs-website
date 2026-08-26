@@ -103,39 +103,39 @@ function decorateNewsletter(column) {
   const action = subscribeLink?.getAttribute('href') || '#';
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'footer-menu-column footer-newsletter';
+  wrapper.className = 'footer-menu__column footer-menu__column--newsletter';
 
   const section = document.createElement('div');
-  section.className = 'footer-menu-section';
+  section.className = 'footer-menu__section';
 
   if (heading) {
-    heading.classList.add('footer-menu-headline');
+    heading.classList.add('footer-menu__headline');
     section.append(heading);
   }
 
   const items = document.createElement('div');
-  items.className = 'footer-menu-items';
+  items.className = 'footer-menu__items footer-menu__items--newsletter';
 
   const descId = description ? `footer-newsletter-desc-${Date.now()}` : null;
   if (description) {
-    description.classList.add('footer-newsletter-description');
+    description.classList.add('footer__description');
     description.id = descId;
     items.append(description);
   }
 
   const form = document.createElement('form');
-  form.className = 'footer-newsletter-form';
+  form.className = 'footer__form';
   form.action = action;
   form.method = 'post';
 
   const label = document.createElement('label');
-  label.className = 'footer-newsletter-label';
+  label.className = 'footer__label';
   label.setAttribute('for', 'footer-email');
   label.textContent = 'Your email address';
 
   const input = document.createElement('input');
   input.id = 'footer-email';
-  input.className = 'footer-newsletter-input';
+  input.className = 'footer__input';
   input.type = 'email';
   input.name = 'email';
   input.required = true;
@@ -144,7 +144,7 @@ function decorateNewsletter(column) {
 
   const button = document.createElement('button');
   button.type = 'submit';
-  button.className = 'footer-newsletter-submit';
+  button.className = 'footer__submit';
   button.setAttribute('aria-label', subscribeLink?.textContent?.trim() || 'Subscribe');
 
   form.append(label, input, button);
@@ -167,19 +167,19 @@ function decorateSocial(social) {
   if (!social) return null;
 
   const socialElem = document.createElement('div');
-  socialElem.className = 'footer-social';
+  socialElem.className = 'footer__social';
 
   social.querySelectorAll('a[href]').forEach((link) => {
     const iconId = getSocialIconId(link.getAttribute('href'));
     const anchor = document.createElement('a');
-    anchor.className = 'footer-social-link';
+    anchor.className = 'footer__social-link';
     anchor.href = link.href;
     anchor.target = link.target || '_blank';
     anchor.rel = 'noopener noreferrer';
     anchor.setAttribute('aria-label', link.textContent.trim());
 
     anchor.innerHTML = `
-      <svg class="footer-social-icon" aria-hidden="true" focusable="false">
+      <svg class="footer__social-icon" aria-hidden="true" focusable="false">
         <use href="#${iconId}"></use>
       </svg>
     `;
@@ -212,25 +212,25 @@ function decorateLegal(legal) {
   if (adChoicesLink) {
     adChoicesLink.insertAdjacentHTML(
       'afterbegin',
-      '<svg class="footer-adchoices-icon" aria-hidden="true" focusable="false"><use href="#footer-icon-adchoices"></use></svg>',
+      '<svg class="footer__adchoices-icon" aria-hidden="true" focusable="false"><use href="#footer-icon-adchoices"></use></svg>',
     );
   }
 
   const legalWrapper = document.createElement('div');
-  legalWrapper.className = 'footer-legal';
+  legalWrapper.className = 'footer__legal';
 
   const privacySection = document.createElement('ul');
-  privacySection.className = 'footer-privacy-section';
+  privacySection.className = 'footer__privacy';
 
   const copyrightItem = document.createElement('li');
-  copyrightItem.className = 'footer-privacy-item';
+  copyrightItem.className = 'footer__privacy-item';
   copyrightItem.textContent = copyrightText;
   privacySection.append(copyrightItem);
 
   privacyContent.querySelectorAll('a').forEach((link) => {
-    link.classList.add('footer-privacy-link');
+    link.classList.add('footer__privacy-link');
     const item = document.createElement('li');
-    item.className = 'footer-privacy-item';
+    item.className = 'footer__privacy-item';
     item.append(link);
     privacySection.append(item);
   });
@@ -241,14 +241,14 @@ function decorateLegal(legal) {
 }
 
 async function loadIcons(block) {
-  if (block.querySelector('.footer-icons')) return;
+  if (block.querySelector('.footer__icons')) return;
 
   const resp = await fetch(getFooterAsset('img/icons.svg'));
   if (!resp.ok) return;
 
   const content = await resp.text();
   const icons = document.createElement('div');
-  icons.className = 'footer-icons';
+  icons.className = 'footer__icons';
   icons.innerHTML = content;
   icons.setAttribute('aria-hidden', 'true');
   block.append(icons);
@@ -279,18 +279,18 @@ export default async function decorate(block) {
   block.textContent = '';
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'footer-inner';
+  wrapper.className = 'footer__inner';
 
   const content = document.createElement('div');
-  content.className = 'footer-content';
+  content.className = 'footer__content';
 
   if (menuColumns) content.append(menuColumns);
 
   const options = document.createElement('div');
-  options.className = 'footer-options';
+  options.className = 'footer__options';
 
   const legalRow = document.createElement('div');
-  legalRow.className = 'footer-legal-row';
+  legalRow.className = 'footer__legal-row';
   if (legal) legalRow.append(legal);
   legalRow.append(createFooterMark());
   options.append(legalRow);
@@ -301,7 +301,7 @@ export default async function decorate(block) {
   wrapper.append(content);
 
   const logo = document.createElement('div');
-  logo.className = 'footer-logo';
+  logo.className = 'footer__logo';
   logo.append(createFooterLogoImage());
 
   block.append(wrapper, logo);
