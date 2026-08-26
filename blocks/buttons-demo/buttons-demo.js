@@ -15,6 +15,10 @@ export default function decorate(block) {
             ? el.setAttribute(k, v)
             : (el[k] = v)
     );
+    if (el.getAttribute('aria-disabled') === 'true') {
+      el.tabIndex = -1;
+      el.addEventListener('click', (event) => event.preventDefault());
+    }
     return el;
   };
 

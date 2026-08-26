@@ -130,6 +130,10 @@ function decorateButtons(main) {
 
     p.className = 'button-wrapper';
     a.className = 'button';
+    if (a.getAttribute('aria-disabled') === 'true') {
+      a.tabIndex = -1;
+      a.addEventListener('click', (event) => event.preventDefault());
+    }
     if (strong && em) { // high-impact call-to-action
       a.classList.add('accent');
       const outer = strong.contains(em) ? strong : em;

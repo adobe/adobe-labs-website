@@ -317,30 +317,24 @@ main > div {
     outline-offset: var(--s2a-border-width-md);
   }
 
-  /* Native buttons need additional styles to strip defaults. */
-  &:is(button),
-  &:is(button):hover {
+  &:is(button) {
     border: transparent;
-
-    &:not(disabled),
-    &:not(disabled) {
-      cursor: pointer;
-    }
+    cursor: pointer;
   }
 
-  &:is(:disabled, [aria-disabled="true"]),
-  &:is(:disabled, [aria-disabled="true"]):hover {
-    background-color: var(--color-button-background-primary-disabled);
-    color: var(--color-button-text-disabled);
-    cursor: default;
-  }
-
-  &:active:not(:disabled, [aria-disabled="true"]) {
+  &:active {
     transform:
       perspective(max(
         var(--active-downstate-height),
         var(--active-downstate-width) * var(--active-size-width-ratio-down)))
       translateZ(var(--active-size-difference-down));
+  }
+
+  &:is(:disabled, [aria-disabled="true"]) {
+    background-color: var(--color-button-background-primary-disabled);
+    color: var(--color-button-text-disabled);
+    cursor: default;
+    pointer-events: none;
   }
 
   /* TODO: adjust selectors once dark mode is supported. */
