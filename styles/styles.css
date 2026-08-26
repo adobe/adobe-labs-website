@@ -102,13 +102,6 @@ body.appear {
   display: block;
 }
 
-:root[data-theme="dark"],
-body.color-scheme-dark {
-  --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-dark-default);
-  --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-dark-hover);
-  --color-button-text-primary: var(--s2a-color-button-content-primary-solid-inverse);
-}
-
 a {
   color: var(--s2a-color-content-default);
   text-decoration: solid underline currentcolor;
@@ -334,6 +327,14 @@ main > div {
         var(--active-downstate-height),
         var(--active-downstate-width) * var(--active-size-width-ratio-down)))
       translateZ(var(--active-size-difference-down));
+  }
+
+  /* TODO: adjust selectors once dark mode is supported. */
+  :root[data-theme="dark"],
+  body.color-scheme-dark {
+    --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-dark-default);
+    --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-dark-hover);
+    --color-button-text-primary: var(--s2a-color-button-content-primary-solid-inverse);
   }
 
   &--static-white {
