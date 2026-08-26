@@ -87,27 +87,27 @@ export default function decorate(block) {
   const mainTag = href ? 'a' : 'div';
 
   const root = htmlToFragment(`
-    ${category ? `<a class="grid-item-category label">
-      <span class="grid-item-category-swatch" aria-hidden="true"></span>
-      <span class="grid-item-category-name"></span>
+    ${category ? `<a class="grid-item__category label">
+      <span class="grid-item__category-swatch" aria-hidden="true"></span>
+      <span class="grid-item__category-name"></span>
     </a>` : ''}
-    <${mainTag} class="grid-item-main">
+    <${mainTag} class="grid-item__main">
       ${isVideo ? '<span class="visually-hidden">Video article</span>' : ''}
-      <div class="grid-item-image">
-        ${isVideo ? `<span class="grid-item-play" aria-hidden="true">
+      <div class="grid-item__image">
+        ${isVideo ? `<span class="grid-item__play" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" width="12" height="12" focusable="false">
             <path fill="currentColor" d="M9.95 5.079c.467.269.467.943 0 1.212L3.05 10.275C2.583 10.544 2 10.207 2 9.668V1.701c0-.539.583-.876 1.05-.606z"/>
           </svg>
         </span>` : ''}
       </div>
-      <div class="grid-item-body">
-        <p class="grid-item-title heading-6"></p>
-        ${subhead ? '<p class="grid-item-subhead body-md"></p>' : ''}
+      <div class="grid-item__body">
+        <p class="grid-item__title heading-6"></p>
+        ${subhead ? '<p class="grid-item__subhead body-md"></p>' : ''}
       </div>
     </${mainTag}>
   `);
 
-  const main = root.querySelector('.grid-item-main');
+  const main = root.querySelector('.grid-item__main');
   if (href) main.href = href;
 
   if (media) {
@@ -116,21 +116,21 @@ export default function decorate(block) {
       if (alt) img.alt = alt;
       else if (title || subhead) img.alt = '';
     }
-    const image = root.querySelector('.grid-item-image');
-    const play = image.querySelector('.grid-item-play');
+    const image = root.querySelector('.grid-item__image');
+    const play = image.querySelector('.grid-item__play');
     if (play) play.before(media);
     else image.append(media);
   }
 
   if (category) {
-    const categoryEl = root.querySelector('.grid-item-category');
+    const categoryEl = root.querySelector('.grid-item__category');
     categoryEl.href = category.path;
-    setText(root, '.grid-item-category-name', category.label);
+    setText(root, '.grid-item__category-name', category.label);
     block.dataset.category = category.slug;
   }
 
-  if (subhead) setText(root, '.grid-item-subhead', subhead);
-  setText(root, '.grid-item-title', title);
+  if (subhead) setText(root, '.grid-item__subhead', subhead);
+  setText(root, '.grid-item__title', title);
 
   block.replaceChildren(root);
 }

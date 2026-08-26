@@ -28,16 +28,16 @@ describe('grid-item block', () => {
     const view = within(block);
     const main = view.getByRole('link', { name: /Lab project/ });
 
-    expect(main).toHaveClass('grid-item-main');
+    expect(main).toHaveClass('grid-item__main');
     expect(main).toHaveAttribute('href', 'https://labs.adobe.com/example');
-    expect(view.getByText('Lab project')).toHaveClass('grid-item-title');
-    expect(view.getByText('A short description')).toHaveClass('grid-item-subhead');
+    expect(view.getByText('Lab project')).toHaveClass('grid-item__title');
+    expect(view.getByText('A short description')).toHaveClass('grid-item__subhead');
     expect(view.getByRole('link', { name: 'Research' })).toHaveAttribute(
       'href',
       expect.stringMatching(/\/research$/),
     );
     expect(block).toHaveAttribute('data-category', 'research');
-    expect(block.querySelector('.grid-item-image picture')).toBeTruthy();
+    expect(block.querySelector('.grid-item__image picture')).toBeTruthy();
   });
 
   it('uses a div for main when the URL is missing', () => {
@@ -45,8 +45,8 @@ describe('grid-item block', () => {
 
     decorate(block);
 
-    expect(block.querySelector('a.grid-item-main')).toBeNull();
-    expect(block.querySelector('div.grid-item-main')).toBeTruthy();
+    expect(block.querySelector('a.grid-item__main')).toBeNull();
+    expect(block.querySelector('div.grid-item__main')).toBeTruthy();
     expect(within(block).queryByRole('link')).toBeNull();
   });
 
@@ -58,8 +58,8 @@ describe('grid-item block', () => {
 
     decorate(block);
 
-    expect(block.querySelector('.grid-item-main').tagName).toBe('DIV');
-    expect(block.querySelector('.grid-item-main')).not.toHaveAttribute('href');
+    expect(block.querySelector('.grid-item__main').tagName).toBe('DIV');
+    expect(block.querySelector('.grid-item__main')).not.toHaveAttribute('href');
   });
 
   it('omits the category link for unknown categories', () => {
@@ -70,7 +70,7 @@ describe('grid-item block', () => {
 
     decorate(block);
 
-    expect(block.querySelector('.grid-item-category')).toBeNull();
+    expect(block.querySelector('.grid-item__category')).toBeNull();
     expect(block.dataset.category).toBeUndefined();
   });
 
@@ -79,7 +79,7 @@ describe('grid-item block', () => {
 
     decorate(block);
 
-    expect(block.querySelector('.grid-item-subhead')).toBeNull();
+    expect(block.querySelector('.grid-item__subhead')).toBeNull();
   });
 
   it.each([
@@ -94,9 +94,9 @@ describe('grid-item block', () => {
 
     decorate(block);
 
-    const image = block.querySelector('.grid-item-image');
+    const image = block.querySelector('.grid-item__image');
     expect(within(block).getByText('Video article')).toHaveClass('visually-hidden');
-    expect(image.querySelector('.grid-item-play')).toHaveAttribute('aria-hidden', 'true');
+    expect(image.querySelector('.grid-item__play')).toHaveAttribute('aria-hidden', 'true');
     expect(image.firstElementChild.tagName).toBe('PICTURE');
   });
 
@@ -109,7 +109,7 @@ describe('grid-item block', () => {
     decorate(block);
 
     expect(within(block).queryByText('Video article')).toBeNull();
-    expect(block.querySelector('.grid-item-play')).toBeNull();
+    expect(block.querySelector('.grid-item__play')).toBeNull();
   });
 
   it('applies authored alt text to the image', () => {
