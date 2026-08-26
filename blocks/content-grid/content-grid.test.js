@@ -581,6 +581,148 @@ describe('content-grid block', () => {
     expect(block.querySelector('.grid-item')).toHaveClass('subhead-description');
   });
 
+  it('leaves the grid card-only when Intro is missing or empty', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '8',
+      Intro: '   ',
+    });
+
+    await decorate(block);
+
+    expect(block).not.toHaveClass('has-intro');
+    expect(block.querySelector('.content-grid__intro')).toBeNull();
+    expect(within(block).getByRole('list').children).toHaveLength(3);
+  });
+
+  it('prepends authored Intro content without reducing Count', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '2',
+      Intro: '<h2>Future of Creative Work</h2><p>How AI is reshaping creative roles.</p>',
+    });
+
+    await decorate(block);
+
+    const intro = block.querySelector('.content-grid__intro');
+    expect(block).toHaveClass('has-intro');
+    expect(block.firstElementChild).toBe(intro);
+    expect(intro.querySelector('h2')).toHaveTextContent('Future of Creative Work');
+    expect(intro.querySelector('p')).toHaveTextContent('How AI is reshaping creative roles.');
+    expect(intro.querySelector('p')).toHaveClass('body-lg');
+    expect(within(block).getByRole('list').children).toHaveLength(2);
+    expect(buildBlock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not pass Intro to readBlockConfig', async () => {
+    const labels = [];
+    readBlockConfig.mockImplementation((el) => {
+      [...el.children].forEach((row) => {
+        const [label, cell] = row.children;
+        if (!label || !cell) return;
+        const name = label.textContent
+          .trim()
+          .toLowerCase()
+          .replace(/[^0-9a-z]/gi, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+        labels.push(name);
+      });
+      return { 'content-type': 'All', category: 'All', count: '1' };
+    });
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+      Intro: '<h2>Explore Workflows</h2>',
+    });
+
+    await decorate(block);
+
+    expect(labels).not.toContain('intro');
+    expect(block).toHaveClass('has-intro');
+  });
+
+  it('renders Previous and Next as in-page pager links', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+      Intro: '<h2>Economic Impact</h2>',
+      Previous: '<a href="#future-of-creative-work">Previous</a>',
+      Next: '<a href="#workflows">Next</a>',
+    });
+
+    await decorate(block);
+
+    const nav = within(block).getByRole('navigation', { name: 'Nearby sections' });
+    expect(block.querySelector('.content-grid__intro')).toContainElement(nav);
+    expect(within(nav).getByRole('link', { name: 'Previous' })).toHaveAttribute(
+      'href',
+      '#future-of-creative-work',
+    );
+    expect(within(nav).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#workflows');
+    expect(within(nav).getByRole('link', { name: 'Previous' }).querySelector('.content-grid__pager-icon')).not.toBeNull();
+    expect(within(nav).getByRole('link', { name: 'Next' }).querySelector('.content-grid__pager-icon')).not.toBeNull();
+  });
+
+  it('omits a pager direction when that row is missing', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+      Intro: '<h2>Explore Workflows</h2>',
+      Next: '<a href="#sneaks">Next</a>',
+    });
+
+    await decorate(block);
+
+    const nav = within(block).getByRole('navigation', { name: 'Nearby sections' });
+    expect(within(nav).queryByRole('link', { name: 'Previous' })).toBeNull();
+    expect(within(nav).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#sneaks');
+  });
+
+  it('ignores javascript pager hrefs', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+      Intro: '<h2>Economic Impact</h2>',
+      Previous: '<a href="javascript:alert(1)">Previous</a>',
+    });
+
+    await decorate(block);
+
+    expect(within(block).queryByRole('navigation')).toBeNull();
+  });
+
+  it('does not pass Previous or Next to readBlockConfig', async () => {
+    const labels = [];
+    readBlockConfig.mockImplementation((el) => {
+      [...el.children].forEach((row) => {
+        const [label, cell] = row.children;
+        if (!label || !cell) return;
+        labels.push(label.textContent.trim().toLowerCase().replace(/[^0-9a-z]/gi, '-'));
+      });
+      return { 'content-type': 'All', category: 'All', count: '1' };
+    });
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+      Previous: '<a href="#future-of-creative-work">Previous</a>',
+      Next: '<a href="#workflows">Next</a>',
+    });
+
+    await decorate(block);
+
+    expect(labels).not.toEqual(expect.arrayContaining(['previous', 'next']));
+    expect(block).toHaveClass('has-intro');
+    expect(within(block).getByRole('navigation', { name: 'Nearby sections' })).toBeTruthy();
+  });
+
   it('leaves the block empty when the index request fails', async () => {
     dataStore.getData.mockResolvedValue(null);
     const block = createBlock({

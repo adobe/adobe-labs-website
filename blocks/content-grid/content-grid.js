@@ -369,12 +369,140 @@ function selectItems(data, { contentType, category, count }) {
 }
 
 /**
+ * Config-table row whose label slugs to `name`, or null.
+ * Removes the row so {@link readBlockConfig} does not treat it as a filter.
+ * @param {Element} block
+ * @param {string} name
+ * @returns {Element|null}
+ */
+function takeConfigCell(block, name) {
+  const row = [...block.children].find((child) => toSlug(child.children[0]?.textContent) === name);
+  if (!row) return null;
+  const cell = row.children[1];
+  row.remove();
+  return cell || null;
+}
+
+/**
+ * Whether the Intro cell has authored content (text, links, or media).
+ * @param {Element} [cell]
+ * @returns {boolean}
+ */
+function hasIntroContent(cell) {
+  if (!cell) return false;
+  if (cell.querySelector('img, picture, a')) return true;
+  return Boolean(cell.textContent.trim());
+}
+
+/**
+ * Pull the Intro row out of the config table and return a decorated intro node.
+ * @param {Element} block
+ * @returns {HTMLDivElement|null}
+ */
+function takeIntro(block) {
+  const cell = takeConfigCell(block, 'intro');
+  if (!hasIntroContent(cell)) return null;
+
+  const intro = document.createElement('div');
+  intro.className = 'content-grid__intro';
+  const copy = document.createElement('div');
+  copy.className = 'content-grid__intro-copy';
+  copy.append(...cell.childNodes);
+  copy.querySelectorAll('p').forEach((p) => p.classList.add('body-lg'));
+  intro.append(copy);
+  return intro;
+}
+
+/**
+ * In-page hash, or an http(s) URL. Rejects javascript: and empty fragments.
+ * @param {string} [raw]
+ * @param {HTMLAnchorElement} [source]
+ * @returns {string}
+ */
+function pagerHref(raw, source) {
+  const value = String(raw || '').trim();
+  if (!value || /^javascript:/i.test(value)) return '';
+  if (value.startsWith('#')) return value.length > 1 ? value : '';
+  try {
+    const url = new URL(source?.href || value, window.location.href);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+    if (url.hash && url.pathname === window.location.pathname) return url.hash;
+    return url.href;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Pager control from an authored Previous or Next cell.
+ * @param {Element} [cell]
+ * @param {string} fallbackLabel
+ * @param {string} directionClass
+ * @returns {HTMLAnchorElement|null}
+ */
+function pagerLink(cell, fallbackLabel, directionClass) {
+  if (!cell) return null;
+  const source = cell.querySelector('a[href]');
+  const href = pagerHref(source ? source.getAttribute('href') : cell.textContent, source);
+  if (!href) return null;
+
+  const label = source?.textContent.trim() || fallbackLabel;
+  const a = document.createElement('a');
+  a.href = href;
+  a.className = `content-grid__pager-link ${directionClass}`;
+  const sr = document.createElement('span');
+  sr.className = 'visually-hidden';
+  sr.textContent = label;
+  a.append(sr);
+  const icon = document.createElement('span');
+  icon.className = 'content-grid__pager-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  a.append(icon);
+  return a;
+}
+
+/**
+ * Previous / Next nav, or null when neither cell has a usable href.
+ * @param {Element} [prevCell]
+ * @param {Element} [nextCell]
+ * @returns {HTMLElement|null}
+ */
+function createPager(prevCell, nextCell) {
+  const prev = pagerLink(prevCell, 'Previous', 'content-grid__pager-prev');
+  const next = pagerLink(nextCell, 'Next', 'content-grid__pager-next');
+  if (!prev && !next) return null;
+  const nav = document.createElement('nav');
+  nav.className = 'content-grid__pager';
+  nav.setAttribute('aria-label', 'Nearby sections');
+  if (prev) nav.append(prev);
+  if (next) nav.append(next);
+  return nav;
+}
+
+/**
+ * Intro node with optional pager. Creates a header cell when only pager is authored.
+ * @param {HTMLDivElement|null} intro
+ * @param {HTMLElement|null} pager
+ * @returns {HTMLDivElement|null}
+ */
+function withPager(intro, pager) {
+  if (!pager) return intro;
+  const header = intro || Object.assign(document.createElement('div'), { className: 'content-grid__intro' });
+  header.append(pager);
+  return header;
+}
+
+/**
  * Replace the authored config table with a list of grid-item cards
  * from `/query-index.json`.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
 export default async function decorate(block) {
+  const intro = takeIntro(block);
+  const prevCell = takeConfigCell(block, 'previous');
+  const nextCell = takeConfigCell(block, 'next');
+  const header = withPager(intro, createPager(prevCell, nextCell));
   const config = readBlockConfig(block);
   const contentType = config['content-type'];
   const { category } = config;
@@ -396,21 +524,30 @@ export default async function decorate(block) {
     selectItems(data, { contentType, category, count }),
     payload,
   );
-  if (!items.length) return;
+  if (!items.length && !header) return;
 
-  const list = document.createElement('ul');
-  list.className = 'content-grid__list';
-  items.forEach((entry) => {
-    const gridItem = createGridItem(entry, { subheadDescription, showCategory });
-    const item = document.createElement('li');
-    item.className = 'content-grid__item';
-    item.append(gridItem);
-    list.append(item);
-    decorateBlock(gridItem);
-  });
+  const nodes = [];
+  if (header) {
+    block.classList.add('has-intro');
+    nodes.push(header);
+  }
 
-  block.replaceChildren(list);
+  if (items.length) {
+    const list = document.createElement('ul');
+    list.className = 'content-grid__list';
+    items.forEach((entry) => {
+      const gridItem = createGridItem(entry, { subheadDescription, showCategory });
+      const item = document.createElement('li');
+      item.className = 'content-grid__item';
+      item.append(gridItem);
+      list.append(item);
+      decorateBlock(gridItem);
+    });
+    nodes.push(list);
+  }
+
+  block.replaceChildren(...nodes);
   await Promise.all(
-    [...list.querySelectorAll('.grid-item')].map((gridItem) => loadBlock(gridItem)),
+    [...block.querySelectorAll('.grid-item')].map((gridItem) => loadBlock(gridItem)),
   );
 }
