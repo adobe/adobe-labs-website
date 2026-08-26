@@ -79,7 +79,7 @@ The homepage **Latest Content** section uses `content-grid` with a key/value tab
 | Category | `All` (no filter) or Research, Workflows, Sneaks, Playground — matched from the page folder (`/research/...`) |
 | Count | How many cards to show (defaults to 8) |
 
-The block fetches `/query-index.json?limit=1000`, filters client-side, and renders each hit as a `grid-item` (3:2). Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Category comes from the first path segment; optional page metadata `category` overrides that when it is one of the four known values.
+The block fetches `/query-index.json?limit=1000`, filters client-side, and renders each hit as a `grid-item`. Card image frames follow page metadata `Image Aspect` (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). The block uses the index `imageAspect` column when it exists; otherwise it reads `meta[name="image-aspect"]` from each selected article. Missing or unknown values default to 3:2. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Category comes from the first path segment; optional page metadata `category` overrides that when it is one of the four known values.
 
 Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the block header (`content-grid (subhead-description)` or `grid-item (subhead-description)`) to use the description / Subhead cell instead.
 
@@ -92,8 +92,9 @@ Cards stay empty until indexed article pages exist. Index config lives at [tools
 - Keep `title`, `image`, `description`, `publicationDate`, `robots`
 - Add `contentType` from `meta[name="content-type"]` if you filter by Content Type
 - Add `isVideo` from `meta[name="isvideo"]` so the play icon can follow page metadata outside `/sneaks/`
+- Add `imageAspect` from `meta[name="image-aspect"]` so card frames follow page metadata `Image Aspect` without fetching each article
 
-**On each Labs article in DA**, put the page under `/research`, `/workflows`, `/sneaks`, or `/playground`, and author description, `og:image`, and publication date. The block drops `noindex` pages and paths under `/docs` or `/fragments`.
+**On each Labs article in DA**, put the page under `/research`, `/workflows`, `/sneaks`, or `/playground`, and author description, `og:image`, publication date, and `Image Aspect` (`1:1`, `4:5`, `3:2`, or `2:3`). The block drops `noindex` pages and paths under `/docs` or `/fragments`.
 
 ## Testing
 

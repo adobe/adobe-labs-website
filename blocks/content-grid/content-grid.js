@@ -17,6 +17,9 @@ const CATEGORY_LABELS = {
   sneaks: 'Sneaks',
   playground: 'Playground',
 };
+const DEFAULT_ASPECT_CLASS = 'aspect-3-2';
+const ASPECT_CLASSES = new Set(['aspect-1-1', 'aspect-4-5', 'aspect-3-2', 'aspect-2-3']);
+const IMAGE_ASPECT_FIELDS = ['imageAspect', 'image-aspect', 'imageaspect'];
 
 /**
  * @typedef {object} QueryIndexItem
@@ -33,6 +36,8 @@ const CATEGORY_LABELS = {
  * @property {string|boolean} [isVideo]
  * @property {string|boolean} [isvideo]
  * @property {string|boolean} ["is-video"]
+ * @property {string} [imageAspect]
+ * @property {string} ["image-aspect"]
  */
 
 /**
@@ -136,6 +141,94 @@ function isVideoItem(item) {
   if (flagged !== null) return flagged;
   if (equalsIgnoreCase(itemField(item, 'contentType', 'content-type'), 'video')) return true;
   return pathCategorySlug(item.path) === 'sneaks';
+}
+
+/**
+ * Grid-item aspect class from page metadata `Image Aspect`.
+ * Accepts `3:2`, `3/2`, `3-2`, or `aspect-3-2` (and the other known ratios).
+ * @param {string} [value]
+ * @returns {string}
+ */
+function toAspectClass(value) {
+  const slug = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^aspect-/, '')
+    .replace(/[^0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  const className = `aspect-${slug}`;
+  return ASPECT_CLASSES.has(className) ? className : DEFAULT_ASPECT_CLASS;
+}
+
+/**
+ * Whether a name is the Image Aspect index column.
+ * @param {string} [name]
+ * @returns {boolean}
+ */
+function isImageAspectField(name) {
+  return /image-?aspect/i.test(String(name || ''));
+}
+
+/**
+ * Indexed Image Aspect value, or null when the column is absent on this row.
+ * @param {QueryIndexItem} item
+ * @returns {string|null}
+ */
+function indexedImageAspect(item) {
+  const name = IMAGE_ASPECT_FIELDS.find((key) => Object.prototype.hasOwnProperty.call(item, key));
+  return name === undefined ? null : item[name];
+}
+
+/**
+ * Whether the query-index payload is configured with an Image Aspect column.
+ * @param {object} [payload]
+ * @returns {boolean}
+ */
+function indexHasImageAspectColumn(payload) {
+  return Array.isArray(payload?.columns)
+    && payload.columns.some((name) => isImageAspectField(name));
+}
+
+/**
+ * `Image Aspect` from the article page `<meta name="image-aspect">`.
+ * @param {string} [path]
+ * @returns {Promise<string>}
+ */
+async function fetchPageImageAspect(path) {
+  if (!path) return '';
+  try {
+    const response = await fetch(path);
+    if (!response.ok) return '';
+    const html = await response.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.querySelector('meta[name="image-aspect"]')?.getAttribute('content')?.trim() || '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Use indexed Image Aspect when present; otherwise read each selected article.
+ * @param {QueryIndexItem[]} items
+ * @param {object} [payload]
+ * @returns {Promise<QueryIndexItem[]>}
+ */
+async function withImageAspect(items, payload) {
+  if (indexHasImageAspectColumn(payload)) return items;
+  return Promise.all(items.map(async (item) => {
+    if (indexedImageAspect(item) !== null) return item;
+    const imageAspect = await fetchPageImageAspect(item.path);
+    return imageAspect ? { ...item, imageAspect } : item;
+  }));
+}
+
+/**
+ * Aspect class from index `imageAspect` / `image-aspect`, defaulting to 3:2.
+ * @param {QueryIndexItem} item
+ * @returns {string}
+ */
+function resolveImageAspect(item) {
+  return toAspectClass(itemField(item, ...IMAGE_ASPECT_FIELDS));
 }
 
 /**
@@ -243,7 +336,7 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
   if (isVideo) rows.push(['Is Video', 'true']);
 
   const gridItem = buildBlock('grid-item', rows);
-  gridItem.classList.add('aspect-3-2');
+  gridItem.classList.add(resolveImageAspect(entry));
   if (subheadDescription) gridItem.classList.add('subhead-description');
   return gridItem;
 }
@@ -299,7 +392,10 @@ export default async function decorate(block) {
   }
 
   const data = Array.isArray(payload.data) ? payload.data : [];
-  const items = selectItems(data, { contentType, category, count });
+  const items = await withImageAspect(
+    selectItems(data, { contentType, category, count }),
+    payload,
+  );
   if (!items.length) return;
 
   const list = document.createElement('ul');
