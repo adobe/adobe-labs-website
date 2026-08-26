@@ -16,8 +16,7 @@ const PICTURE = '<picture><img src="hero.jpg" alt="original"></picture>';
 describe('grid-item block', () => {
   it('renders a linked card with title, subhead, category, and image', () => {
     const block = createBlock({
-      Title: 'Lab project',
-      URL: '<a href="https://labs.adobe.com/example">https://labs.adobe.com/example</a>',
+      Title: '<a href="https://labs.adobe.com/example">Lab project</a>',
       Category: 'Research',
       Subhead: 'A short description',
       Image: PICTURE,
@@ -40,7 +39,7 @@ describe('grid-item block', () => {
     expect(block.querySelector('.grid-item__image picture')).toBeTruthy();
   });
 
-  it('uses a div for main when the URL is missing', () => {
+  it('uses a div for main when the title is not a link', () => {
     const block = createBlock({ Title: 'Lab project' });
 
     decorate(block);
@@ -50,10 +49,9 @@ describe('grid-item block', () => {
     expect(within(block).queryByRole('link')).toBeNull();
   });
 
-  it('ignores javascript URLs', () => {
+  it('ignores javascript URLs on the title', () => {
     const block = createBlock({
-      Title: 'Lab project',
-      URL: '<a href="javascript:alert(1)">click</a>',
+      Title: '<a href="javascript:alert(1)">Lab project</a>',
     });
 
     decorate(block);
@@ -83,7 +81,7 @@ describe('grid-item block', () => {
   });
 
   it('omits the title when it is empty', () => {
-    const block = createBlock({ URL: '<a href="https://labs.adobe.com/example">https://labs.adobe.com/example</a>' });
+    const block = createBlock({ Subhead: 'A short description' });
 
     decorate(block);
 
@@ -120,19 +118,7 @@ describe('grid-item block', () => {
     expect(block.querySelector('.grid-item__play')).toBeNull();
   });
 
-  it('applies authored alt text to the image', () => {
-    const block = createBlock({
-      Title: 'Lab project',
-      Image: PICTURE,
-      'Alt Text': 'Project thumbnail',
-    });
-
-    decorate(block);
-
-    expect(block.querySelector('img')).toHaveAttribute('alt', 'Project thumbnail');
-  });
-
-  it('sets empty alt when the card has a title and alt-text is missing', () => {
+  it('preserves alt text already on the image', () => {
     const block = createBlock({
       Title: 'Lab project',
       Image: PICTURE,
@@ -140,6 +126,6 @@ describe('grid-item block', () => {
 
     decorate(block);
 
-    expect(block.querySelector('img')).toHaveAttribute('alt', '');
+    expect(block.querySelector('img')).toHaveAttribute('alt', 'original');
   });
 });

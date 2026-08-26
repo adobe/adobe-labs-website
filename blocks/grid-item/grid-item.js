@@ -14,7 +14,7 @@ const CATEGORY_PATHS = {
 /**
  * Builds a lookup of authored field names to their value cells.
  * Grid-item content is a key/value table: each row is [label, value].
- * Labels are slugified so "Alt Text" and "alt-text" resolve the same.
+ * Labels are slugified so "Is Video" and "is-video" resolve the same.
  *
  * @param {Element} block The grid-item block element
  * @returns {Object<string, Element>} Map of field name to value cell
@@ -40,15 +40,13 @@ function getCellText(cell) {
 }
 
 /**
- * Returns a URL from an authored cell: the first link's href, or the cell text.
+ * Returns the href of the first link in an authored cell.
  *
  * @param {Element} [cell] The value cell
  * @returns {string}
  */
-function getCellHref(cell) {
-  if (!cell) return '';
-  const link = cell.querySelector('a[href]');
-  return link ? link.href : getCellText(cell);
+function getCellLinkHref(cell) {
+  return cell?.querySelector('a[href]')?.href || '';
 }
 
 /**
@@ -106,20 +104,19 @@ function isAuthoredTrue(cell) {
 
 /**
  * Decorates a grid-item block: key/value rows become a category link and a
- * card (image, title, optional subhead) that links to the item URL when set.
+ * card (image, title, optional subhead). The card links when the title is a link.
  *
  * @param {Element} block The grid-item block element
  */
 export default function decorate(block) {
   const cells = getAuthoredCells(block);
   const title = getCellText(cells.title);
-  const href = toSafeHttpUrl(getCellHref(cells.url));
+  const href = toSafeHttpUrl(getCellLinkHref(cells.title));
   const category = resolveCategory(getCellText(cells.category));
   const subhead = getCellText(cells.subhead);
-  const alt = getCellText(cells['alt-text']);
   const media = getCellMedia(cells.image);
   const isVideo = isAuthoredTrue(cells.isvideo || cells['is-video']);
-  // Link the card only when a safe http(s) URL was authored.
+  // Link the card only when the title was authored as a safe http(s) link.
   const mainTag = href ? 'a' : 'div';
 
   const template = document.createElement('template');
@@ -148,14 +145,8 @@ export default function decorate(block) {
   const main = root.querySelector('.grid-item__main');
   if (href) main.href = href;
 
-  // Move authored media into the card so AEM image optimization is preserved.
+  // Move authored media into the card; keep the image alt from AEM.
   if (media) {
-    const img = media.tagName === 'IMG' ? media : media.querySelector('img');
-    if (img) {
-      if (alt) img.alt = alt;
-      // Decorative when nearby title/subhead already describe the card.
-      else if (title || subhead) img.alt = '';
-    }
     const image = root.querySelector('.grid-item__image');
     const play = image.querySelector('.grid-item__play');
     if (play) play.before(media);
