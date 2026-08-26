@@ -7,7 +7,7 @@
 
 /**
  * Parse a publication date without shifting ISO calendar days across timezones.
- * @param {string} value
+ * @param {string} [value] ISO (`YYYY-MM-DD`) or any string `Date` can parse
  * @returns {Date|null}
  */
 export function parseCardDate(value) {
@@ -27,9 +27,9 @@ export function parseCardDate(value) {
 
 /**
  * Card subhead date: "Oct 21" in the current year, "Oct 21, 2027" otherwise.
- * @param {string} value
- * @param {Date} [now]
- * @returns {string}
+ * @param {string} [value] Publication date string
+ * @param {Date} [now=new Date()] Reference date for the current-year check
+ * @returns {string} Formatted label, or an empty string when unparseable
  */
 export function formatCardDate(value, now = new Date()) {
   const date = parseCardDate(value);

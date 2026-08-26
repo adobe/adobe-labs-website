@@ -18,29 +18,84 @@ const CATEGORY_LABELS = {
   playground: 'Playground',
 };
 
+/**
+ * @typedef {object} QueryIndexItem
+ * @property {string} [path]
+ * @property {string} [title]
+ * @property {string} [category]
+ * @property {string} [contentType]
+ * @property {string} ["content-type"]
+ * @property {string} [description]
+ * @property {string} [image]
+ * @property {string} [publicationDate]
+ * @property {string} [date]
+ * @property {string} [robots]
+ * @property {string|boolean} [isVideo]
+ * @property {string|boolean} [isvideo]
+ * @property {string|boolean} ["is-video"]
+ */
+
+/**
+ * @typedef {object} ItemCategory
+ * @property {string} slug
+ * @property {string} label
+ */
+
+/**
+ * Whether an authored filter means "no filter".
+ * @param {string} [value] Content Type or Category cell
+ * @returns {boolean}
+ */
 function isAll(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return !normalized || normalized === 'all';
 }
 
+/**
+ * Parse the authored card count, falling back to {@link DEFAULT_COUNT}.
+ * @param {string|number} [value]
+ * @returns {number}
+ */
 function parseCount(value) {
   const count = Number.parseInt(String(value || '').trim(), 10);
   return Number.isFinite(count) && count > 0 ? count : DEFAULT_COUNT;
 }
 
+/**
+ * Case-insensitive string equality after trimming.
+ * @param {*} left
+ * @param {*} right
+ * @returns {boolean}
+ */
 function equalsIgnoreCase(left, right) {
   return String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase();
 }
 
+/**
+ * Whether a spreadsheet / metadata flag is a positive value.
+ * @param {string|boolean} [value]
+ * @returns {boolean}
+ */
 function isTruthyFlag(value) {
   if (value === true) return true;
   return /^(true|yes|1)$/i.test(String(value || '').trim());
 }
 
+/**
+ * First non-empty field from an index item, trying each name in order.
+ * @param {QueryIndexItem} item
+ * @param {...string} names
+ * @returns {string}
+ */
 function itemField(item, ...names) {
   return names.reduce((found, name) => found || item[name] || '', '');
 }
 
+/**
+ * Lowercase kebab-case slug for a category name.
+ * @param {string} [name]
+ * @returns {string}
+ */
 function toSlug(name) {
   return String(name || '')
     .toLowerCase()
@@ -49,17 +104,33 @@ function toSlug(name) {
     .replace(/^-|-$/g, '');
 }
 
+/**
+ * Known category slug from the first path segment, or empty if unknown.
+ * @param {string} [path]
+ * @returns {string}
+ */
 function pathCategorySlug(path) {
   const segment = String(path || '').split('/').filter(Boolean)[0];
   return CATEGORY_LABELS[segment] ? segment : '';
 }
 
+/**
+ * Explicit isVideo flag from the index, or null when the field is omitted.
+ * @param {QueryIndexItem} item
+ * @returns {boolean|null}
+ */
 function videoFlag(item) {
   const names = ['isVideo', 'isvideo', 'is-video'];
   const name = names.find((key) => Object.prototype.hasOwnProperty.call(item, key) && item[key] !== '');
   return name ? isTruthyFlag(item[name]) : null;
 }
 
+/**
+ * Whether a query-index row should render as a video card.
+ * Prefers an explicit isVideo flag, then contentType, then the /sneaks/ folder.
+ * @param {QueryIndexItem} item
+ * @returns {boolean}
+ */
 function isVideoItem(item) {
   const flagged = videoFlag(item);
   if (flagged !== null) return flagged;
@@ -67,6 +138,11 @@ function isVideoItem(item) {
   return pathCategorySlug(item.path) === 'sneaks';
 }
 
+/**
+ * Resolve a display category from page metadata, then the first path segment.
+ * @param {QueryIndexItem} item
+ * @returns {ItemCategory|null}
+ */
 function resolveItemCategory(item) {
   const fromMeta = toSlug(itemField(item, 'category'));
   if (CATEGORY_LABELS[fromMeta]) {
@@ -77,6 +153,11 @@ function resolveItemCategory(item) {
   return { slug: fromPath, label: CATEGORY_LABELS[fromPath] };
 }
 
+/**
+ * Whether a path should be omitted from the grid (home, docs, fragments).
+ * @param {string} [path]
+ * @returns {boolean}
+ */
 function isExcludedPath(path) {
   if (!path) return true;
   const clean = path.replace(/\/+$/, '') || '/';
@@ -84,16 +165,32 @@ function isExcludedPath(path) {
   return EXCLUDED_PATH_PREFIXES.some((prefix) => clean === prefix || clean.startsWith(`${prefix}/`));
 }
 
+/**
+ * Whether robots metadata includes noindex.
+ * @param {string} [robots]
+ * @returns {boolean}
+ */
 function isNoindex(robots) {
   return /noindex/i.test(String(robots || ''));
 }
 
+/**
+ * Publication timestamp in milliseconds, or null when unparseable.
+ * @param {QueryIndexItem} item
+ * @returns {number|null}
+ */
 function parseDate(item) {
   const raw = itemField(item, 'publicationDate', 'date');
   const time = Date.parse(raw);
   return Number.isFinite(time) ? time : null;
 }
 
+/**
+ * Newest publication date first; undated items sort last.
+ * @param {QueryIndexItem} a
+ * @param {QueryIndexItem} b
+ * @returns {number}
+ */
 function compareNewestFirst(a, b) {
   const aDate = parseDate(a);
   const bDate = parseDate(b);
@@ -103,6 +200,11 @@ function compareNewestFirst(a, b) {
   return 0;
 }
 
+/**
+ * Anchor whose href and text are the page path (for the grid-item URL cell).
+ * @param {string} path
+ * @returns {HTMLAnchorElement}
+ */
 function pathLink(path) {
   const link = document.createElement('a');
   link.href = path;
@@ -110,7 +212,15 @@ function pathLink(path) {
   return link;
 }
 
-function createGridItem(entry, { subheadDescription } = {}) {
+/**
+ * Build an undecorated grid-item block from a query-index row.
+ * @param {QueryIndexItem} entry
+ * @param {object} [options]
+ * @param {boolean} [options.subheadDescription] Use description instead of the date subhead
+ * @param {boolean} [options.showCategory] Include the category cell (off by default)
+ * @returns {HTMLDivElement}
+ */
+function createGridItem(entry, { subheadDescription, showCategory } = {}) {
   const title = itemField(entry, 'title');
   const path = itemField(entry, 'path');
   const category = resolveItemCategory(entry);
@@ -121,7 +231,7 @@ function createGridItem(entry, { subheadDescription } = {}) {
 
   const rows = [['Title', title]];
   if (path) rows.push(['URL', pathLink(path)]);
-  if (category) rows.push(['Category', category.label]);
+  if (showCategory && category) rows.push(['Category', category.label]);
   if (subheadDescription) {
     if (description) rows.push(['Subhead', description]);
   } else if (publicationDate) {
@@ -138,6 +248,15 @@ function createGridItem(entry, { subheadDescription } = {}) {
   return gridItem;
 }
 
+/**
+ * Filter, sort, and slice query-index rows for the authored config.
+ * @param {QueryIndexItem[]} data
+ * @param {object} options
+ * @param {string} [options.contentType]
+ * @param {string} [options.category]
+ * @param {number} options.count
+ * @returns {QueryIndexItem[]}
+ */
 function selectItems(data, { contentType, category, count }) {
   return data
     .filter((item) => !isNoindex(item.robots))
@@ -156,12 +275,19 @@ function selectItems(data, { contentType, category, count }) {
     .slice(0, count);
 }
 
+/**
+ * Replace the authored config table with a list of grid-item cards
+ * from `/query-index.json`.
+ * @param {Element} block The content-grid block element
+ * @returns {Promise<void>}
+ */
 export default async function decorate(block) {
   const config = readBlockConfig(block);
   const contentType = config['content-type'];
   const { category } = config;
   const count = parseCount(config.count);
   const subheadDescription = block.classList.contains('subhead-description');
+  const showCategory = block.classList.contains('show-category');
 
   block.replaceChildren();
 
@@ -177,9 +303,11 @@ export default async function decorate(block) {
   if (!items.length) return;
 
   const list = document.createElement('ul');
+  list.className = 'content-grid__list';
   items.forEach((entry) => {
-    const gridItem = createGridItem(entry, { subheadDescription });
+    const gridItem = createGridItem(entry, { subheadDescription, showCategory });
     const item = document.createElement('li');
+    item.className = 'content-grid__item';
     item.append(gridItem);
     list.append(item);
     decorateBlock(gridItem);

@@ -83,6 +83,8 @@ The block fetches `/query-index.json?limit=1000`, filters client-side, and rende
 
 Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the block header (`content-grid (subhead-description)` or `grid-item (subhead-description)`) to use the description / Subhead cell instead.
 
+Category labels on cards are off by default. Add `show-category` to the block header (`content-grid (show-category)`) to render each card’s `.grid-item-category` link.
+
 Cards stay empty until indexed article pages exist. Index config lives at [tools.aem.live](https://www.aem.live/developer/indexing) (this repo does not contain `helix-query.yaml`).
 
 **Index properties** (reindex after saving):

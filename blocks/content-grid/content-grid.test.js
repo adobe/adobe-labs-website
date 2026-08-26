@@ -166,10 +166,11 @@ describe('content-grid block', () => {
     await decorate(block);
 
     const list = within(block).getByRole('list');
+    expect(list).toHaveClass('content-grid__list');
     expect(list.children).toHaveLength(3);
     expect(list.querySelectorAll('.grid-item')).toHaveLength(3);
     expect(list.querySelector('.grid-item')).toHaveClass('aspect-3-2');
-    expect(list.querySelector('li')).toHaveClass('grid-item-wrapper');
+    expect(list.querySelector('li')).toHaveClass('content-grid__item', 'grid-item-wrapper');
     expect(buildBlock).toHaveBeenCalledTimes(3);
     expect(decorateBlock).toHaveBeenCalledTimes(3);
     expect(loadBlock).toHaveBeenCalledTimes(3);
@@ -219,12 +220,25 @@ describe('content-grid block', () => {
     expect(titlesFromBuildCalls()).toEqual(['Newer research', 'Older research']);
   });
 
-  it('derives a display category from the first path segment', async () => {
+  it('omits category on grid-item by default', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'All',
       'Count:': '1',
     });
+
+    await decorate(block);
+
+    expect(fieldFromCall(0, 'Category')).toBeUndefined();
+  });
+
+  it('passes category to grid-item when show-category is set', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+    });
+    block.classList.add('show-category');
 
     await decorate(block);
 
@@ -246,6 +260,7 @@ describe('content-grid block', () => {
       'Category:': 'Research',
       'Count:': '8',
     });
+    block.classList.add('show-category');
 
     await decorate(block);
 
@@ -416,7 +431,7 @@ describe('content-grid block', () => {
     const rows = buildBlock.mock.calls[0][1];
     const asObject = Object.fromEntries(rows.map(([label, value]) => [label, value]));
     expect(asObject.Title).toBe('Newer research');
-    expect(asObject.Category).toBe('Research');
+    expect(asObject.Category).toBeUndefined();
     expect(asObject.Date).toBe('2026-08-20');
     expect(asObject.Subhead).toBeUndefined();
     expect(asObject.URL).toHaveAttribute('href', expect.stringMatching(/\/research\/newer$/));
