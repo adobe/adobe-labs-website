@@ -189,6 +189,9 @@
 
 .footer__logo {
   line-height: 0;
+  inline-size: 100%;
+  max-inline-size: var(--site-max-inline-size);
+  margin-inline: auto;
   overflow: hidden;
   display: flex;
   justify-content: center;
@@ -205,6 +208,12 @@
   block-size: auto;
   flex-shrink: 0;
   transform: translateY(calc((1 - (var(--footer-logo-entry-progress, 0) / 100)) * 50%));
+}
+
+@media (width >= 120rem) {
+  .footer__logo-image {
+    inline-size: 100%;
+  }
 }
 
 .footer__submit:focus-visible {
