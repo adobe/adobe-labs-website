@@ -359,6 +359,14 @@ main > div {
 /* TODO: boilerplate - Sections - better handling of this group of styles for overall site spacing. And use tokens. */
 main > .section {
   margin: 40px 0;
+
+  --top-bottom-spacing: 0;
+  --section-container-width: 100%;
+  --section-radius: 0;
+  --section-text-on-light: var(--s2a-color-gray-1000);
+  --section-text-on-dark: var(--s2a-color-gray-25);
+
+  border-radius: var(--section-radius);
 }
 
 main > .section > div {
@@ -384,4 +392,148 @@ main .section.highlight {
   background-color: var(--light-color);
   margin: 0;
   padding: 40px 0;
+}
+
+/*
+ * Section Metadata's grid/gap/radius/spacing/container/layout/background
+ * fields (scripts/section-metadata.js). Lives here, not in a block CSS file,
+ * because there's no block element left in the DOM to trigger a block load —
+ * the Helix pipeline promotes the metadata table's fields onto the section
+ * div itself (classes for `style`, data-* attributes for everything else)
+ * before the page ever reaches the browser.
+ */
+main > .section.light-scheme > * {
+  color: var(--section-text-on-light);
+}
+
+main > .section.dark-scheme > * {
+  color: var(--section-text-on-dark);
+}
+
+main > .section.grid-2 { --grid-size: 2; }
+main > .section.grid-3 { --grid-size: 3; }
+main > .section.grid-4 { --grid-size: 4; }
+main > .section.grid-5 { --grid-size: 5; }
+main > .section.grid-6 { --grid-size: 6; }
+
+main > .section.gap-xs { --gap-spacing: var(--s2a-spacing-xs); }
+main > .section.gap-s { --gap-spacing: var(--s2a-spacing-sm); }
+main > .section.gap-m { --gap-spacing: var(--s2a-spacing-md); }
+main > .section.gap-l { --gap-spacing: var(--s2a-spacing-lg); }
+main > .section.gap-xl { --gap-spacing: var(--s2a-spacing-xl); }
+main > .section.gap-xxl { --gap-spacing: var(--s2a-spacing-2xl); }
+
+main > .section.spacing-xs { --top-bottom-spacing: calc(var(--s2a-spacing-xs) * 2); }
+main > .section.spacing-s { --top-bottom-spacing: calc(var(--s2a-spacing-sm) * 2); }
+main > .section.spacing-m { --top-bottom-spacing: calc(var(--s2a-spacing-md) * 2); }
+main > .section.spacing-l { --top-bottom-spacing: calc(var(--s2a-spacing-lg) * 2); }
+main > .section.spacing-xl { --top-bottom-spacing: calc(var(--s2a-spacing-xl) * 2); }
+main > .section.spacing-xxl { --top-bottom-spacing: calc(var(--s2a-spacing-2xl) * 2); }
+
+main > .section:is(.spacing-xs, .spacing-s, .spacing-m, .spacing-l, .spacing-xl, .spacing-xxl) {
+  padding-block: var(--top-bottom-spacing);
+}
+
+main > .section.radius-xs { --section-radius: var(--s2a-border-radius-xs); }
+main > .section.radius-s { --section-radius: var(--s2a-border-radius-sm); }
+main > .section.radius-m { --section-radius: var(--s2a-border-radius-md); }
+main > .section.radius-l { --section-radius: var(--s2a-border-radius-lg); }
+
+main > .section.radius-xl,
+main > .section.radius-xxl {
+  --section-radius: var(--s2a-border-radius-xl);
+}
+
+main > .section[class*="radius"] {
+  overflow: hidden;
+}
+
+main > .section.grid {
+  display: grid;
+  gap: var(--gap-spacing);
+}
+
+/* the sitewide `margin: auto` on section children (below) shrink-wraps grid
+   items instead of letting them stretch to fill their column */
+main > .section.grid > div {
+  margin: 0;
+}
+
+main > .section.container > div {
+  max-width: var(--section-container-width);
+  margin-inline: auto;
+}
+
+main > .section.container-2 { --section-container-width: 33%; }
+main > .section.container-4 { --section-container-width: 66%; }
+main > .section.container-6 { --section-container-width: 100%; }
+
+main > .section.center .default-content-wrapper {
+  text-align: center;
+}
+
+main > .section.has-background {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+main > .section.has-background > div {
+  position: relative;
+}
+
+main > .section.layout-bento {
+  display: grid;
+  gap: var(--gap-spacing);
+  grid-template-columns: 1fr;
+}
+
+main > .section.layout-bento > div {
+  margin: 0;
+}
+
+@media (width >= 600px) {
+  main > .section.grid-2 {
+    grid-template-columns: repeat(var(--grid-size), 1fr);
+  }
+}
+
+@media (width >= 900px) {
+  main > .section.grid-4,
+  main > .section.grid-6 {
+    grid-template-columns: repeat(calc(var(--grid-size) / 2), 1fr);
+    grid-auto-rows: minmax(min-content, 1fr);
+  }
+
+  main > .section.container.container-4 { --section-container-width: 40%; }
+  main > .section.container.container-6 { --section-container-width: 60%; }
+  main > .section.container.container-8 { --section-container-width: 80%; }
+  main > .section.container.container-9 { --section-container-width: 90%; }
+  main > .section.container.container-10 { --section-container-width: 100%; }
+
+  main > .section.layout-bento {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-areas:
+      "one   one   two"
+      "one   one   three"
+      "four  five  five";
+  }
+
+  main > .section.layout-bento > * {
+    /* blocks can use a container query */
+    container-type: inline-size;
+  }
+
+  main > .section.layout-bento > *:nth-child(1) { grid-area: one; }
+  main > .section.layout-bento > *:nth-child(2) { grid-area: two; }
+  main > .section.layout-bento > *:nth-child(3) { grid-area: three; }
+  main > .section.layout-bento > *:nth-child(4) { grid-area: four; }
+  main > .section.layout-bento > *:nth-child(5) { grid-area: five; }
+}
+
+@media (width >= 1200px) {
+  main > .section.grid {
+    grid-template-columns: repeat(var(--grid-size), 1fr);
+    grid-auto-rows: minmax(min-content, 1fr);
+  }
 }
