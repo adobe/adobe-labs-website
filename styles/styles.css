@@ -284,10 +284,11 @@ main > div {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  max-width: 100%;
+  width: fit-content;
   height: var(--height-button);
   padding: 0 var(--s2a-spacing-lg);
   border-radius: var(--border-radius-button);
+
   font-family: var(--body-font-family);
   font-size: var(--s2a-typography-font-size-label);
   font-style: normal;
@@ -296,11 +297,13 @@ main > div {
   letter-spacing: var(--letter-spacing-button);
   text-align: center;
   text-decoration-line: none;
-  cursor: pointer;
+  
   background-color: var(--color-button-background-primary);
   color: var(--color-button-text-primary);
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
   transition-timing-function: cubic-bezier(.45,0,.4,1);
   transition-duration: .13s;
   transition-property: outline, border-color, color, background-color, transform;
@@ -314,11 +317,22 @@ main > div {
     outline-offset: var(--s2a-border-width-md);
   }
 
+  /* Native buttons need additional styles to strip defaults. */
+  &:is(button),
+  &:is(button):hover {
+    border: transparent;
+
+    &:not(disabled),
+    &:not(disabled) {
+      cursor: pointer;
+    }
+  }
+
   &:is(:disabled, [aria-disabled="true"]),
   &:is(:disabled, [aria-disabled="true"]):hover {
     background-color: var(--color-button-background-primary-disabled);
     color: var(--color-button-text-disabled);
-    cursor: unset;
+    cursor: default;
   }
 
   &:active:not(:disabled, [aria-disabled="true"]) {
