@@ -204,8 +204,6 @@
 
 .footer-logo {
   line-height: 0;
-  max-inline-size: var(--site-max-inline-size);
-  margin-inline: auto;
   overflow: hidden;
   display: flex;
   justify-content: center;
@@ -263,11 +261,5 @@
     flex-flow: row wrap;
     align-items: center;
     gap: var(--s2a-spacing-xl);
-  }
-}
-
-@media (width >= 1920px) {
-  .footer-logo-image {
-    inline-size: 100%;
   }
 }
