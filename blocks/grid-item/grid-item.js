@@ -1,25 +1,64 @@
-function getFields(block) {
-  const fields = {};
+import { toClassName } from '../../scripts/aem.js';
+
+/**
+ * Known category labels mapped to their site paths.
+ * Unknown authored names do not get a category link.
+ */
+const CATEGORY_PATHS = {
+  research: '/research',
+  workflows: '/workflows',
+  sneaks: '/sneaks',
+  playground: '/playground',
+};
+
+/**
+ * Builds a lookup of authored field names to their value cells.
+ * Grid-item content is a key/value table: each row is [label, value].
+ * Labels are slugified so "Alt Text" and "alt-text" resolve the same.
+ *
+ * @param {Element} block The grid-item block element
+ * @returns {Object<string, Element>} Map of field name to value cell
+ */
+function getAuthoredCells(block) {
+  const cells = {};
   [...block.children].forEach((row) => {
     const [label, cell] = row.children;
     if (!label || !cell) return;
-    const name = label.textContent.trim().toLowerCase().replace(/\s+/g, '-');
-    fields[name] = cell;
+    cells[toClassName(label.textContent)] = cell;
   });
-  return fields;
+  return cells;
 }
 
-function textFrom(cell) {
+/**
+ * Returns trimmed text from an authored cell, or an empty string if missing.
+ *
+ * @param {Element} [cell] The value cell
+ * @returns {string}
+ */
+function getCellText(cell) {
   return cell?.textContent.trim() || '';
 }
 
-function hrefFrom(cell) {
+/**
+ * Returns a URL from an authored cell: the first link's href, or the cell text.
+ *
+ * @param {Element} [cell] The value cell
+ * @returns {string}
+ */
+function getCellHref(cell) {
   if (!cell) return '';
   const link = cell.querySelector('a[href]');
-  return link ? link.href : textFrom(cell);
+  return link ? link.href : getCellText(cell);
 }
 
-function safeHref(value) {
+/**
+ * Returns an absolute http(s) URL, or an empty string if the value is missing
+ * or uses a non-http protocol (javascript:, data:, etc.).
+ *
+ * @param {string} value Candidate URL, possibly relative
+ * @returns {string}
+ */
+function toSafeHttpUrl(value) {
   if (!value) return '';
   try {
     const url = new URL(value, window.location.href);
@@ -30,64 +69,62 @@ function safeHref(value) {
   return '';
 }
 
-function mediaFrom(cell) {
+/**
+ * Returns the picture or img element from an authored media cell.
+ *
+ * @param {Element} [cell] The image field cell
+ * @returns {Element|null}
+ */
+function getCellMedia(cell) {
   if (!cell) return null;
   return cell.querySelector('picture') || cell.querySelector('img');
 }
 
-function htmlToFragment(html) {
-  const template = document.createElement('template');
-  template.innerHTML = html.trim();
-  return template.content;
-}
-
-function setText(root, selector, value) {
-  const el = root.querySelector(selector);
-  if (!el) return;
-  if (value) el.textContent = value;
-  else el.remove();
-}
-
-const CATEGORY_PATHS = {
-  research: '/research',
-  workflows: '/workflows',
-  sneaks: '/sneaks',
-  playground: '/playground',
-};
-
-function toSlug(name) {
-  return name
-    .toLowerCase()
-    .replace(/[^0-9a-z]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
+/**
+ * Resolves an authored category name to a known site path.
+ *
+ * @param {string} name Authored category label
+ * @returns {{ slug: string, path: string, label: string }|null}
+ */
 function resolveCategory(name) {
   if (!name) return null;
-  const slug = toSlug(name);
+  const slug = toClassName(name);
   const path = CATEGORY_PATHS[slug];
   if (!path) return null;
   return { slug, path, label: name };
 }
 
-function isTrue(cell) {
-  return /^(true|yes|1)$/i.test(textFrom(cell));
+/**
+ * Whether an authored flag cell is true (`true`, `yes`, or `1`, case-insensitive).
+ *
+ * @param {Element} [cell] The flag cell
+ * @returns {boolean}
+ */
+function isAuthoredTrue(cell) {
+  return /^(true|yes|1)$/i.test(getCellText(cell));
 }
 
+/**
+ * Decorates a grid-item block: key/value rows become a category link and a
+ * card (image, title, optional subhead) that links to the item URL when set.
+ *
+ * @param {Element} block The grid-item block element
+ */
 export default function decorate(block) {
-  const fields = getFields(block);
-  const title = textFrom(fields.title);
-  const href = safeHref(hrefFrom(fields.url));
-  const category = resolveCategory(textFrom(fields.category));
-  const subhead = textFrom(fields.subhead);
-  const alt = textFrom(fields['alt-text']);
-  const media = mediaFrom(fields.image);
-  const isVideo = isTrue(fields.isvideo || fields['is-video']);
+  const cells = getAuthoredCells(block);
+  const title = getCellText(cells.title);
+  const href = toSafeHttpUrl(getCellHref(cells.url));
+  const category = resolveCategory(getCellText(cells.category));
+  const subhead = getCellText(cells.subhead);
+  const alt = getCellText(cells['alt-text']);
+  const media = getCellMedia(cells.image);
+  const isVideo = isAuthoredTrue(cells.isvideo || cells['is-video']);
+  // Link the card only when a safe http(s) URL was authored.
   const mainTag = href ? 'a' : 'div';
 
-  const root = htmlToFragment(`
-    ${category ? `<a class="grid-item__category label">
+  const template = document.createElement('template');
+  template.innerHTML = `
+    ${category ? `<a class="grid-item__category label" href="${category.path}">
       <span class="grid-item__category-swatch" aria-hidden="true"></span>
       <span class="grid-item__category-name"></span>
     </a>` : ''}
@@ -101,19 +138,22 @@ export default function decorate(block) {
         </span>` : ''}
       </div>
       <div class="grid-item__body">
-        <p class="grid-item__title heading-6"></p>
+        ${title ? '<p class="grid-item__title heading-6"></p>' : ''}
         ${subhead ? '<p class="grid-item__subhead body-md"></p>' : ''}
       </div>
     </${mainTag}>
-  `);
+  `.trim();
+  const root = template.content;
 
   const main = root.querySelector('.grid-item__main');
   if (href) main.href = href;
 
+  // Move authored media into the card so AEM image optimization is preserved.
   if (media) {
     const img = media.tagName === 'IMG' ? media : media.querySelector('img');
     if (img) {
       if (alt) img.alt = alt;
+      // Decorative when nearby title/subhead already describe the card.
       else if (title || subhead) img.alt = '';
     }
     const image = root.querySelector('.grid-item__image');
@@ -122,15 +162,14 @@ export default function decorate(block) {
     else image.append(media);
   }
 
+  // Assign authored copy via textContent rather than interpolating into HTML.
   if (category) {
-    const categoryEl = root.querySelector('.grid-item__category');
-    categoryEl.href = category.path;
-    setText(root, '.grid-item__category-name', category.label);
+    root.querySelector('.grid-item__category-name').textContent = category.label;
     block.dataset.category = category.slug;
   }
 
-  if (subhead) setText(root, '.grid-item__subhead', subhead);
-  setText(root, '.grid-item__title', title);
+  if (title) root.querySelector('.grid-item__title').textContent = title;
+  if (subhead) root.querySelector('.grid-item__subhead').textContent = subhead;
 
   block.replaceChildren(root);
 }

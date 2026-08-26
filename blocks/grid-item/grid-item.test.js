@@ -82,6 +82,14 @@ describe('grid-item block', () => {
     expect(block.querySelector('.grid-item__subhead')).toBeNull();
   });
 
+  it('omits the title when it is empty', () => {
+    const block = createBlock({ URL: '<a href="https://labs.adobe.com/example">https://labs.adobe.com/example</a>' });
+
+    decorate(block);
+
+    expect(block.querySelector('.grid-item__title')).toBeNull();
+  });
+
   it.each([
     ['Is Video', 'true'],
     ['isvideo', 'yes'],
