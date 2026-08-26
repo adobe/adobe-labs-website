@@ -34,6 +34,10 @@
   gap: var(--s2a-spacing-md);
 }
 
+.footer-menu__items:not(.footer-menu__items--newsletter) {
+  align-items: flex-start;
+}
+
 .footer-menu__link {
   color: var(--footer-text-subtle);
   font-size: var(--s2a-typography-font-size-body-md);
@@ -50,7 +54,6 @@
 
 @media (width < 1024px) {
   .footer-menu__column--nav {
-    padding-block: var(--s2a-spacing-lg);
     border-block-start: 1px solid var(--s2a-color-transparent-white-12);
   }
 
@@ -63,6 +66,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    inline-size: 100%;
+    padding-block: var(--s2a-spacing-lg);
     cursor: pointer;
   }
 
