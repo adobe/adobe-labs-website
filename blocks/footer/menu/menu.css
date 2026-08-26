@@ -51,13 +51,11 @@
 @media (width < 1024px) {
   .footer-menu__column--nav {
     padding-block: var(--s2a-spacing-lg);
-    padding-inline: var(--s2a-spacing-xs);
     border-block-start: 1px solid var(--s2a-color-transparent-white-12);
   }
 
   .footer-menu__column--newsletter {
     padding-block: 0 var(--s2a-spacing-lg);
-    padding-inline: var(--s2a-spacing-xs);
   }
 
   .footer-menu__headline--toggle {
