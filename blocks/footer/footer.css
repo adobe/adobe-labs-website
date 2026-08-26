@@ -44,8 +44,6 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  max-inline-size: var(--site-max-inline-size);
-  margin-inline: auto;
   padding-block: var(--s2a-layout-sm) var(--s2a-spacing-2xl);
   padding-inline: var(--s2a-spacing-lg);
   background-color: var(--s2a-color-gray-1000);
@@ -55,6 +53,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--s2a-spacing-2xl);
+  max-inline-size: var(--site-max-inline-size);
+  inline-size: 100%;
+  margin-inline: auto;
 }
 
 .footer-newsletter-description {
