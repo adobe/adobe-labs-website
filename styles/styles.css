@@ -283,7 +283,6 @@ main > div {
   height: var(--height-button);
   padding: 0 var(--s2a-spacing-lg);
   border-radius: var(--border-radius-button);
-
   font-family: var(--body-font-family);
   font-size: var(--s2a-typography-font-size-label);
   font-style: normal;
@@ -292,16 +291,18 @@ main > div {
   letter-spacing: var(--letter-spacing-button);
   text-align: center;
   text-decoration-line: none;
-  
   background-color: var(--color-button-background-primary);
   color: var(--color-button-text-primary);
-
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
   transition-timing-function: cubic-bezier(.45,0,.4,1);
   transition-duration: .13s;
   transition-property: outline, border-color, color, background-color, transform;
+
+  &:is(button) {
+    border: transparent;
+    cursor: pointer;
+  }
 
   &:hover {
     text-decoration-line: none;
@@ -310,11 +311,6 @@ main > div {
   &:focus-visible {
     outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default, var(--s2a-color-blue-900));
     outline-offset: var(--s2a-border-width-md);
-  }
-
-  &:is(button) {
-    border: transparent;
-    cursor: pointer;
   }
 
   &:active {
@@ -328,13 +324,13 @@ main > div {
   &:is(:disabled, [aria-disabled="true"]) {
     --color-button-background-primary-disabled: var(--s2a-color-background-disabled);
     --color-button-text-disabled: var(--s2a-color-gray-600); /* Adjusted for AA contrast */
-    
+
     background-color: var(--color-button-background-primary-disabled);
     color: var(--color-button-text-disabled);
     pointer-events: none;
   }
 
-  &.button--static-white {
+  &.button-static-white {
     --color-button-background-primary: var(--s2a-color-gray-25);
     --color-button-text-primary: var(--s2a-color-gray-1000);
 

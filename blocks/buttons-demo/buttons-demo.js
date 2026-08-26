@@ -48,24 +48,56 @@ export default function decorate(block) {
           paragraph: 'Default buttons (disabled):',
           darkSurface: false,
           buttons: [
-            { tag: 'button', opts: { className: 'button', type: 'button', disabled: true, text: 'Disabled native button' } },
-            { tag: 'a', opts: { className: 'button', href: '#', 'aria-disabled': 'true', text: 'Disabled button as link' } },
+            {
+              tag: 'button',
+              opts: {
+                className: 'button',
+                type: 'button',
+                disabled: true,
+                text: 'Disabled native button',
+              },
+            },
+            {
+              tag: 'a',
+              opts: {
+                className: 'button',
+                href: '#',
+                'aria-disabled': 'true',
+                text: 'Disabled button as link',
+              },
+            },
           ],
         },
         {
           paragraph: 'Static white buttons (shown against static dark surface):',
           darkSurface: true,
           buttons: [
-            { tag: 'button', opts: { className: 'button button--static-white', type: 'button', text: 'Native button, static white' } },
-            { tag: 'a', opts: { className: 'button button--static-white', href: '#', text: 'Button as link, static white' } },
+            { tag: 'button', opts: { className: 'button button-static-white', type: 'button', text: 'Native button, static white' } },
+            { tag: 'a', opts: { className: 'button button-static-white', href: '#', text: 'Button as link, static white' } },
           ],
         },
         {
           paragraph: 'Static white buttons (disabled):',
           darkSurface: true,
           buttons: [
-            { tag: 'button', opts: { className: 'button button--static-white', type: 'button', disabled: true, text: 'Native button, static white' } },
-            { tag: 'a', opts: { className: 'button button--static-white', href: '#', 'aria-disabled': 'true', text: 'Button as link, static white' } },
+            {
+              tag: 'button',
+              opts: {
+                className: 'button button-static-white',
+                type: 'button',
+                disabled: true,
+                text: 'Native button, static white',
+              },
+            },
+            {
+              tag: 'a',
+              opts: {
+                className: 'button button-static-white',
+                href: '#',
+                'aria-disabled': 'true',
+                text: 'Button as link, static white',
+              },
+            },
           ],
         },
       ],

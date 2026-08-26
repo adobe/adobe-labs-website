@@ -146,7 +146,7 @@ See [AEM metadata block docs](https://www.aem.live/developer/block-collection/me
 
 The default `.button` class uses the Primary style. So far only the default/primary style is supported until others are needed.
 
-Default buttons are dark-mode aware. The `.button--static-white` variant can be used for non-theme-aware buttons, like in the hero.
+Default buttons are dark-mode aware. The `.button-static-white` variant can be used for non-theme-aware buttons, like in the hero.
 
 #### Adding a button in AEM
 
@@ -165,7 +165,7 @@ You can use the same steps for a standalone button in default content and for a 
 
 Create a native `button` or `a` as needed and add class `button` to it.
 
-Add extra classes for variants as needed, for example `button--static-white`.
+Add extra classes for variants as needed, for example `button-static-white`.
 
 ##### Disabled buttons as links
 `decorateButtons` runs before block JavaScript. For a disabled link that you create as `a.button` in block JS, set `aria-disabled="true"`, set `tabIndex = "-1"`, and call `event.preventDefault()` on click.
