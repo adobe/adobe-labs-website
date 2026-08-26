@@ -274,8 +274,6 @@ main > div {
   --border-radius-button: var(--s2a-border-radius-round);
   --letter-spacing-button: var(--s2a-typography-letter-spacing-label);
   --focus-border-radius: var(--border-radius-button);
-  --color-button-background-primary-disabled: var(--s2a-color-background-disabled);
-  --color-button-text-disabled: var(--s2a-color-content-disabled);
   --active-size-width-ratio-down: 0.3333;
   --active-size-minimum-perspective-down: 1.5rem;
   --active-size-difference-down: -2px;
@@ -331,24 +329,23 @@ main > div {
   }
 
   &:is(:disabled, [aria-disabled="true"]) {
+    --color-button-background-primary-disabled: var(--s2a-color-background-disabled);
+    --color-button-text-disabled: var(--s2a-color-gray-600); /* Adjusted for AA contrast */
+    
     background-color: var(--color-button-background-primary-disabled);
     color: var(--color-button-text-disabled);
     cursor: default;
     pointer-events: none;
   }
 
-  /* TODO: adjust selectors once dark mode is supported. */
-  :root[data-theme="dark"],
-  body.color-scheme-dark {
-    --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-dark-default);
-    --color-button-background-primary-hover: var(--s2a-color-button-background-primary-solid-on-dark-hover);
-    --color-button-text-primary: var(--s2a-color-button-content-primary-solid-inverse);
-  }
-
-  &--static-white {
+  &.button--static-white {
     --color-button-background-primary: var(--s2a-color-gray-25);
     --color-button-background-primary-hover: var(--s2a-color-transparent-white-64);
     --color-button-text-primary: var(--s2a-color-gray-1000);
+
+    &:focus-visible {
+      outline-color: var(--s2a-color-focus-ring-knockout);
+    }
   }
 }
 
