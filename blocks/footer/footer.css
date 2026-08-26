@@ -60,22 +60,7 @@ footer .footer-content {
   gap: var(--s2a-spacing-2xl, 2.5rem);
 }
 
-footer .footer-newsletter {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s2a-spacing-xs, 0.5rem);
-}
-
-footer .footer-newsletter h2 {
-  margin: 0;
-  color: var(--footer-text);
-  font-size: var(--s2a-typography-font-size-eyebrow);
-  line-height: var(--s2a-typography-line-height-eyebrow);
-  letter-spacing: var(--s2a-typography-letter-spacing-eyebrow);
-  font-weight: var(--s2a-font-weight-adobe-clean-bold);
-}
-
-footer .footer-newsletter p {
+footer .footer-newsletter-description {
   margin: 0;
   color: var(--footer-text-subtle);
   font-size: var(--s2a-typography-font-size-body-md);

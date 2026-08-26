@@ -105,8 +105,10 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    expect(block.querySelectorAll('.footer-menu-column')).toHaveLength(2);
+    expect(block.querySelectorAll('.footer-menu-column')).toHaveLength(3);
     expect(block.querySelector('.footer-menu-columns').children).toHaveLength(3);
+    expect(block.querySelector('.footer-newsletter')).toHaveClass('footer-menu-column');
+    expect(block.querySelector('.footer-newsletter .footer-menu-headline').tagName).toBe('H2');
     expect(block).toHaveTextContent('Connect');
     expect(block).toHaveTextContent('Collaborate');
     expect(block).toHaveTextContent('Research');
@@ -176,7 +178,7 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    const headline = block.querySelector('.footer-menu-headline');
+    const headline = block.querySelector('.footer-menu-column:not(.footer-newsletter) .footer-menu-headline');
     const items = headline.closest('.footer-menu-section').querySelector('.footer-menu-items');
 
     expect(headline).toHaveAttribute('aria-expanded', 'false');

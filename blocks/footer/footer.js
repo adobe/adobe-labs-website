@@ -103,14 +103,24 @@ function decorateNewsletter(column) {
   const action = subscribeLink?.getAttribute('href') || '#';
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'footer-newsletter';
+  wrapper.className = 'footer-menu-column footer-newsletter';
 
-  if (heading) wrapper.append(heading);
+  const section = document.createElement('div');
+  section.className = 'footer-menu-section';
+
+  if (heading) {
+    heading.classList.add('footer-menu-headline');
+    section.append(heading);
+  }
+
+  const items = document.createElement('div');
+  items.className = 'footer-menu-items';
 
   const descId = description ? `footer-newsletter-desc-${Date.now()}` : null;
   if (description) {
+    description.classList.add('footer-newsletter-description');
     description.id = descId;
-    wrapper.append(description);
+    items.append(description);
   }
 
   const form = document.createElement('form');
@@ -138,7 +148,9 @@ function decorateNewsletter(column) {
   button.setAttribute('aria-label', subscribeLink?.textContent?.trim() || 'Subscribe');
 
   form.append(label, input, button);
-  wrapper.append(form);
+  items.append(form);
+  section.append(items);
+  wrapper.append(section);
 
   column.replaceWith(wrapper);
   return wrapper;

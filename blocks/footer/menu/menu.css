@@ -49,7 +49,7 @@ footer .footer .footer-nav-link:focus {
 }
 
 @media (width < 900px) {
-  footer .footer .footer-menu-headline {
+  footer .footer .footer-menu-column:not(.footer-newsletter) .footer-menu-headline {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -58,7 +58,7 @@ footer .footer .footer-nav-link:focus {
     cursor: pointer;
   }
 
-  footer .footer .footer-menu-headline::after {
+  footer .footer .footer-menu-column:not(.footer-newsletter) .footer-menu-headline::after {
     content: "";
     width: 0.5rem;
     height: 0.5rem;
@@ -68,7 +68,7 @@ footer .footer .footer-nav-link:focus {
     transition: transform 0.15s ease;
   }
 
-  footer .footer .footer-menu-headline[aria-expanded="true"]::after {
+  footer .footer .footer-menu-column:not(.footer-newsletter) .footer-menu-headline[aria-expanded="true"]::after {
     transform: rotate(-135deg);
   }
 }
