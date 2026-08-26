@@ -1,5 +1,13 @@
 import { within } from '@testing-library/dom';
-import decorate from './grid-item.js';
+import { createOptimizedPicture } from '../../scripts/aem.js';
+import decorate, { buildGridItem } from './grid-item.js';
+
+jest.mock('../../scripts/aem.js', () => ({
+  toClassName: (name) => (typeof name === 'string'
+    ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    : ''),
+  createOptimizedPicture: jest.fn(),
+}));
 
 function createBlock(fields) {
   const block = document.createElement('div');
@@ -12,6 +20,18 @@ function createBlock(fields) {
 }
 
 const PICTURE = '<picture><img src="hero.jpg" alt="original"></picture>';
+
+beforeEach(() => {
+  createOptimizedPicture.mockReset();
+  createOptimizedPicture.mockImplementation((src, alt = '') => {
+    const picture = document.createElement('picture');
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = alt;
+    picture.append(img);
+    return picture;
+  });
+});
 
 describe('grid-item block', () => {
   it('renders a linked card with title, subhead, category, and image', () => {
@@ -127,5 +147,38 @@ describe('grid-item block', () => {
     decorate(block);
 
     expect(block.querySelector('img')).toHaveAttribute('alt', 'original');
+  });
+});
+
+describe('buildGridItem', () => {
+  it('builds a linked card from a plain data object', () => {
+    const item = buildGridItem({
+      title: 'Lab project',
+      href: 'https://labs.adobe.com/example',
+      subhead: 'A short description',
+      category: 'Research',
+      image: 'https://example.com/hero.jpg',
+      imageAlt: 'Project thumbnail',
+      isVideo: true,
+    });
+
+    const view = within(item);
+    const main = view.getByRole('link', { name: /Lab project/ });
+
+    expect(item).toHaveClass('grid-item');
+    expect(item).toHaveAttribute('data-category', 'research');
+    expect(main).toHaveClass('grid-item__main');
+    expect(main).toHaveAttribute('href', 'https://labs.adobe.com/example');
+    expect(view.getByText('A short description')).toHaveClass('grid-item__subhead');
+    expect(view.getByRole('link', { name: 'Research' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/\/research$/),
+    );
+    expect(view.getByText('Video article')).toHaveClass('visually-hidden');
+    expect(createOptimizedPicture).toHaveBeenCalledWith(
+      'https://example.com/hero.jpg',
+      'Project thumbnail',
+    );
+    expect(item.querySelector('img')).toHaveAttribute('alt', 'Project thumbnail');
   });
 });

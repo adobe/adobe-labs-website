@@ -1,4 +1,4 @@
-import { toClassName } from '../../scripts/aem.js';
+import { createOptimizedPicture, toClassName } from '../../scripts/aem.js';
 
 /**
  * Known category labels mapped to their site paths.
@@ -103,20 +103,56 @@ function isAuthoredTrue(cell) {
 }
 
 /**
- * Decorates a grid-item block: key/value rows become a category link and a
- * card (image, title, optional subhead). The card links when the title is a link.
+ * Data used to build a grid item. Parsed from a key/value block, a layout row,
+ * or JSON (Content Grid).
+ *
+ * @typedef {object} GridItemData
+ * @property {string} [title]
+ * @property {string} [href] Item URL; omit for a non-linked card
+ * @property {string} [subhead]
+ * @property {string} [category] Authored label; resolved to a known path inside buildGridItem
+ * @property {Element} [media] `<picture>` or `<img>` from AEM
+ * @property {string} [image] Image URL from JSON (Content Grid)
+ * @property {string} [imageAlt]
+ * @property {boolean} [isVideo]
+ */
+
+/**
+ * Reads authored key/value rows from a grid-item block.
  *
  * @param {Element} block The grid-item block element
+ * @returns {GridItemData}
  */
-export default function decorate(block) {
+export function getGridItemData(block) {
   const cells = getAuthoredCells(block);
-  const title = getCellText(cells.title);
-  const href = toSafeHttpUrl(getCellLinkHref(cells.title));
-  const category = resolveCategory(getCellText(cells.category));
-  const subhead = getCellText(cells.subhead);
-  const media = getCellMedia(cells.image);
-  const isVideo = isAuthoredTrue(cells.isvideo || cells['is-video']);
-  // Link the card only when the title was authored as a safe http(s) link.
+  return {
+    title: getCellText(cells.title),
+    href: getCellLinkHref(cells.title),
+    subhead: getCellText(cells.subhead),
+    category: getCellText(cells.category),
+    media: getCellMedia(cells.image),
+    isVideo: isAuthoredTrue(cells.isvideo || cells['is-video']),
+  };
+}
+
+/**
+ * Builds grid-item markup from data and writes it into `root`.
+ *
+ * @param {GridItemData} [data]
+ * @param {Element} [root] Element to fill; a new `div.grid-item` if omitted
+ * @returns {Element} The filled root
+ */
+export function buildGridItem(data = {}, root = document.createElement('div')) {
+  const title = data.title || '';
+  const href = toSafeHttpUrl(data.href);
+  const category = resolveCategory(data.category);
+  const subhead = data.subhead || '';
+  const isVideo = Boolean(data.isVideo);
+  let media = data.media || null;
+  if (!media && data.image) {
+    media = createOptimizedPicture(data.image, data.imageAlt || '');
+  }
+  // Link the card only when a safe http(s) URL was provided.
   const mainTag = href ? 'a' : 'div';
 
   const template = document.createElement('template');
@@ -140,27 +176,39 @@ export default function decorate(block) {
       </div>
     </${mainTag}>
   `.trim();
-  const root = template.content;
+  const fragment = template.content;
 
-  const main = root.querySelector('.grid-item__main');
+  const main = fragment.querySelector('.grid-item__main');
   if (href) main.href = href;
 
   // Move authored media into the card; keep the image alt from AEM.
   if (media) {
-    const image = root.querySelector('.grid-item__image');
+    const image = fragment.querySelector('.grid-item__image');
     const play = image.querySelector('.grid-item__play');
     if (play) play.before(media);
     else image.append(media);
   }
 
-  // Assign authored copy via textContent rather than interpolating into HTML.
+  // Assign copy via textContent rather than interpolating into HTML.
   if (category) {
-    root.querySelector('.grid-item__category-name').textContent = category.label;
-    block.dataset.category = category.slug;
+    fragment.querySelector('.grid-item__category-name').textContent = category.label;
+    root.dataset.category = category.slug;
   }
 
-  if (title) root.querySelector('.grid-item__title').textContent = title;
-  if (subhead) root.querySelector('.grid-item__subhead').textContent = subhead;
+  if (title) fragment.querySelector('.grid-item__title').textContent = title;
+  if (subhead) fragment.querySelector('.grid-item__subhead').textContent = subhead;
 
-  block.replaceChildren(root);
+  root.classList.add('grid-item');
+  root.replaceChildren(fragment);
+  return root;
+}
+
+/**
+ * Decorates a grid-item block: key/value rows become a category link and a
+ * card (image, title, optional subhead). The card links when the title is a link.
+ *
+ * @param {Element} block The grid-item block element
+ */
+export default function decorate(block) {
+  buildGridItem(getGridItemData(block), block);
 }
