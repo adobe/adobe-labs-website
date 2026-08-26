@@ -1,5 +1,5 @@
 function getDesktopQuery() {
-  return window.matchMedia('(min-width: 900px)');
+  return window.matchMedia('(min-width: 1024px)');
 }
 
 function toggleSection(headline, expanded) {
@@ -82,15 +82,22 @@ export default function decorateMenuColumns(columns) {
   const menu = document.createElement('div');
   menu.className = 'footer-menu-columns';
 
+  const navColumns = document.createElement('div');
+  navColumns.className = 'footer-menu-nav-columns';
+
   columns.forEach((column) => {
     if (column.classList.contains('footer-newsletter')) {
       menu.append(column);
       return;
     }
     if (column.querySelector('h2')) {
-      menu.append(decorateColumn(column));
+      navColumns.append(decorateColumn(column));
     }
   });
+
+  if (navColumns.childElementCount) {
+    menu.append(navColumns);
+  }
 
   return menu;
 }

@@ -59,7 +59,7 @@ describe('footer block', () => {
       text: () => Promise.resolve('<svg><symbol id="footer-icon-facebook"></symbol></svg>'),
     });
     window.matchMedia = jest.fn().mockImplementation((query) => ({
-      matches: query === '(min-width: 900px)',
+      matches: query === '(min-width: 1024px)',
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     }));
@@ -106,7 +106,8 @@ describe('footer block', () => {
     await decorate(block);
 
     expect(block.querySelectorAll('.footer-menu-column')).toHaveLength(3);
-    expect(block.querySelector('.footer-menu-columns').children).toHaveLength(3);
+    expect(block.querySelector('.footer-menu-columns').children).toHaveLength(2);
+    expect(block.querySelector('.footer-menu-nav-columns')).toBeTruthy();
     expect(block.querySelector('.footer-newsletter')).toHaveClass('footer-menu-column');
     expect(block.querySelector('.footer-newsletter .footer-menu-headline').tagName).toBe('H2');
     expect(block).toHaveTextContent('Connect');
