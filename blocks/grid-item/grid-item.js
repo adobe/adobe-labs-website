@@ -1,4 +1,11 @@
 import { createOptimizedPicture, toClassName } from '../../scripts/aem.js';
+import {
+  getAuthoredCells,
+  getCellLinkHref,
+  getCellMedia,
+  getCellText,
+  isAuthoredTrue,
+} from '../../scripts/utils/utils.js';
 
 /**
  * Known category labels mapped to their site paths.
@@ -10,44 +17,6 @@ const CATEGORY_PATHS = {
   sneaks: '/sneaks',
   playground: '/playground',
 };
-
-/**
- * Builds a lookup of authored field names to their value cells.
- * Grid-item content is a key/value table: each row is [label, value].
- * Labels are slugified so "Is Video" and "is-video" resolve the same.
- *
- * @param {Element} block The grid-item block element
- * @returns {Object<string, Element>} Map of field name to value cell
- */
-function getAuthoredCells(block) {
-  const cells = {};
-  [...block.children].forEach((row) => {
-    const [label, cell] = row.children;
-    if (!label || !cell) return;
-    cells[toClassName(label.textContent)] = cell;
-  });
-  return cells;
-}
-
-/**
- * Returns trimmed text from an authored cell, or an empty string if missing.
- *
- * @param {Element} [cell] The value cell
- * @returns {string}
- */
-function getCellText(cell) {
-  return cell?.textContent.trim() || '';
-}
-
-/**
- * Returns the href of the first link in an authored cell.
- *
- * @param {Element} [cell] The value cell
- * @returns {string}
- */
-function getCellLinkHref(cell) {
-  return cell?.querySelector('a[href]')?.href || '';
-}
 
 /**
  * Returns an absolute http(s) URL, or an empty string if the value is missing
@@ -68,17 +37,6 @@ function toSafeHttpUrl(value) {
 }
 
 /**
- * Returns the picture or img element from an authored media cell.
- *
- * @param {Element} [cell] The image field cell
- * @returns {Element|null}
- */
-function getCellMedia(cell) {
-  if (!cell) return null;
-  return cell.querySelector('picture') || cell.querySelector('img');
-}
-
-/**
  * Resolves an authored category name to a known site path.
  *
  * @param {string} name Authored category label
@@ -90,16 +48,6 @@ function resolveCategory(name) {
   const path = CATEGORY_PATHS[slug];
   if (!path) return null;
   return { slug, path, label: name };
-}
-
-/**
- * Whether an authored flag cell is true (`true`, `yes`, or `1`, case-insensitive).
- *
- * @param {Element} [cell] The flag cell
- * @returns {boolean}
- */
-function isAuthoredTrue(cell) {
-  return /^(true|yes|1)$/i.test(getCellText(cell));
 }
 
 /**
