@@ -1,0 +1,50 @@
+/* full-bleed section: break out of the default section max-inline-size */
+.grid-line-content-wrapper {
+  max-inline-size: unset;
+  margin: 0;
+  padding: 0;
+}
+
+.grid-line-content-container {
+  margin: 0;
+}
+
+.grid-line-content {
+  position: relative;
+  padding-block: 64px;
+}
+
+.grid-line-content-text {
+  position: relative;
+  max-width: 60rem;
+  margin-inline: auto;
+  padding-inline: 24px;
+  text-align: center;
+}
+
+.grid-line-content-text > :first-child {
+  margin-top: 0;
+}
+
+.grid-line-content-text > :last-child {
+  margin-bottom: 0;
+}
+
+/* no headings authored: promote paragraphs to the larger statement typography */
+.grid-line-content-text:not(:has(h1, h2, h3, h4, h5, h6)) p {
+  font-family: var(--heading-font-family);
+  font-weight: var(--typography-font-weight-heading-2);
+  font-size: var(--s2a-typography-font-size-heading-2);
+  line-height: var(--s2a-typography-line-height-heading-2);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
+}
+
+@media (width >= 900px) {
+  .grid-line-content {
+    padding-block: 96px;
+  }
+
+  .grid-line-content-text {
+    padding-inline: 32px;
+  }
+}
