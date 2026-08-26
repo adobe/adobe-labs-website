@@ -56,6 +56,7 @@
 
   .footer-menu__column--newsletter {
     padding-block: 0 var(--s2a-spacing-lg);
+    max-inline-size: 31.25rem;
   }
 
   .footer-menu__headline--toggle {
