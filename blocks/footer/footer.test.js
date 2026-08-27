@@ -28,10 +28,18 @@ const FOOTER_FRAGMENT = `
       <p><a href="/research">Research</a></p>
     </div></div>
   </div>
-  <div class="section social">
-    <div class="default-content-wrapper">
-      <p><a href="https://facebook.com/adobe">Facebook</a></p>
-      <p><a href="https://linkedin.com/company/adobe">LinkedIn</a></p>
+  <div class="section">
+    <div class="social-wrapper">
+      <div class="social block" data-block-name="social" data-block-status="loaded">
+        <div>
+          <div>
+            <p><a href="https://facebook.com/adobe" title="Facebook">Facebook</a></p>
+            <p><a href="https://linkedin.com/company/adobe" title="LinkedIn">LinkedIn</a></p>
+            <p><a href="https://instagram.com/adobe" title="Instagram">Instagram</a></p>
+            <p><a href="https://x.com/adobe" title="X">X</a></p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="section">
@@ -121,13 +129,15 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    expect(block.querySelectorAll('.footer__social-link')).toHaveLength(2);
+    expect(block.querySelectorAll('.footer__social-link')).toHaveLength(4);
     expect(block.querySelector('a[aria-label="Facebook"] .footer__social-icon use'))
       .toHaveAttribute('href', '#footer-icon-facebook');
     expect(block.querySelector('a[aria-label="LinkedIn"]')).toHaveAttribute(
       'href',
       'https://linkedin.com/company/adobe',
     );
+    expect(block.querySelector('a[aria-label="X"] .footer__social-icon use'))
+      .toHaveAttribute('href', '#footer-icon-x');
   });
 
   it('inserts the current year in the copyright line', async () => {

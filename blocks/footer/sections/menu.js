@@ -1,3 +1,21 @@
+function unwrapSectionColumn(node) {
+  if (node.children.length === 1 && node.firstElementChild?.tagName === 'DIV') {
+    return node.firstElementChild;
+  }
+  return node;
+}
+
+export function parseSection(section) {
+  if (!section.querySelector('h2')) return null;
+
+  return [...section.children]
+    .map((wrapper) => unwrapSectionColumn(wrapper))
+    .flatMap((root) => {
+      const nested = [...root.children].filter((child) => child.tagName === 'DIV' && child.querySelector('h2'));
+      return nested.length > 1 ? nested : [root];
+    });
+}
+
 function getDesktopQuery() {
   return window.matchMedia('(min-width: 1024px)');
 }
