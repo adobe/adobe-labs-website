@@ -1,11 +1,11 @@
 import {
-  buildBlock,
-  createOptimizedPicture,
   decorateBlock,
   loadBlock,
   readBlockConfig,
 } from '../../scripts/aem.js';
 import dataStore from '../../scripts/utils/dataStore.js';
+import { formatCardDate } from '../../scripts/utils/utils.js';
+import { buildGridItem } from '../grid-item/grid-item.js';
 
 const QUERY_INDEX = dataStore.commonEndpoints.queryIndex;
 const DEFAULT_COUNT = 8;
@@ -294,50 +294,30 @@ function compareNewestFirst(a, b) {
 }
 
 /**
- * Anchor whose href and text are the page path (for the grid-item URL cell).
- * @param {string} path
- * @returns {HTMLAnchorElement}
- */
-function pathLink(path) {
-  const link = document.createElement('a');
-  link.href = path;
-  link.textContent = path;
-  return link;
-}
-
-/**
- * Build an undecorated grid-item block from a query-index row.
+ * Build a grid-item card from a query-index row.
  * @param {QueryIndexItem} entry
  * @param {object} [options]
  * @param {boolean} [options.subheadDescription] Use description instead of the date subhead
- * @param {boolean} [options.showCategory] Include the category cell (off by default)
+ * @param {boolean} [options.showCategory] Include the category (off by default)
  * @returns {HTMLDivElement}
  */
 function createGridItem(entry, { subheadDescription, showCategory } = {}) {
-  const title = itemField(entry, 'title');
-  const path = itemField(entry, 'path');
   const category = resolveItemCategory(entry);
-  const description = itemField(entry, 'description');
-  const image = itemField(entry, 'image');
   const publicationDate = itemField(entry, 'publicationDate', 'date');
-  const isVideo = isVideoItem(entry);
+  const description = itemField(entry, 'description');
+  const subhead = subheadDescription
+    ? description
+    : (formatCardDate(publicationDate) || description);
 
-  const rows = [['Title', title]];
-  if (path) rows.push(['URL', pathLink(path)]);
-  if (showCategory && category) rows.push(['Category', category.label]);
-  if (subheadDescription) {
-    if (description) rows.push(['Subhead', description]);
-  } else if (publicationDate) {
-    rows.push(['Date', publicationDate]);
-  } else if (description) {
-    rows.push(['Subhead', description]);
-  }
-  if (image) rows.push(['Image', createOptimizedPicture(image, '', false)]);
-  if (isVideo) rows.push(['Is Video', 'true']);
-
-  const gridItem = buildBlock('grid-item', rows);
+  const gridItem = buildGridItem({
+    title: itemField(entry, 'title'),
+    href: itemField(entry, 'path'),
+    subhead,
+    category: showCategory && category ? category.label : '',
+    image: itemField(entry, 'image'),
+    isVideo: isVideoItem(entry),
+  });
   gridItem.classList.add(resolveImageAspect(entry));
-  if (subheadDescription) gridItem.classList.add('subhead-description');
   return gridItem;
 }
 

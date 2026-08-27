@@ -51,7 +51,7 @@ A block is a named table in a document. Authors insert it; developers style and 
 
 1. Create `blocks/<block-name>/` with a CSS file, and a JS file if the block needs decoration.
 2. Scope CSS to `.block-name`. Section wrappers use `.block-name-wrapper` / `.block-name-container` — do not put block layout CSS only on those unless you mean to style the section shell.
-3. Authors can omit cells and add options in the table header, for example `grid-item (aspect-4/5)` or `grid-item (subhead-description)`. Options become extra classes on the block (`aspect-4-5`, `subhead-description`). Decorate defensively.
+3. Authors can omit cells and add options in the table header, for example `grid-item (aspect-4/5)`. Options become extra classes on the block (`aspect-4-5`). Decorate defensively.
 4. Run `npm start` and place the block on a preview page to verify. Inspect `http://localhost:3000/<path>.plain.html` if the authored markup is unclear.
 
 See [The Anatomy of a Project](https://www.aem.live/developer/anatomy-of-a-project) and [Exploring blocks](https://www.aem.live/docs/exploring-blocks).
@@ -84,9 +84,9 @@ The homepage **Latest Content** section uses `content-grid` with a key/value tab
 
 The block fetches `/query-index.json?limit=1000`, filters client-side, and renders each hit as a `grid-item`. An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Previous / Next rows become icon buttons under that copy (S2A ControlButton, md, on-light); the href should be the `id` of the destination Intro heading (AEM slugs the heading text, for example `#economic-impact`). Card image frames follow page metadata `Image Aspect` (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). The block uses the index `imageAspect` column when it exists; otherwise it reads `meta[name="image-aspect"]` from each selected article. Missing or unknown values default to 3:2. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Category comes from the first path segment; optional page metadata `category` overrides that when it is one of the four known values.
 
-Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the block header (`content-grid (subhead-description)` or `grid-item (subhead-description)`) to use the description / Subhead cell instead.
+Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the content-grid block header (`content-grid (subhead-description)`) to use the index description instead.
 
-Category labels on cards are off by default. Add `show-category` to the block header (`content-grid (show-category)`) to render each card’s `.grid-item-category` link.
+Standalone `grid-item` cards link when the Title cell is a link. Category labels on cards are off by default. Add `show-category` to the content-grid block header (`content-grid (show-category)`) to render each card’s `.grid-item__category` link.
 
 Cards stay empty until indexed article pages exist. Index config lives at [tools.aem.live](https://www.aem.live/developer/indexing) (this repo does not contain `helix-query.yaml`).
 

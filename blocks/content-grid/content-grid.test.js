@@ -1,20 +1,25 @@
 import { within } from '@testing-library/dom';
 import {
-  buildBlock,
-  createOptimizedPicture,
   decorateBlock,
   loadBlock,
   readBlockConfig,
 } from '../../scripts/aem.js';
+import { buildGridItem } from '../grid-item/grid-item.js';
 import dataStore from '../../scripts/utils/dataStore.js';
 import decorate from './content-grid.js';
 
 jest.mock('../../scripts/aem.js', () => ({
   readBlockConfig: jest.fn(),
-  buildBlock: jest.fn(),
   decorateBlock: jest.fn(),
   loadBlock: jest.fn(),
+  toClassName: (name) => (typeof name === 'string'
+    ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    : ''),
   createOptimizedPicture: jest.fn(),
+}));
+
+jest.mock('../grid-item/grid-item.js', () => ({
+  buildGridItem: jest.fn(),
 }));
 
 jest.mock('../../scripts/utils/dataStore.js', () => ({
@@ -93,16 +98,12 @@ const INDEX = {
   ],
 };
 
-function titlesFromBuildCalls() {
-  return buildBlock.mock.calls.map(([, rows]) => {
-    const titleRow = rows.find(([label]) => label === 'Title');
-    return titleRow?.[1];
-  });
+function titlesFromCards() {
+  return buildGridItem.mock.calls.map(([data]) => data.title);
 }
 
-function fieldFromCall(callIndex, label) {
-  const rows = buildBlock.mock.calls[callIndex][1];
-  return rows.find(([name]) => name === label)?.[1];
+function dataFromCall(callIndex) {
+  return buildGridItem.mock.calls[callIndex][0];
 }
 
 describe('content-grid block', () => {
@@ -134,12 +135,6 @@ describe('content-grid block', () => {
       return config;
     });
 
-    buildBlock.mockImplementation((name) => {
-      const el = document.createElement('div');
-      el.className = name;
-      return el;
-    });
-
     decorateBlock.mockImplementation((block) => {
       block.classList.add('block');
       block.dataset.blockName = 'grid-item';
@@ -148,12 +143,33 @@ describe('content-grid block', () => {
 
     loadBlock.mockImplementation(async (block) => block);
 
-    createOptimizedPicture.mockImplementation((src) => {
-      const picture = document.createElement('picture');
-      const img = document.createElement('img');
-      img.src = src;
-      picture.append(img);
-      return picture;
+    buildGridItem.mockImplementation((data = {}) => {
+      const el = document.createElement('div');
+      el.className = 'grid-item';
+      if (data.title) {
+        const title = document.createElement('p');
+        title.className = 'grid-item__title';
+        title.textContent = data.title;
+        el.append(title);
+      }
+      if (data.category) {
+        const category = document.createElement('span');
+        category.className = 'grid-item__category';
+        category.textContent = data.category;
+        el.append(category);
+      }
+      if (data.subhead) {
+        const subhead = document.createElement('p');
+        subhead.className = 'grid-item__subhead';
+        subhead.textContent = data.subhead;
+        el.append(subhead);
+      }
+      if (data.isVideo) {
+        const play = document.createElement('span');
+        play.className = 'grid-item__play';
+        el.append(play);
+      }
+      return el;
     });
   });
 
@@ -177,7 +193,7 @@ describe('content-grid block', () => {
     expect(list.querySelectorAll('.grid-item')).toHaveLength(3);
     expect(list.querySelector('.grid-item')).toHaveClass('aspect-3-2');
     expect(list.querySelector('li')).toHaveClass('content-grid__item', 'grid-item-wrapper');
-    expect(buildBlock).toHaveBeenCalledTimes(3);
+    expect(buildGridItem).toHaveBeenCalledTimes(3);
     expect(decorateBlock).toHaveBeenCalledTimes(3);
     expect(loadBlock).toHaveBeenCalledTimes(3);
     expect(dataStore.getData).toHaveBeenCalledWith('/query-index.json?limit=1000');
@@ -193,7 +209,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(titlesFromBuildCalls()).toEqual([
+    expect(titlesFromCards()).toEqual([
       'Newer research',
       'Workflow video',
       'Older research',
@@ -209,7 +225,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(titlesFromBuildCalls()).not.toEqual(
+    expect(titlesFromCards()).not.toEqual(
       expect.arrayContaining(['Noindex sneak', 'Docs page', 'Nav fragment', 'Homepage']),
     );
   });
@@ -223,7 +239,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(titlesFromBuildCalls()).toEqual(['Newer research', 'Older research']);
+    expect(titlesFromCards()).toEqual(['Newer research', 'Older research']);
   });
 
   it('omits category on grid-item by default', async () => {
@@ -235,7 +251,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(fieldFromCall(0, 'Category')).toBeUndefined();
+    expect(dataFromCall(0).category).toBe('');
   });
 
   it('passes category to grid-item when show-category is set', async () => {
@@ -248,7 +264,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(fieldFromCall(0, 'Category')).toBe('Research');
+    expect(dataFromCall(0).category).toBe('Research');
   });
 
   it('prefers index category metadata over the path folder', async () => {
@@ -270,8 +286,8 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(titlesFromBuildCalls()).toEqual(['Filed under workflows']);
-    expect(fieldFromCall(0, 'Category')).toBe('Research');
+    expect(titlesFromCards()).toEqual(['Filed under workflows']);
+    expect(dataFromCall(0).category).toBe('Research');
   });
 
   it('omits category for unknown path folders', async () => {
@@ -291,8 +307,8 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(titlesFromBuildCalls()).toEqual(['Terms']);
-    expect(fieldFromCall(0, 'Category')).toBeUndefined();
+    expect(titlesFromCards()).toEqual(['Terms']);
+    expect(dataFromCall(0).category).toBe('');
   });
 
   it('filters by content type and marks video items', async () => {
@@ -304,8 +320,8 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(titlesFromBuildCalls()).toEqual(['Workflow video']);
-    expect(fieldFromCall(0, 'Is Video')).toBe('true');
+    expect(titlesFromCards()).toEqual(['Workflow video']);
+    expect(dataFromCall(0).isVideo).toBe(true);
   });
 
   it('marks items with isVideo true even when contentType is article', async () => {
@@ -326,8 +342,8 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(titlesFromBuildCalls()).toEqual(['Talk article']);
-    expect(fieldFromCall(0, 'Is Video')).toBe('true');
+    expect(titlesFromCards()).toEqual(['Talk article']);
+    expect(dataFromCall(0).isVideo).toBe(true);
   });
 
   it('includes isVideo items when filtering by Video', async () => {
@@ -348,8 +364,8 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(titlesFromBuildCalls()).toEqual(['Talk article']);
-    expect(fieldFromCall(0, 'Is Video')).toBe('true');
+    expect(titlesFromCards()).toEqual(['Talk article']);
+    expect(dataFromCall(0).isVideo).toBe(true);
   });
 
   it('marks sneaks as video when isVideo is omitted from the index', async () => {
@@ -369,7 +385,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(fieldFromCall(0, 'Is Video')).toBe('true');
+    expect(dataFromCall(0).isVideo).toBe(true);
   });
 
   it('does not mark sneaks when isVideo is explicitly false', async () => {
@@ -389,7 +405,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(fieldFromCall(0, 'Is Video')).toBeUndefined();
+    expect(dataFromCall(0).isVideo).toBe(false);
   });
 
   it('slices results to the authored count', async () => {
@@ -402,7 +418,7 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(within(block).getByRole('list').children).toHaveLength(2);
-    expect(titlesFromBuildCalls()).toEqual(['Newer research', 'Workflow video']);
+    expect(titlesFromCards()).toEqual(['Newer research', 'Workflow video']);
   });
 
   it('defaults count to 8 when the value is missing or invalid', async () => {
@@ -545,23 +561,28 @@ describe('content-grid block', () => {
   });
 
   it('maps index fields onto the generated grid-item', async () => {
-    const block = createBlock({
-      'Content Type:': 'All',
-      'Category:': 'Research',
-      'Count:': '1',
-    });
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 7, 25));
+    try {
+      const block = createBlock({
+        'Content Type:': 'All',
+        'Category:': 'Research',
+        'Count:': '1',
+      });
 
-    await decorate(block);
+      await decorate(block);
 
-    const rows = buildBlock.mock.calls[0][1];
-    const asObject = Object.fromEntries(rows.map(([label, value]) => [label, value]));
-    expect(asObject.Title).toBe('Newer research');
-    expect(asObject.Category).toBeUndefined();
-    expect(asObject.Date).toBe('2026-08-20');
-    expect(asObject.Subhead).toBeUndefined();
-    expect(asObject.URL).toHaveAttribute('href', expect.stringMatching(/\/research\/newer$/));
-    expect(createOptimizedPicture).toHaveBeenCalledWith('/newer.jpg', '', false);
-    expect(asObject.Image.tagName).toBe('PICTURE');
+      expect(dataFromCall(0)).toEqual(expect.objectContaining({
+        title: 'Newer research',
+        href: expect.stringMatching(/\/research\/newer$/),
+        subhead: 'Aug 20',
+        category: '',
+        image: '/newer.jpg',
+        isVideo: false,
+      }));
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('passes descriptions to grid-item when subhead-description is set', async () => {
@@ -574,11 +595,8 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    const rows = buildBlock.mock.calls[0][1];
-    const asObject = Object.fromEntries(rows.map(([label, value]) => [label, value]));
-    expect(asObject.Subhead).toBe('Latest');
-    expect(asObject.Date).toBeUndefined();
-    expect(block.querySelector('.grid-item')).toHaveClass('subhead-description');
+    expect(dataFromCall(0).subhead).toBe('Latest');
+    expect(block.querySelector('.grid-item')).not.toHaveClass('subhead-description');
   });
 
   it('leaves the grid card-only when Intro is missing or empty', async () => {
@@ -613,7 +631,7 @@ describe('content-grid block', () => {
     expect(intro.querySelector('p')).toHaveTextContent('How AI is reshaping creative roles.');
     expect(intro.querySelector('p')).toHaveClass('body-lg');
     expect(within(block).getByRole('list').children).toHaveLength(2);
-    expect(buildBlock).toHaveBeenCalledTimes(2);
+    expect(buildGridItem).toHaveBeenCalledTimes(2);
   });
 
   it('does not pass Intro to readBlockConfig', async () => {
@@ -734,7 +752,7 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(block.children).toHaveLength(0);
-    expect(buildBlock).not.toHaveBeenCalled();
+    expect(buildGridItem).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalled();
   });
 
@@ -748,6 +766,81 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(block.children).toHaveLength(0);
-    expect(buildBlock).not.toHaveBeenCalled();
+    expect(buildGridItem).not.toHaveBeenCalled();
+  });
+
+  describe('date subhead', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date(2026, 7, 25));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('fills the subhead with a formatted date by default', async () => {
+      const block = createBlock({
+        'Content Type:': 'All',
+        'Category:': 'Research',
+        'Count:': '1',
+      });
+
+      await decorate(block);
+
+      expect(dataFromCall(0).subhead).toBe('Aug 20');
+    });
+
+    it('includes the year when the date is not this year', async () => {
+      dataStore.getData.mockResolvedValue({
+        data: [{
+          path: '/research/future',
+          title: 'Future research',
+          contentType: 'article',
+          publicationDate: '2027-10-21',
+        }],
+      });
+      const block = createBlock({
+        'Content Type:': 'All',
+        'Category:': 'All',
+        'Count:': '1',
+      });
+
+      await decorate(block);
+
+      expect(dataFromCall(0).subhead).toBe('Oct 21, 2027');
+    });
+
+    it('prefers the formatted date over the description by default', async () => {
+      const block = createBlock({
+        'Content Type:': 'All',
+        'Category:': 'Research',
+        'Count:': '1',
+      });
+
+      await decorate(block);
+
+      expect(dataFromCall(0).subhead).toBe('Aug 20');
+    });
+
+    it('uses the description when a date is missing', async () => {
+      dataStore.getData.mockResolvedValue({
+        data: [{
+          path: '/research/undated',
+          title: 'Undated research',
+          contentType: 'article',
+          description: 'A short description',
+        }],
+      });
+      const block = createBlock({
+        'Content Type:': 'All',
+        'Category:': 'All',
+        'Count:': '1',
+      });
+
+      await decorate(block);
+
+      expect(dataFromCall(0).subhead).toBe('A short description');
+    });
   });
 });

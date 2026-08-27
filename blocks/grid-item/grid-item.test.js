@@ -181,64 +181,22 @@ describe('buildGridItem', () => {
     );
     expect(item.querySelector('img')).toHaveAttribute('alt', 'Project thumbnail');
   });
+});
 
-  describe('date subhead', () => {
-    beforeEach(() => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date(2026, 7, 25));
+describe('decorate', () => {
+  it('does not rebuild a card that already has grid-item__main', () => {
+    const block = createBlock({
+      Title: '<a href="https://labs.adobe.com/example">Lab project</a>',
+      Subhead: 'A short description',
     });
+    decorate(block);
+    const main = block.querySelector('.grid-item__main');
+    const title = block.querySelector('.grid-item__title');
 
-    afterEach(() => {
-      jest.useRealTimers();
-    });
+    decorate(block);
 
-    it('fills the subhead with a formatted date by default', () => {
-      const block = createBlock({
-        Title: 'Lab project',
-        Date: '2026-10-21',
-      });
-
-      decorate(block);
-
-      expect(within(block).getByText('Oct 21')).toHaveClass('grid-item-subhead');
-    });
-
-    it('includes the year when the date is not this year', () => {
-      const block = createBlock({
-        Title: 'Lab project',
-        Date: '2027-10-21',
-      });
-
-      decorate(block);
-
-      expect(within(block).getByText('Oct 21, 2027')).toHaveClass('grid-item-subhead');
-    });
-
-    it('prefers the formatted date over an authored subhead by default', () => {
-      const block = createBlock({
-        Title: 'Lab project',
-        Date: '2026-10-21',
-        Subhead: 'A short description',
-      });
-
-      decorate(block);
-
-      expect(within(block).getByText('Oct 21')).toHaveClass('grid-item-subhead');
-      expect(within(block).queryByText('A short description')).toBeNull();
-    });
-
-    it('uses the authored subhead when subhead-description is set', () => {
-      const block = createBlock({
-        Title: 'Lab project',
-        Date: '2026-10-21',
-        Subhead: 'A short description',
-      });
-      block.classList.add('subhead-description');
-
-      decorate(block);
-
-      expect(within(block).getByText('A short description')).toHaveClass('grid-item-subhead');
-      expect(within(block).queryByText('Oct 21')).toBeNull();
-    });
+    expect(block.querySelector('.grid-item__main')).toBe(main);
+    expect(block.querySelector('.grid-item__title')).toBe(title);
+    expect(title).toHaveTextContent('Lab project');
   });
 });
