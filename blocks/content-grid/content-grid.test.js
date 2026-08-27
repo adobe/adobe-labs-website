@@ -189,6 +189,7 @@ describe('content-grid block', () => {
 
     const list = within(block).getByRole('list');
     expect(list).toHaveClass('content-grid__list');
+    expect(list).toHaveAttribute('role', 'list');
     expect(list.children).toHaveLength(3);
     expect(list.querySelectorAll('.grid-item')).toHaveLength(3);
     expect(list.querySelector('.grid-item')).toHaveClass('aspect-3-2');
@@ -578,6 +579,7 @@ describe('content-grid block', () => {
         subhead: 'Aug 20',
         category: '',
         image: '/newer.jpg',
+        imageAlt: '',
         isVideo: false,
       }));
     } finally {
@@ -597,6 +599,60 @@ describe('content-grid block', () => {
 
     expect(dataFromCall(0).subhead).toBe('Latest');
     expect(block.querySelector('.grid-item')).not.toHaveClass('subhead-description');
+  });
+
+  it('passes empty image alt when the card has a title', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'Research',
+      'Count:': '1',
+    });
+
+    await decorate(block);
+
+    expect(dataFromCall(0).imageAlt).toBe('');
+  });
+
+  it('uses the description as image alt when the title is missing', async () => {
+    dataStore.getData.mockResolvedValue({
+      data: [{
+        path: '/research/untitled',
+        contentType: 'article',
+        description: 'A short description',
+        image: '/untitled.jpg',
+        publicationDate: '2026-08-20',
+      }],
+    });
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+    });
+
+    await decorate(block);
+
+    expect(dataFromCall(0).title).toBe('');
+    expect(dataFromCall(0).imageAlt).toBe('A short description');
+  });
+
+  it('uses a fallback image alt when title and description are missing', async () => {
+    dataStore.getData.mockResolvedValue({
+      data: [{
+        path: '/research/untitled',
+        contentType: 'article',
+        image: '/untitled.jpg',
+        publicationDate: '2026-08-20',
+      }],
+    });
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+    });
+
+    await decorate(block);
+
+    expect(dataFromCall(0).imageAlt).toBe('Article');
   });
 
   it('leaves the grid card-only when Intro is missing or empty', async () => {
@@ -674,16 +730,24 @@ describe('content-grid block', () => {
     });
 
     await decorate(block);
+    document.body.append(block);
 
-    const nav = within(block).getByRole('navigation', { name: 'Nearby sections' });
-    expect(block.querySelector('.content-grid__intro')).toContainElement(nav);
-    expect(within(nav).getByRole('link', { name: 'Previous' })).toHaveAttribute(
-      'href',
-      '#future-of-creative-work',
-    );
-    expect(within(nav).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#workflows');
-    expect(within(nav).getByRole('link', { name: 'Previous' }).querySelector('.content-grid__pager-icon')).not.toBeNull();
-    expect(within(nav).getByRole('link', { name: 'Next' }).querySelector('.content-grid__pager-icon')).not.toBeNull();
+    try {
+      const heading = within(block).getByRole('heading', { name: 'Economic Impact' });
+      const nav = within(block).getByRole('navigation', { name: 'Economic Impact' });
+      expect(heading).toHaveAttribute('id', 'economic-impact');
+      expect(nav).toHaveAttribute('aria-labelledby', 'economic-impact');
+      expect(block.querySelector('.content-grid__intro')).toContainElement(nav);
+      expect(within(nav).getByRole('link', { name: 'Previous' })).toHaveAttribute(
+        'href',
+        '#future-of-creative-work',
+      );
+      expect(within(nav).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#workflows');
+      expect(within(nav).getByRole('link', { name: 'Previous' }).querySelector('.content-grid__pager-icon')).not.toBeNull();
+      expect(within(nav).getByRole('link', { name: 'Next' }).querySelector('.content-grid__pager-icon')).not.toBeNull();
+    } finally {
+      block.remove();
+    }
   });
 
   it('omits a pager direction when that row is missing', async () => {
@@ -696,10 +760,15 @@ describe('content-grid block', () => {
     });
 
     await decorate(block);
+    document.body.append(block);
 
-    const nav = within(block).getByRole('navigation', { name: 'Nearby sections' });
-    expect(within(nav).queryByRole('link', { name: 'Previous' })).toBeNull();
-    expect(within(nav).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#sneaks');
+    try {
+      const nav = within(block).getByRole('navigation', { name: 'Explore Workflows' });
+      expect(within(nav).queryByRole('link', { name: 'Previous' })).toBeNull();
+      expect(within(nav).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#sneaks');
+    } finally {
+      block.remove();
+    }
   });
 
   it('ignores javascript pager hrefs', async () => {
@@ -741,6 +810,28 @@ describe('content-grid block', () => {
     expect(within(block).getByRole('navigation', { name: 'Nearby sections' })).toBeTruthy();
   });
 
+  it('uses an existing intro heading id for the pager name', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+      Intro: '<h2 id="future-of-creative-work">Future of Creative Work</h2>',
+      Next: '<a href="#economic-impact">Next</a>',
+    });
+
+    await decorate(block);
+    document.body.append(block);
+
+    try {
+      const heading = within(block).getByRole('heading', { name: 'Future of Creative Work' });
+      const nav = within(block).getByRole('navigation', { name: 'Future of Creative Work' });
+      expect(heading).toHaveAttribute('id', 'future-of-creative-work');
+      expect(nav).toHaveAttribute('aria-labelledby', 'future-of-creative-work');
+    } finally {
+      block.remove();
+    }
+  });
+
   it('leaves the block empty when the index request fails', async () => {
     dataStore.getData.mockResolvedValue(null);
     const block = createBlock({
@@ -752,6 +843,24 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(block.children).toHaveLength(0);
+    expect(buildGridItem).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalled();
+  });
+
+  it('keeps authored Intro when the index request fails', async () => {
+    dataStore.getData.mockResolvedValue(null);
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '8',
+      Intro: '<h2>Future of Creative Work</h2>',
+    });
+
+    await decorate(block);
+
+    expect(block).toHaveClass('has-intro');
+    expect(within(block).getByRole('heading', { name: 'Future of Creative Work' })).toBeTruthy();
+    expect(within(block).queryByRole('list')).toBeNull();
     expect(buildGridItem).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalled();
   });

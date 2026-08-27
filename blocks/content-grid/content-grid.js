@@ -303,6 +303,7 @@ function compareNewestFirst(a, b) {
  */
 function createGridItem(entry, { subheadDescription, showCategory } = {}) {
   const category = resolveItemCategory(entry);
+  const title = itemField(entry, 'title');
   const publicationDate = itemField(entry, 'publicationDate', 'date');
   const description = itemField(entry, 'description');
   const subhead = subheadDescription
@@ -310,11 +311,12 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
     : (formatCardDate(publicationDate) || description);
 
   const gridItem = buildGridItem({
-    title: itemField(entry, 'title'),
+    title,
     href: itemField(entry, 'path'),
     subhead,
     category: showCategory && category ? category.label : '',
     image: itemField(entry, 'image'),
+    imageAlt: title ? '' : (description || 'Article'),
     isVideo: isVideoItem(entry),
   });
   gridItem.classList.add(resolveImageAspect(entry));
@@ -442,18 +444,41 @@ function pagerLink(cell, fallbackLabel, directionClass) {
 }
 
 /**
+ * Name the pager from the intro heading when one exists.
+ * @param {HTMLElement} nav
+ * @param {Element} [intro]
+ */
+function namePager(nav, intro) {
+  const heading = intro?.querySelector('h1, h2, h3, h4, h5, h6');
+  if (!heading) {
+    nav.setAttribute('aria-label', 'Nearby sections');
+    return;
+  }
+  if (!heading.id) {
+    const id = toSlug(heading.textContent);
+    if (id) heading.id = id;
+  }
+  if (heading.id) {
+    nav.setAttribute('aria-labelledby', heading.id);
+    return;
+  }
+  nav.setAttribute('aria-label', 'Nearby sections');
+}
+
+/**
  * Previous / Next nav, or null when neither cell has a usable href.
  * @param {Element} [prevCell]
  * @param {Element} [nextCell]
+ * @param {Element} [intro]
  * @returns {HTMLElement|null}
  */
-function createPager(prevCell, nextCell) {
+function createPager(prevCell, nextCell, intro) {
   const prev = pagerLink(prevCell, 'Previous', 'content-grid__pager-prev');
   const next = pagerLink(nextCell, 'Next', 'content-grid__pager-next');
   if (!prev && !next) return null;
   const nav = document.createElement('nav');
   nav.className = 'content-grid__pager';
-  nav.setAttribute('aria-label', 'Nearby sections');
+  namePager(nav, intro);
   if (prev) nav.append(prev);
   if (next) nav.append(next);
   return nav;
@@ -482,7 +507,7 @@ export default async function decorate(block) {
   const intro = takeIntro(block);
   const prevCell = takeConfigCell(block, 'previous');
   const nextCell = takeConfigCell(block, 'next');
-  const header = withPager(intro, createPager(prevCell, nextCell));
+  const header = withPager(intro, createPager(prevCell, nextCell, intro));
   const config = readBlockConfig(block);
   const contentType = config['content-type'];
   const { category } = config;
@@ -496,6 +521,10 @@ export default async function decorate(block) {
   if (!payload) {
     // eslint-disable-next-line no-console
     console.error(`content-grid: failed to load ${QUERY_INDEX}`);
+    if (header) {
+      block.classList.add('has-intro');
+      block.append(header);
+    }
     return;
   }
 
@@ -515,6 +544,7 @@ export default async function decorate(block) {
   if (items.length) {
     const list = document.createElement('ul');
     list.className = 'content-grid__list';
+    list.setAttribute('role', 'list');
     items.forEach((entry) => {
       const gridItem = createGridItem(entry, { subheadDescription, showCategory });
       const item = document.createElement('li');
