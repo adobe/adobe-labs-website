@@ -1,11 +1,21 @@
 import { escapeAttr, fromHTML } from '../../../scripts/utils/utils.js';
 
+/**
+ * Finds the newsletter column among menu columns, falling back to the first column.
+ * @param {Element[]} columns Menu column elements
+ * @returns {Element|undefined}
+ */
 function findNewsletterColumn(columns) {
   return columns.find((div) => div.classList.contains('footer-newsletter')
     || div.querySelector('a[href*="subscribe"], input[type="email"]'))
     || columns[0];
 }
 
+/**
+ * Decorates a newsletter column with heading, description, and subscribe form.
+ * @param {Element} column Authored newsletter column element
+ * @returns {Element}
+ */
 function decorateNewsletterColumn(column) {
   const heading = column.querySelector('h2');
   const description = [...column.querySelectorAll('p')].find((p) => !p.querySelector('a'));
@@ -51,6 +61,11 @@ function decorateNewsletterColumn(column) {
   return wrapper;
 }
 
+/**
+ * Replaces the newsletter column in the menu columns list with a decorated form.
+ * @param {Element[]|null|undefined} columns Menu column elements
+ * @returns {Element[]|null|undefined}
+ */
 export default function decorateNewsletter(columns) {
   if (!columns?.length) return columns;
 

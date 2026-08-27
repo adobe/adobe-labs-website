@@ -3,6 +3,10 @@ import getFooterAsset from '../utils.js';
 
 const LEGAL_SELECTOR = 'p > em, a[href*="opt-out"], a[href*="privacy"]';
 
+/**
+ * Creates the Adobe mark image used in the legal row.
+ * @returns {Element}
+ */
 function createFooterMark() {
   const src = escapeAttr(getFooterAsset('img/adobe-logo-mark.svg'));
   return fromHTML(`
@@ -12,6 +16,11 @@ function createFooterMark() {
   `);
 }
 
+/**
+ * Extracts legal content from a fragment section, if present.
+ * @param {Element} section Fragment section element
+ * @returns {Element|null}
+ */
 export function parseSection(section) {
   if (!section.querySelector(LEGAL_SELECTOR)) return null;
 
@@ -22,6 +31,11 @@ export function parseSection(section) {
   return legal;
 }
 
+/**
+ * Builds the copyright and privacy links legal block.
+ * @param {Element|null} legal Parsed legal content container
+ * @returns {Element|null}
+ */
 function decorateLegalContent(legal) {
   if (!legal) return null;
 
@@ -69,6 +83,11 @@ function decorateLegalContent(legal) {
   return legalWrapper;
 }
 
+/**
+ * Decorates the footer legal row with privacy links and Adobe mark.
+ * @param {Element|null} legal Parsed legal content container
+ * @returns {Element}
+ */
 export default function decorateLegal(legal) {
   const legalRow = fromHTML('<div class="footer__legal-row"></div>');
   const content = decorateLegalContent(legal);

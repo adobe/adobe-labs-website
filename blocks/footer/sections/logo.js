@@ -1,6 +1,11 @@
 import { escapeAttr, fromHTML } from '../../../scripts/utils/utils.js';
 import getFooterAsset from '../utils.js';
 
+/**
+ * Updates footer logo entry progress from scroll and resize for CSS-driven animation.
+ * @param {Element|null} logo Footer logo element
+ * @returns {(() => void)|undefined} Cleanup that removes listeners and cancels pending frames
+ */
 function animateLogo(logo) {
   if (!logo) return undefined;
 
@@ -44,6 +49,11 @@ function animateLogo(logo) {
   };
 }
 
+/**
+ * Appends the full Adobe logo and starts its scroll-linked animation.
+ * @param {Element} parent Footer block or container to append the logo to
+ * @returns {Element}
+ */
 export default function decorateLogo(parent) {
   const src = escapeAttr(getFooterAsset('img/adobe-logo-full.svg'));
   const logo = fromHTML(`

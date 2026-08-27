@@ -1,5 +1,10 @@
 import { escapeAttr, fromHTML } from '../../../scripts/utils/utils.js';
 
+/**
+ * Unwraps a single nested wrapper div if present.
+ * @param {Element} node Section or column node
+ * @returns {Element}
+ */
 function unwrapSectionColumn(node) {
   if (node.children.length === 1 && node.firstElementChild?.tagName === 'DIV') {
     return node.firstElementChild;
@@ -7,6 +12,11 @@ function unwrapSectionColumn(node) {
   return node;
 }
 
+/**
+ * Extracts menu column roots from a fragment section that contains h2 headings.
+ * @param {Element} section Fragment section element
+ * @returns {Element[]|null}
+ */
 export function parseSection(section) {
   if (!section.querySelector('h2')) return null;
 
@@ -18,15 +28,29 @@ export function parseSection(section) {
     });
 }
 
+/**
+ * Media query for desktop footer menu layout.
+ * @returns {MediaQueryList}
+ */
 function getDesktopQuery() {
   return window.matchMedia('(min-width: 1024px)');
 }
 
+/**
+ * Whether a menu column is the newsletter column.
+ * @param {Element} column Menu column element
+ * @returns {boolean}
+ */
 function isNewsletterColumn(column) {
   return column.classList.contains('footer__menu-column--newsletter')
     || column.classList.contains('footer-newsletter');
 }
 
+/**
+ * Expands or collapses a mobile menu section.
+ * @param {Element} headline Menu headline element
+ * @param {boolean} expanded Whether the section should be expanded
+ */
 function toggleSection(headline, expanded) {
   const section = headline.closest('.footer__menu-section');
   const items = section?.querySelector('.footer__menu-items');
@@ -35,6 +59,13 @@ function toggleSection(headline, expanded) {
   items.hidden = !expanded;
 }
 
+/**
+ * Replaces an authored heading with a styled headline, optionally as a toggle.
+ * @param {Element} elem Authored heading element
+ * @param {Element|null} items Menu items container
+ * @param {{ toggle?: boolean }} [options] Headline options
+ * @returns {Element}
+ */
 function decorateHeadline(elem, items, { toggle = false } = {}) {
   const className = toggle
     ? 'footer__menu-headline footer__menu-headline--toggle'
@@ -82,11 +113,21 @@ function decorateHeadline(elem, items, { toggle = false } = {}) {
   return headline;
 }
 
+/**
+ * Applies menu link styling to an anchor.
+ * @param {HTMLAnchorElement} link Menu link element
+ * @returns {HTMLAnchorElement}
+ */
 function decorateLink(link) {
   link.classList.add('footer__menu-link');
   return link;
 }
 
+/**
+ * Decorates a single nav menu column with headline and links.
+ * @param {Element} column Authored menu column element
+ * @returns {Element}
+ */
 function decorateColumn(column) {
   const wrapper = fromHTML(`
     <div class="footer__menu-column footer__menu-column--nav">
@@ -111,6 +152,11 @@ function decorateColumn(column) {
   return wrapper;
 }
 
+/**
+ * Builds the footer menu from newsletter and nav columns.
+ * @param {Element[]} columns Decorated and authored menu columns
+ * @returns {Element|null}
+ */
 export default function decorateMenuColumns(columns) {
   if (!columns?.length) return null;
 
