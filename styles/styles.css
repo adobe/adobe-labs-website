@@ -41,10 +41,47 @@
   --nav-height: 64px;
 
   /* sizing */
-  --site-max-inline-size: 90rem; /* 1440px */
+  --site-max-inline-size: 120rem; /* 1920px */
 }
 
+/* --- Reset --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    interpolate-size: allow-keywords;
+  }
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+/* Avoid text overflows. */
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+/* Improve line wrapping. */
+p {
+  text-wrap: pretty;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+
+/* --- Elements --- */
 body {
+  /* TODO: revisit display: none and .appear; we shouldn't start with display none if there is no JS. */
   display: none;
   margin: 0;
   font-family: var(--body-font-family);
@@ -60,44 +97,16 @@ body.appear {
   display: block;
 }
 
-header {
-  height: var(--nav-height);
-}
-
-header .header,
-footer .footer {
-  visibility: hidden;
-}
-
-header .header[data-block-status="loaded"],
-footer .footer[data-block-status="loaded"] {
-  visibility: visible;
-}
-
-/* --- Base elements and resets --- */
 a {
   color: var(--s2a-color-content-default);
   text-decoration: solid underline currentcolor;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin-top: 0.8em;
-  margin-bottom: 0.25em;
-  font-family: var(--heading-font-family);
-  font-weight: 600;
-  line-height: 1.25;
-  scroll-margin: 40px;
 }
 
 h1, h2, h3, h4, h5, h6, [class*="heading-"] {
   margin: 0;
   font-family: var(--heading-font-family);
   font-weight: var(--s2a-font-weight-heading);
+  line-height: 1.25;
 
   strong {
     font-weight: inherit;
@@ -214,14 +223,24 @@ pre {
   white-space: pre;
 }
 
-input,
-textarea,
-select,
-button {
-  font: inherit;
+/* --- Main / containers --- */
+
+/* TODO: these header and footer styles come from the boilerplate and need to be reevaluated. */
+header {
+  height: var(--nav-height);
 }
 
-/* --- Main / containers --- */
+header .header,
+footer .footer {
+  visibility: hidden;
+}
+
+header .header[data-block-status="loaded"],
+footer .footer[data-block-status="loaded"] {
+  visibility: visible;
+}
+
+/* TODO: boilerplate - better handling of this for overall site spacing. And use tokens. */
 main > div {
   margin: 40px 16px;
 }
@@ -368,6 +387,8 @@ button.button.accent:disabled:focus-visible {
 }
 
 /* --- Sections --- */
+
+/* TODO: boilerplate - Sections - better handling of this group of styles for overall site spacing. And use tokens. */
 main > .section {
   margin: 40px 0;
 }
@@ -388,7 +409,8 @@ main > .section:first-of-type {
   }
 }
 
-/* section metadata */
+/* section metadata 
+   TODO: boilerplate - will these be used and can they be removed? */
 main .section.light,
 main .section.highlight {
   background-color: var(--light-color);
