@@ -113,11 +113,11 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    expect(block.querySelectorAll('.footer-menu__column')).toHaveLength(3);
-    expect(block.querySelector('.footer-menu').children).toHaveLength(2);
-    expect(block.querySelector('.footer-menu__nav')).toBeTruthy();
-    expect(block.querySelector('.footer-menu__column--newsletter')).toBeTruthy();
-    expect(block.querySelector('.footer-menu__column--newsletter .footer-menu__headline').tagName).toBe('H2');
+    expect(block.querySelectorAll('.footer__menu-column')).toHaveLength(3);
+    expect(block.querySelector('.footer__menu').children).toHaveLength(2);
+    expect(block.querySelector('.footer__menu-nav')).toBeTruthy();
+    expect(block.querySelector('.footer__menu-column--newsletter')).toBeTruthy();
+    expect(block.querySelector('.footer__menu-column--newsletter .footer__menu-headline').tagName).toBe('H2');
     expect(block).toHaveTextContent('Connect');
     expect(block).toHaveTextContent('Collaborate');
     expect(block).toHaveTextContent('Research');
@@ -189,8 +189,8 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    const headline = block.querySelector('.footer-menu__headline--toggle');
-    const items = headline.closest('.footer-menu__section').querySelector('.footer-menu__items');
+    const headline = block.querySelector('.footer__menu-headline--toggle');
+    const items = headline.closest('.footer__menu-section').querySelector('.footer__menu-items');
 
     expect(headline).toHaveAttribute('aria-expanded', 'false');
     expect(items).toHaveAttribute('hidden');

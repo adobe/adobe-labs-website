@@ -11,18 +11,18 @@ function decorateNewsletterColumn(column) {
   const action = subscribeLink?.getAttribute('href') || '#';
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'footer-menu__column footer-menu__column--newsletter';
+  wrapper.className = 'footer__menu-column footer__menu-column--newsletter';
 
   const section = document.createElement('div');
-  section.className = 'footer-menu__section';
+  section.className = 'footer__menu-section';
 
   if (heading) {
-    heading.classList.add('footer-menu__headline');
+    heading.classList.add('footer__menu-headline');
     section.append(heading);
   }
 
   const items = document.createElement('div');
-  items.className = 'footer-menu__items footer-menu__items--newsletter';
+  items.className = 'footer__menu-items footer__menu-items--newsletter';
 
   const descId = description ? `footer-newsletter-desc-${Date.now()}` : null;
   if (description) {
