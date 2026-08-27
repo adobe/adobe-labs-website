@@ -93,22 +93,9 @@ Blocks built synthetically (via `buildBlock`, e.g. `header`, `footer`, `widget`)
 
 ## Block authoring conventions, grounded in this repo's existing blocks
 
-### Class naming — flat, not BEM
+### Class naming — BEM, not flat
 
-This codebase does not use BEM (`block__element--modifier`). Classes added by `decorate` are flat, hyphenated, and prefixed with the block name:
-
-```js
-// blocks/cards/cards.js
-div.className = 'cards-card-image'; // or 'cards-card-body'
-```
-
-```js
-// blocks/columns/columns.js
-block.classList.add(`columns-${cols.length}-cols`); // e.g. columns-3-cols
-picWrapper.classList.add('columns-img-col');
-```
-
-Follow this shape for new blocks: `<blockname>-<descriptor>`, not `<blockname>__<descriptor>`.
+This codebase uses BEM (`block__element--modifier`). Classes are added by the `decorate` function.
 
 ### Design tokens
 
