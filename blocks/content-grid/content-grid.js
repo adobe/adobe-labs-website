@@ -315,7 +315,7 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
     href: itemField(entry, 'path'),
     subhead,
     category: showCategory && category ? category.label : '',
-    image: itemField(entry, 'image'),
+    imageUrl: itemField(entry, 'image'),
     imageAlt: title ? '' : (description || 'Article'),
     isVideo: isVideoItem(entry),
   });

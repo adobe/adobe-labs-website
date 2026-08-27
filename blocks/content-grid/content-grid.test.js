@@ -578,7 +578,7 @@ describe('content-grid block', () => {
         href: expect.stringMatching(/\/research\/newer$/),
         subhead: 'Aug 20',
         category: '',
-        image: '/newer.jpg',
+        imageUrl: '/newer.jpg',
         imageAlt: '',
         isVideo: false,
       }));
