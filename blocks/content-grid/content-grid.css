@@ -48,6 +48,12 @@
   margin: 0;
 }
 
+.content-grid__intro-copy p {
+  font-size: var(--s2a-typography-font-size-heading-6);
+  line-height: var(--s2a-typography-line-height-heading-6);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+}
+
 .content-grid__pager {
   display: none;
   gap: var(--s2a-spacing-2xs);

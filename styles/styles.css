@@ -44,6 +44,15 @@
   --site-max-inline-size: 90rem; /* 1440px */
 }
 
+/**
+ * Enable smooth scrolling on the whole document
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   display: none;
   margin: 0;
