@@ -68,3 +68,36 @@ Avoid an excessive amount of separate imported files, as each is an a network re
 ### Writing Block Tests
 
 See the [write-block-tests](.ai/skills/write-block-tests/SKILL.md) skill for instructions and guidelines on writing unit tests for blocks.
+
+## Query Indexes
+
+The following query indexes are configured for this site.
+The custom `content.json` indexes are used to render dynamic content, such as articles within the Content Grid.
+
+- **All pages**: The `sitemap.xml` is configured to point to this. 
+  `/query-index.json`
+- **All content**: Returns all types of single article content within specific directories (excludes index pages).
+  `/content.json`
+- **Research content**: Returns all research articles (excludes the index page).
+  `/research/content.json`
+- **Workflows content**: Returns all workflow articles (excludes the index page).
+  `/workflows/content.json`
+- **Sneaks content**: Returns all workflow articles (excludes the index page).
+  `/sneaks/content.json`
+- **Playground content**: Returns all workflow articles (excludes the index page).
+  `/playground/content.json`
+
+Important development notes:
+
+- The indexes are configured by admins using the [AEM Index Admin Tool](https://tools.aem.live/tools/index-admin/index.html), not via the "retired" method of using a YAML file.
+- Per AEM docs, sitemaps should automatically exclude `noindex` robots metadata. They are not automatically
+excluded from the query index JSON, so these must be filtered on the frontend.
+- Only published pages (and changes) will show in the query indexes.
+
+## Metadata
+
+Default metadata values are set via the root `/metadata` spreadsheet.
+See [AEM bulk metadata docs](https://www.aem.live/docs/bulk-metadata) for more info.
+
+Individual pages can then set metadata values via a `metadata` block, including overriding any of those default values.
+See [AEM metadata block docs](https://www.aem.live/developer/block-collection/metadata) for more info. 
