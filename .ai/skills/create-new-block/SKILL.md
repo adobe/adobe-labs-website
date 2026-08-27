@@ -64,6 +64,25 @@ There is no template-registration layer in this repo (no `templates/` directory)
 
 Header and footer are special: `loadHeader`/`loadFooter` in `scripts.js` target the `<header>`/`<footer>` elements already present in the page shell, build a synthetic `header`/`footer` block into them with `buildBlock`, and call `loadBlock` on it automatically — they are never authored per page.
 
+### Loading fragment content: `loadFragment` + `getMetadata`
+
+Use this pair when a block always shows shared content but that content's *source* should be author-configurable per page, rather than hardcoded:
+
+- `loadFragment(path)` (exported from `blocks/fragment/fragment.js`) fetches a fragment document's `.plain.html`, runs it through `decorateMain`/`loadSections`, and returns its root element. Use it instead of a raw `fetch` when you need the fragment's sections fully decorated, not just raw markup.
+- `getMetadata(name)` (from `scripts/aem.js`) reads a page-level metadata row, letting an author override the default fragment path for a specific page without touching code.
+
+#### Example: `blocks/footer/footer.js`
+
+The footer block combines them, and falls back to a default path if the metadata is absent:
+
+```js
+const footerMeta = getMetadata('footer');
+const footerPath = footerMeta ? new URL(footerMeta, window.location).pathname : '/fragments/footer';
+const fragment = await loadFragment(footerPath);
+```
+
+Reach for this whenever a new block's content is "the same fragment on every page, unless an author overrides it" — a promo banner or a shared CTA block are good candidates, not just header/footer.
+
 ## CSS file
 
 `loadBlock` automatically loads `blocks/<name>/<name>.css` alongside the JS — no import needed. Scope all styles to the block's own root class (`.blockname`); per `AGENTS.md`, `-wrapper`/`-container` suffixes are section-level classes added by `decorateBlock`, not part of the block's own naming.
