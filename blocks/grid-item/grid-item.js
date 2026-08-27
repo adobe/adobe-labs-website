@@ -5,6 +5,7 @@ import {
   getCellMedia,
   getCellText,
   isAuthoredTrue,
+  toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
 /**
@@ -17,24 +18,6 @@ const CATEGORY_PATHS = {
   sneaks: '/sneaks',
   playground: '/playground',
 };
-
-/**
- * Returns an absolute http(s) URL, or an empty string if the value is missing
- * or uses a non-http protocol (javascript:, data:, etc.).
- *
- * @param {string} value Candidate URL, possibly relative
- * @returns {string}
- */
-function toSafeHttpUrl(value) {
-  if (!value) return '';
-  try {
-    const url = new URL(value, window.location.href);
-    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
-  } catch {
-    /* ignore invalid URLs */
-  }
-  return '';
-}
 
 /**
  * Resolves an authored category name to a known site path.
@@ -59,8 +42,8 @@ function resolveCategory(name) {
  * @property {string} [href] Item URL; omit for a non-linked card
  * @property {string} [subhead]
  * @property {string} [category] Authored label; resolved to a known path inside buildGridItem
- * @property {Element} [media] `<picture>` or `<img>` from AEM
- * @property {string} [image] Image URL from JSON (Content Grid)
+ * @property {Element} [mediaElement] `<picture>` or `<img>` from AEM
+ * @property {string} [imageUrl] Image URL from JSON (Content Grid)
  * @property {string} [imageAlt]
  * @property {boolean} [isVideo]
  */
@@ -78,7 +61,7 @@ export function getGridItemData(block) {
     href: getCellLinkHref(cells.title),
     subhead: getCellText(cells.subhead),
     category: getCellText(cells.category),
-    media: getCellMedia(cells.image),
+    mediaElement: getCellMedia(cells.image),
     isVideo: isAuthoredTrue(cells.isvideo || cells['is-video']),
   };
 }
@@ -96,9 +79,9 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
   const category = resolveCategory(data.category);
   const subhead = data.subhead || '';
   const isVideo = Boolean(data.isVideo);
-  let media = data.media || null;
-  if (!media && data.image) {
-    media = createOptimizedPicture(data.image, data.imageAlt || '');
+  let mediaElement = data.mediaElement || null;
+  if (!mediaElement && data.imageUrl) {
+    mediaElement = createOptimizedPicture(data.imageUrl, data.imageAlt || '');
   }
   // Link the card only when a safe http(s) URL was provided.
   const mainTag = href ? 'a' : 'div';
@@ -130,11 +113,11 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
   if (href) main.href = href;
 
   // Move authored media into the card; keep the image alt from AEM.
-  if (media) {
+  if (mediaElement) {
     const image = fragment.querySelector('.grid-item__image');
     const play = image.querySelector('.grid-item__play');
-    if (play) play.before(media);
-    else image.append(media);
+    if (play) play.before(mediaElement);
+    else image.append(mediaElement);
   }
 
   // Assign copy via textContent rather than interpolating into HTML.

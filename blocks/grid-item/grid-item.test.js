@@ -157,7 +157,7 @@ describe('buildGridItem', () => {
       href: 'https://labs.adobe.com/example',
       subhead: 'A short description',
       category: 'Research',
-      image: 'https://example.com/hero.jpg',
+      imageUrl: 'https://example.com/hero.jpg',
       imageAlt: 'Project thumbnail',
       isVideo: true,
     });

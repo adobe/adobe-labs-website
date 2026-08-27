@@ -40,12 +40,10 @@
 
   .grid-item__category {
     display: inline-flex;
+    align-self: start;
     align-items: center;
     gap: var(--s2a-spacing-2xs);
-    min-height: 24px;
     margin: 0;
-    padding-block: var(--s2a-spacing-2xs);
-    padding-inline-end: var(--s2a-spacing-2xs);
     border-radius: var(--s2a-border-radius-3xs);
     color: var(--s2a-color-content-default);
   }
@@ -58,6 +56,11 @@
     background: var(--grid-item-category-color, var(--color-category-research));
   }
 
+  .grid-item__category-name {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+  }
+
   .grid-item__image {
     position: relative;
     overflow: hidden;
@@ -65,10 +68,14 @@
     aspect-ratio: 1;
     background-color: var(--s2a-color-background-subtle);
 
-    img {
-      display: block;
+    & :is(picture, img) {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
+    }
+
+    & img {
       object-fit: cover;
     }
   }

@@ -29,12 +29,16 @@ const currentRequests = new Map();
 
 /**
  * Commonly used endpoints for the project.
+ * @see /README.md#query-indexes
  */
 const commonEndpoints = {
   queryIndex: '/query-index.json?limit=1000',
-  ideas: '/query-index.json?sheet=ideas',
-  authors: '/query-index.json?sheet=authors',
-  careers: '/query-index.json?sheet=careers',
+  allPages: '/query-index.json',
+  allContent: '/content.json',
+  research: '/research/content.json',
+  workflows: '/workflows/content.json',
+  sneaks: '/sneaks/content.json',
+  playground: '/playground/content.json',
 };
 
 /**
