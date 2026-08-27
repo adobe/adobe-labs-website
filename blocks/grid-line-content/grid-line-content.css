@@ -12,6 +12,21 @@
 .grid-line-content {
   position: relative;
   padding-block: 64px;
+
+  /* interior column guides plus a top and bottom row guide, edges are left bare on purpose */
+  background-image:
+    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle)),
+    repeating-linear-gradient(
+      to bottom,
+      var(--s2a-color-border-subtle) 0 4px,
+      transparent 4px 6px
+    ),
+    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle)),
+    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle)),
+    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle));
+  background-position: 25% 0, 50% 0, 75% 0, 0 96px, 0 calc(100% - 96px);
+  background-size: 1px 100%, 1px 100%, 1px 100%, 100% 1px, 100% 1px;
+  background-repeat: no-repeat;
 }
 
 .grid-line-content-text {
