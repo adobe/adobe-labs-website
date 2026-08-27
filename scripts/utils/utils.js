@@ -8,6 +8,24 @@
 import { toClassName } from '../aem.js';
 
 /**
+ * Returns an absolute http(s) URL, or an empty string if the value is missing
+ * or uses a non-http protocol (javascript:, data:, etc.).
+ *
+ * @param {string} value Candidate URL, possibly relative
+ * @returns {string}
+ */
+export function toSafeHttpUrl(value) {
+  if (!value) return '';
+  try {
+    const url = new URL(value, window.location.href);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+  } catch {
+    /* ignore invalid URLs */
+  }
+  return '';
+}
+
+/**
  * Builds a lookup of authored field names to their value cells.
  * Key/value block content is a table: each row is [label, value].
  * Labels are slugified so "Is Video" and "is-video" resolve the same.
