@@ -5,7 +5,13 @@ import {
   toClassName,
 } from '../../scripts/aem.js';
 import dataStore from '../../scripts/utils/dataStore.js';
-import { formatCardDate, parseCardDate } from '../../scripts/utils/utils.js';
+import {
+  formatCardDate,
+  getCellLinkHref,
+  getCellMedia,
+  getCellText,
+  parseCardDate,
+} from '../../scripts/utils/utils.js';
 import { buildGridItem } from '../grid-item/grid-item.js';
 
 const QUERY_INDEX = dataStore.commonEndpoints.queryIndex;
@@ -397,8 +403,66 @@ function createPager(prevCell, nextCell, intro) {
 }
 
 /**
+ * Grid-item card from a manual content-grid row:
+ * image | aspect | title | subhead | category.
+ * @param {Element} row Authored table row
+ * @returns {HTMLDivElement}
+ */
+function createManualGridItem(row) {
+  const [image, aspect, title, subhead, category] = row.children;
+  const gridItem = buildGridItem({
+    mediaElement: getCellMedia(image),
+    title: getCellText(title),
+    href: getCellLinkHref(title),
+    subhead: getCellText(subhead),
+    category: getCellText(category),
+  });
+  gridItem.classList.add(toAspectClass(getCellText(aspect)));
+  return gridItem;
+}
+
+/**
+ * Replace the block with an optional intro/pager header and a list of cards.
+ * @param {Element} block
+ * @param {Element[]} gridItems
+ * @param {Element|null} header
+ * @returns {Promise<void>}
+ */
+async function renderGrid(block, gridItems, header) {
+  if (!gridItems.length && !header) {
+    block.replaceChildren();
+    return;
+  }
+
+  const nodes = [];
+  if (header) {
+    block.classList.add('content-grid--has-intro');
+    nodes.push(header);
+  }
+
+  if (gridItems.length) {
+    const list = document.createElement('ul');
+    list.className = 'content-grid__list';
+    list.setAttribute('role', 'list');
+    gridItems.forEach((gridItem) => {
+      const item = document.createElement('li');
+      item.className = 'content-grid__item';
+      item.append(gridItem);
+      list.append(item);
+      decorateBlock(gridItem);
+    });
+    nodes.push(list);
+  }
+
+  block.replaceChildren(...nodes);
+  await Promise.all(
+    [...block.querySelectorAll('.grid-item')].map((gridItem) => loadBlock(gridItem)),
+  );
+}
+
+/**
  * Replace the authored config table with a list of grid-item cards
- * from `/query-index.json`.
+ * from `/query-index.json`, or from authored rows when the block is `manual`.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
@@ -412,6 +476,15 @@ export default async function decorate(block) {
     header = intro || Object.assign(document.createElement('div'), { className: 'content-grid__intro' });
     header.append(pager);
   }
+
+  if (block.classList.contains('manual')) {
+    const gridItems = [...block.children]
+      .filter((row) => row.querySelector('img, picture, a') || row.textContent.trim())
+      .map(createManualGridItem);
+    await renderGrid(block, gridItems, header);
+    return;
+  }
+
   const config = readBlockConfig(block);
   const contentType = config['content-type'];
   const { category } = config;
@@ -425,10 +498,7 @@ export default async function decorate(block) {
   if (!payload) {
     // eslint-disable-next-line no-console
     console.error(`content-grid: failed to load ${QUERY_INDEX}`);
-    if (header) {
-      block.classList.add('content-grid--has-intro');
-      block.append(header);
-    }
+    await renderGrid(block, [], header);
     return;
   }
 
@@ -437,31 +507,9 @@ export default async function decorate(block) {
     selectItems(data, { contentType, category, count }),
     payload,
   );
-  if (!items.length && !header) return;
-
-  const nodes = [];
-  if (header) {
-    block.classList.add('content-grid--has-intro');
-    nodes.push(header);
-  }
-
-  if (items.length) {
-    const list = document.createElement('ul');
-    list.className = 'content-grid__list';
-    list.setAttribute('role', 'list');
-    items.forEach((entry) => {
-      const gridItem = createGridItem(entry, { subheadDescription, showCategory });
-      const item = document.createElement('li');
-      item.className = 'content-grid__item';
-      item.append(gridItem);
-      list.append(item);
-      decorateBlock(gridItem);
-    });
-    nodes.push(list);
-  }
-
-  block.replaceChildren(...nodes);
-  await Promise.all(
-    [...block.querySelectorAll('.grid-item')].map((gridItem) => loadBlock(gridItem)),
+  await renderGrid(
+    block,
+    items.map((entry) => createGridItem(entry, { subheadDescription, showCategory })),
+    header,
   );
 }

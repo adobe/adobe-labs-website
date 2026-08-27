@@ -971,4 +971,143 @@ describe('content-grid block', () => {
       expect(dataFromCall(0).subhead).toBe('A short description');
     });
   });
+
+  describe('manual', () => {
+    const PICTURE = '<picture><img src="hero.jpg" alt="Hero"></picture>';
+
+    function createManualBlock(rows, { intro, previous, next } = {}) {
+      const block = document.createElement('div');
+      block.className = 'content-grid manual';
+      if (intro) {
+        const row = document.createElement('div');
+        row.innerHTML = `<div>Intro:</div><div>${intro}</div>`;
+        block.append(row);
+      }
+      if (previous) {
+        const row = document.createElement('div');
+        row.innerHTML = `<div>Previous:</div><div>${previous}</div>`;
+        block.append(row);
+      }
+      if (next) {
+        const row = document.createElement('div');
+        row.innerHTML = `<div>Next:</div><div>${next}</div>`;
+        block.append(row);
+      }
+      rows.forEach((cells) => {
+        const row = document.createElement('div');
+        cells.forEach((html) => {
+          const cell = document.createElement('div');
+          cell.innerHTML = html;
+          row.append(cell);
+        });
+        block.append(row);
+      });
+      return block;
+    }
+
+    it('builds cards from authored rows without fetching the index', async () => {
+      const block = createManualBlock([
+        [PICTURE, '3:2', '<a href="/research/example">Headline</a>', 'Subhead', 'Research'],
+      ]);
+
+      await decorate(block);
+
+      expect(dataStore.getData).not.toHaveBeenCalled();
+      expect(readBlockConfig).not.toHaveBeenCalled();
+      expect(dataFromCall(0)).toEqual(expect.objectContaining({
+        title: 'Headline',
+        href: expect.stringMatching(/\/research\/example$/),
+        subhead: 'Subhead',
+        category: 'Research',
+      }));
+      expect(dataFromCall(0).mediaElement).toBeTruthy();
+      expect(dataFromCall(0).mediaElement.querySelector('img')).toHaveAttribute('src', expect.stringMatching(/hero\.jpg$/));
+      expect(block.querySelector('.grid-item')).toHaveClass('aspect-3-2');
+      expect(within(block).getByRole('list').children).toHaveLength(1);
+    });
+
+    it.each([
+      ['1:1', 'aspect-1-1'],
+      ['4/5', 'aspect-4-5'],
+      ['2-3', 'aspect-2-3'],
+    ])('applies authored aspect %s as %s', async (aspect, className) => {
+      const block = createManualBlock([
+        [PICTURE, aspect, 'Headline', '', ''],
+      ]);
+
+      await decorate(block);
+
+      expect(block.querySelector('.grid-item')).toHaveClass(className);
+    });
+
+    it('defaults unknown or missing aspect to 3:2', async () => {
+      const block = createManualBlock([
+        [PICTURE, '16:9', 'Headline', '', ''],
+      ]);
+
+      await decorate(block);
+
+      expect(block.querySelector('.grid-item')).toHaveClass('aspect-3-2');
+    });
+
+    it('omits category when the label cell is empty', async () => {
+      const block = createManualBlock([
+        [PICTURE, '3:2', 'Headline', 'Subhead', ''],
+      ]);
+
+      await decorate(block);
+
+      expect(dataFromCall(0).category).toBe('');
+    });
+
+    it('passes category when the label cell is authored', async () => {
+      const block = createManualBlock([
+        [PICTURE, '3:2', 'Headline', '', 'Workflows'],
+      ]);
+
+      await decorate(block);
+
+      expect(dataFromCall(0).category).toBe('Workflows');
+    });
+
+    it('keeps Intro and pager on a manual grid', async () => {
+      const block = createManualBlock(
+        [[PICTURE, '3:2', 'Headline', '', 'Research']],
+        {
+          intro: '<h2>Future of Creative Work</h2><p>How AI is reshaping roles.</p>',
+          previous: '<a href="#prev">Previous</a>',
+          next: '<a href="#next">Next</a>',
+        },
+      );
+
+      await decorate(block);
+
+      expect(block).toHaveClass('content-grid--has-intro');
+      const intro = block.querySelector('.content-grid__intro');
+      expect(intro.querySelector('h2')).toHaveTextContent('Future of Creative Work');
+      expect(within(intro).getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '#prev');
+      expect(within(intro).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#next');
+      expect(within(block).getByRole('list').children).toHaveLength(1);
+    });
+
+    it('skips empty leftover rows', async () => {
+      const block = createManualBlock([
+        [PICTURE, '3:2', 'Headline', '', 'Research'],
+        ['', '', '', '', ''],
+      ]);
+
+      await decorate(block);
+
+      expect(buildGridItem).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves the block empty when there are no item rows or intro', async () => {
+      const block = createManualBlock([]);
+
+      await decorate(block);
+
+      expect(block).toBeEmptyDOMElement();
+      expect(dataStore.getData).not.toHaveBeenCalled();
+    });
+  });
 });

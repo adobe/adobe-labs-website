@@ -56,6 +56,10 @@
       line-height: var(--s2a-typography-line-height-heading-6);
       letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
     }
+
+    & h6 {
+      color: var(--s2a-color-content-body-subtle);
+    }
   }
 
   .content-grid__pager {
