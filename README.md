@@ -97,7 +97,7 @@ Cards stay empty until indexed article pages exist. Index config lives at [tools
 - Add `isVideo` from `meta[name="isvideo"]` so the play icon can follow page metadata outside `/sneaks/`
 - Add `imageAspect` from `meta[name="image-aspect"]` so card frames follow page metadata `Image Aspect` without fetching each article
 
-**On each Labs article in DA**, put the page under `/research`, `/workflows`, `/sneaks`, or `/playground`, and author description, `og:image`, publication date, and `Image Aspect` (`1:1`, `4:5`, `3:2`, or `2:3`). The block drops `noindex` pages and paths under `/docs` or `/fragments`.
+**On each Labs article in DA**, put the page under `/research`, `/workflows`, `/sneaks`, or `/playground`, and author description, `og:image`, publication date, and `Image Aspect` (`1:1`, `4:5`, `3:2`, or `2:3`). The block drops `noindex` pages, section index pages (`/research/`, `/workflows/index`, and the other known sections), and paths under `/docs` or `/fragments`.
 
 ## Testing
 

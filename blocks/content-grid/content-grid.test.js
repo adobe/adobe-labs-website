@@ -95,6 +95,18 @@ const INDEX = {
       contentType: 'article',
       publicationDate: '2026-08-22',
     },
+    {
+      path: '/research/',
+      title: 'Research index',
+      contentType: 'article',
+      publicationDate: '2026-08-23',
+    },
+    {
+      path: '/workflows/index',
+      title: 'Workflows index',
+      contentType: 'article',
+      publicationDate: '2026-08-23',
+    },
   ],
 };
 
@@ -217,7 +229,7 @@ describe('content-grid block', () => {
     ]);
   });
 
-  it('excludes noindex, docs, fragments, and homepage paths', async () => {
+  it('excludes noindex, docs, fragments, homepage, and section index paths', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'All',
@@ -227,7 +239,14 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(titlesFromCards()).not.toEqual(
-      expect.arrayContaining(['Noindex sneak', 'Docs page', 'Nav fragment', 'Homepage']),
+      expect.arrayContaining([
+        'Noindex sneak',
+        'Docs page',
+        'Nav fragment',
+        'Homepage',
+        'Research index',
+        'Workflows index',
+      ]),
     );
   });
 

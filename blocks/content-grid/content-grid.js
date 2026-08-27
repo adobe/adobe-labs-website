@@ -247,7 +247,7 @@ function resolveItemCategory(item) {
 }
 
 /**
- * Whether a path should be omitted from the grid (home, docs, fragments).
+ * Whether a path should be omitted from the grid (home, section indexes, docs, fragments).
  * @param {string} [path]
  * @returns {boolean}
  */
@@ -255,6 +255,10 @@ function isExcludedPath(path) {
   if (!path) return true;
   const clean = path.replace(/\/+$/, '') || '/';
   if (HOME_PATHS.has(clean)) return true;
+  const segments = clean.split('/').filter(Boolean);
+  const isSectionRoot = segments.length === 1
+    || (segments.length === 2 && segments[1] === 'index');
+  if (isSectionRoot && CATEGORY_LABELS[segments[0]]) return true;
   return EXCLUDED_PATH_PREFIXES.some((prefix) => clean === prefix || clean.startsWith(`${prefix}/`));
 }
 
