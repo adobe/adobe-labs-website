@@ -1,3 +1,5 @@
+import { escapeAttr, fromHTML } from '../../../scripts/utils/utils.js';
+
 function unwrapSectionColumn(node) {
   if (node.children.length === 1 && node.firstElementChild?.tagName === 'DIV') {
     return node.firstElementChild;
@@ -34,11 +36,12 @@ function toggleSection(headline, expanded) {
 }
 
 function decorateHeadline(elem, items, { toggle = false } = {}) {
-  const headline = document.createElement('div');
-  headline.className = toggle
+  const className = toggle
     ? 'footer__menu-headline footer__menu-headline--toggle'
     : 'footer__menu-headline';
-  headline.textContent = elem.textContent.trim();
+  const headline = fromHTML(
+    `<div class="${className}">${escapeAttr(elem.textContent.trim())}</div>`,
+  );
   elem.remove();
 
   const setHeadlineAttributes = () => {
@@ -85,20 +88,23 @@ function decorateLink(link) {
 }
 
 function decorateColumn(column) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'footer__menu-column footer__menu-column--nav';
+  const wrapper = fromHTML(`
+    <div class="footer__menu-column footer__menu-column--nav">
+      <div class="footer__menu-section">
+        <div class="footer__menu-items"></div>
+      </div>
+    </div>
+  `);
 
+  const section = wrapper.querySelector('.footer__menu-section');
+  const items = wrapper.querySelector('.footer__menu-items');
   const heading = column.querySelector('h2');
+
   if (heading) {
-    const section = document.createElement('div');
-    section.className = 'footer__menu-section';
-    const items = document.createElement('div');
-    items.className = 'footer__menu-items';
-    section.append(decorateHeadline(heading, items, { toggle: true }), items);
+    section.prepend(decorateHeadline(heading, items, { toggle: true }));
     column.querySelectorAll('p a').forEach((link) => {
       items.append(decorateLink(link));
     });
-    wrapper.append(section);
   }
 
   column.replaceWith(wrapper);
@@ -108,11 +114,8 @@ function decorateColumn(column) {
 export default function decorateMenuColumns(columns) {
   if (!columns?.length) return null;
 
-  const menu = document.createElement('div');
-  menu.className = 'footer__menu';
-
-  const navColumns = document.createElement('div');
-  navColumns.className = 'footer__menu-nav';
+  const menu = fromHTML('<div class="footer__menu"></div>');
+  const navColumns = fromHTML('<div class="footer__menu-nav"></div>');
 
   columns.forEach((column) => {
     if (isNewsletterColumn(column)) {

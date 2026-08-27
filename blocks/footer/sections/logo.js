@@ -1,13 +1,5 @@
+import { escapeAttr, fromHTML } from '../../../scripts/utils/utils.js';
 import getFooterAsset from '../utils.js';
-
-function createFooterLogoImage() {
-  const img = document.createElement('img');
-  img.src = getFooterAsset('img/adobe-logo-full.svg');
-  img.alt = 'Adobe';
-  img.loading = 'lazy';
-  img.className = 'footer__logo-image';
-  return img;
-}
 
 function animateLogo(logo) {
   if (!logo) return undefined;
@@ -53,9 +45,12 @@ function animateLogo(logo) {
 }
 
 export default function decorateLogo(parent) {
-  const logo = document.createElement('div');
-  logo.className = 'footer__logo';
-  logo.append(createFooterLogoImage());
+  const src = escapeAttr(getFooterAsset('img/adobe-logo-full.svg'));
+  const logo = fromHTML(`
+    <div class="footer__logo">
+      <img src="${src}" alt="Adobe" loading="lazy" class="footer__logo-image">
+    </div>
+  `);
   parent.append(logo);
   animateLogo(logo);
   return logo;

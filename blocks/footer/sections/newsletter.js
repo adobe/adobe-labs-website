@@ -1,3 +1,5 @@
+import { escapeAttr, fromHTML } from '../../../scripts/utils/utils.js';
+
 function findNewsletterColumn(columns) {
   return columns.find((div) => div.classList.contains('footer-newsletter')
     || div.querySelector('a[href*="subscribe"], input[type="email"]'))
@@ -9,56 +11,41 @@ function decorateNewsletterColumn(column) {
   const description = [...column.querySelectorAll('p')].find((p) => !p.querySelector('a'));
   const subscribeLink = column.querySelector('a[href]');
   const action = subscribeLink?.getAttribute('href') || '#';
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'footer__menu-column footer__menu-column--newsletter';
-
-  const section = document.createElement('div');
-  section.className = 'footer__menu-section';
-
-  if (heading) {
-    heading.classList.add('footer__menu-headline');
-    section.append(heading);
-  }
-
-  const items = document.createElement('div');
-  items.className = 'footer__menu-items footer__menu-items--newsletter';
-
+  const label = subscribeLink?.textContent?.trim() || 'Subscribe';
   const descId = description ? `footer-newsletter-desc-${Date.now()}` : null;
+
+  if (heading) heading.classList.add('footer__menu-headline');
   if (description) {
     description.classList.add('footer__description');
     description.id = descId;
-    items.append(description);
   }
 
-  const form = document.createElement('form');
-  form.className = 'footer__form';
-  form.action = action;
-  form.method = 'post';
+  const wrapper = fromHTML(`
+    <div class="footer__menu-column footer__menu-column--newsletter">
+      <div class="footer__menu-section">
+        <div class="footer__menu-items footer__menu-items--newsletter">
+          <form class="footer__form" action="${escapeAttr(action)}" method="post">
+            <label class="footer__label" for="footer-email">Your email address</label>
+            <input
+              id="footer-email"
+              class="footer__input"
+              type="email"
+              name="email"
+              required
+              placeholder="Your email address"
+              ${descId ? `aria-describedby="${escapeAttr(descId)}"` : ''}
+            >
+            <button type="submit" class="footer__submit" aria-label="${escapeAttr(label)}"></button>
+          </form>
+        </div>
+      </div>
+    </div>
+  `);
 
-  const label = document.createElement('label');
-  label.className = 'footer__label';
-  label.setAttribute('for', 'footer-email');
-  label.textContent = 'Your email address';
-
-  const input = document.createElement('input');
-  input.id = 'footer-email';
-  input.className = 'footer__input';
-  input.type = 'email';
-  input.name = 'email';
-  input.required = true;
-  input.placeholder = 'Your email address';
-  if (descId) input.setAttribute('aria-describedby', descId);
-
-  const button = document.createElement('button');
-  button.type = 'submit';
-  button.className = 'footer__submit';
-  button.setAttribute('aria-label', subscribeLink?.textContent?.trim() || 'Subscribe');
-
-  form.append(label, input, button);
-  items.append(form);
-  section.append(items);
-  wrapper.append(section);
+  const section = wrapper.querySelector('.footer__menu-section');
+  const items = wrapper.querySelector('.footer__menu-items');
+  if (heading) section.prepend(heading);
+  if (description) items.prepend(description);
 
   column.replaceWith(wrapper);
   return wrapper;

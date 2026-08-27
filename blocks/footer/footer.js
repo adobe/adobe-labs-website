@@ -1,11 +1,12 @@
 import { getMetadata } from '../../scripts/aem.js';
+import { fromHTML } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 import decorateMenuColumns, { parseSection as parseMenuSection } from './sections/menu.js';
 import decorateNewsletter from './sections/newsletter.js';
 import decorateSocial, { parseSection as parseSocialSection } from './sections/social.js';
 import decorateLegal, { parseSection as parseLegalSection } from './sections/legal.js';
 import decorateLogo from './sections/logo.js';
-import { loadIcons } from './utils.js';
+import { loadFooterIcons } from './utils.js';
 
 function parseFragment(fragment) {
   const menuColumns = [];
@@ -55,24 +56,21 @@ export default async function decorate(block) {
 
   block.textContent = '';
 
-  const wrapper = document.createElement('div');
-  wrapper.className = 'footer__inner';
+  const wrapper = fromHTML(`
+    <div class="footer__inner">
+      <div class="footer__content">
+        <div class="footer__options"></div>
+      </div>
+    </div>
+  `);
 
-  const content = document.createElement('div');
-  content.className = 'footer__content';
-
-  if (menuColumns) content.append(menuColumns);
-
-  const options = document.createElement('div');
-  options.className = 'footer__options';
-
+  const content = wrapper.querySelector('.footer__content');
+  const options = wrapper.querySelector('.footer__options');
+  if (menuColumns) content.prepend(menuColumns);
   if (legal) options.append(legal);
   if (social) options.append(social);
-  content.append(options);
-
-  wrapper.append(content);
 
   block.append(wrapper);
   decorateLogo(block);
-  await loadIcons(block);
+  await loadFooterIcons(block);
 }
