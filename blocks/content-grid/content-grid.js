@@ -2,9 +2,10 @@ import {
   decorateBlock,
   loadBlock,
   readBlockConfig,
+  toClassName,
 } from '../../scripts/aem.js';
 import dataStore from '../../scripts/utils/dataStore.js';
-import { formatCardDate } from '../../scripts/utils/utils.js';
+import { formatCardDate, parseCardDate } from '../../scripts/utils/utils.js';
 import { buildGridItem } from '../grid-item/grid-item.js';
 
 const QUERY_INDEX = dataStore.commonEndpoints.queryIndex;
@@ -77,16 +78,6 @@ function equalsIgnoreCase(left, right) {
 }
 
 /**
- * Whether a spreadsheet / metadata flag is a positive value.
- * @param {string|boolean} [value]
- * @returns {boolean}
- */
-function isTruthyFlag(value) {
-  if (value === true) return true;
-  return /^(true|yes|1)$/i.test(String(value || '').trim());
-}
-
-/**
  * First non-empty field from an index item, trying each name in order.
  * @param {QueryIndexItem} item
  * @param {...string} names
@@ -94,19 +85,6 @@ function isTruthyFlag(value) {
  */
 function itemField(item, ...names) {
   return names.reduce((found, name) => found || item[name] || '', '');
-}
-
-/**
- * Lowercase kebab-case slug for a category name.
- * @param {string} [name]
- * @returns {string}
- */
-function toSlug(name) {
-  return String(name || '')
-    .toLowerCase()
-    .replace(/[^0-9a-z]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
 }
 
 /**
@@ -120,25 +98,18 @@ function pathCategorySlug(path) {
 }
 
 /**
- * Explicit isVideo flag from the index, or null when the field is omitted.
- * @param {QueryIndexItem} item
- * @returns {boolean|null}
- */
-function videoFlag(item) {
-  const names = ['isVideo', 'isvideo', 'is-video'];
-  const name = names.find((key) => Object.prototype.hasOwnProperty.call(item, key) && item[key] !== '');
-  return name ? isTruthyFlag(item[name]) : null;
-}
-
-/**
  * Whether a query-index row should render as a video card.
  * Prefers an explicit isVideo flag, then contentType, then the /sneaks/ folder.
  * @param {QueryIndexItem} item
  * @returns {boolean}
  */
 function isVideoItem(item) {
-  const flagged = videoFlag(item);
-  if (flagged !== null) return flagged;
+  const names = ['isVideo', 'isvideo', 'is-video'];
+  const name = names.find((key) => Object.prototype.hasOwnProperty.call(item, key) && item[key] !== '');
+  if (name) {
+    const value = item[name];
+    return value === true || /^(true|yes|1)$/i.test(String(value || '').trim());
+  }
   if (equalsIgnoreCase(itemField(item, 'contentType', 'content-type'), 'video')) return true;
   return pathCategorySlug(item.path) === 'sneaks';
 }
@@ -158,35 +129,6 @@ function toAspectClass(value) {
     .replace(/^-|-$/g, '');
   const className = `aspect-${slug}`;
   return ASPECT_CLASSES.has(className) ? className : DEFAULT_ASPECT_CLASS;
-}
-
-/**
- * Whether a name is the Image Aspect index column.
- * @param {string} [name]
- * @returns {boolean}
- */
-function isImageAspectField(name) {
-  return /image-?aspect/i.test(String(name || ''));
-}
-
-/**
- * Indexed Image Aspect value, or null when the column is absent on this row.
- * @param {QueryIndexItem} item
- * @returns {string|null}
- */
-function indexedImageAspect(item) {
-  const name = IMAGE_ASPECT_FIELDS.find((key) => Object.prototype.hasOwnProperty.call(item, key));
-  return name === undefined ? null : item[name];
-}
-
-/**
- * Whether the query-index payload is configured with an Image Aspect column.
- * @param {object} [payload]
- * @returns {boolean}
- */
-function indexHasImageAspectColumn(payload) {
-  return Array.isArray(payload?.columns)
-    && payload.columns.some((name) => isImageAspectField(name));
 }
 
 /**
@@ -214,21 +156,17 @@ async function fetchPageImageAspect(path) {
  * @returns {Promise<QueryIndexItem[]>}
  */
 async function withImageAspect(items, payload) {
-  if (indexHasImageAspectColumn(payload)) return items;
+  const hasAspectColumn = Array.isArray(payload?.columns)
+    && payload.columns.some((name) => /image-?aspect/i.test(String(name || '')));
+  if (hasAspectColumn) return items;
   return Promise.all(items.map(async (item) => {
-    if (indexedImageAspect(item) !== null) return item;
+    const hasIndexedAspect = IMAGE_ASPECT_FIELDS.some(
+      (key) => Object.prototype.hasOwnProperty.call(item, key),
+    );
+    if (hasIndexedAspect) return item;
     const imageAspect = await fetchPageImageAspect(item.path);
     return imageAspect ? { ...item, imageAspect } : item;
   }));
-}
-
-/**
- * Aspect class from index `imageAspect` / `image-aspect`, defaulting to 3:2.
- * @param {QueryIndexItem} item
- * @returns {string}
- */
-function resolveImageAspect(item) {
-  return toAspectClass(itemField(item, ...IMAGE_ASPECT_FIELDS));
 }
 
 /**
@@ -237,7 +175,7 @@ function resolveImageAspect(item) {
  * @returns {ItemCategory|null}
  */
 function resolveItemCategory(item) {
-  const fromMeta = toSlug(itemField(item, 'category'));
+  const fromMeta = toClassName(itemField(item, 'category'));
   if (CATEGORY_LABELS[fromMeta]) {
     return { slug: fromMeta, label: CATEGORY_LABELS[fromMeta] };
   }
@@ -272,28 +210,17 @@ function isNoindex(robots) {
 }
 
 /**
- * Publication timestamp in milliseconds, or null when unparseable.
- * @param {QueryIndexItem} item
- * @returns {number|null}
- */
-function parseDate(item) {
-  const raw = itemField(item, 'publicationDate', 'date');
-  const time = Date.parse(raw);
-  return Number.isFinite(time) ? time : null;
-}
-
-/**
  * Newest publication date first; undated items sort last.
  * @param {QueryIndexItem} a
  * @param {QueryIndexItem} b
  * @returns {number}
  */
 function compareNewestFirst(a, b) {
-  const aDate = parseDate(a);
-  const bDate = parseDate(b);
-  if (aDate !== null && bDate !== null) return bDate - aDate;
-  if (aDate !== null) return -1;
-  if (bDate !== null) return 1;
+  const aDate = parseCardDate(itemField(a, 'publicationDate', 'date'));
+  const bDate = parseCardDate(itemField(b, 'publicationDate', 'date'));
+  if (aDate && bDate) return bDate - aDate;
+  if (aDate) return -1;
+  if (bDate) return 1;
   return 0;
 }
 
@@ -323,7 +250,7 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
     imageAlt: title ? '' : (description || 'Article'),
     isVideo: isVideoItem(entry),
   });
-  gridItem.classList.add(resolveImageAspect(entry));
+  gridItem.classList.add(toAspectClass(itemField(entry, ...IMAGE_ASPECT_FIELDS)));
   return gridItem;
 }
 
@@ -348,7 +275,7 @@ function selectItems(data, { contentType, category, count }) {
     .filter((item) => {
       if (isAll(category)) return true;
       const resolved = resolveItemCategory(item);
-      return resolved && resolved.slug === toSlug(category);
+      return resolved && resolved.slug === toClassName(category);
     })
     .sort(compareNewestFirst)
     .slice(0, count);
@@ -362,22 +289,13 @@ function selectItems(data, { contentType, category, count }) {
  * @returns {Element|null}
  */
 function takeConfigCell(block, name) {
-  const row = [...block.children].find((child) => toSlug(child.children[0]?.textContent) === name);
+  const row = [...block.children].find(
+    (child) => toClassName(child.children[0]?.textContent) === name,
+  );
   if (!row) return null;
   const cell = row.children[1];
   row.remove();
   return cell || null;
-}
-
-/**
- * Whether the Intro cell has authored content (text, links, or media).
- * @param {Element} [cell]
- * @returns {boolean}
- */
-function hasIntroContent(cell) {
-  if (!cell) return false;
-  if (cell.querySelector('img, picture, a')) return true;
-  return Boolean(cell.textContent.trim());
 }
 
 /**
@@ -387,7 +305,7 @@ function hasIntroContent(cell) {
  */
 function takeIntro(block) {
   const cell = takeConfigCell(block, 'intro');
-  if (!hasIntroContent(cell)) return null;
+  if (!cell || !(cell.querySelector('img, picture, a') || cell.textContent.trim())) return null;
 
   const intro = document.createElement('div');
   intro.className = 'content-grid__intro';
@@ -448,57 +366,34 @@ function pagerLink(cell, fallbackLabel, directionClass) {
 }
 
 /**
- * Name the pager from the intro heading when one exists.
- * @param {HTMLElement} nav
- * @param {Element} [intro]
- */
-function namePager(nav, intro) {
-  const heading = intro?.querySelector('h1, h2, h3, h4, h5, h6');
-  if (!heading) {
-    nav.setAttribute('aria-label', 'Nearby sections');
-    return;
-  }
-  if (!heading.id) {
-    const id = toSlug(heading.textContent);
-    if (id) heading.id = id;
-  }
-  if (heading.id) {
-    nav.setAttribute('aria-labelledby', heading.id);
-    return;
-  }
-  nav.setAttribute('aria-label', 'Nearby sections');
-}
-
-/**
  * Previous / Next nav, or null when neither cell has a usable href.
+ * Names the nav from the intro heading when one exists.
  * @param {Element} [prevCell]
  * @param {Element} [nextCell]
  * @param {Element} [intro]
  * @returns {HTMLElement|null}
  */
 function createPager(prevCell, nextCell, intro) {
-  const prev = pagerLink(prevCell, 'Previous', 'content-grid__pager-prev');
-  const next = pagerLink(nextCell, 'Next', 'content-grid__pager-next');
+  const prev = pagerLink(prevCell, 'Previous', 'content-grid__pager-link--prev');
+  const next = pagerLink(nextCell, 'Next', 'content-grid__pager-link--next');
   if (!prev && !next) return null;
   const nav = document.createElement('nav');
   nav.className = 'content-grid__pager';
-  namePager(nav, intro);
+
+  const heading = intro?.querySelector('h1, h2, h3, h4, h5, h6');
+  if (heading && !heading.id) {
+    const id = toClassName(heading.textContent);
+    if (id) heading.id = id;
+  }
+  if (heading?.id) {
+    nav.setAttribute('aria-labelledby', heading.id);
+  } else {
+    nav.setAttribute('aria-label', 'Nearby sections');
+  }
+
   if (prev) nav.append(prev);
   if (next) nav.append(next);
   return nav;
-}
-
-/**
- * Intro node with optional pager. Creates a header cell when only pager is authored.
- * @param {HTMLDivElement|null} intro
- * @param {HTMLElement|null} pager
- * @returns {HTMLDivElement|null}
- */
-function withPager(intro, pager) {
-  if (!pager) return intro;
-  const header = intro || Object.assign(document.createElement('div'), { className: 'content-grid__intro' });
-  header.append(pager);
-  return header;
 }
 
 /**
@@ -511,7 +406,12 @@ export default async function decorate(block) {
   const intro = takeIntro(block);
   const prevCell = takeConfigCell(block, 'previous');
   const nextCell = takeConfigCell(block, 'next');
-  const header = withPager(intro, createPager(prevCell, nextCell, intro));
+  const pager = createPager(prevCell, nextCell, intro);
+  let header = intro;
+  if (pager) {
+    header = intro || Object.assign(document.createElement('div'), { className: 'content-grid__intro' });
+    header.append(pager);
+  }
   const config = readBlockConfig(block);
   const contentType = config['content-type'];
   const { category } = config;
@@ -526,7 +426,7 @@ export default async function decorate(block) {
     // eslint-disable-next-line no-console
     console.error(`content-grid: failed to load ${QUERY_INDEX}`);
     if (header) {
-      block.classList.add('has-intro');
+      block.classList.add('content-grid--has-intro');
       block.append(header);
     }
     return;
@@ -541,7 +441,7 @@ export default async function decorate(block) {
 
   const nodes = [];
   if (header) {
-    block.classList.add('has-intro');
+    block.classList.add('content-grid--has-intro');
     nodes.push(header);
   }
 

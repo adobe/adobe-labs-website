@@ -684,7 +684,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(block).not.toHaveClass('has-intro');
+    expect(block).not.toHaveClass('content-grid--has-intro');
     expect(block.querySelector('.content-grid__intro')).toBeNull();
     expect(within(block).getByRole('list').children).toHaveLength(3);
   });
@@ -700,7 +700,7 @@ describe('content-grid block', () => {
     await decorate(block);
 
     const intro = block.querySelector('.content-grid__intro');
-    expect(block).toHaveClass('has-intro');
+    expect(block).toHaveClass('content-grid--has-intro');
     expect(block.firstElementChild).toBe(intro);
     expect(intro.querySelector('h2')).toHaveTextContent('Future of Creative Work');
     expect(intro.querySelector('p')).toHaveTextContent('How AI is reshaping creative roles.');
@@ -735,7 +735,7 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(labels).not.toContain('intro');
-    expect(block).toHaveClass('has-intro');
+    expect(block).toHaveClass('content-grid--has-intro');
   });
 
   it('renders Previous and Next as in-page pager links', async () => {
@@ -825,7 +825,7 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(labels).not.toEqual(expect.arrayContaining(['previous', 'next']));
-    expect(block).toHaveClass('has-intro');
+    expect(block).toHaveClass('content-grid--has-intro');
     expect(within(block).getByRole('navigation', { name: 'Nearby sections' })).toBeTruthy();
   });
 
@@ -877,7 +877,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(block).toHaveClass('has-intro');
+    expect(block).toHaveClass('content-grid--has-intro');
     expect(within(block).getByRole('heading', { name: 'Future of Creative Work' })).toBeTruthy();
     expect(within(block).queryByRole('list')).toBeNull();
     expect(buildGridItem).not.toHaveBeenCalled();
