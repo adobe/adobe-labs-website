@@ -4,6 +4,8 @@
 
 The Web Content Accessibility Guidelines (WCAG) 2.2 provide recommendations for making web content more accessible. They are organized into four principles (POUR): Perceivable, Operable, Understandable, and Robust.
 
+Examples in this document use vanilla JavaScript and native DOM APIs (no framework or build step required), so patterns can be dropped into any codebase.
+
 ## Conformance Levels
 
 - **Level A**: Minimum accessibility (must satisfy)
@@ -22,14 +24,14 @@ Content must be presentable in ways users can perceive.
 
 All non-text content needs text alternatives.
 
-```tsx
-// Images
+```html
+<!-- Images -->
 <img src="chart.png" alt="Q3 sales increased 25% compared to Q2" />
 
-// Decorative images
+<!-- Decorative images -->
 <img src="decorative-line.svg" alt="" role="presentation" />
 
-// Complex images with long descriptions
+<!-- Complex images with long descriptions -->
 <figure>
   <img src="org-chart.png" alt="Organization chart" aria-describedby="org-desc" />
   <figcaption id="org-desc">
@@ -38,14 +40,14 @@ All non-text content needs text alternatives.
   </figcaption>
 </figure>
 
-// Icons with meaning
+<!-- Icons with meaning -->
 <button aria-label="Delete item">
-  <TrashIcon aria-hidden="true" />
+  <svg aria-hidden="true" class="icon-trash"><!-- ... --></svg>
 </button>
 
-// Icon buttons with visible text
+<!-- Icon buttons with visible text -->
 <button>
-  <DownloadIcon aria-hidden="true" />
+  <svg aria-hidden="true" class="icon-download"><!-- ... --></svg>
   <span>Download</span>
 </button>
 ```
@@ -54,15 +56,15 @@ All non-text content needs text alternatives.
 
 #### 1.2.1 Audio-only and Video-only (Level A)
 
-```tsx
-// Audio with transcript
-<audio src="podcast.mp3" controls />
+```html
+<!-- Audio with transcript -->
+<audio src="podcast.mp3" controls></audio>
 <details>
   <summary>View transcript</summary>
   <p>Full transcript text here...</p>
 </details>
 
-// Video with captions
+<!-- Video with captions -->
 <video controls>
   <source src="tutorial.mp4" type="video/mp4" />
   <track kind="captions" src="captions-en.vtt" srclang="en" label="English" />
@@ -76,8 +78,8 @@ All non-text content needs text alternatives.
 
 Structure and relationships must be programmatically determinable.
 
-```tsx
-// Proper heading hierarchy
+```html
+<!-- Proper heading hierarchy -->
 <main>
   <h1>Page Title</h1>
   <section>
@@ -86,7 +88,7 @@ Structure and relationships must be programmatically determinable.
   </section>
 </main>
 
-// Data tables with headers
+<!-- Data tables with headers -->
 <table>
   <caption>Quarterly Sales Report</caption>
   <thead>
@@ -105,7 +107,7 @@ Structure and relationships must be programmatically determinable.
   </tbody>
 </table>
 
-// Lists for grouped content
+<!-- Lists for grouped content -->
 <nav aria-label="Main navigation">
   <ul>
     <li><a href="/">Home</a></li>
@@ -117,23 +119,23 @@ Structure and relationships must be programmatically determinable.
 
 #### 1.3.5 Identify Input Purpose (Level AA)
 
-```tsx
-// Input with autocomplete for autofill
+```html
+<!-- Input with autocomplete for autofill -->
 <form>
-  <label htmlFor="name">Full Name</label>
-  <input id="name" name="name" autoComplete="name" />
+  <label for="name">Full Name</label>
+  <input id="name" name="name" autocomplete="name" />
 
-  <label htmlFor="email">Email</label>
-  <input id="email" name="email" type="email" autoComplete="email" />
+  <label for="email">Email</label>
+  <input id="email" name="email" type="email" autocomplete="email" />
 
-  <label htmlFor="phone">Phone</label>
-  <input id="phone" name="phone" type="tel" autoComplete="tel" />
+  <label for="phone">Phone</label>
+  <input id="phone" name="phone" type="tel" autocomplete="tel" />
 
-  <label htmlFor="address">Street Address</label>
-  <input id="address" name="address" autoComplete="street-address" />
+  <label for="address">Street Address</label>
+  <input id="address" name="address" autocomplete="street-address" />
 
-  <label htmlFor="cc">Credit Card Number</label>
-  <input id="cc" name="cc" autoComplete="cc-number" />
+  <label for="cc">Credit Card Number</label>
+  <input id="cc" name="cc" autocomplete="cc-number" />
 </form>
 ```
 
@@ -141,24 +143,28 @@ Structure and relationships must be programmatically determinable.
 
 #### 1.4.1 Use of Color (Level A)
 
-```tsx
-// Bad: Color only indicates error
-<input className={hasError ? 'border-red-500' : ''} />
+```html
+<!-- Bad: color only indicates error -->
+<input class="has-error" />
 
-// Good: Color plus icon and text
+<!-- Good: color plus icon and text -->
 <div>
-  <input
-    className={hasError ? 'border-red-500' : ''}
-    aria-invalid={hasError}
-    aria-describedby={hasError ? 'error-message' : undefined}
-  />
-  {hasError && (
-    <p id="error-message" className="text-red-500 flex items-center gap-1">
-      <AlertIcon aria-hidden="true" />
-      This field is required
-    </p>
-  )}
+  <input class="has-error" aria-invalid="true" aria-describedby="error-message" />
+  <p id="error-message" class="field-error">
+    <svg aria-hidden="true" class="icon-alert"><!-- ... --></svg>
+    This field is required
+  </p>
 </div>
+```
+
+```js
+// Toggle the error state and its message together
+function setFieldError(input, errorEl, hasError) {
+  input.classList.toggle('has-error', hasError);
+  input.setAttribute('aria-invalid', String(hasError));
+  input.setAttribute('aria-describedby', hasError ? errorEl.id : '');
+  errorEl.hidden = !hasError;
+}
 ```
 
 #### 1.4.3 Contrast (Minimum) (Level AA)
@@ -242,34 +248,38 @@ Content must not be lost when user adjusts text spacing.
 
 #### 1.4.13 Content on Hover or Focus (Level AA)
 
-```tsx
-// Tooltip pattern
-function Tooltip({ content, children }) {
-  const [isVisible, setIsVisible] = useState(false);
+```html
+<!-- Tooltip pattern -->
+<span class="tooltip-trigger" tabindex="0">
+  Hover or focus me
+  <span role="tooltip" class="tooltip" hidden>Helpful information</span>
+</span>
+```
 
-  return (
-    <div
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-      onFocus={() => setIsVisible(true)}
-      onBlur={() => setIsVisible(false)}
-    >
-      {children}
-      {isVisible && (
-        <div
-          role="tooltip"
-          // Dismissible: user can close without moving pointer
-          onKeyDown={(e) => e.key === 'Escape' && setIsVisible(false)}
-          // Hoverable: content stays visible when pointer moves to it
-          onMouseEnter={() => setIsVisible(true)}
-          onMouseLeave={() => setIsVisible(false)}
-          // Persistent: stays until trigger loses focus/hover
-        >
-          {content}
-        </div>
-      )}
-    </div>
-  );
+```js
+function initTooltip(trigger) {
+  const tooltip = trigger.querySelector('[role="tooltip"]');
+
+  function show() {
+    tooltip.hidden = false;
+  }
+
+  function hide() {
+    tooltip.hidden = true;
+  }
+
+  // Dismissible: user can close without moving the pointer
+  trigger.addEventListener('keydown', (e) => e.key === 'Escape' && hide());
+
+  // Hoverable: content stays visible when the pointer moves onto it
+  trigger.addEventListener('mouseenter', show);
+  tooltip.addEventListener('mouseenter', show);
+  trigger.addEventListener('mouseleave', hide);
+  tooltip.addEventListener('mouseleave', hide);
+
+  // Persistent: stays visible until the trigger loses focus/hover
+  trigger.addEventListener('focus', show);
+  trigger.addEventListener('blur', hide);
 }
 ```
 
@@ -283,120 +293,107 @@ Interface components must be operable by all users.
 
 All functionality must be operable via keyboard.
 
-```tsx
-// Custom interactive element
-function CustomButton({ onClick, children }) {
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-    >
-      {children}
-    </div>
-  );
-}
+```html
+<!-- Avoid: reimplementing a button with a div -->
+<div role="button" tabindex="0" class="custom-button">Save</div>
 
-// Better: just use a button
-function BetterButton({ onClick, children }) {
-  return <button onClick={onClick}>{children}</button>;
+<!-- Better: just use a button -->
+<button type="button">Save</button>
+```
+
+```js
+// Only needed for the div version above — a real <button> gets this for free
+function initCustomButton(el, onClick) {
+  el.addEventListener('click', onClick);
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  });
 }
 ```
 
 #### 2.1.2 No Keyboard Trap (Level A)
 
-```tsx
-// Modal with proper focus management
-function Modal({ isOpen, onClose, children }) {
-  const closeButtonRef = useRef(null);
+```html
+<!-- Modal with proper focus management -->
+<div role="dialog" aria-modal="true" class="modal" hidden>
+  <button class="modal-close">Close</button>
+  <div class="modal-content"><!-- modal content --></div>
+</div>
+```
 
-  // Return focus on close
-  useEffect(() => {
-    if (!isOpen) return;
+```js
+function initModal(root) {
+  const closeButton = root.querySelector('.modal-close');
+  let previouslyFocused = null;
 
-    const previousFocus = document.activeElement;
-    closeButtonRef.current?.focus();
+  function open() {
+    previouslyFocused = document.activeElement;
+    root.hidden = false;
+    closeButton.focus();
+  }
 
-    return () => {
-      (previousFocus as HTMLElement)?.focus();
-    };
-  }, [isOpen]);
+  function close() {
+    root.hidden = true;
+    previouslyFocused?.focus();
+  }
 
   // Allow Escape to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close();
+  });
 
-  return (
-    <FocusTrap>
-      <div role="dialog" aria-modal="true">
-        <button ref={closeButtonRef} onClick={onClose}>
-          Close
-        </button>
-        {children}
-      </div>
-    </FocusTrap>
-  );
+  closeButton.addEventListener('click', close);
+
+  return { open, close };
 }
 ```
+
+Pair this with a focus trap (cycle `Tab`/`Shift+Tab` between the modal's first and last focusable elements) so focus can't escape to the page behind it while it's open.
 
 ### 2.4 Navigable
 
 #### 2.4.1 Bypass Blocks (Level A)
 
-```tsx
-// Skip links
+```html
+<!-- Skip links -->
 <body>
-  <a href="#main" className="skip-link">
-    Skip to main content
-  </a>
-  <a href="#nav" className="skip-link">
-    Skip to navigation
-  </a>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  <a href="#nav" class="skip-link">Skip to navigation</a>
 
   <header>...</header>
 
-  <nav id="nav" aria-label="Main">
-    ...
-  </nav>
+  <nav id="nav" aria-label="Main">...</nav>
 
-  <main id="main" tabIndex={-1}>
-    {/* Main content */}
+  <main id="main" tabindex="-1">
+    <!-- Main content -->
   </main>
 </body>
 ```
 
 #### 2.4.4 Link Purpose (In Context) (Level A)
 
-```tsx
-// Bad: Ambiguous link text
+```html
+<!-- Bad: ambiguous link text -->
 <a href="/report">Click here</a>
 <a href="/report">Read more</a>
 
-// Good: Descriptive link text
+<!-- Good: descriptive link text -->
 <a href="/report">View quarterly sales report</a>
 
-// Good: Context provides meaning
+<!-- Good: context provides meaning -->
 <article>
   <h2>Quarterly Sales Report</h2>
   <p>Sales increased by 25% this quarter...</p>
   <a href="/report">Read full report</a>
 </article>
 
-// Good: Visually hidden text for context
+<!-- Good: visually hidden text for context -->
 <a href="/report">
   Read more
-  <span className="sr-only"> about quarterly sales report</span>
+  <span class="visually-hidden"> about quarterly sales report</span>
 </a>
 ```
 
@@ -472,7 +469,7 @@ Content and interface must be understandable.
 
 #### 3.1.2 Language of Parts (Level AA)
 
-```tsx
+```html
 <p>
   The French phrase <span lang="fr">c'est la vie</span> means "that's life."
 </p>
@@ -484,41 +481,63 @@ Content and interface must be understandable.
 
 Don't automatically change context on input.
 
-```tsx
-// Bad: Auto-submit on selection
-<select onChange={(e) => form.submit()}>
+```html
+<!-- Bad: auto-submits on selection -->
+<select id="country-autosubmit">
   <option>Select country</option>
 </select>
 
-// Good: Explicit submit action
-<select onChange={(e) => setCountry(e.target.value)}>
-  <option>Select country</option>
-</select>
-<button type="submit">Continue</button>
+<!-- Good: explicit submit action -->
+<form>
+  <select id="country">
+    <option>Select country</option>
+  </select>
+  <button type="submit">Continue</button>
+</form>
+```
+
+```js
+// Bad: changes context without warning
+document.getElementById('country-autosubmit')
+  .addEventListener('change', (e) => e.target.form.submit());
+
+// Good: just update state, let the user submit explicitly
+document.getElementById('country')
+  .addEventListener('change', (e) => setCountry(e.target.value));
 ```
 
 ### 3.3 Input Assistance
 
 #### 3.3.1 Error Identification (Level A)
 
-```tsx
-function FormField({ id, label, error, ...props }) {
-  return (
-    <div>
-      <label htmlFor={id}>{label}</label>
-      <input
-        id={id}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...props}
-      />
-      {error && (
-        <p id={`${id}-error`} role="alert" className="text-red-600">
-          {error}
-        </p>
-      )}
-    </div>
-  );
+```html
+<div class="form-field">
+  <label for="email">Email</label>
+  <input id="email" aria-invalid="false" />
+</div>
+```
+
+```js
+function setFieldError(fieldEl, error) {
+  const input = fieldEl.querySelector('input');
+  const errorId = `${input.id}-error`;
+
+  input.setAttribute('aria-invalid', String(!!error));
+  input.setAttribute('aria-describedby', error ? errorId : '');
+
+  let errorEl = fieldEl.querySelector(`#${errorId}`);
+  if (error) {
+    if (!errorEl) {
+      errorEl = document.createElement('p');
+      errorEl.id = errorId;
+      errorEl.setAttribute('role', 'alert');
+      errorEl.className = 'field-error';
+      fieldEl.append(errorEl);
+    }
+    errorEl.textContent = error;
+  } else {
+    errorEl?.remove();
+  }
 }
 ```
 
@@ -526,40 +545,36 @@ function FormField({ id, label, error, ...props }) {
 
 Don't require users to re-enter previously provided information.
 
-```tsx
-// Auto-fill shipping address from billing
-function CheckoutForm() {
-  const [sameAsBilling, setSameAsBilling] = useState(false);
-  const [billing, setBilling] = useState({});
-  const [shipping, setShipping] = useState({});
+```html
+<!-- Auto-fill shipping address from billing -->
+<form>
+  <fieldset>
+    <legend>Billing Address</legend>
+    <!-- billing address fields -->
+  </fieldset>
 
-  return (
-    <form>
-      <fieldset>
-        <legend>Billing Address</legend>
-        <AddressFields value={billing} onChange={setBilling} />
-      </fieldset>
+  <label>
+    <input type="checkbox" id="same-as-billing" />
+    Shipping same as billing
+  </label>
 
-      <label>
-        <input
-          type="checkbox"
-          checked={sameAsBilling}
-          onChange={(e) => {
-            setSameAsBilling(e.target.checked);
-            if (e.target.checked) setShipping(billing);
-          }}
-        />
-        Shipping same as billing
-      </label>
+  <fieldset id="shipping-fieldset">
+    <legend>Shipping Address</legend>
+    <!-- shipping address fields -->
+  </fieldset>
+</form>
+```
 
-      {!sameAsBilling && (
-        <fieldset>
-          <legend>Shipping Address</legend>
-          <AddressFields value={shipping} onChange={setShipping} />
-        </fieldset>
-      )}
-    </form>
-  );
+```js
+function initCheckoutForm(form) {
+  const sameAsBilling = form.querySelector('#same-as-billing');
+  const shippingFieldset = form.querySelector('#shipping-fieldset');
+  const billingFields = form.querySelector('fieldset').elements;
+
+  sameAsBilling.addEventListener('change', () => {
+    shippingFieldset.hidden = sameAsBilling.checked;
+    if (sameAsBilling.checked) copyFieldValues(billingFields, shippingFieldset.elements);
+  });
 }
 ```
 
@@ -571,39 +586,42 @@ Content must be robust enough for assistive technologies.
 
 #### 4.1.2 Name, Role, Value (Level A)
 
-```tsx
-// Custom components must expose name, role, and value
-function CustomCheckbox({ checked, onChange, label }) {
-  return (
-    <button
-      role="checkbox"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-    >
-      {checked ? '✓' : '○'} {label}
-    </button>
-  );
+```html
+<!-- Custom components must expose name, role, and value -->
+<button role="checkbox" aria-checked="false" aria-label="Subscribe to newsletter">
+  <span aria-hidden="true">○</span> Subscribe to newsletter
+</button>
+
+<div role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"
+  aria-label="Volume" tabindex="0" class="slider">
+  <div class="slider-fill"></div>
+</div>
+```
+
+```js
+function initCustomCheckbox(button) {
+  button.addEventListener('click', () => {
+    const checked = button.getAttribute('aria-checked') === 'true';
+    button.setAttribute('aria-checked', String(!checked));
+    button.querySelector('[aria-hidden]').textContent = checked ? '○' : '✓';
+  });
 }
 
-// Custom slider
-function CustomSlider({ value, min, max, label, onChange }) {
-  return (
-    <div
-      role="slider"
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuenow={value}
-      aria-label={label}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'ArrowRight') onChange(Math.min(value + 1, max));
-        if (e.key === 'ArrowLeft') onChange(Math.max(value - 1, min));
-      }}
-    >
-      <div style={{ width: `${((value - min) / (max - min)) * 100}%` }} />
-    </div>
-  );
+function initCustomSlider(root, { min, max, onChange }) {
+  const fill = root.querySelector('.slider-fill');
+
+  function setValue(value) {
+    const clamped = Math.min(Math.max(value, min), max);
+    root.setAttribute('aria-valuenow', clamped);
+    fill.style.width = `${((clamped - min) / (max - min)) * 100}%`;
+    onChange(clamped);
+  }
+
+  root.addEventListener('keydown', (e) => {
+    const current = Number(root.getAttribute('aria-valuenow'));
+    if (e.key === 'ArrowRight') setValue(current + 1);
+    if (e.key === 'ArrowLeft') setValue(current - 1);
+  });
 }
 ```
 
