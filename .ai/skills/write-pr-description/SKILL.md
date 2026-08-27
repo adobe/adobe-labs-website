@@ -68,101 +68,14 @@ Examples:
 
 ## Pull request template
 
+The base structure (Summary, Relevant Links, Test URLs, Validation, Checklist, Browser Testing) lives in [`.github/PULL_REQUEST_TEMPLATE.md`](../../../.github/PULL_REQUEST_TEMPLATE.md). Read that file directly for its current sections. Don't duplicate its content elsewhere.
+
 When returning the template, replace all placeholder information with the relevant information from the branch. If you don't know, ask the user to provide more info before writing the PR description. Each PR description should:
 
-- Provide a draft description
+- Start from `.github/PULL_REQUEST_TEMPLATE.md` as-is
 - Identify the type of changes made
+- Draft a description
 - Replace the related issue(s) ticket number with the actual ticket number
-- Draft the additional validation steps for human reviewers with concrete steps (leave its checkboxes unchecked)
-- Draft the accessibility testing checklist with concrete steps (leave its checkboxes unchecked)
+- Replace the placeholder URL with the actual branch URL of a page where the changes can be previewed
+- Draft the "Validation steps" checklist with concrete steps (leave its checkboxes unchecked) for a human reviewer to follow
 
-```markdown
-## Summary of changes
-<!-- Add description of work done here -->
-- Add ???
-- Fix ???
-
-## Relevant Links
-- Story: [ADBLABS-XX](https://sparkbox.atlassian.net/browse/ADBLABS-XX)
-
-## Test URLs:
-- Before: https://main--adobe-labs-website--adobe.aem.page/
-- After: https://<branch>--adobe-labs-website--adobe.aem.page/
-
-
-## Validation steps
-1. Make sure all PR checks have passed.
-2. Pull down the branch and run locally or view on the PR testing link.
-3. Verify the implementation against the design and story requirements.
-- [ ] <!-- Add acceptance criteria specific to this PR -->
-- [ ] <!-- Add additional reviewer checks -->
-
----
-
-### Accessibility testing checklist
-<!-- Manual accessibility testing is required because automated tools cannot catch all issues (e.g. focus order, screen reader announcements, keyboard flow). You must document your keyboard and screen reader testing steps below. Reviewers will use this checklist during review.
--->
-
-- [ ] **Keyboard** 
-<!-- What to test for: Focus order is logical; `Tab` reaches the component and all interactive descendants; `Enter`/`Space` activate where appropriate; arrow keys work for tabs, menus, sliders, etc.; no focus traps; `Escape` dismisses when applicable; focus indicator is visible. -->
-1. Go [here](url)
-2. Do this action
-3. Expect this result
-
-- [ ] **Screen reader** 
-<!-- _What to test for:_ Role and name are announced correctly; state changes (e.g. expanded, selected) are announced; labels and relationships are clear; no unnecessary or duplicate announcements. -->
-1. Go [here](url)
-2. Do this action
-3. Expect this result
-
-### Device review
-
-<!--- Verify the above manual tests and visual accuracy utilizing an emulator like Polypane browser or on an actual device. -->
-
-- [ ] Did it pass in Desktop?
-- [ ] Did it pass in (emulated) Mobile?
-- [ ] Did it pass in (emulated) iPad?
-
-## Browser Testing
-We should aim to support the latest version of the listed browsers. For older versions or other browsers not on the list, content should be accessible, even if it doesn't completely match the designs.
-
-Developers should test as they work in the browsers available on their machines. If they have access to other devices to test other browser/OS combinations, they should do that when possible.
-
-**Windows**
-* [ ] Firefox
-* [ ] Chrome
-* [ ] Edge
-
-**MacOS**
-* [ ] Firefox
-* [ ] Chrome
-* [ ] Safari
-* [ ] Edge
-
-**Android**
-* [ ] Firefox
-* [ ] Chrome
-* [ ] Edge
-
-**iOS**
-* [ ] Safari
-
----
-
-## Checklist:
-
-<!-- Delete anything irrelevant to this PR. 
-
-Go over all the following points, and put an `x` in all the boxes that apply. If you're unsure about any of these, don't hesitate to ask. We're here to help!
--->
-- [ ] This PR has visual changes, and has been reviewed by a designer.
-- [ ] This PR has code changes, and our linters still pass.
-- [ ] This PR has new code, so new tests were added or updated, and they pass.
-- [ ] This PR affects production code, so it was browser tested (see below).
-- [ ] This PR has copy changes, so copy was proofread and approved.
-- [ ] The content of this PR requires documentation, so we added a detailed description of the component's purpose, requirements, quirks, and instructions for use by designers and developers. This includes accessibility information if pertinent.
-- [ ] I have signed the [Adobe Open Source CLA](https://opensource.adobe.com/cla.html).
-- [ ] My code follows the code style of this project.
-- [ ] I have read the **CONTRIBUTING** document.
-- [ ] All new and existing tests passed.
-```
