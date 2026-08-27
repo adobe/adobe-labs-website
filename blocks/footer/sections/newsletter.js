@@ -1,14 +1,23 @@
 import { escapeAttr, fromHTML } from '../../../scripts/utils/utils.js';
 
 /**
+ * Whether a menu column is the newsletter column.
+ * @param {Element} column Menu column element
+ * @returns {boolean}
+ */
+export function isNewsletterColumn(column) {
+  return column.classList.contains('footer__menu-column--newsletter')
+    || column.classList.contains('footer-newsletter')
+    || !!column.querySelector('a[href*="subscribe"], input[type="email"]');
+}
+
+/**
  * Finds the newsletter column among menu columns, falling back to the first column.
  * @param {Element[]} columns Menu column elements
  * @returns {Element|undefined}
  */
 function findNewsletterColumn(columns) {
-  return columns.find((div) => div.classList.contains('footer-newsletter')
-    || div.querySelector('a[href*="subscribe"], input[type="email"]'))
-    || columns[0];
+  return columns.find(isNewsletterColumn) || columns[0];
 }
 
 /**

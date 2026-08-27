@@ -1,16 +1,5 @@
-import { escapeAttr, fromHTML } from '../../../scripts/utils/utils.js';
-
-/**
- * Unwraps a single nested wrapper div if present.
- * @param {Element} node Section or column node
- * @returns {Element}
- */
-function unwrapSectionColumn(node) {
-  if (node.children.length === 1 && node.firstElementChild?.tagName === 'DIV') {
-    return node.firstElementChild;
-  }
-  return node;
-}
+import { fromHTML } from '../../../scripts/utils/utils.js';
+import { isNewsletterColumn } from './newsletter.js';
 
 /**
  * Extracts menu column roots from a fragment section that contains h2 headings.
@@ -20,107 +9,59 @@ function unwrapSectionColumn(node) {
 export function parseSection(section) {
   if (!section.querySelector('h2')) return null;
 
-  return [...section.children]
-    .map((wrapper) => unwrapSectionColumn(wrapper))
-    .flatMap((root) => {
-      const nested = [...root.children].filter((child) => child.tagName === 'DIV' && child.querySelector('h2'));
-      return nested.length > 1 ? nested : [root];
-    });
+  return [...section.children].map((child) => (
+    child.children.length === 1 && child.firstElementChild?.tagName === 'DIV'
+      ? child.firstElementChild
+      : child
+  ));
 }
 
 /**
- * Media query for desktop footer menu layout.
- * @returns {MediaQueryList}
+ * Syncs nav headline a11y and item visibility for the current viewport.
+ * @param {Element} heading Menu headline element
+ * @param {Element} items Menu items container
+ * @param {MediaQueryList} desktopQuery Desktop layout media query
  */
-function getDesktopQuery() {
-  return window.matchMedia('(min-width: 1024px)');
-}
-
-/**
- * Whether a menu column is the newsletter column.
- * @param {Element} column Menu column element
- * @returns {boolean}
- */
-function isNewsletterColumn(column) {
-  return column.classList.contains('footer__menu-column--newsletter')
-    || column.classList.contains('footer-newsletter');
-}
-
-/**
- * Expands or collapses a mobile menu section.
- * @param {Element} headline Menu headline element
- * @param {boolean} expanded Whether the section should be expanded
- */
-function toggleSection(headline, expanded) {
-  const section = headline.closest('.footer__menu-section');
-  const items = section?.querySelector('.footer__menu-items');
-  if (!items) return;
-  headline.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-  items.hidden = !expanded;
-}
-
-/**
- * Replaces an authored heading with a styled headline, optionally as a toggle.
- * @param {Element} elem Authored heading element
- * @param {Element|null} items Menu items container
- * @param {{ toggle?: boolean }} [options] Headline options
- * @returns {Element}
- */
-function decorateHeadline(elem, items, { toggle = false } = {}) {
-  const className = toggle
-    ? 'footer__menu-headline footer__menu-headline--toggle'
-    : 'footer__menu-headline';
-  const headline = fromHTML(
-    `<div class="${className}">${escapeAttr(elem.textContent.trim())}</div>`,
-  );
-  elem.remove();
-
-  const setHeadlineAttributes = () => {
-    if (getDesktopQuery().matches) {
-      headline.setAttribute('role', 'heading');
-      headline.setAttribute('aria-level', '2');
-      headline.removeAttribute('tabindex');
-      headline.removeAttribute('aria-expanded');
-      headline.removeAttribute('aria-haspopup');
-      if (items) items.hidden = false;
-    } else {
-      headline.setAttribute('role', 'button');
-      headline.setAttribute('tabindex', '0');
-      headline.setAttribute('aria-expanded', 'false');
-      headline.setAttribute('aria-haspopup', 'true');
-      if (items) items.hidden = true;
-    }
-  };
-
-  const handleActivate = (e) => {
-    if (getDesktopQuery().matches) return;
-    if (e.type === 'keydown' && e.code !== 'Enter' && e.code !== 'Space') return;
-    if (e.type === 'keydown') e.preventDefault();
-    const expanded = headline.getAttribute('aria-expanded') === 'true';
-    toggleSection(headline, !expanded);
-  };
-
-  if (toggle) {
-    headline.addEventListener('click', handleActivate);
-    headline.addEventListener('keydown', handleActivate);
-    setHeadlineAttributes();
-    getDesktopQuery().addEventListener('change', setHeadlineAttributes);
-  } else {
-    headline.setAttribute('role', 'heading');
-    headline.setAttribute('aria-level', '2');
+function syncHeadline(heading, items, desktopQuery) {
+  if (desktopQuery.matches) {
+    heading.removeAttribute('role');
+    heading.removeAttribute('tabindex');
+    heading.removeAttribute('aria-expanded');
+    heading.removeAttribute('aria-haspopup');
+    items.hidden = false;
+    return;
   }
 
-  return headline;
+  heading.setAttribute('role', 'button');
+  heading.setAttribute('tabindex', '0');
+  heading.setAttribute('aria-expanded', 'false');
+  heading.setAttribute('aria-haspopup', 'true');
+  items.hidden = true;
 }
 
 /**
- * Applies menu link styling to an anchor.
- * @param {HTMLAnchorElement} link Menu link element
- * @returns {HTMLAnchorElement}
+ * Makes a nav column heading an accordion toggle on mobile.
+ * @param {Element} heading Authored h2 element
+ * @param {Element} items Menu items container
  */
-function decorateLink(link) {
-  link.classList.add('footer__menu-link');
-  return link;
+function decorateHeadline(heading, items) {
+  heading.classList.add('footer__menu-headline', 'footer__menu-headline--toggle');
+
+  const desktopQuery = window.matchMedia('(min-width: 1024px)');
+  const onActivate = (e) => {
+    if (desktopQuery.matches) return;
+    if (e.type === 'keydown' && e.code !== 'Enter' && e.code !== 'Space') return;
+    if (e.type === 'keydown') e.preventDefault();
+
+    const expanded = heading.getAttribute('aria-expanded') === 'true';
+    heading.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+    items.hidden = expanded;
+  };
+
+  heading.addEventListener('click', onActivate);
+  heading.addEventListener('keydown', onActivate);
+  desktopQuery.addEventListener('change', () => syncHeadline(heading, items, desktopQuery));
+  syncHeadline(heading, items, desktopQuery);
 }
 
 /**
@@ -142,9 +83,11 @@ function decorateColumn(column) {
   const heading = column.querySelector('h2');
 
   if (heading) {
-    section.prepend(decorateHeadline(heading, items, { toggle: true }));
+    section.prepend(heading);
+    decorateHeadline(heading, items);
     column.querySelectorAll('p a').forEach((link) => {
-      items.append(decorateLink(link));
+      link.classList.add('footer__menu-link');
+      items.append(link);
     });
   }
 
