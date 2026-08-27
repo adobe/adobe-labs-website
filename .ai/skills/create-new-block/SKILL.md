@@ -47,7 +47,7 @@ export default function decorate(block) {
 }
 ```
 
-- The convention in this codebase is `decorate`, not `init` — see [cards.js](../../../blocks/cards/cards.js) and [columns.js](../../../blocks/columns/columns.js) for the pattern.
+- Export a default `decorate` function that accepts a `block` argument — see [cards.js](../../../blocks/cards/cards.js) and [columns.js](../../../blocks/columns/columns.js) for the pattern.
 - `block` is the element `loadBlock` found — its first class is the block name, already added by `decorateBlock` (`.block`, `data-block-name`, and a `<name>-wrapper` class on its parent, `<name>-container` on the enclosing `.section`).
 - `decorate` can be sync or `async` — `loadBlock` awaits the result either way. Use `async` only if the block needs to `await` something (e.g. `fetch`, `loadFragment`).
 - Read authored content from `block.children` (rows) → each row's `children` (cells) **before** mutating the DOM, since most blocks tear down and rebuild their own markup (see "Content wrappers" below for what that authored content looks like when the block is authored directly on a page).
