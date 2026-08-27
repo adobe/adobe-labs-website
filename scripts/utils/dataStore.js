@@ -32,7 +32,7 @@ const currentRequests = new Map();
  * @see /README.md#query-indexes
  */
 const commonEndpoints = {
-  queryIndex: '/query-index.json?limit=1000',
+  queryIndex: '/query-index.json',
   allPages: '/query-index.json',
   allContent: '/content.json',
   research: '/research/content.json',
