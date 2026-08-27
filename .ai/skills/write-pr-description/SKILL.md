@@ -26,14 +26,14 @@ Use these syntax rules when writing GitHub PR descriptions:
 ## Title format
 
 - Use conventional commit format: `feat(component): brief description of change or issue`
-- Keep titles concise but descriptive (under 80 characters)
+- Keep titles concise but descriptive (under 80 characters) explaining why the change was made (not just what changed)
 - Use present tense for the description (e.g., "add" not "added")
 - Include the component name in parentheses if applicable
 
 Examples:
 
-- [bug:]
-- [bug(component)]:
+- [feat:]
+- [feat(component)]:
 - [fix]:
 - [fix(component)]:
 - [docs]:
@@ -47,14 +47,6 @@ Examples:
 - Include links to related issues, RFCs, or documentation when applicable
 - All descriptions must include clear acceptance criteria and expected outcomes
 - Provide enough context so anyone can understand the objective
-
-## Severity classification
-
-- SEV1: Critical - System down, data loss, security breach
-- SEV2: High - Major feature broken, significant user impact
-- SEV3: Medium - Feature partially broken, moderate impact
-- SEV4: Low - Minor issues, minimal user impact
-- SEV5: Trivial - Cosmetic issues, no functional impact
 
 ## Best practices
 
