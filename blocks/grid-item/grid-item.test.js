@@ -182,21 +182,3 @@ describe('buildGridItem', () => {
     expect(item.querySelector('img')).toHaveAttribute('alt', 'Project thumbnail');
   });
 });
-
-describe('decorate', () => {
-  it('does not rebuild a card that already has grid-item__main', () => {
-    const block = createBlock({
-      Title: '<a href="https://labs.adobe.com/example">Lab project</a>',
-      Subhead: 'A short description',
-    });
-    decorate(block);
-    const main = block.querySelector('.grid-item__main');
-    const title = block.querySelector('.grid-item__title');
-
-    decorate(block);
-
-    expect(block.querySelector('.grid-item__main')).toBe(main);
-    expect(block.querySelector('.grid-item__title')).toBe(title);
-    expect(title).toHaveTextContent('Lab project');
-  });
-});

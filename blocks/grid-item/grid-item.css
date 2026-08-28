@@ -59,7 +59,6 @@
   .grid-item__category-name {
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
-    color: var(--s2a-color-content-subtle);
   }
 
   .grid-item__image {
