@@ -35,6 +35,42 @@ const ASPECT_CLASSES = new Set(['aspect-1-1', 'aspect-4-5', 'aspect-3-2', 'aspec
  */
 
 /**
+ * Config-table row whose label slugs to `name`, or null.
+ * Removes the row so {@link readBlockConfig} does not treat it as a filter.
+ * @param {Element} block
+ * @param {string} name
+ * @returns {Element|null}
+ */
+function takeConfigCell(block, name) {
+  const row = [...block.children].find(
+    (child) => toClassName(child.children[0]?.textContent) === name,
+  );
+  if (!row) return null;
+  const cell = row.children[1];
+  row.remove();
+  return cell || null;
+}
+
+/**
+ * Pull the Intro row out of the config table and return a decorated intro node.
+ * @param {Element} block
+ * @returns {HTMLDivElement|null}
+ */
+function takeIntro(block) {
+  const cell = takeConfigCell(block, 'intro');
+  if (!cell || !(cell.querySelector('img, picture, a') || cell.textContent.trim())) return null;
+
+  const intro = document.createElement('div');
+  intro.className = 'content-grid__intro';
+  const copy = document.createElement('div');
+  copy.className = 'content-grid__intro-copy';
+  copy.append(...cell.childNodes);
+  copy.querySelectorAll('p').forEach((p) => p.classList.add('body-lg'));
+  intro.append(copy);
+  return intro;
+}
+
+/**
  * Trim and lowercase category names from a string, comma list, or array.
  * @param {*} value
  * @returns {string[]}
@@ -48,6 +84,37 @@ function normalizeCategories(value) {
 }
 
 /**
+ * Whether an index row's category list includes an authored category.
+ * @param {ContentItem} item
+ * @param {string} [category]
+ * @returns {boolean}
+ */
+function matchesCategory(item, category) {
+  const authored = String(category || '').trim().toLowerCase();
+  // Authored `All` is a sentinel (no filter), not a topic named "all".
+  if (!authored || authored === 'all') return true;
+  const wanted = normalizeCategories(category);
+  if (!wanted.length) return true;
+  const categories = normalizeCategories(item.category);
+  return wanted.some((name) => categories.includes(name));
+}
+
+/**
+ * Whether a path should be omitted from the grid (home and section indexes).
+ * @param {string} [path]
+ * @returns {boolean}
+ */
+function isExcludedPath(path) {
+  if (!path) return true;
+  const clean = path.replace(/\/+$/, '') || '/';
+  if (HOME_PATHS.has(clean)) return true;
+  const segments = clean.split('/').filter(Boolean);
+  const isSectionRoot = segments.length === 1
+    || (segments.length === 2 && segments[1] === 'index');
+  return isSectionRoot && Boolean(getSection(segments[0]));
+}
+
+/**
  * First non-empty field from an index item, trying each name in order.
  * @param {ContentItem} item
  * @param {...string} names
@@ -55,6 +122,38 @@ function normalizeCategories(value) {
  */
 function itemField(item, ...names) {
   return names.reduce((found, name) => found || item[name] || '', '');
+}
+
+/**
+ * Newest publication date first; undated items sort last.
+ * @param {ContentItem} a
+ * @param {ContentItem} b
+ * @returns {number}
+ */
+function compareNewestFirst(a, b) {
+  const aDate = parseCardDate(itemField(a, 'publicationDate', 'date'));
+  const bDate = parseCardDate(itemField(b, 'publicationDate', 'date'));
+  if (aDate && bDate) return bDate - aDate;
+  if (aDate) return -1;
+  if (bDate) return 1;
+  return 0;
+}
+
+/**
+ * Filter, sort, and slice index rows for the authored config.
+ * @param {ContentItem[]} data
+ * @param {object} options
+ * @param {string} [options.category]
+ * @param {number} options.count
+ * @returns {ContentItem[]}
+ */
+function selectItems(data, { category, count }) {
+  return data
+    .filter((item) => !/noindex/i.test(String(item.robots || ''))
+      && !isExcludedPath(item.path)
+      && matchesCategory(item, category))
+    .sort(compareNewestFirst)
+    .slice(0, count);
 }
 
 /**
@@ -93,36 +192,6 @@ function toAspectClass(value) {
 }
 
 /**
- * Whether a path should be omitted from the grid (home and section indexes).
- * @param {string} [path]
- * @returns {boolean}
- */
-function isExcludedPath(path) {
-  if (!path) return true;
-  const clean = path.replace(/\/+$/, '') || '/';
-  if (HOME_PATHS.has(clean)) return true;
-  const segments = clean.split('/').filter(Boolean);
-  const isSectionRoot = segments.length === 1
-    || (segments.length === 2 && segments[1] === 'index');
-  return isSectionRoot && Boolean(getSection(segments[0]));
-}
-
-/**
- * Newest publication date first; undated items sort last.
- * @param {ContentItem} a
- * @param {ContentItem} b
- * @returns {number}
- */
-function compareNewestFirst(a, b) {
-  const aDate = parseCardDate(itemField(a, 'publicationDate', 'date'));
-  const bDate = parseCardDate(itemField(b, 'publicationDate', 'date'));
-  if (aDate && bDate) return bDate - aDate;
-  if (aDate) return -1;
-  if (bDate) return 1;
-  return 0;
-}
-
-/**
  * Build a grid-item card from an index row.
  * @param {ContentItem} entry
  * @param {object} [options]
@@ -150,75 +219,6 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
   });
   gridItem.classList.add(toAspectClass(itemField(entry, 'imageAspect', 'image-aspect', 'imageaspect')));
   return gridItem;
-}
-
-/**
- * Whether an index row's category list includes an authored category.
- * @param {ContentItem} item
- * @param {string} [category]
- * @returns {boolean}
- */
-function matchesCategory(item, category) {
-  const authored = String(category || '').trim().toLowerCase();
-  // Authored `All` is a sentinel (no filter), not a topic named "all".
-  if (!authored || authored === 'all') return true;
-  const wanted = normalizeCategories(category);
-  if (!wanted.length) return true;
-  const categories = normalizeCategories(item.category);
-  return wanted.some((name) => categories.includes(name));
-}
-
-/**
- * Filter, sort, and slice index rows for the authored config.
- * @param {ContentItem[]} data
- * @param {object} options
- * @param {string} [options.category]
- * @param {number} options.count
- * @returns {ContentItem[]}
- */
-function selectItems(data, { category, count }) {
-  return data
-    .filter((item) => !/noindex/i.test(String(item.robots || ''))
-      && !isExcludedPath(item.path)
-      && matchesCategory(item, category))
-    .sort(compareNewestFirst)
-    .slice(0, count);
-}
-
-/**
- * Config-table row whose label slugs to `name`, or null.
- * Removes the row so {@link readBlockConfig} does not treat it as a filter.
- * @param {Element} block
- * @param {string} name
- * @returns {Element|null}
- */
-function takeConfigCell(block, name) {
-  const row = [...block.children].find(
-    (child) => toClassName(child.children[0]?.textContent) === name,
-  );
-  if (!row) return null;
-  const cell = row.children[1];
-  row.remove();
-  return cell || null;
-}
-
-/**
- * Pull the Intro row out of the config table and return a decorated intro node.
- * @param {Element} block
- * @returns {HTMLDivElement|null}
- */
-function takeIntro(block) {
-  const cell = takeConfigCell(block, 'intro');
-  if (!cell || !(cell.querySelector('img, picture, a') || cell.textContent.trim())) return null;
-
-  const intro = document.createElement('div');
-  intro.className = 'content-grid__intro';
-  const copy = document.createElement('div');
-  copy.className = 'content-grid__intro-copy';
-  copy.append(...cell.childNodes);
-  copy.querySelectorAll('p').forEach((p) => p.classList.add('body-lg'));
-  intro.append(copy);
-  return intro;
 }
 
 /**
