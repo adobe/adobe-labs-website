@@ -21,6 +21,7 @@ import {
   loadSections,
   loadCSS,
   buildBlock,
+  getMetadata,
 } from './aem.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -155,11 +156,22 @@ export function decorateMain(main) {
 }
 
 /**
+ * Applies the dark-mode theme attribute based on page metadata.
+ * Some video related sections of the site default to dark mode.
+ */
+function decorateDarkMode() {
+  if (getMetadata('dark-mode')?.toLowerCase() === 'true') {
+    document.documentElement.dataset.theme = 'dark';
+  }
+}
+
+/**
  * Loads everything needed to get to LCP.
  * @param {Element} doc The container element
  */
 async function loadEager(doc) {
   document.documentElement.lang = 'en';
+  decorateDarkMode();
   decorateTemplateAndTheme();
   const main = doc.querySelector('main');
   if (main) {
