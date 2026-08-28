@@ -11,9 +11,22 @@
 
 .grid-line-content {
   position: relative;
-  padding-block: 64px;
+  padding-block: 120px;
+}
 
-  /* interior column guides plus a top and bottom row guide, edges are left bare on purpose */
+.grid-line-content-text {
+  position: relative;
+  max-width: 60rem;
+  margin-inline: auto;
+  text-align: left;
+}
+
+/* left, center (dashed) and right frame lines: overshoot the text box top/bottom by 120px so corners cross instead of closing into a square */
+.grid-line-content-text::before {
+  content: "";
+  position: absolute;
+  inset-block: -120px;
+  inset-inline: 0;
   background-image:
     linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle)),
     repeating-linear-gradient(
@@ -21,20 +34,26 @@
       var(--s2a-color-border-subtle) 0 4px,
       transparent 4px 6px
     ),
-    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle)),
-    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle)),
     linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle));
-  background-position: 25% 0, 50% 0, 75% 0, 0 96px, 0 calc(100% - 96px);
-  background-size: 1px 100%, 1px 100%, 1px 100%, 100% 1px, 100% 1px;
+  background-position: 0 0, 50% 0, 100% 0;
+  background-size: 1px 100%, 1px 100%, 1px 100%;
   background-repeat: no-repeat;
+  pointer-events: none;
 }
 
-.grid-line-content-text {
-  position: relative;
-  max-width: 60rem;
-  margin-inline: auto;
-  padding-inline: 24px;
-  text-align: center;
+/* top and bottom frame lines: overshoot the text box left/right by 120px to match, crossing the vertical lines */
+.grid-line-content-text::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: -120px;
+  background-image:
+    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle)),
+    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle));
+  background-position: 0 0, 0 100%;
+  background-size: 100% 1px, 100% 1px;
+  background-repeat: no-repeat;
+  pointer-events: none;
 }
 
 .grid-line-content-text > :first-child {
@@ -45,21 +64,17 @@
   margin-bottom: 0;
 }
 
-/* no headings authored: promote paragraphs to the larger statement typography */
-.grid-line-content-text:not(:has(h1, h2, h3, h4, h5, h6)) p {
-  font-family: var(--heading-font-family);
-  font-weight: var(--typography-font-weight-heading-2);
-  font-size: var(--s2a-typography-font-size-heading-2);
-  line-height: var(--s2a-typography-line-height-heading-2);
-  letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
+.grid-line-content-text p {
+  margin-block: var(--s2a-spacing-xl);
 }
 
-@media (width >= 900px) {
-  .grid-line-content {
-    padding-block: 96px;
-  }
-
-  .grid-line-content-text {
-    padding-inline: 32px;
-  }
+/* no headings authored: promote paragraphs to the larger statement typography */
+.grid-line-content-text:not(:has(h1, h2, h3, h4, h5, h6)) p {
+  color: var(--s2a-color-content-default);
+  font-family: var(--s2a-font-family-heading);
+  font-size: var(--s2a-typography-font-size-heading-2);
+  font-style: normal;
+  font-weight: var(--typography-font-weight-heading-2);
+  line-height: var(--s2a-typography-line-height-heading-2);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
 }
