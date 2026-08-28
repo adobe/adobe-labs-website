@@ -86,20 +86,6 @@ Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027
 
 Standalone `grid-item` cards link when the Title cell is a link. Category labels on cards are off by default. Add `show-category` to the content-grid block header (`content-grid (show-category)`) to render each card’s `.grid-item__category` link.
 
-### content-grid (manual)
-
-`content-grid (manual)` skips the query index. After optional Intro (same as above), each remaining row is one card:
-
-| Column | Meaning |
-| --- | --- |
-| Image | Thumbnail |
-| Aspect | `1:1`, `4:5`, `3:2`, or `2:3` (separators `:`, `/`, or `-`). Missing or unknown defaults to 3:2 |
-| Title | Headline. Make this a link to turn the card into a link |
-| Subhead | Optional supporting line |
-| Label | Optional category (Research, Workflows, Sneaks, Playground). Shown when authored |
-
-Do not include Content Type, Category, or Count. Card count is the number of item rows.
-
 Cards stay empty until indexed article pages exist. Index config lives at [tools.aem.live](https://www.aem.live/developer/indexing) (this repo does not contain `helix-query.yaml`).
 
 **Index properties** (reindex after saving):

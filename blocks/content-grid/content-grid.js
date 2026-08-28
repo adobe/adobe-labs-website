@@ -5,13 +5,7 @@ import {
   toClassName,
 } from '../../scripts/aem.js';
 import dataStore from '../../scripts/utils/dataStore.js';
-import {
-  formatCardDate,
-  getCellLinkHref,
-  getCellMedia,
-  getCellText,
-  parseCardDate,
-} from '../../scripts/utils/utils.js';
+import { formatCardDate, parseCardDate } from '../../scripts/utils/utils.js';
 import { buildGridItem } from '../grid-item/grid-item.js';
 
 const QUERY_INDEX = dataStore.commonEndpoints.allPages;
@@ -324,25 +318,6 @@ function takeIntro(block) {
 }
 
 /**
- * Grid-item card from a manual content-grid row:
- * image | aspect | title | subhead | category.
- * @param {Element} row Authored table row
- * @returns {HTMLDivElement}
- */
-function createManualGridItem(row) {
-  const [image, aspect, title, subhead, category] = row.children;
-  const gridItem = buildGridItem({
-    mediaElement: getCellMedia(image),
-    title: getCellText(title),
-    href: getCellLinkHref(title),
-    subhead: getCellText(subhead),
-    category: getCellText(category),
-  });
-  gridItem.classList.add(toAspectClass(getCellText(aspect)));
-  return gridItem;
-}
-
-/**
  * Replace the block with an optional intro header and a list of cards.
  * @param {Element} block
  * @param {Element[]} gridItems
@@ -383,7 +358,7 @@ async function renderGrid(block, gridItems, header) {
 
 /**
  * Replace the authored config table with a list of grid-item cards
- * from `/query-index.json`, or from authored rows when the block is `manual`.
+ * from `/query-index.json`.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
@@ -391,14 +366,6 @@ export default async function decorate(block) {
   const intro = takeIntro(block);
   takeConfigCell(block, 'previous');
   takeConfigCell(block, 'next');
-
-  if (block.classList.contains('manual')) {
-    const gridItems = [...block.children]
-      .filter((row) => row.querySelector('img, picture, a') || row.textContent.trim())
-      .map(createManualGridItem);
-    await renderGrid(block, gridItems, intro);
-    return;
-  }
 
   const config = readBlockConfig(block);
   const contentType = config['content-type'];
