@@ -16,7 +16,7 @@
 
 .grid-line-content-text {
   position: relative;
-  max-width: 60rem;
+  max-width: 58rem;
   margin-inline: auto;
   padding-block: var(--s2a-spacing-3xs);
   text-align: left;
