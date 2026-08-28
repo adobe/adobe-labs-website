@@ -14,7 +14,7 @@ import {
 } from '../../scripts/utils/utils.js';
 import { buildGridItem } from '../grid-item/grid-item.js';
 
-const QUERY_INDEX = dataStore.commonEndpoints.queryIndex;
+const QUERY_INDEX = dataStore.commonEndpoints.allPages;
 const DEFAULT_COUNT = 8;
 const EXCLUDED_PATH_PREFIXES = ['/docs', '/fragments'];
 const HOME_PATHS = new Set(['', '/', '/index']);

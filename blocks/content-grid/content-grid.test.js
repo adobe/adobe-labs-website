@@ -26,7 +26,7 @@ jest.mock('../../scripts/utils/dataStore.js', () => ({
   __esModule: true,
   default: {
     getData: jest.fn(),
-    commonEndpoints: { queryIndex: '/query-index.json?limit=1000' },
+    commonEndpoints: { allPages: '/query-index.json' },
   },
 }));
 
@@ -209,7 +209,7 @@ describe('content-grid block', () => {
     expect(buildGridItem).toHaveBeenCalledTimes(3);
     expect(decorateBlock).toHaveBeenCalledTimes(3);
     expect(loadBlock).toHaveBeenCalledTimes(3);
-    expect(dataStore.getData).toHaveBeenCalledWith('/query-index.json?limit=1000');
+    expect(dataStore.getData).toHaveBeenCalledWith('/query-index.json');
     expect(block).not.toHaveTextContent('Content Type:');
   });
 
