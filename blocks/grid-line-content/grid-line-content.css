@@ -10,6 +10,8 @@
 }
 
 .grid-line-content {
+  --grid-line-color: light-dark(var(--s2a-color-border-subtle), var(--s2a-color-gray-700));
+
   position: relative;
   padding-block: 120px;
 }
@@ -29,13 +31,13 @@
   inset-block: -120px;
   inset-inline: 0;
   background-image:
-    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle)),
+    linear-gradient(var(--grid-line-color), var(--grid-line-color)),
     repeating-linear-gradient(
       to bottom,
-      var(--s2a-color-border-subtle) 0 4px,
+      var(--grid-line-color) 0 4px,
       transparent 4px 6px
     ),
-    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle));
+    linear-gradient(var(--grid-line-color), var(--grid-line-color));
   background-position: 0 0, 50% 0, 100% 0;
   background-size: 1px 100%, 1px 100%, 1px 100%;
   background-repeat: no-repeat;
@@ -49,8 +51,8 @@
   inset-block: 0;
   inset-inline: -120px;
   background-image:
-    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle)),
-    linear-gradient(var(--s2a-color-border-subtle), var(--s2a-color-border-subtle));
+    linear-gradient(var(--grid-line-color), var(--grid-line-color)),
+    linear-gradient(var(--grid-line-color), var(--grid-line-color));
   background-position: 0 0, 0 100%;
   background-size: 100% 1px, 100% 1px;
   background-repeat: no-repeat;
