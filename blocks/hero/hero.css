@@ -11,7 +11,6 @@
   letter-spacing: var(--hero-letter-spacing);
   font-weight: var(--hero-font-weight);
   border-radius: var(--s2a-border-radius-xs);
-
   aspect-ratio: 6 / 7;
 
   @media (width >=500px) {
@@ -29,7 +28,6 @@
     width: 100%;
     height: 100%;
     border-radius: inherit;
-
     color: var(--s2a-color-gray-25, #fff);
     text-decoration: none;
 
@@ -56,16 +54,14 @@
     z-index: 1;
     width: 100%;
     height: 100%;
-
     display: grid;
-    grid-template-columns: 3fr 1fr;
-    grid-template-rows: min-content min-content;
-    grid-template-areas: "top-left top-right"
-    "bottom-left bottom-right";
+    grid-template:
+      "top-left top-right" min-content
+      "bottom-left bottom-right" min-content
+      / 3fr 1fr;
     column-gap: var(--s2a-spacing-xs);
     align-content: space-between;
     align-items: start;
-
     padding-inline: var(--hero-padding-inline);
     padding-block: var(--hero-padding-block);
 
@@ -102,6 +98,7 @@
 
     @media (width >=768px) {
       grid-area: bottom-left;
+      align-self: end;
     }
   }
 
@@ -120,13 +117,12 @@
 
     svg {
       --hero-category-circle-size: 1.75rem;
- 
+
       height: var(--hero-category-circle-size);
       width: var(--hero-category-circle-size);
 
       @media (width >=1024px) {
         --hero-category-circle-size: 2.375rem;
-   
       }
     }
   }
@@ -143,14 +139,11 @@
       var(--s2a-color-transparent-black-24);
 
     grid-area: play;
-    justify-self: start;
-    align-self: start;
+    place-self: start;
     display: flex;
     align-items: center;
     justify-content: center;
-
     background: var(--hero-video-icon-gradient);
-
     width: var(--hero-video-button-size);
     height: var(--hero-video-button-size);
     border-radius: var(--hero-video-icon-border-radius);
@@ -168,8 +161,7 @@
       --hero-video-icon-background-blur: var(--s2a-blur-sm);
 
       grid-area: top-left / top-left / bottom-right / bottom-right;
-      align-self: center;
-      justify-self: center;
+      place-self: center;
     }
 
     @media (width >=1440px) {
@@ -191,8 +183,7 @@
     margin-block: 0;
     display: inline-block;
     grid-area: bottom-right;
-    align-self: end;
-    justify-self: end;
+    place-self: end;
   }
 
   /* Image */
@@ -222,30 +213,24 @@
     }
   }
 
-/* ------------------- */
-/* Full-screen variant */
-/* ------------------- */
-
+  /* Full-screen variant */
   &.hero-full-screen {
     border-radius: 0;
 
     .hero-content {
-      /* Figma's spacing differs from s2a tokens. */
-      /* Full-screen variant has custom vertical padding to account for overlapping content. */
+      /* Figma's spacing differs from s2a tokens.
+         Full-screen variant has custom vertical padding to account for overlapping content. */
       --hero-padding-block: 5.625rem 3.125rem;
- 
       --hero-padding-inline: var(--s2a-section-spacing-sm);
 
       /* TODO: add negative margins when header and first section are implemented. */
 
       @media (width >=768px) {
         --hero-padding-block: 6.25rem 4.375rem;
-   
       }
 
       @media (width >=1024px) {
         --hero-padding-block: 5rem 5.625rem;
-   
       }
     }
   }
