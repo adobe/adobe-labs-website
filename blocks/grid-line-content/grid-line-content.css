@@ -18,10 +18,10 @@
 
 .grid-line-content-text {
   position: relative;
-  max-width: 58rem;
+  max-inline-size: 58rem;
   margin-inline: auto;
   padding-block: var(--s2a-spacing-3xs);
-  text-align: left;
+  text-align: start;
 }
 
 /* left, center (dashed) and right frame lines: overshoot the text box top/bottom by 120px so corners cross instead of closing into a square */
