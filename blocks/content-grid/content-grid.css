@@ -1,0 +1,173 @@
+.content-grid-wrapper {
+  container: content-grid / inline-size;
+}
+
+.content-grid {
+  .grid-item {
+    /* Allow cards to fill the grid track instead of the standalone 50ch cap. */
+    max-width: none;
+  }
+
+  .content-grid__list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--s2a-spacing-2xl) var(--s2a-spacing-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &.content-grid--has-intro {
+    display: grid;
+    align-items: start;
+    grid-template-columns: 1fr;
+    gap: var(--s2a-spacing-2xl) var(--s2a-spacing-xs);
+
+    .content-grid__list {
+      grid-column: 1 / -1;
+      grid-template-columns: 1fr;
+      grid-template-columns: subgrid;
+    }
+  }
+
+  .content-grid__item,
+  .content-grid__intro {
+    min-inline-size: 0;
+  }
+
+  .content-grid__intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2a-spacing-xl);
+  }
+
+  .content-grid__intro-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2a-spacing-md);
+    max-width: 50ch;
+
+    & :is(h1, h2, h3, h4, h5, h6, p) {
+      margin: 0;
+    }
+
+    & p {
+      font-size: var(--s2a-typography-font-size-heading-6);
+      line-height: var(--s2a-typography-line-height-heading-6);
+      letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+    }
+
+    & h6 {
+      color: var(--s2a-color-content-body-subtle);
+    }
+  }
+
+  .content-grid__pager {
+    display: none;
+    gap: var(--s2a-spacing-2xs);
+  }
+
+  .content-grid__pager-link {
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    width: var(--s2a-spacing-xl);
+    height: var(--s2a-spacing-xl);
+    border: var(--s2a-border-width-sm) solid transparent;
+    border-radius: var(--s2a-border-radius-6);
+    background-color: var(--s2a-color-transparent-black-12);
+    color: var(--s2a-color-content-default);
+    backdrop-filter: blur(var(--s2a-blur-xs));
+    text-decoration: none;
+
+    &:hover {
+      background-color: color-mix(
+        in srgb,
+        var(--s2a-color-content-default) 12%,
+        var(--s2a-color-background-subtle)
+      );
+      border-color: var(--s2a-color-border-subtle);
+    }
+
+    &:active {
+      background-color: var(--s2a-color-background-inverse);
+      border-color: var(--s2a-color-border-inverse);
+      color: var(--s2a-color-content-inverse);
+      backdrop-filter: none;
+    }
+
+    &:focus-visible {
+      outline: var(--s2a-border-width-sm) solid var(--s2a-color-focus-ring-default);
+      outline-offset: 1px;
+    }
+
+    &:focus-visible:active {
+      background-color: var(--s2a-color-background-inverse);
+      border-color: var(--s2a-color-border-inverse);
+      color: var(--s2a-color-content-inverse);
+    }
+  }
+
+  .content-grid__pager-icon {
+    display: block;
+    width: var(--s2a-spacing-sm);
+    height: var(--s2a-spacing-sm);
+    overflow: clip;
+    background-color: currentcolor;
+    mask: url('../../icons/arrow-down.svg') center / contain no-repeat;
+  }
+
+  .content-grid__pager-link--prev {
+    .content-grid__pager-icon {
+      mask: url('../../icons/arrow-up.svg') center / contain no-repeat;
+    }
+  }
+
+  @container content-grid (inline-size >= 700px) {
+    .content-grid__list,
+    &.content-grid--has-intro {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    &.content-grid--has-intro .content-grid__list {
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: subgrid;
+    }
+
+    &.content-grid--has-intro .content-grid__intro {
+      flex-direction: row;
+      align-items: start;
+      grid-column: 1 / -1;
+    }
+
+    &.content-grid--has-intro .content-grid__pager {
+      display: flex;
+      flex-shrink: 0;
+      margin-inline-start: auto;
+    }
+  }
+
+  @container content-grid (inline-size >= 1024px) {
+    .content-grid__list,
+    &.content-grid--has-intro {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    &.content-grid--has-intro .content-grid__intro {
+      flex-direction: column;
+      grid-column: 1;
+      padding-inline-end: var(--s2a-spacing-4xl);
+    }
+
+    &.content-grid--has-intro .content-grid__list {
+      grid-column: 2 / -1;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: subgrid;
+    }
+
+    &.content-grid--has-intro .content-grid__pager {
+      margin-inline-start: 0;
+    }
+  }
+}
