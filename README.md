@@ -69,6 +69,50 @@ Authors insert blocks from the Library in [Document Authoring](https://da.live/#
 
 Authors can then add the block from Library → Blocks. For more on library setup, see [Setup library](https://docs.da.live/administrators/guides/setup-library).
 
+### content-grid (query-driven)
+
+The homepage **Latest Content** section uses `content-grid` with a key/value table:
+
+| Field | Meaning |
+| --- | --- |
+| Content Type | `All` (no filter) or a page `content-type` value (`article`, `video`) |
+| Category | `All` (no filter) or Research, Workflows, Sneaks, Playground — matched from the page folder (`/research/...`) |
+| Count | How many cards to show (defaults to 8) |
+| Intro | Optional freeform first cell (heading, paragraph, links). Extra; does not count toward Count |
+| Previous | Optional in-page link to the prior section (`[Previous](#future-of-creative-work)`). Omit on the first section |
+| Next | Optional in-page link to the next section (`[Next](#economic-impact)`). Omit on the last section |
+
+The block fetches `/query-index.json?limit=1000`, filters client-side, and renders each hit as a `grid-item`. An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Previous / Next rows become icon buttons under that copy (S2A ControlButton, md, on-light); the href should be the `id` of the destination Intro heading (AEM slugs the heading text, for example `#economic-impact`). Card image frames follow page metadata `Image Aspect` (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). The block uses the index `imageAspect` column when it exists; otherwise it reads `meta[name="image-aspect"]` from each selected article. Missing or unknown values default to 3:2. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Category comes from the first path segment; optional page metadata `category` overrides that when it is one of the four known values.
+
+Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the content-grid block header (`content-grid (subhead-description)`) to use the index description instead.
+
+Standalone `grid-item` cards link when the Title cell is a link. Category labels on cards are off by default. Add `show-category` to the content-grid block header (`content-grid (show-category)`) to render each card’s `.grid-item__category` link.
+
+### content-grid (manual)
+
+`content-grid (manual)` skips the query index. After optional Intro / Previous / Next rows (same as above), each remaining row is one card:
+
+| Column | Meaning |
+| --- | --- |
+| Image | Thumbnail |
+| Aspect | `1:1`, `4:5`, `3:2`, or `2:3` (separators `:`, `/`, or `-`). Missing or unknown defaults to 3:2 |
+| Title | Headline. Make this a link to turn the card into a link |
+| Subhead | Optional supporting line |
+| Label | Optional category (Research, Workflows, Sneaks, Playground). Shown when authored |
+
+Do not include Content Type, Category, or Count. Card count is the number of item rows.
+
+Cards stay empty until indexed article pages exist. Index config lives at [tools.aem.live](https://www.aem.live/developer/indexing) (this repo does not contain `helix-query.yaml`).
+
+**Index properties** (reindex after saving):
+
+- Keep `title`, `image`, `description`, `publicationDate`, `robots`
+- Add `contentType` from `meta[name="content-type"]` if you filter by Content Type
+- Add `isVideo` from `meta[name="isvideo"]` so the play icon can follow page metadata outside `/sneaks/`
+- Add `imageAspect` from `meta[name="image-aspect"]` so card frames follow page metadata `Image Aspect` without fetching each article
+
+**On each Labs article in DA**, put the page under `/research`, `/workflows`, `/sneaks`, or `/playground`, and author description, `og:image`, publication date, and `Image Aspect` (`1:1`, `4:5`, `3:2`, or `2:3`). The block drops `noindex` pages, section index pages (`/research/`, `/workflows/index`, and the other known sections), and paths under `/docs` or `/fragments`.
+
 ## Testing
 
 To run tests:

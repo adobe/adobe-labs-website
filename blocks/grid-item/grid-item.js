@@ -137,9 +137,12 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
 /**
  * Decorates a grid-item block: key/value rows become a category link and a
  * card (image, title, optional subhead). The card links when the title is a link.
+ * Already-built cards (`.grid-item__main` present) are left as-is so nested
+ * `loadBlock` from content-grid does not wipe `buildGridItem` output.
  *
  * @param {Element} block The grid-item block element
  */
 export default function decorate(block) {
+  if (block.querySelector('.grid-item__main')) return;
   buildGridItem(getGridItemData(block), block);
 }
