@@ -26,11 +26,20 @@ jest.mock('../../scripts/utils/dataStore.js', () => ({
   __esModule: true,
   default: {
     getData: jest.fn(),
-    commonEndpoints: { allPages: '/query-index.json' },
+    commonEndpoints: {
+      allPages: '/query-index.json',
+      allContent: '/content.json',
+      research: '/research/content.json',
+      workflows: '/workflows/content.json',
+      sneaks: '/sneaks/content.json',
+      playground: '/playground/content.json',
+    },
   },
 }));
 
 function createBlock(fields) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'content-grid-wrapper';
   const block = document.createElement('div');
   block.className = 'content-grid four-up';
   Object.entries(fields).forEach(([label, value]) => {
@@ -38,6 +47,7 @@ function createBlock(fields) {
     row.innerHTML = `<div>${label}</div><div>${value}</div>`;
     block.append(row);
   });
+  wrapper.append(block);
   return block;
 }
 
@@ -46,6 +56,7 @@ const INDEX = {
     {
       path: '/research/newer',
       title: 'Newer research',
+      category: 'Research',
       contentType: 'article',
       description: 'Latest',
       image: '/newer.jpg',
@@ -55,6 +66,7 @@ const INDEX = {
     {
       path: '/research/older',
       title: 'Older research',
+      category: ['Research', 'Future of Creative Work'],
       contentType: 'article',
       description: 'Earlier',
       image: '/older.jpg',
@@ -64,6 +76,7 @@ const INDEX = {
     {
       path: '/workflows/clip',
       title: 'Workflow video',
+      category: 'Workflows',
       contentType: 'video',
       description: 'A clip',
       image: '/clip.jpg',
@@ -209,7 +222,8 @@ describe('content-grid block', () => {
     expect(buildGridItem).toHaveBeenCalledTimes(3);
     expect(decorateBlock).toHaveBeenCalledTimes(3);
     expect(loadBlock).toHaveBeenCalledTimes(3);
-    expect(dataStore.getData).toHaveBeenCalledWith('/query-index.json');
+    expect(dataStore.getData).toHaveBeenCalledWith('/content.json');
+    expect(block.parentElement.hidden).toBe(false);
     expect(block).not.toHaveTextContent('Content Type:');
   });
 
@@ -250,7 +264,30 @@ describe('content-grid block', () => {
     );
   });
 
-  it('filters by category from the page path', async () => {
+  it('fetches the research content index for Content Type Research', async () => {
+    const block = createBlock({
+      'Content Type:': 'Research',
+      'Category:': 'All',
+      'Count:': '8',
+    });
+
+    await decorate(block);
+
+    expect(dataStore.getData).toHaveBeenCalledWith('/research/content.json');
+  });
+
+  it('fetches all content when Content Type is omitted', async () => {
+    const block = createBlock({
+      'Category:': 'All',
+      'Count:': '8',
+    });
+
+    await decorate(block);
+
+    expect(dataStore.getData).toHaveBeenCalledWith('/content.json');
+  });
+
+  it('filters by category after fetch', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'Research',
@@ -262,7 +299,59 @@ describe('content-grid block', () => {
     expect(titlesFromCards()).toEqual(['Newer research', 'Older research']);
   });
 
-  it('omits category on grid-item by default', async () => {
+  it('matches category after trim and lowercase', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': '  research ',
+      'Count:': '8',
+    });
+
+    await decorate(block);
+
+    expect(titlesFromCards()).toEqual(['Newer research', 'Older research']);
+  });
+
+  it('matches a comma-separated category list on the index row', async () => {
+    dataStore.getData.mockResolvedValue({
+      data: [{
+        path: '/research/practices',
+        title: 'Standards research',
+        category: 'Future of Creative Work, Standards & Practices',
+        publicationDate: '2026-08-20',
+      }],
+    });
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'standards & practices',
+      'Count:': '8',
+    });
+
+    await decorate(block);
+
+    expect(titlesFromCards()).toEqual(['Standards research']);
+  });
+
+  it('splits comma-separated strings inside a category array', async () => {
+    dataStore.getData.mockResolvedValue({
+      data: [{
+        path: '/research/nested',
+        title: 'Nested categories',
+        category: ['Future of Creative Work, Another Category'],
+        publicationDate: '2026-08-20',
+      }],
+    });
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'Another Category',
+      'Count:': '8',
+    });
+
+    await decorate(block);
+
+    expect(titlesFromCards()).toEqual(['Nested categories']);
+  });
+
+  it('omits the section label on grid-item by default', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'All',
@@ -274,7 +363,7 @@ describe('content-grid block', () => {
     expect(dataFromCall(0).category).toBe('');
   });
 
-  it('passes category to grid-item when show-category is set', async () => {
+  it('passes the section label to grid-item when show-category is set', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'All',
@@ -287,7 +376,7 @@ describe('content-grid block', () => {
     expect(dataFromCall(0).category).toBe('Research');
   });
 
-  it('prefers index category metadata over the path folder', async () => {
+  it('filters by JSON category independently of the page path', async () => {
     dataStore.getData.mockResolvedValue({
       data: [{
         path: '/workflows/override',
@@ -310,7 +399,7 @@ describe('content-grid block', () => {
     expect(dataFromCall(0).category).toBe('Research');
   });
 
-  it('omits category for unknown path folders', async () => {
+  it('omits the section label for unknown path folders', async () => {
     dataStore.getData.mockResolvedValue({
       data: [{
         path: '/policy/terms',
@@ -331,17 +420,17 @@ describe('content-grid block', () => {
     expect(dataFromCall(0).category).toBe('');
   });
 
-  it('filters by content type and marks video items', async () => {
+  it('fetches the workflows endpoint for Content Type Workflows', async () => {
     const block = createBlock({
-      'Content Type:': 'Video',
+      'Content Type:': 'Workflows',
       'Category:': 'All',
       'Count:': '8',
     });
 
     await decorate(block);
 
-    expect(titlesFromCards()).toEqual(['Workflow video']);
-    expect(dataFromCall(0).isVideo).toBe(true);
+    expect(dataStore.getData).toHaveBeenCalledWith('/workflows/content.json');
+    expect(titlesFromCards()).toEqual(['Newer research', 'Workflow video', 'Older research']);
   });
 
   it('marks items with isVideo true even when contentType is article', async () => {
@@ -356,28 +445,6 @@ describe('content-grid block', () => {
     });
     const block = createBlock({
       'Content Type:': 'All',
-      'Category:': 'All',
-      'Count:': '8',
-    });
-
-    await decorate(block);
-
-    expect(titlesFromCards()).toEqual(['Talk article']);
-    expect(dataFromCall(0).isVideo).toBe(true);
-  });
-
-  it('includes isVideo items when filtering by Video', async () => {
-    dataStore.getData.mockResolvedValue({
-      data: [{
-        path: '/research/talk',
-        title: 'Talk article',
-        contentType: 'article',
-        isVideo: true,
-        publicationDate: '2026-08-20',
-      }],
-    });
-    const block = createBlock({
-      'Content Type:': 'Video',
       'Category:': 'All',
       'Count:': '8',
     });
@@ -763,7 +830,7 @@ describe('content-grid block', () => {
     expect(within(block).queryByRole('navigation')).toBeNull();
   });
 
-  it('leaves the block empty when the index request fails', async () => {
+  it('leaves the block empty and hides the wrapper when the index request fails', async () => {
     dataStore.getData.mockResolvedValue(null);
     const block = createBlock({
       'Content Type:': 'All',
@@ -774,11 +841,12 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(block.children).toHaveLength(0);
+    expect(block.parentElement.hidden).toBe(true);
     expect(buildGridItem).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalled();
   });
 
-  it('keeps authored Intro when the index request fails', async () => {
+  it('hides the block and intro when the index request fails', async () => {
     dataStore.getData.mockResolvedValue(null);
     const block = createBlock({
       'Content Type:': 'All',
@@ -789,23 +857,27 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(block).toHaveClass('content-grid--has-intro');
-    expect(within(block).getByRole('heading', { name: 'Future of Creative Work' })).toBeTruthy();
-    expect(within(block).queryByRole('list')).toBeNull();
+    expect(block.children).toHaveLength(0);
+    expect(block).not.toHaveClass('content-grid--has-intro');
+    expect(block.parentElement.hidden).toBe(true);
+    expect(within(block).queryByRole('heading', { name: 'Future of Creative Work' })).toBeNull();
     expect(buildGridItem).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalled();
   });
 
-  it('leaves the block empty when no items match', async () => {
+  it('hides the block when no items match, including authored Intro', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'Playground',
       'Count:': '8',
+      Intro: '<h2>Playground</h2>',
     });
 
     await decorate(block);
 
     expect(block.children).toHaveLength(0);
+    expect(block).not.toHaveClass('content-grid--has-intro');
+    expect(block.parentElement.hidden).toBe(true);
     expect(buildGridItem).not.toHaveBeenCalled();
   });
 

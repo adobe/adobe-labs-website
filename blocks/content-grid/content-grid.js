@@ -8,11 +8,16 @@ import dataStore from '../../scripts/utils/dataStore.js';
 import { formatCardDate, parseCardDate } from '../../scripts/utils/utils.js';
 import { buildGridItem } from '../grid-item/grid-item.js';
 
-const QUERY_INDEX = dataStore.commonEndpoints.allPages;
 const DEFAULT_COUNT = 8;
 const EXCLUDED_PATH_PREFIXES = ['/docs', '/fragments'];
 const HOME_PATHS = new Set(['', '/', '/index']);
-const CATEGORY_LABELS = {
+const CONTENT_TYPE_ENDPOINTS = {
+  research: 'research',
+  workflows: 'workflows',
+  sneaks: 'sneaks',
+  playground: 'playground',
+};
+const SECTION_LABELS = {
   research: 'Research',
   workflows: 'Workflows',
   sneaks: 'Sneaks',
@@ -23,10 +28,10 @@ const ASPECT_CLASSES = new Set(['aspect-1-1', 'aspect-4-5', 'aspect-3-2', 'aspec
 const IMAGE_ASPECT_FIELDS = ['imageAspect', 'image-aspect', 'imageaspect'];
 
 /**
- * @typedef {object} QueryIndexItem
+ * @typedef {object} ContentItem
  * @property {string} [path]
  * @property {string} [title]
- * @property {string} [category]
+ * @property {string|string[]} [category]
  * @property {string} [contentType]
  * @property {string} ["content-type"]
  * @property {string} [description]
@@ -42,7 +47,7 @@ const IMAGE_ASPECT_FIELDS = ['imageAspect', 'image-aspect', 'imageaspect'];
  */
 
 /**
- * @typedef {object} ItemCategory
+ * @typedef {object} ItemSection
  * @property {string} slug
  * @property {string} label
  */
@@ -55,6 +60,31 @@ const IMAGE_ASPECT_FIELDS = ['imageAspect', 'image-aspect', 'imageaspect'];
 function isAll(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return !normalized || normalized === 'all';
+}
+
+/**
+ * dataStore endpoint for an authored Content Type cell.
+ * `All` / omitted → all content. Known sections use their content.json index.
+ * @param {string} [contentType]
+ * @returns {string}
+ */
+function endpointForContentType(contentType) {
+  if (isAll(contentType)) return dataStore.commonEndpoints.allContent;
+  const key = CONTENT_TYPE_ENDPOINTS[toClassName(contentType)];
+  return dataStore.commonEndpoints[key] || dataStore.commonEndpoints.allContent;
+}
+
+/**
+ * Trim and lowercase category names from a string, comma list, or array.
+ * @param {*} value
+ * @returns {string[]}
+ */
+function normalizeCategories(value) {
+  const list = Array.isArray(value) ? value : [value];
+  return list
+    .flatMap((item) => String(item || '').split(','))
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 /**
@@ -79,7 +109,7 @@ function equalsIgnoreCase(left, right) {
 
 /**
  * First non-empty field from an index item, trying each name in order.
- * @param {QueryIndexItem} item
+ * @param {ContentItem} item
  * @param {...string} names
  * @returns {string}
  */
@@ -88,19 +118,19 @@ function itemField(item, ...names) {
 }
 
 /**
- * Known category slug from the first path segment, or empty if unknown.
+ * Known section slug from the first path segment, or empty if unknown.
  * @param {string} [path]
  * @returns {string}
  */
-function pathCategorySlug(path) {
+function pathSectionSlug(path) {
   const segment = String(path || '').split('/').filter(Boolean)[0];
-  return CATEGORY_LABELS[segment] ? segment : '';
+  return SECTION_LABELS[segment] ? segment : '';
 }
 
 /**
- * Whether a query-index row should render as a video card.
+ * Whether an index row should render as a video card.
  * Prefers an explicit isVideo flag, then contentType, then the /sneaks/ folder.
- * @param {QueryIndexItem} item
+ * @param {ContentItem} item
  * @returns {boolean}
  */
 function isVideoItem(item) {
@@ -111,7 +141,7 @@ function isVideoItem(item) {
     return value === true || /^(true|yes|1)$/i.test(String(value || '').trim());
   }
   if (equalsIgnoreCase(itemField(item, 'contentType', 'content-type'), 'video')) return true;
-  return pathCategorySlug(item.path) === 'sneaks';
+  return pathSectionSlug(item.path) === 'sneaks';
 }
 
 /**
@@ -151,9 +181,9 @@ async function fetchPageImageAspect(path) {
 
 /**
  * Use indexed Image Aspect when present; otherwise read each selected article.
- * @param {QueryIndexItem[]} items
+ * @param {ContentItem[]} items
  * @param {object} [payload]
- * @returns {Promise<QueryIndexItem[]>}
+ * @returns {Promise<ContentItem[]>}
  */
 async function withImageAspect(items, payload) {
   const hasAspectColumn = Array.isArray(payload?.columns)
@@ -170,18 +200,18 @@ async function withImageAspect(items, payload) {
 }
 
 /**
- * Resolve a display category from page metadata, then the first path segment.
- * @param {QueryIndexItem} item
- * @returns {ItemCategory|null}
+ * Resolve a display section from page metadata, then the first path segment.
+ * @param {ContentItem} item
+ * @returns {ItemSection|null}
  */
-function resolveItemCategory(item) {
+function resolveItemSection(item) {
   const fromMeta = toClassName(itemField(item, 'category'));
-  if (CATEGORY_LABELS[fromMeta]) {
-    return { slug: fromMeta, label: CATEGORY_LABELS[fromMeta] };
+  if (SECTION_LABELS[fromMeta]) {
+    return { slug: fromMeta, label: SECTION_LABELS[fromMeta] };
   }
-  const fromPath = pathCategorySlug(item.path);
+  const fromPath = pathSectionSlug(item.path);
   if (!fromPath) return null;
-  return { slug: fromPath, label: CATEGORY_LABELS[fromPath] };
+  return { slug: fromPath, label: SECTION_LABELS[fromPath] };
 }
 
 /**
@@ -196,7 +226,7 @@ function isExcludedPath(path) {
   const segments = clean.split('/').filter(Boolean);
   const isSectionRoot = segments.length === 1
     || (segments.length === 2 && segments[1] === 'index');
-  if (isSectionRoot && CATEGORY_LABELS[segments[0]]) return true;
+  if (isSectionRoot && SECTION_LABELS[segments[0]]) return true;
   return EXCLUDED_PATH_PREFIXES.some((prefix) => clean === prefix || clean.startsWith(`${prefix}/`));
 }
 
@@ -211,8 +241,8 @@ function isNoindex(robots) {
 
 /**
  * Newest publication date first; undated items sort last.
- * @param {QueryIndexItem} a
- * @param {QueryIndexItem} b
+ * @param {ContentItem} a
+ * @param {ContentItem} b
  * @returns {number}
  */
 function compareNewestFirst(a, b) {
@@ -225,15 +255,15 @@ function compareNewestFirst(a, b) {
 }
 
 /**
- * Build a grid-item card from a query-index row.
- * @param {QueryIndexItem} entry
+ * Build a grid-item card from an index row.
+ * @param {ContentItem} entry
  * @param {object} [options]
  * @param {boolean} [options.subheadDescription] Use description instead of the date subhead
- * @param {boolean} [options.showCategory] Include the category (off by default)
+ * @param {boolean} [options.showCategory] Include the section label (off by default)
  * @returns {HTMLDivElement}
  */
 function createGridItem(entry, { subheadDescription, showCategory } = {}) {
-  const category = resolveItemCategory(entry);
+  const section = resolveItemSection(entry);
   const title = itemField(entry, 'title');
   const publicationDate = itemField(entry, 'publicationDate', 'date');
   const description = itemField(entry, 'description');
@@ -245,7 +275,7 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
     title,
     href: itemField(entry, 'path'),
     subhead,
-    category: showCategory && category ? category.label : '',
+    category: showCategory && section ? section.label : '',
     imageUrl: itemField(entry, 'image'),
     imageAlt: title ? '' : (description || 'Article'),
     isVideo: isVideoItem(entry),
@@ -255,28 +285,33 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
 }
 
 /**
- * Filter, sort, and slice query-index rows for the authored config.
- * @param {QueryIndexItem[]} data
+ * Whether an index row's category list includes an authored category.
+ * Compares trim + lowercase only.
+ * @param {ContentItem} item
+ * @param {string} [category]
+ * @returns {boolean}
+ */
+function matchesCategory(item, category) {
+  if (isAll(category)) return true;
+  const wanted = normalizeCategories(category);
+  if (!wanted.length) return true;
+  const categories = normalizeCategories(item.category);
+  return wanted.some((name) => categories.includes(name));
+}
+
+/**
+ * Filter, sort, and slice index rows for the authored config.
+ * @param {ContentItem[]} data
  * @param {object} options
- * @param {string} [options.contentType]
  * @param {string} [options.category]
  * @param {number} options.count
- * @returns {QueryIndexItem[]}
+ * @returns {ContentItem[]}
  */
-function selectItems(data, { contentType, category, count }) {
+function selectItems(data, { category, count }) {
   return data
     .filter((item) => !isNoindex(item.robots))
     .filter((item) => !isExcludedPath(item.path))
-    .filter((item) => {
-      if (isAll(contentType)) return true;
-      if (equalsIgnoreCase(contentType, 'video')) return isVideoItem(item);
-      return equalsIgnoreCase(itemField(item, 'contentType', 'content-type'), contentType);
-    })
-    .filter((item) => {
-      if (isAll(category)) return true;
-      const resolved = resolveItemCategory(item);
-      return resolved && resolved.slug === toClassName(category);
-    })
+    .filter((item) => matchesCategory(item, category))
     .sort(compareNewestFirst)
     .slice(0, count);
 }
@@ -318,6 +353,17 @@ function takeIntro(block) {
 }
 
 /**
+ * Hide the block and its section wrapper when the query returns no cards.
+ * @param {Element} block
+ */
+function hideEmptyBlock(block) {
+  block.replaceChildren();
+  block.classList.remove('content-grid--has-intro');
+  const wrapper = block.parentElement;
+  if (wrapper) wrapper.hidden = true;
+}
+
+/**
  * Replace the block with an optional intro header and a list of cards.
  * @param {Element} block
  * @param {Element[]} gridItems
@@ -325,10 +371,13 @@ function takeIntro(block) {
  * @returns {Promise<void>}
  */
 async function renderGrid(block, gridItems, header) {
-  if (!gridItems.length && !header) {
-    block.replaceChildren();
+  if (!gridItems.length) {
+    hideEmptyBlock(block);
     return;
   }
+
+  const wrapper = block.parentElement;
+  if (wrapper) wrapper.hidden = false;
 
   const nodes = [];
   if (header) {
@@ -336,19 +385,17 @@ async function renderGrid(block, gridItems, header) {
     nodes.push(header);
   }
 
-  if (gridItems.length) {
-    const list = document.createElement('ul');
-    list.className = 'content-grid__list';
-    list.setAttribute('role', 'list');
-    gridItems.forEach((gridItem) => {
-      const item = document.createElement('li');
-      item.className = 'content-grid__item';
-      item.append(gridItem);
-      list.append(item);
-      decorateBlock(gridItem);
-    });
-    nodes.push(list);
-  }
+  const list = document.createElement('ul');
+  list.className = 'content-grid__list';
+  list.setAttribute('role', 'list');
+  gridItems.forEach((gridItem) => {
+    const item = document.createElement('li');
+    item.className = 'content-grid__item';
+    item.append(gridItem);
+    list.append(item);
+    decorateBlock(gridItem);
+  });
+  nodes.push(list);
 
   block.replaceChildren(...nodes);
   await Promise.all(
@@ -358,7 +405,7 @@ async function renderGrid(block, gridItems, header) {
 
 /**
  * Replace the authored config table with a list of grid-item cards
- * from `/query-index.json`.
+ * from the content-type's dataStore endpoint.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
@@ -373,20 +420,21 @@ export default async function decorate(block) {
   const count = parseCount(config.count);
   const subheadDescription = block.classList.contains('subhead-description');
   const showCategory = block.classList.contains('show-category');
+  const endpoint = endpointForContentType(contentType);
 
   block.replaceChildren();
 
-  const payload = await dataStore.getData(QUERY_INDEX);
+  const payload = await dataStore.getData(endpoint);
   if (!payload) {
     // eslint-disable-next-line no-console
-    console.error(`content-grid: failed to load ${QUERY_INDEX}`);
-    await renderGrid(block, [], intro);
+    console.error(`content-grid: failed to load ${endpoint}`);
+    hideEmptyBlock(block);
     return;
   }
 
   const data = Array.isArray(payload.data) ? payload.data : [];
   const items = await withImageAspect(
-    selectItems(data, { contentType, category, count }),
+    selectItems(data, { category, count }),
     payload,
   );
   await renderGrid(

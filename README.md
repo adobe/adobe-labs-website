@@ -75,23 +75,23 @@ The homepage **Latest Content** section uses `content-grid` with a key/value tab
 
 | Field | Meaning |
 | --- | --- |
-| Content Type | `All` (no filter) or a page `content-type` value (`article`, `video`) |
-| Category | `All` (no filter) or Research, Workflows, Sneaks, Playground — matched from the page folder (`/research/...`) |
+| Content Type | `All` (default) fetches `/content.json`. A section name — Research, Workflows, Sneaks, Playground — fetches that folder’s `content.json` |
+| Category | Optional. `All` or omitted means no filter. Otherwise matched against the index `category` field (array or comma-separated string) after trim + lowercase |
 | Count | How many cards to show (defaults to 8) |
 | Intro | Optional freeform first cell (heading, paragraph, links). Extra; does not count toward Count |
 
-The block fetches `/query-index.json`, filters client-side, and renders each hit as a `grid-item`. An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Card image frames follow page metadata `Image Aspect` (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). The block uses the index `imageAspect` column when it exists; otherwise it reads `meta[name="image-aspect"]` from each selected article. Missing or unknown values default to 3:2. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Category comes from the first path segment; optional page metadata `category` overrides that when it is one of the four known values.
+The block fetches the Content Type endpoint via `dataStore`, filters by Category after the fetch, and renders each hit as a `grid-item`. If nothing matches, the block and its `.content-grid-wrapper` are hidden (including authored Intro). An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Card image frames follow page metadata `Image Aspect` (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). The block uses the index `imageAspect` column when it exists; otherwise it reads `meta[name="image-aspect"]` from each selected article. Missing or unknown values default to 3:2. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Card section labels (when `show-category` is set) still come from the first path segment; optional page metadata `category` overrides that when it is one of the four known section names.
 
 Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the content-grid block header (`content-grid (subhead-description)`) to use the index description instead.
 
-Standalone `grid-item` cards link when the Title cell is a link. Category labels on cards are off by default. Add `show-category` to the content-grid block header (`content-grid (show-category)`) to render each card’s `.grid-item__category` link.
+Standalone `grid-item` cards link when the Title cell is a link. Section labels on cards are off by default. Add `show-category` to the content-grid block header (`content-grid (show-category)`) to render each card’s `.grid-item__category` link.
 
 Cards stay empty until indexed article pages exist. Index config lives at [tools.aem.live](https://www.aem.live/developer/indexing) (this repo does not contain `helix-query.yaml`).
 
 **Index properties** (reindex after saving):
 
 - Keep `title`, `image`, `description`, `publicationDate`, `robots`
-- Add `contentType` from `meta[name="content-type"]` if you filter by Content Type
+- Add `category` as an array or comma-separated list so the Category filter can match
 - Add `isVideo` from `meta[name="isvideo"]` so the play icon can follow page metadata outside `/sneaks/`
 - Add `imageAspect` from `meta[name="image-aspect"]` so card frames follow page metadata `Image Aspect` without fetching each article
 
