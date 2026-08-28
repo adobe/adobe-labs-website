@@ -1,4 +1,38 @@
-import { formatCardDate } from './utils.js';
+import { formatCardDate, getSection, getSectionFromPath } from './utils.js';
+
+describe('getSection', () => {
+  it('resolves a slug or authored name to label and path', () => {
+    expect(getSection('Research')).toEqual({
+      slug: 'research',
+      label: 'Research',
+      path: '/research',
+    });
+    expect(getSection('workflows')).toEqual({
+      slug: 'workflows',
+      label: 'Workflows',
+      path: '/workflows',
+    });
+  });
+
+  it('returns null for unknown names', () => {
+    expect(getSection('')).toBeNull();
+    expect(getSection('policy')).toBeNull();
+  });
+});
+
+describe('getSectionFromPath', () => {
+  it('uses the first path segment', () => {
+    expect(getSectionFromPath('/sneaks/clip')).toEqual({
+      slug: 'sneaks',
+      label: 'Sneaks',
+      path: '/sneaks',
+    });
+  });
+
+  it('returns null for unknown folders', () => {
+    expect(getSectionFromPath('/policy/terms')).toBeNull();
+  });
+});
 
 describe('formatCardDate', () => {
   const now = new Date(2026, 7, 25);

@@ -8,6 +8,38 @@
 import { toClassName } from '../aem.js';
 
 /**
+ * Site sections shared by content-grid and grid-item.
+ * @type {Object<string, {label: string, path: string}>}
+ */
+export const SECTIONS = {
+  research: { label: 'Research', path: '/research' },
+  workflows: { label: 'Workflows', path: '/workflows' },
+  sneaks: { label: 'Sneaks', path: '/sneaks' },
+  playground: { label: 'Playground', path: '/playground' },
+};
+
+/**
+ * Known section for a slug or authored name, or null if unknown.
+ * @param {string} [name]
+ * @returns {{ slug: string, label: string, path: string }|null}
+ */
+export function getSection(name) {
+  const slug = toClassName(name);
+  const section = SECTIONS[slug];
+  if (!section) return null;
+  return { slug, label: section.label, path: section.path };
+}
+
+/**
+ * Known section for a page path's first segment, or null if unknown.
+ * @param {string} [path]
+ * @returns {{ slug: string, label: string, path: string }|null}
+ */
+export function getSectionFromPath(path) {
+  return getSection(String(path || '').split('/').filter(Boolean)[0]);
+}
+
+/**
  * Returns an absolute http(s) URL, or an empty string if the value is missing
  * or uses a non-http protocol (javascript:, data:, etc.).
  *

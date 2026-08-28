@@ -5,18 +5,16 @@ import {
   toClassName,
 } from '../../scripts/aem.js';
 import dataStore from '../../scripts/utils/dataStore.js';
-import { formatCardDate, parseCardDate } from '../../scripts/utils/utils.js';
+import {
+  formatCardDate,
+  getSection,
+  getSectionFromPath,
+  parseCardDate,
+} from '../../scripts/utils/utils.js';
 import { buildGridItem } from '../grid-item/grid-item.js';
 
 const DEFAULT_COUNT = 8;
-const EXCLUDED_PATH_PREFIXES = ['/docs', '/fragments'];
 const HOME_PATHS = new Set(['', '/', '/index']);
-const SECTION_LABELS = {
-  research: 'Research',
-  workflows: 'Workflows',
-  sneaks: 'Sneaks',
-  playground: 'Playground',
-};
 const DEFAULT_ASPECT_CLASS = 'aspect-3-2';
 const ASPECT_CLASSES = new Set(['aspect-1-1', 'aspect-4-5', 'aspect-3-2', 'aspect-2-3']);
 
@@ -52,9 +50,8 @@ function isAll(value) {
  * @returns {string}
  */
 function endpointForContentType(contentType) {
-  const slug = toClassName(contentType);
-  if (SECTION_LABELS[slug]) return dataStore.commonEndpoints[slug];
-  return dataStore.commonEndpoints.allContent;
+  const section = getSection(contentType);
+  return section ? dataStore.commonEndpoints[section.slug] : dataStore.commonEndpoints.allContent;
 }
 
 /**
@@ -91,16 +88,6 @@ function itemField(item, ...names) {
 }
 
 /**
- * Known section slug from the first path segment, or empty if unknown.
- * @param {string} [path]
- * @returns {string}
- */
-function pathSectionSlug(path) {
-  const segment = String(path || '').split('/').filter(Boolean)[0];
-  return SECTION_LABELS[segment] ? segment : '';
-}
-
-/**
  * Whether an index row should render as a video card.
  * Prefers an explicit isVideo flag, then contentType, then the /sneaks/ folder.
  * @param {ContentItem} item
@@ -114,7 +101,7 @@ function isVideoItem(item) {
     return value === true || /^(true|yes|1)$/i.test(String(value || '').trim());
   }
   const contentType = String(itemField(item, 'contentType', 'content-type')).trim().toLowerCase();
-  return contentType === 'video' || pathSectionSlug(item.path) === 'sneaks';
+  return contentType === 'video' || getSectionFromPath(item.path)?.slug === 'sneaks';
 }
 
 /**
@@ -135,7 +122,7 @@ function toAspectClass(value) {
 }
 
 /**
- * Whether a path should be omitted from the grid (home, section indexes, docs, fragments).
+ * Whether a path should be omitted from the grid (home and section indexes).
  * @param {string} [path]
  * @returns {boolean}
  */
@@ -146,8 +133,7 @@ function isExcludedPath(path) {
   const segments = clean.split('/').filter(Boolean);
   const isSectionRoot = segments.length === 1
     || (segments.length === 2 && segments[1] === 'index');
-  if (isSectionRoot && SECTION_LABELS[segments[0]]) return true;
-  return EXCLUDED_PATH_PREFIXES.some((prefix) => clean === prefix || clean.startsWith(`${prefix}/`));
+  return isSectionRoot && Boolean(getSection(segments[0]));
 }
 
 /**
@@ -174,7 +160,7 @@ function compareNewestFirst(a, b) {
  * @returns {HTMLDivElement}
  */
 function createGridItem(entry, { subheadDescription, showCategory } = {}) {
-  const slug = pathSectionSlug(entry.path);
+  const section = getSectionFromPath(entry.path);
   const title = itemField(entry, 'title');
   const publicationDate = itemField(entry, 'publicationDate', 'date');
   const description = itemField(entry, 'description');
@@ -186,7 +172,7 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
     title,
     href: itemField(entry, 'path'),
     subhead,
-    category: showCategory && slug ? SECTION_LABELS[slug] : '',
+    category: showCategory && section ? section.label : '',
     imageUrl: itemField(entry, 'image'),
     imageAlt: title ? '' : (description || 'Article'),
     isVideo: isVideoItem(entry),

@@ -1,37 +1,13 @@
-import { createOptimizedPicture, toClassName } from '../../scripts/aem.js';
+import { createOptimizedPicture } from '../../scripts/aem.js';
 import {
   getAuthoredCells,
   getCellLinkHref,
   getCellMedia,
   getCellText,
+  getSection,
   isAuthoredTrue,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
-
-/**
- * Known category labels mapped to their site paths.
- * Unknown authored names do not get a category link.
- */
-const CATEGORY_PATHS = {
-  research: '/research',
-  workflows: '/workflows',
-  sneaks: '/sneaks',
-  playground: '/playground',
-};
-
-/**
- * Resolves an authored category name to a known site path.
- *
- * @param {string} name Authored category label
- * @returns {{ slug: string, path: string, label: string }|null}
- */
-function resolveCategory(name) {
-  if (!name) return null;
-  const slug = toClassName(name);
-  const path = CATEGORY_PATHS[slug];
-  if (!path) return null;
-  return { slug, path, label: name };
-}
 
 /**
  * Data used to build a grid item. Parsed from a key/value block, a layout row,
@@ -76,7 +52,7 @@ export function getGridItemData(block) {
 export function buildGridItem(data = {}, root = document.createElement('div')) {
   const title = data.title || '';
   const href = toSafeHttpUrl(data.href);
-  const category = resolveCategory(data.category);
+  const category = getSection(data.category);
   const subhead = data.subhead || '';
   const isVideo = Boolean(data.isVideo);
   let mediaElement = data.mediaElement || null;

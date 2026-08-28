@@ -91,18 +91,6 @@ const INDEX = {
       robots: 'noindex, nofollow',
     },
     {
-      path: '/docs/library/blocks/hero',
-      title: 'Docs page',
-      contentType: 'article',
-      publicationDate: '2026-08-22',
-    },
-    {
-      path: '/fragments/nav',
-      title: 'Nav fragment',
-      contentType: 'article',
-      publicationDate: '2026-08-22',
-    },
-    {
       path: '/',
       title: 'Homepage',
       contentType: 'article',
@@ -237,7 +225,7 @@ describe('content-grid block', () => {
     ]);
   });
 
-  it('excludes noindex, docs, fragments, homepage, and section index paths', async () => {
+  it('excludes noindex, homepage, and section index paths', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'All',
@@ -249,8 +237,6 @@ describe('content-grid block', () => {
     expect(titlesFromCards()).not.toEqual(
       expect.arrayContaining([
         'Noindex sneak',
-        'Docs page',
-        'Nav fragment',
         'Homepage',
         'Research index',
         'Workflows index',
