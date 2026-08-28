@@ -80,7 +80,7 @@ The homepage **Latest Content** section uses `content-grid` with a key/value tab
 | Count | How many cards to show (defaults to 8) |
 | Intro | Optional freeform first cell (heading, paragraph, links). Extra; does not count toward Count |
 
-The block fetches the Content Type endpoint via `dataStore`, filters by Category after the fetch, and renders each hit as a `grid-item`. If nothing matches, the block and its `.content-grid-wrapper` are hidden (including authored Intro). An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Card image frames follow page metadata `Image Aspect` (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). The block uses the index `imageAspect` column when it exists; otherwise it reads `meta[name="image-aspect"]` from each selected article. Missing or unknown values default to 3:2. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Card section labels (when `show-category` is set) still come from the first path segment; optional page metadata `category` overrides that when it is one of the four known section names.
+The block fetches the Content Type endpoint via `dataStore`, filters by Category after the fetch, and renders each hit as a `grid-item`. If nothing matches, the block and its `.content-grid-wrapper` are hidden (including authored Intro). An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Card image frames follow the index `imageAspect` value (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). Missing or unknown values default to 3:2. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Card section labels (when `show-category` is set) come from the first path segment.
 
 Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the content-grid block header (`content-grid (subhead-description)`) to use the index description instead.
 
@@ -93,7 +93,7 @@ Cards stay empty until indexed article pages exist. Index config lives at [tools
 - Keep `title`, `image`, `description`, `publicationDate`, `robots`
 - Add `category` as an array or comma-separated list so the Category filter can match
 - Add `isVideo` from `meta[name="isvideo"]` so the play icon can follow page metadata outside `/sneaks/`
-- Add `imageAspect` from `meta[name="image-aspect"]` so card frames follow page metadata `Image Aspect` without fetching each article
+- Add `imageAspect` from `meta[name="image-aspect"]` so card frames follow page metadata `Image Aspect`
 
 **On each Labs article in DA**, put the page under `/research`, `/workflows`, `/sneaks`, or `/playground`, and author description, `og:image`, publication date, and `Image Aspect` (`1:1`, `4:5`, `3:2`, or `2:3`). The block drops `noindex` pages, section index pages (`/research/`, `/workflows/index`, and the other known sections), and paths under `/docs` or `/fragments`.
 

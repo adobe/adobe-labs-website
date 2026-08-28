@@ -133,14 +133,9 @@ function dataFromCall(callIndex) {
 
 describe('content-grid block', () => {
   let consoleError;
-  const originalFetch = global.fetch;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: async () => '<html></html>',
-    });
     dataStore.getData.mockResolvedValue(INDEX);
     consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -200,7 +195,6 @@ describe('content-grid block', () => {
 
   afterEach(() => {
     consoleError.mockRestore();
-    global.fetch = originalFetch;
   });
 
   it('replaces the config table with a list of grid-item cards', async () => {
@@ -396,7 +390,7 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(titlesFromCards()).toEqual(['Filed under workflows']);
-    expect(dataFromCall(0).category).toBe('Research');
+    expect(dataFromCall(0).category).toBe('Workflows');
   });
 
   it('omits the section label for unknown path folders', async () => {
@@ -551,7 +545,6 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(global.fetch).not.toHaveBeenCalled();
     expect(block.querySelector('.grid-item')).toHaveClass(className);
   });
 
@@ -573,7 +566,6 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(global.fetch).not.toHaveBeenCalled();
     expect(block.querySelector('.grid-item')).toHaveClass('aspect-4-5');
   });
 
@@ -597,14 +589,9 @@ describe('content-grid block', () => {
 
     expect(block.querySelector('.grid-item')).toHaveClass('aspect-3-2');
     expect(block.querySelector('.grid-item')).not.toHaveClass('aspect-1-1');
-    expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('reads image-aspect meta from the article when the index omits the field', async () => {
-    global.fetch.mockResolvedValue({
-      ok: true,
-      text: async () => '<html><head><meta name="image-aspect" content="4/5"></head></html>',
-    });
+  it('defaults Image Aspect to 3:2 when the index omits the field', async () => {
     dataStore.getData.mockResolvedValue({
       data: [{
         path: '/research/ratio',
@@ -621,29 +608,6 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(global.fetch).toHaveBeenCalledWith('/research/ratio');
-    expect(block.querySelector('.grid-item')).toHaveClass('aspect-4-5');
-  });
-
-  it('does not fetch articles when the index lists an Image Aspect column', async () => {
-    dataStore.getData.mockResolvedValue({
-      columns: ['path', 'title', 'imageAspect'],
-      data: [{
-        path: '/research/ratio',
-        title: 'Ratio card',
-        contentType: 'article',
-        publicationDate: '2026-08-20',
-      }],
-    });
-    const block = createBlock({
-      'Content Type:': 'All',
-      'Category:': 'All',
-      'Count:': '1',
-    });
-
-    await decorate(block);
-
-    expect(global.fetch).not.toHaveBeenCalled();
     expect(block.querySelector('.grid-item')).toHaveClass('aspect-3-2');
   });
 
