@@ -35,23 +35,8 @@ We should aim to support the latest version of the listed browsers. For older ve
 
 Developers should test as they work in the browsers available on their machines. If they have access to other devices to test other browser/OS combinations, they should do that when possible.
 
-**Windows**
-* [ ] Firefox
-* [ ] Chrome
-* [ ] Edge
+Blocks and pages should undergo comprehensive testing to ensure they work as expected in real-use scenarios. Standard testing during pre-production should include _at least_ these browsers.
 
-**MacOS**
 * [ ] Firefox
 * [ ] Chrome
 * [ ] Safari
-* [ ] Edge
-
-**Android**
-* [ ] Firefox
-* [ ] Chrome
-* [ ] Edge
-
-**iOS**
-* [ ] Safari
-
----
