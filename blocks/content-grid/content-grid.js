@@ -14,6 +14,7 @@ import {
 import { buildGridItem } from '../grid-item/grid-item.js';
 
 const DEFAULT_COUNT = 8;
+/** /content.json still includes `/`. */
 const HOME_PATHS = new Set(['', '/', '/index']);
 const DEFAULT_ASPECT_CLASS = 'aspect-3-2';
 const ASPECT_CLASSES = new Set(['aspect-1-1', 'aspect-4-5', 'aspect-3-2', 'aspect-2-3']);
@@ -34,27 +35,6 @@ const ASPECT_CLASSES = new Set(['aspect-1-1', 'aspect-4-5', 'aspect-3-2', 'aspec
  */
 
 /**
- * Whether an authored Content Type or Category cell means "no filter".
- * @param {string} [value]
- * @returns {boolean}
- */
-function isAll(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  return !normalized || normalized === 'all';
-}
-
-/**
- * dataStore endpoint for an authored Content Type cell.
- * Known sections use their content.json index; anything else (including `All`) uses all content.
- * @param {string} [contentType]
- * @returns {string}
- */
-function endpointForContentType(contentType) {
-  const section = getSection(contentType);
-  return section ? dataStore.commonEndpoints[section.slug] : dataStore.commonEndpoints.allContent;
-}
-
-/**
  * Trim and lowercase category names from a string, comma list, or array.
  * @param {*} value
  * @returns {string[]}
@@ -65,16 +45,6 @@ function normalizeCategories(value) {
     .flatMap((item) => String(item || '').split(','))
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
-}
-
-/**
- * Parse the authored card count, falling back to {@link DEFAULT_COUNT}.
- * @param {string|number} [value]
- * @returns {number}
- */
-function parseCount(value) {
-  const count = Number.parseInt(String(value || '').trim(), 10);
-  return Number.isFinite(count) && count > 0 ? count : DEFAULT_COUNT;
 }
 
 /**
@@ -95,6 +65,7 @@ function itemField(item, ...names) {
  */
 function isVideoItem(item) {
   const names = ['isVideo', 'isvideo', 'is-video'];
+  // Missing isVideo falls through to contentType / Sneaks; an explicit empty or false must not.
   const name = names.find((key) => Object.prototype.hasOwnProperty.call(item, key) && item[key] !== '');
   if (name) {
     const value = item[name];
@@ -188,7 +159,10 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
  * @returns {boolean}
  */
 function matchesCategory(item, category) {
-  const wanted = isAll(category) ? [] : normalizeCategories(category);
+  const authored = String(category || '').trim().toLowerCase();
+  // Authored `All` is a sentinel (no filter), not a topic named "all".
+  if (!authored || authored === 'all') return true;
+  const wanted = normalizeCategories(category);
   if (!wanted.length) return true;
   const categories = normalizeCategories(item.category);
   return wanted.some((name) => categories.includes(name));
@@ -313,12 +287,14 @@ async function renderGrid(block, gridItems, header) {
  */
 export default async function decorate(block) {
   const intro = takeIntro(block);
-  takeConfigCell(block, 'previous');
-  takeConfigCell(block, 'next');
 
   const config = readBlockConfig(block);
-  const endpoint = endpointForContentType(config['content-type']);
-  const count = parseCount(config.count);
+  const section = getSection(config['content-type']);
+  const endpoint = section
+    ? dataStore.commonEndpoints[section.slug]
+    : dataStore.commonEndpoints.allContent;
+  const parsedCount = Number.parseInt(String(config.count || '').trim(), 10);
+  const count = Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : DEFAULT_COUNT;
   const subheadDescription = block.classList.contains('subhead-description');
   const showCategory = block.classList.contains('show-category');
 

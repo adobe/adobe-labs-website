@@ -755,31 +755,6 @@ describe('content-grid block', () => {
     expect(block).toHaveClass('content-grid--has-intro');
   });
 
-  it('discards leftover Previous and Next rows', async () => {
-    const labels = [];
-    readBlockConfig.mockImplementation((el) => {
-      [...el.children].forEach((row) => {
-        const [label, cell] = row.children;
-        if (!label || !cell) return;
-        labels.push(label.textContent.trim().toLowerCase().replace(/[^0-9a-z]/gi, '-'));
-      });
-      return { 'content-type': 'All', category: 'All', count: '1' };
-    });
-    const block = createBlock({
-      'Content Type:': 'All',
-      'Category:': 'All',
-      'Count:': '1',
-      Previous: '<a href="#future-of-creative-work">Previous</a>',
-      Next: '<a href="#workflows">Next</a>',
-    });
-
-    await decorate(block);
-
-    expect(labels).not.toEqual(expect.arrayContaining(['previous', 'next']));
-    expect(block).not.toHaveClass('content-grid--has-intro');
-    expect(within(block).queryByRole('navigation')).toBeNull();
-  });
-
   it('leaves the block empty and hides the wrapper when the index request fails', async () => {
     dataStore.getData.mockResolvedValue(null);
     const block = createBlock({
