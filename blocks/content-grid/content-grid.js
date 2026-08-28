@@ -324,85 +324,6 @@ function takeIntro(block) {
 }
 
 /**
- * In-page hash, or an http(s) URL. Rejects javascript: and empty fragments.
- * @param {string} [raw]
- * @param {HTMLAnchorElement} [source]
- * @returns {string}
- */
-function pagerHref(raw, source) {
-  const value = String(raw || '').trim();
-  if (!value || /^javascript:/i.test(value)) return '';
-  if (value.startsWith('#')) return value.length > 1 ? value : '';
-  try {
-    const url = new URL(source?.href || value, window.location.href);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
-    if (url.hash && url.pathname === window.location.pathname) return url.hash;
-    return url.href;
-  } catch {
-    return '';
-  }
-}
-
-/**
- * Pager control from an authored Previous or Next cell.
- * @param {Element} [cell]
- * @param {string} fallbackLabel
- * @param {string} directionClass
- * @returns {HTMLAnchorElement|null}
- */
-function pagerLink(cell, fallbackLabel, directionClass) {
-  if (!cell) return null;
-  const source = cell.querySelector('a[href]');
-  const href = pagerHref(source ? source.getAttribute('href') : cell.textContent, source);
-  if (!href) return null;
-
-  const label = source?.textContent.trim() || fallbackLabel;
-  const a = document.createElement('a');
-  a.href = href;
-  a.className = `content-grid__pager-link ${directionClass}`;
-  const sr = document.createElement('span');
-  sr.className = 'visually-hidden';
-  sr.textContent = label;
-  a.append(sr);
-  const icon = document.createElement('span');
-  icon.className = 'content-grid__pager-icon';
-  icon.setAttribute('aria-hidden', 'true');
-  a.append(icon);
-  return a;
-}
-
-/**
- * Previous / Next nav, or null when neither cell has a usable href.
- * Names the nav from the intro heading when one exists.
- * @param {Element} [prevCell]
- * @param {Element} [nextCell]
- * @param {Element} [intro]
- * @returns {HTMLElement|null}
- */
-function createPager(prevCell, nextCell, intro) {
-  const prev = pagerLink(prevCell, 'Previous', 'content-grid__pager-link--prev');
-  const next = pagerLink(nextCell, 'Next', 'content-grid__pager-link--next');
-  if (!prev && !next) return null;
-  const nav = document.createElement('nav');
-  nav.className = 'content-grid__pager';
-
-  const heading = intro?.querySelector('h1, h2, h3, h4, h5, h6');
-  if (heading && !heading.id) {
-    const id = toClassName(heading.textContent);
-    if (id) heading.id = id;
-  }
-  if (heading?.id) {
-    nav.setAttribute('aria-labelledby', heading.id);
-  } else {
-    nav.setAttribute('aria-label', 'Nearby sections');
-  }
-
-  if (prev) nav.append(prev);
-  if (next) nav.append(next);
-  return nav;
-}
-
-/**
  * Grid-item card from a manual content-grid row:
  * image | aspect | title | subhead | category.
  * @param {Element} row Authored table row
@@ -422,7 +343,7 @@ function createManualGridItem(row) {
 }
 
 /**
- * Replace the block with an optional intro/pager header and a list of cards.
+ * Replace the block with an optional intro header and a list of cards.
  * @param {Element} block
  * @param {Element[]} gridItems
  * @param {Element|null} header
@@ -468,20 +389,14 @@ async function renderGrid(block, gridItems, header) {
  */
 export default async function decorate(block) {
   const intro = takeIntro(block);
-  const prevCell = takeConfigCell(block, 'previous');
-  const nextCell = takeConfigCell(block, 'next');
-  const pager = createPager(prevCell, nextCell, intro);
-  let header = intro;
-  if (pager) {
-    header = intro || Object.assign(document.createElement('div'), { className: 'content-grid__intro' });
-    header.append(pager);
-  }
+  takeConfigCell(block, 'previous');
+  takeConfigCell(block, 'next');
 
   if (block.classList.contains('manual')) {
     const gridItems = [...block.children]
       .filter((row) => row.querySelector('img, picture, a') || row.textContent.trim())
       .map(createManualGridItem);
-    await renderGrid(block, gridItems, header);
+    await renderGrid(block, gridItems, intro);
     return;
   }
 
@@ -498,7 +413,7 @@ export default async function decorate(block) {
   if (!payload) {
     // eslint-disable-next-line no-console
     console.error(`content-grid: failed to load ${QUERY_INDEX}`);
-    await renderGrid(block, [], header);
+    await renderGrid(block, [], intro);
     return;
   }
 
@@ -510,6 +425,6 @@ export default async function decorate(block) {
   await renderGrid(
     block,
     items.map((entry) => createGridItem(entry, { subheadDescription, showCategory })),
-    header,
+    intro,
   );
 }

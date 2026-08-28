@@ -79,10 +79,8 @@ The homepage **Latest Content** section uses `content-grid` with a key/value tab
 | Category | `All` (no filter) or Research, Workflows, Sneaks, Playground — matched from the page folder (`/research/...`) |
 | Count | How many cards to show (defaults to 8) |
 | Intro | Optional freeform first cell (heading, paragraph, links). Extra; does not count toward Count |
-| Previous | Optional in-page link to the prior section (`[Previous](#future-of-creative-work)`). Omit on the first section |
-| Next | Optional in-page link to the next section (`[Next](#economic-impact)`). Omit on the last section |
 
-The block fetches `/query-index.json`, filters client-side, and renders each hit as a `grid-item`. An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Previous / Next rows become icon buttons under that copy (S2A ControlButton, md, on-light); the href should be the `id` of the destination Intro heading (AEM slugs the heading text, for example `#economic-impact`). Card image frames follow page metadata `Image Aspect` (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). The block uses the index `imageAspect` column when it exists; otherwise it reads `meta[name="image-aspect"]` from each selected article. Missing or unknown values default to 3:2. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Category comes from the first path segment; optional page metadata `category` overrides that when it is one of the four known values.
+The block fetches `/query-index.json`, filters client-side, and renders each hit as a `grid-item`. An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Card image frames follow page metadata `Image Aspect` (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). The block uses the index `imageAspect` column when it exists; otherwise it reads `meta[name="image-aspect"]` from each selected article. Missing or unknown values default to 3:2. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Category comes from the first path segment; optional page metadata `category` overrides that when it is one of the four known values.
 
 Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the content-grid block header (`content-grid (subhead-description)`) to use the index description instead.
 
@@ -90,7 +88,7 @@ Standalone `grid-item` cards link when the Title cell is a link. Category labels
 
 ### content-grid (manual)
 
-`content-grid (manual)` skips the query index. After optional Intro / Previous / Next rows (same as above), each remaining row is one card:
+`content-grid (manual)` skips the query index. After optional Intro (same as above), each remaining row is one card:
 
 | Column | Meaning |
 | --- | --- |

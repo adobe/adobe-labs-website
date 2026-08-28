@@ -738,73 +738,7 @@ describe('content-grid block', () => {
     expect(block).toHaveClass('content-grid--has-intro');
   });
 
-  it('renders Previous and Next as in-page pager links', async () => {
-    const block = createBlock({
-      'Content Type:': 'All',
-      'Category:': 'All',
-      'Count:': '1',
-      Intro: '<h2>Economic Impact</h2>',
-      Previous: '<a href="#future-of-creative-work">Previous</a>',
-      Next: '<a href="#workflows">Next</a>',
-    });
-
-    await decorate(block);
-    document.body.append(block);
-
-    try {
-      const heading = within(block).getByRole('heading', { name: 'Economic Impact' });
-      const nav = within(block).getByRole('navigation', { name: 'Economic Impact' });
-      expect(heading).toHaveAttribute('id', 'economic-impact');
-      expect(nav).toHaveAttribute('aria-labelledby', 'economic-impact');
-      expect(block.querySelector('.content-grid__intro')).toContainElement(nav);
-      expect(within(nav).getByRole('link', { name: 'Previous' })).toHaveAttribute(
-        'href',
-        '#future-of-creative-work',
-      );
-      expect(within(nav).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#workflows');
-      expect(within(nav).getByRole('link', { name: 'Previous' }).querySelector('.content-grid__pager-icon')).not.toBeNull();
-      expect(within(nav).getByRole('link', { name: 'Next' }).querySelector('.content-grid__pager-icon')).not.toBeNull();
-    } finally {
-      block.remove();
-    }
-  });
-
-  it('omits a pager direction when that row is missing', async () => {
-    const block = createBlock({
-      'Content Type:': 'All',
-      'Category:': 'All',
-      'Count:': '1',
-      Intro: '<h2>Explore Workflows</h2>',
-      Next: '<a href="#sneaks">Next</a>',
-    });
-
-    await decorate(block);
-    document.body.append(block);
-
-    try {
-      const nav = within(block).getByRole('navigation', { name: 'Explore Workflows' });
-      expect(within(nav).queryByRole('link', { name: 'Previous' })).toBeNull();
-      expect(within(nav).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#sneaks');
-    } finally {
-      block.remove();
-    }
-  });
-
-  it('ignores javascript pager hrefs', async () => {
-    const block = createBlock({
-      'Content Type:': 'All',
-      'Category:': 'All',
-      'Count:': '1',
-      Intro: '<h2>Economic Impact</h2>',
-      Previous: '<a href="javascript:alert(1)">Previous</a>',
-    });
-
-    await decorate(block);
-
-    expect(within(block).queryByRole('navigation')).toBeNull();
-  });
-
-  it('does not pass Previous or Next to readBlockConfig', async () => {
+  it('discards leftover Previous and Next rows', async () => {
     const labels = [];
     readBlockConfig.mockImplementation((el) => {
       [...el.children].forEach((row) => {
@@ -825,30 +759,8 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(labels).not.toEqual(expect.arrayContaining(['previous', 'next']));
-    expect(block).toHaveClass('content-grid--has-intro');
-    expect(within(block).getByRole('navigation', { name: 'Nearby sections' })).toBeTruthy();
-  });
-
-  it('uses an existing intro heading id for the pager name', async () => {
-    const block = createBlock({
-      'Content Type:': 'All',
-      'Category:': 'All',
-      'Count:': '1',
-      Intro: '<h2 id="future-of-creative-work">Future of Creative Work</h2>',
-      Next: '<a href="#economic-impact">Next</a>',
-    });
-
-    await decorate(block);
-    document.body.append(block);
-
-    try {
-      const heading = within(block).getByRole('heading', { name: 'Future of Creative Work' });
-      const nav = within(block).getByRole('navigation', { name: 'Future of Creative Work' });
-      expect(heading).toHaveAttribute('id', 'future-of-creative-work');
-      expect(nav).toHaveAttribute('aria-labelledby', 'future-of-creative-work');
-    } finally {
-      block.remove();
-    }
+    expect(block).not.toHaveClass('content-grid--has-intro');
+    expect(within(block).queryByRole('navigation')).toBeNull();
   });
 
   it('leaves the block empty when the index request fails', async () => {
@@ -975,22 +887,12 @@ describe('content-grid block', () => {
   describe('manual', () => {
     const PICTURE = '<picture><img src="hero.jpg" alt="Hero"></picture>';
 
-    function createManualBlock(rows, { intro, previous, next } = {}) {
+    function createManualBlock(rows, { intro } = {}) {
       const block = document.createElement('div');
       block.className = 'content-grid manual';
       if (intro) {
         const row = document.createElement('div');
         row.innerHTML = `<div>Intro:</div><div>${intro}</div>`;
-        block.append(row);
-      }
-      if (previous) {
-        const row = document.createElement('div');
-        row.innerHTML = `<div>Previous:</div><div>${previous}</div>`;
-        block.append(row);
-      }
-      if (next) {
-        const row = document.createElement('div');
-        row.innerHTML = `<div>Next:</div><div>${next}</div>`;
         block.append(row);
       }
       rows.forEach((cells) => {
@@ -1070,13 +972,11 @@ describe('content-grid block', () => {
       expect(dataFromCall(0).category).toBe('Workflows');
     });
 
-    it('keeps Intro and pager on a manual grid', async () => {
+    it('keeps Intro on a manual grid', async () => {
       const block = createManualBlock(
         [[PICTURE, '3:2', 'Headline', '', 'Research']],
         {
           intro: '<h2>Future of Creative Work</h2><p>How AI is reshaping roles.</p>',
-          previous: '<a href="#prev">Previous</a>',
-          next: '<a href="#next">Next</a>',
         },
       );
 
@@ -1085,9 +985,28 @@ describe('content-grid block', () => {
       expect(block).toHaveClass('content-grid--has-intro');
       const intro = block.querySelector('.content-grid__intro');
       expect(intro.querySelector('h2')).toHaveTextContent('Future of Creative Work');
-      expect(within(intro).getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '#prev');
-      expect(within(intro).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#next');
+      expect(intro.querySelector('p')).toHaveTextContent('How AI is reshaping roles.');
+      expect(within(block).queryByRole('navigation')).toBeNull();
       expect(within(block).getByRole('list').children).toHaveLength(1);
+    });
+
+    it('discards leftover Previous and Next rows', async () => {
+      const block = createManualBlock([
+        [PICTURE, '3:2', 'Headline', '', 'Research'],
+      ]);
+      const previous = document.createElement('div');
+      previous.innerHTML = '<div>Previous:</div><div><a href="#prev">Previous</a></div>';
+      const next = document.createElement('div');
+      next.innerHTML = '<div>Next:</div><div><a href="#next">Next</a></div>';
+      block.prepend(next);
+      block.prepend(previous);
+
+      await decorate(block);
+
+      expect(buildGridItem).toHaveBeenCalledTimes(1);
+      expect(within(block).getByRole('list').children).toHaveLength(1);
+      expect(within(block).queryByRole('navigation')).toBeNull();
+      expect(within(block).queryByRole('link', { name: 'Previous' })).toBeNull();
     });
 
     it('skips empty leftover rows', async () => {
