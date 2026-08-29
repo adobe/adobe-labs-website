@@ -123,11 +123,6 @@ h1, h2, h3, h4, h5, h6, [class*="heading-"] {
   strong {
     font-weight: inherit;
   }
-
-  a:not(.button),
-  a:not(.button):is(:hover, :focus-visible, :active) {
-    color: currentcolor;
-  }
 }
 
 .heading-super {
