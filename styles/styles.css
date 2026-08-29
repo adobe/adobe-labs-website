@@ -272,19 +272,19 @@ main > div {
 
 /* Default .button uses the Primary button style. */
 .button {
-  --height-button: 2.5rem;
+  --block-size-button: 2.5rem;
   --border-radius-button: var(--s2a-border-radius-round);
   --letter-spacing-button: var(--s2a-typography-letter-spacing-label);
-  --active-size-width-ratio-down: 0.3333;
+  --active-size-inline-ratio-down: 0.3333;
   --active-size-minimum-perspective-down: 1.5rem;
   --active-size-difference-down: -2px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: fit-content;
-  height: var(--height-button);
-  padding: 0 var(--s2a-spacing-lg);
+  inline-size: fit-content;
+  block-size: var(--block-size-button);
+  padding-inline: var(--s2a-spacing-lg);
   border-radius: var(--border-radius-button);
   font-family: var(--body-font-family);
   font-size: var(--s2a-typography-font-size-label);
@@ -319,8 +319,8 @@ main > div {
   &:active {
     transform:
       perspective(max(
-        var(--active-downstate-height),
-        var(--active-downstate-width) * var(--active-size-width-ratio-down)))
+        var(--active-downstate-block-size),
+        var(--active-downstate-inline-size) * var(--active-size-inline-ratio-down)))
       translateZ(var(--active-size-difference-down));
   }
 
