@@ -285,6 +285,7 @@ main > div {
   inline-size: fit-content;
   block-size: var(--block-size-button);
   padding-inline: var(--s2a-spacing-lg);
+  border: var(--s2a-border-width-md) solid transparent;
   border-radius: var(--border-radius-button);
   font-family: var(--body-font-family);
   font-size: var(--s2a-typography-font-size-label);
@@ -303,7 +304,6 @@ main > div {
   transition-property: outline, border-color, color, background-color, transform;
 
   &:is(button) {
-    border: transparent;
     cursor: pointer;
   }
 
