@@ -19,7 +19,7 @@
 
   /* The inline link wraps the entire component,
      Entire component is clickable. */
-  a.hero-link-wrap {
+  .hero__link-wrap {
     display: block;
     width: 100%;
     height: 100%;
@@ -34,7 +34,7 @@
   }
 
   /* Grid container for positioning child items. */
-  .hero-content {
+  .hero__content {
     /* Figma's spacing differs from s2a tokens. */
     --hero-padding-block: var(--s2a-spacing-sm);
     --hero-padding-inline: var(--s2a-spacing-sm);
@@ -62,7 +62,7 @@
     padding-block: var(--hero-padding-block);
 
     /* Play control sits in its own row above the headline below 768px. */
-    &:has(.hero-video-icon) {
+    &:has(.hero__video-icon) {
       grid-template-rows: min-content 1fr auto auto;
       grid-template-areas:
         "top-left top-right"
@@ -99,7 +99,7 @@
   }
 
   /* Category */
-  .eyebrow {
+  .hero__content__eyebrow {
     grid-area: top-left;
     display: flex;
     flex-flow: row nowrap;
@@ -124,7 +124,7 @@
   }
 
   /* Play control */
-  .hero-video-icon {
+  .hero__video-icon {
     --hero-video-button-size: 2rem;
     --hero-video-svg-size: 0.75rem;
     --hero-video-icon-border-radius: 6px;
@@ -168,14 +168,14 @@
   }
 
   /* Date */
-  .hero-date {
+  .hero__content__date {
     grid-area: top-right;
     justify-self: end;
     color: var(--s2a-color-gray-25, #fff);
   }
 
   /* Button wrapper */
-  .button-wrapper {
+  .hero__content__button-wrapper {
     margin-block: 0;
     display: inline-block;
     grid-area: bottom-right;
@@ -183,7 +183,7 @@
   }
 
   /* Image */
-  .hero-media {
+  .hero__media {
     position: absolute;
     inset: 0;
     overflow: hidden;
@@ -219,7 +219,7 @@
       aspect-ratio: 2 / 1;
     }
 
-    .hero-content {
+    .hero__content {
       /* Figma's spacing differs from s2a tokens.
          Full-screen variant has custom vertical padding to account for overlapping content. */
       --hero-padding-block: 5.625rem 3.125rem;
@@ -245,6 +245,6 @@
 }
 
 /* Dark mode */
-[data-theme="dark"] .hero-link-wrap:focus-visible {
+[data-theme="dark"] .hero__link-wrap:focus-visible {
   outline-color: var(--s2a-color-focus-ring-knockout);
 }
