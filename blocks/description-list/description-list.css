@@ -47,7 +47,7 @@
   border-block-start: 1px solid var(--s2a-color-border-subtle);
 }
 
-@media (width >= 900px) {
+@media (width >= 768px) {
   .description-list {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
