@@ -90,7 +90,7 @@
   }
 
   /* Headline */
-  h1 {
+  .hero__content__headline {
     --hero-headline-max-width: 15ch;
 
     display: inline-block;

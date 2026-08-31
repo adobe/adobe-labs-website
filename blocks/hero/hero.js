@@ -99,7 +99,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
         </svg>
       </div>
       <div class="hero__content__date"></div>
-      <h1><span></span></h1>
+      <h2 class="hero__content__headline"><span></span></h2>
       <p class="hero__content__button-wrapper">
         <span class="button primary"></span>
       </p>
@@ -124,7 +124,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     temp.innerHTML = VIDEO_ICON_HTML;
     const iconNodes = Array.from(temp.childNodes);
     const content = fragment.querySelector('.hero__content');
-    const insertBefore = content.querySelector('.hero__content__date, h1, .hero__content__button-wrapper');
+    const insertBefore = content.querySelector('.hero__content__date, .hero__content__headline, .hero__content__button-wrapper');
     iconNodes.forEach((node) => {
       content.insertBefore(node, insertBefore);
     });
@@ -134,10 +134,10 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (date) dateEl.textContent = date;
   else dateEl.remove();
 
-  const h1 = fragment.querySelector('h1');
-  const headlineSpan = h1.querySelector('span');
+  const h2 = fragment.querySelector('.hero__content__headline');
+  const headlineSpan = h2.querySelector('span');
   if (!headline) {
-    h1.remove();
+    h2.remove();
   } else {
     headlineSpan.textContent = headline;
   }
