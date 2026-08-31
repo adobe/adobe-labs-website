@@ -79,7 +79,7 @@ function decorateAside(cell) {
   if (isEmptyEl(cell)) return null;
   const jump = decorateJump(cell);
   if (jump) return jump;
-  cell.className = 'page-header__aside';
+  cell.className = 'page-header__aside heading-6';
   return cell;
 }
 

@@ -213,6 +213,7 @@ describe('page-header block', () => {
     decorate(block);
 
     expect(block.querySelector('nav')).toBeNull();
+    expect(block.querySelector('.page-header__aside')).toHaveClass('heading-6');
     expect(block.querySelector('.page-header__aside')).toHaveTextContent('Caption');
   });
 
