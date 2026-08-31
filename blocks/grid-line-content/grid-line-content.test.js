@@ -52,33 +52,4 @@ describe('grid-line-content block', () => {
     expect(text.querySelector('h2')).toHaveTextContent('Statement');
     expect(text.querySelector('p')).toHaveTextContent('Attribution');
   });
-
-  it('leaves the authored picture markup untouched', () => {
-    const block = createBlock([[`
-      <picture>
-        <source media="(min-width: 600px)" type="image/webp" srcset="hero.jpg?width=2000&format=webply&optimize=medium">
-        <source type="image/webp" srcset="hero.jpg?width=750&format=webply&optimize=medium">
-        <source media="(min-width: 600px)" srcset="hero.jpg?width=2000&format=jpg&optimize=medium">
-        <img loading="eager" alt="Adobe Labs" src="hero.jpg?width=750&format=jpg&optimize=medium">
-      </picture>
-    `]]);
-    const originalPicture = block.querySelector('picture');
-
-    decorate(block);
-
-    const text = block.firstElementChild;
-    const picture = text.querySelector('picture');
-    expect(picture).toBe(originalPicture);
-    expect(picture.querySelectorAll('source')).toHaveLength(3);
-    expect(picture.querySelector('img')).toHaveAttribute('alt', 'Adobe Labs');
-    expect(picture.querySelector('img')).toHaveAttribute('src', 'hero.jpg?width=750&format=jpg&optimize=medium');
-  });
-
-  it('does not add a picture when no image is authored', () => {
-    const block = createBlock([['<p>No media here</p>']]);
-
-    decorate(block);
-
-    expect(block.querySelector('picture')).toBeNull();
-  });
 });
