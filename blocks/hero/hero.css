@@ -11,11 +11,7 @@
   letter-spacing: var(--hero-letter-spacing);
   font-weight: var(--hero-font-weight);
   border-radius: var(--s2a-border-radius-xs);
-  aspect-ratio: 6 / 7;
-
-  @media (width >=500px) {
-    aspect-ratio: 1.5 / 1;
-  }
+  aspect-ratio: 3 / 2;
 
   @media (width >=768px) {
     aspect-ratio: 2 / 1;
@@ -213,9 +209,15 @@
     }
   }
 
-  /* Full-screen variant */
+  /*--- Full-Screen variant ---*/
   &.hero-full-screen {
     border-radius: 0;
+    /* Full-screen variant is slightly taller than default on smaller screens. */
+    aspect-ratio: 6 / 7;
+  
+    @media (width >=768px) {
+      aspect-ratio: 2 / 1;
+    }
 
     .hero-content {
       /* Figma's spacing differs from s2a tokens.
