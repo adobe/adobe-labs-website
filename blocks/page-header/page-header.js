@@ -65,9 +65,12 @@ function decorateJump(cell) {
     label.id = labelId;
     label.classList.add('page-header__jump-label', 'heading-6');
     nav.setAttribute('aria-labelledby', labelId);
+  } else {
+    nav.setAttribute('aria-label', 'On this page');
   }
 
   list.classList.add('page-header__jump-list', 'heading-6');
+  list.setAttribute('role', 'list');
   while (cell.firstChild) nav.append(cell.firstChild);
   return nav;
 }

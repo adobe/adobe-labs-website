@@ -123,9 +123,32 @@ describe('page-header block', () => {
     const nav = within(block).getByRole('navigation', { name: 'Jump to:' });
     expect(nav).toHaveClass('page-header__jump');
     expect(nav.querySelector('ul')).toHaveClass('page-header__jump-list', 'heading-6');
+    expect(nav.querySelector('ul')).toHaveAttribute('role', 'list');
     expect(within(nav).getByRole('link', { name: 'Future of Creative Work' }))
       .toHaveAttribute('href', '#future');
     expect(nav.querySelectorAll('li')).toHaveLength(4);
+  });
+
+  it('names the jump nav when the authored label is missing', () => {
+    const block = createBlock(`
+      <div>
+        <div><h1>Research</h1></div>
+      </div>
+      <div>
+        <div><p>The future of creative work.</p></div>
+        <div>
+          <ul>
+            <li><a href="#future">Future of Creative Work</a></li>
+            <li><a href="#economic">Economic Impact</a></li>
+          </ul>
+        </div>
+      </div>
+    `);
+
+    decorate(block);
+    document.body.append(block);
+
+    expect(within(block).getByRole('navigation', { name: 'On this page' })).toBeTruthy();
   });
 
   it('unwraps paragraph wrappers inside jump-link items', () => {
