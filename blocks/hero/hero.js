@@ -91,27 +91,28 @@ export function buildHero(data = {}, root = document.createElement('div')) {
 
   const template = document.createElement('template');
   template.innerHTML = `
-    <div class="hero__media"></div>
+    <div class="hero__media" aria-hidden="true"></div>
     <div class="hero__content">
-      <div class="hero__content__eyebrow">
+      <div class="hero__eyebrow" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
           <circle cx="19" cy="19" r="19" fill="white"/>
         </svg>
       </div>
-      <div class="hero__content__date"></div>
-      <h2 class="hero__content__headline"><span></span></h2>
-      <p class="hero__content__button-wrapper">
+      <div class="hero__date" aria-hidden="true"></div>
+      <h2 class="hero__headline"><span></span></h2>
+      <p class="hero__button-wrapper">
         <span class="button primary"></span>
       </p>
     </div>
   `.trim();
+
   const fragment = template.content;
 
   const media = fragment.querySelector('.hero__media');
   if (data.image) media.append(data.image);
   else media.remove();
 
-  const eyebrow = fragment.querySelector('.hero__content__eyebrow');
+  const eyebrow = fragment.querySelector('.hero__eyebrow');
 
   if (!showCategory) {
     eyebrow.remove();
@@ -124,17 +125,17 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     temp.innerHTML = VIDEO_ICON_HTML;
     const iconNodes = Array.from(temp.childNodes);
     const content = fragment.querySelector('.hero__content');
-    const insertBefore = content.querySelector('.hero__content__date, .hero__content__headline, .hero__content__button-wrapper');
+    const insertBefore = content.querySelector('.hero__date, .hero__headline, .hero__button-wrapper');
     iconNodes.forEach((node) => {
       content.insertBefore(node, insertBefore);
     });
   }
 
-  const dateEl = fragment.querySelector('.hero__content__date');
+  const dateEl = fragment.querySelector('.hero__date');
   if (date) dateEl.textContent = date;
   else dateEl.remove();
 
-  const h2 = fragment.querySelector('.hero__content__headline');
+  const h2 = fragment.querySelector('.hero__headline');
   const headlineSpan = h2.querySelector('span');
   if (!headline) {
     h2.remove();
@@ -142,7 +143,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     headlineSpan.textContent = headline;
   }
 
-  const buttonWrapper = fragment.querySelector('.hero__content__button-wrapper');
+  const buttonWrapper = fragment.querySelector('.hero__button-wrapper');
   const cta = buttonWrapper.querySelector('.button');
   if (href && linkLabel) {
     cta.textContent = linkLabel;
@@ -157,7 +158,6 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     const wrapperLink = document.createElement('a');
     wrapperLink.href = href;
     wrapperLink.classList.add('hero__link-wrap');
-    if (headline) wrapperLink.setAttribute('aria-label', `${linkLabel}: ${headline}`);
     blockChildren.forEach((child) => wrapperLink.appendChild(child));
     wrappedContent = wrapperLink;
   } else {

@@ -49,20 +49,25 @@ describe('hero block', () => {
 
     const view = within(block);
     const eyebrow = view.getByText('ResearchTest');
-    expect(eyebrow).toHaveClass('eyebrow');
+    expect(eyebrow).toHaveClass('hero__eyebrow');
+    expect(eyebrow).toHaveAttribute('aria-hidden', 'true');
     const mark = eyebrow.querySelector('svg');
     expect(eyebrow.firstElementChild).toBe(mark);
     expect(mark).toHaveAttribute('viewBox', '0 0 38 38');
     expect(mark.querySelector('circle')).toHaveAttribute('fill', 'white');
-    expect(view.getByText('5.24.26')).toHaveClass('hero-date');
-    expect(view.getByRole('heading', { level: 1 })).toHaveTextContent(
+    const date = view.getByText('5.24.26');
+    expect(date).toHaveClass('hero__date');
+    expect(date).toHaveAttribute('aria-hidden', 'true');
+    expect(view.getByRole('heading', { level: 2 })).toHaveTextContent(
       'How AI is Redistributing Creative Work.',
     );
-    expect(view.getByRole('link', { name: 'Read: How AI is Redistributing Creative Work.' }))
+    expect(view.getByRole('link', { name: 'How AI is Redistributing Creative Work. Read' }))
       .toHaveAttribute('href', expect.stringMatching(/\/research\/example-article-1$/));
     expect(block.querySelector('.button.primary')).toHaveTextContent('Read');
-    expect(block.querySelector('.hero-media picture img')).toHaveAttribute('src', expect.stringMatching(/hero\.jpg$/));
-    expect(block.querySelector('.hero-video-icon')).toBeNull();
+    const media = block.querySelector('.hero__media');
+    expect(media).toHaveAttribute('aria-hidden', 'true');
+    expect(media.querySelector('picture img')).toHaveAttribute('src', expect.stringMatching(/hero\.jpg$/));
+    expect(block.querySelector('.hero__video-icon')).toBeNull();
   });
 
   it.each([
@@ -84,11 +89,13 @@ describe('hero block', () => {
 
     const view = within(block);
     expect(view.getByText('Video article')).toHaveClass('visually-hidden');
-    expect(block.querySelector('.hero-video-icon')).toHaveAttribute('aria-hidden', 'true');
-    expect(block.querySelector('.hero-video-icon .icon-play')).toBeTruthy();
+    expect(block.querySelector('.hero__video-icon')).toHaveAttribute('aria-hidden', 'true');
+    expect(block.querySelector('.hero__video-icon .icon-play')).toBeTruthy();
     expect(decorateIcons).toHaveBeenCalled();
-    expect(view.getByText('Oct 26')).toHaveClass('hero-date');
-    expect(view.getByRole('heading', { level: 1 })).toHaveTextContent('Project Clean Take');
+    expect(view.getByText('Oct 26')).toHaveClass('hero__date');
+    expect(view.getByRole('heading', { level: 2 })).toHaveTextContent('Project Clean Take');
+    expect(view.getByRole('link', { name: /video article/i }))
+      .toHaveAttribute('href', expect.stringMatching(/\/sneaks\/project-clean-take$/));
     expect(block.querySelector('.button.primary')).toHaveTextContent('Read');
   });
 
@@ -101,7 +108,7 @@ describe('hero block', () => {
     await decorate(block);
 
     expect(within(block).queryByText('Video article')).toBeNull();
-    expect(block.querySelector('.hero-video-icon')).toBeNull();
+    expect(block.querySelector('.hero__video-icon')).toBeNull();
     expect(decorateIcons).not.toHaveBeenCalled();
   });
 
@@ -122,9 +129,10 @@ describe('hero block', () => {
 
       await decorate(block);
 
-      expect(block.querySelector('.hero-video-icon')).toBeTruthy();
-      expect(block.querySelector('.hero-video-icon .icon-play')).toBeTruthy();
-      expect(block.querySelector('.eyebrow')).toBeNull();
+      expect(block.querySelector('.hero__video-icon')).toBeTruthy();
+      expect(block.querySelector('.hero__video-icon .icon-play')).toBeTruthy();
+      expect(within(block).getByRole('link', { name: /video article/i })).toBeTruthy();
+      expect(block.querySelector('.hero__eyebrow')).toBeNull();
     } finally {
       window.history.replaceState({}, '', originalPath);
     }
@@ -137,11 +145,11 @@ describe('hero block', () => {
 
     await decorate(block);
 
-    expect(block.querySelector('.eyebrow')).toBeNull();
-    expect(block.querySelector('.hero-date')).toBeNull();
-    expect(block.querySelector('.hero-media')).toBeNull();
-    expect(within(block).getByRole('heading', { level: 1 })).toHaveTextContent('Headline only');
-    expect(within(block).getByRole('link', { name: 'Read: Headline only' })).toBeTruthy();
+    expect(block.querySelector('.hero__eyebrow')).toBeNull();
+    expect(block.querySelector('.hero__date')).toBeNull();
+    expect(block.querySelector('.hero__media')).toBeNull();
+    expect(within(block).getByRole('heading', { level: 2 })).toHaveTextContent('Headline only');
+    expect(within(block).getByRole('link', { name: 'Headline only Read' })).toBeTruthy();
     expect(block.querySelector('.button.primary')).toHaveTextContent('Read');
   });
 
@@ -163,8 +171,8 @@ describe('hero block', () => {
 
     await decorate(block);
 
-    expect(block.querySelector('h1 a')).toBeNull();
-    expect(block.querySelector('h1')).toHaveTextContent('Unsafe headline');
-    expect(block.querySelector('.button-wrapper')).toBeNull();
+    expect(block.querySelector('h2 a')).toBeNull();
+    expect(block.querySelector('h2')).toHaveTextContent('Unsafe headline');
+    expect(block.querySelector('.hero__button-wrapper')).toBeNull();
   });
 });

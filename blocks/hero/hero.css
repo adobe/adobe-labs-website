@@ -90,7 +90,7 @@
   }
 
   /* Headline */
-  .hero__content__headline {
+  .hero__headline {
     --hero-headline-max-width: 15ch;
 
     display: inline-block;
@@ -103,18 +103,20 @@
     max-width: var(--hero-headline-max-width);
 
     @media (width >=500px) {
-      grid-area: bottom-left;
       --hero-headline-max-width: 20ch;
+
+      grid-area: bottom-left;
     }
 
     @media (width >=768px) {
-      grid-area: bottom-left;
       --hero-headline-max-width: 25ch;
+
+      grid-area: bottom-left;
     }
   }
 
   /* Category */
-  .hero__content__eyebrow {
+  .hero__eyebrow {
     --hero-category-circle-gap: var(--s2a-spacing-xs);
 
     grid-area: top-left;
@@ -141,6 +143,33 @@
 
       height: var(--hero-category-circle-size);
       width: var(--hero-category-circle-size);
+    }
+  }
+
+  /* Image */
+  .hero__media {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+
+    picture,
+    img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Scrim for image overlay. */
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(109deg,
+          var(--s2a-color-transparent-black-64) 0%,
+          var(--s2a-color-transparent-black-00) 55.15%);
     }
   }
 
@@ -196,7 +225,7 @@
   }
 
   /* Date */
-  .hero__content__date {
+  .hero__date {
     grid-area: top-right;
     justify-self: end;
     color: var(--s2a-color-gray-25, #fff);
@@ -204,39 +233,12 @@
   }
 
   /* Button wrapper */
-  .hero__content__button-wrapper {
+  .hero__button-wrapper {
     margin-block: 0;
     display: inline-block;
     grid-area: bottom-right;
     place-self: last baseline end;
     white-space: nowrap;
-  }
-
-  /* Image */
-  .hero__media {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    border-radius: inherit;
-
-    picture,
-    img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    /* Scrim for image overlay. */
-    &::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(109deg,
-          var(--s2a-color-transparent-black-64) 0%,
-          var(--s2a-color-transparent-black-00) 55.15%);
-    }
   }
 
   /* --- Full-Screen variant --- */
