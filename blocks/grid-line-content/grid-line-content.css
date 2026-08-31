@@ -63,6 +63,7 @@
     margin-inline: auto;
     padding-block: var(--s2a-spacing-3xs);
     text-align: start;
+    padding: 0.125rem;
 
     & > :first-child {
       margin-block-start: 0;
