@@ -22,6 +22,9 @@ import {
   loadCSS,
   buildBlock,
 } from './aem.js';
+import {
+  debounce,
+} from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
   const innerTT = window.trustedTypes.createPolicy('tt-inner', {
@@ -127,6 +130,10 @@ function decorateButtons(main) {
 
     p.className = 'button-wrapper';
     a.className = 'button';
+    if (a.getAttribute('aria-disabled') === 'true') {
+      a.tabIndex = -1;
+      a.addEventListener('click', (event) => event.preventDefault());
+    }
     if (strong && em) { // high-impact call-to-action
       a.classList.add('accent');
       const outer = strong.contains(em) ? strong : em;
@@ -170,6 +177,22 @@ async function loadEager(doc) {
 }
 
 /**
+ * Down state: include inline and block sizes for elements that use S2 calculated perspective.
+ * Sets custom property values used by the perspective CSS.
+ */
+function setCalculatedPerspective() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+  const elements = document.querySelectorAll('.button, .filter-group__button');
+  elements.forEach((el) => {
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
+    el.style.setProperty('--active-downstate-inline-size', `${el.offsetWidth}px`);
+    el.style.setProperty('--active-downstate-block-size', `${el.offsetHeight}px`);
+  });
+}
+
+/**
  * Loads everything that doesn't need to be delayed.
  * @param {Element} doc The container element
  */
@@ -186,6 +209,11 @@ async function loadLazy(doc) {
   loadFooter(doc.querySelector('body > footer'));
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
+
+  // Down state: include inline and block sizes for elements that use S2 calculated perspective.
+  setCalculatedPerspective();
+  const setCalcPerspectiveDebounced = debounce(setCalculatedPerspective);
+  window.addEventListener('resize', setCalcPerspectiveDebounced);
 }
 
 /**
