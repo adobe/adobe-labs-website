@@ -1,5 +1,12 @@
 import { getCellText } from '../../scripts/utils/utils.js';
 
+/**
+ * Promotes the title cell to a heading. Keeps an authored heading level, or
+ * wraps a lone paragraph (or other cell content) in an `h1`.
+ *
+ * @param {Element} [cell] The first cell of the title row
+ * @returns {HTMLHeadingElement|null} The heading, or null if the cell is empty
+ */
 function decorateTitle(cell) {
   if (!getCellText(cell)) return null;
 
@@ -20,6 +27,13 @@ function decorateTitle(cell) {
   return title;
 }
 
+/**
+ * Turns a cell of in-page links into a labelled jump nav. A list qualifies when
+ * every `li` contains an `a[href]`.
+ *
+ * @param {Element} cell The aside cell
+ * @returns {HTMLElement|null} The nav, or null if the cell is not a jump list
+ */
 function decorateJump(cell) {
   const list = cell.querySelector('ul, ol');
   const items = list && [...list.children].filter((child) => child.tagName === 'LI');
@@ -52,6 +66,9 @@ function decorateJump(cell) {
 }
 
 /**
+ * Decorates a page-header block: title, optional subtitle, and optional aside
+ * (jump nav or caption).
+ *
  * @param {Element} block The page-header block element
  */
 export default function decorate(block) {
