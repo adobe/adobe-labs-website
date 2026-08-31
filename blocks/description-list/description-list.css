@@ -50,9 +50,17 @@
 @media (width >= 900px) {
   .description-list {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     align-items: start;
     gap: var(--s2a-spacing-2xl);
+  }
+
+  .description-list__heading {
+    grid-column: span 4;
+  }
+
+  .description-list__items {
+    grid-column: span 8;
   }
 
   .description-list__item {
