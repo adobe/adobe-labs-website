@@ -33,6 +33,7 @@
 
 .page-header__aside {
   max-width: 31.25rem;
+  font-weight: var(--s2a-font-weight-adobe-clean-regular);
   color: var(--s2a-color-content-heading);
 
   & p {
