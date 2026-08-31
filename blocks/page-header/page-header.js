@@ -1,16 +1,7 @@
-let jumpLabelCount = 0;
-
-function isEmptyEl(el) {
-  return !el || !el.textContent.replace(/\u00a0/g, ' ').trim();
-}
-
-function nextJumpLabelId() {
-  jumpLabelCount += 1;
-  return `page-header-jump-${jumpLabelCount}`;
-}
+import { getCellText } from '../../scripts/utils/utils.js';
 
 function decorateTitle(cell) {
-  if (isEmptyEl(cell)) return null;
+  if (!getCellText(cell)) return null;
 
   const heading = cell.querySelector('h1, h2, h3, h4, h5, h6');
   if (heading) {
@@ -29,30 +20,16 @@ function decorateTitle(cell) {
   return title;
 }
 
-function decorateSubtitle(cell) {
-  if (isEmptyEl(cell)) return null;
-  cell.className = 'page-header__subtitle heading-4';
-  return cell;
-}
+function decorateJump(cell) {
+  const list = cell.querySelector('ul, ol');
+  const items = list && [...list.children].filter((child) => child.tagName === 'LI');
+  if (!items?.length || !items.every((item) => item.querySelector('a[href]'))) {
+    return null;
+  }
 
-function isJumpLinksList(list) {
-  if (!list) return false;
-  const items = [...list.children].filter((child) => child.tagName === 'LI');
-  if (!items.length) return false;
-  return items.every((item) => item.querySelector('a[href]'));
-}
-
-function unwrapListItemParagraphs(list) {
   list.querySelectorAll(':scope > li > p').forEach((paragraph) => {
     paragraph.replaceWith(...paragraph.childNodes);
   });
-}
-
-function decorateJump(cell) {
-  const list = cell.querySelector('ul, ol');
-  if (!isJumpLinksList(list)) return null;
-
-  unwrapListItemParagraphs(list);
 
   const nav = document.createElement('nav');
   nav.className = 'page-header__jump';
@@ -61,10 +38,9 @@ function decorateJump(cell) {
     (el) => el !== list && el.matches('p, h1, h2, h3, h4, h5, h6'),
   );
   if (label) {
-    const labelId = nextJumpLabelId();
-    label.id = labelId;
+    if (!label.id) label.id = `page-header-jump-${crypto.randomUUID()}`;
     label.classList.add('page-header__jump-label', 'heading-6');
-    nav.setAttribute('aria-labelledby', labelId);
+    nav.setAttribute('aria-labelledby', label.id);
   } else {
     nav.setAttribute('aria-label', 'On this page');
   }
@@ -75,29 +51,27 @@ function decorateJump(cell) {
   return nav;
 }
 
-function decorateAside(cell) {
-  if (isEmptyEl(cell)) return null;
-  const jump = decorateJump(cell);
-  if (jump) return jump;
-  cell.className = 'page-header__aside heading-6';
-  return cell;
-}
-
 /**
  * @param {Element} block The page-header block element
  */
 export default function decorate(block) {
   const [titleRow, contentRow] = block.children;
+  const [subtitleCell, asideCell] = contentRow?.children ?? [];
+
   const title = decorateTitle(titleRow?.children[0]);
 
-  const contentCells = [...(contentRow?.children ?? [])];
-  const subtitle = decorateSubtitle(contentCells[0]);
-  const aside = decorateAside(contentCells[1]);
+  const subtitle = getCellText(subtitleCell) ? subtitleCell : null;
+  if (subtitle) subtitle.className = 'page-header__subtitle heading-4';
+
+  let aside = null;
+  if (getCellText(asideCell)) {
+    aside = decorateJump(asideCell) ?? asideCell;
+    if (aside === asideCell) aside.className = 'page-header__aside heading-6';
+  }
 
   const rowParts = [subtitle, aside].filter(Boolean);
-  let row = null;
-  if (rowParts.length) {
-    row = document.createElement('div');
+  const row = rowParts.length ? document.createElement('div') : null;
+  if (row) {
     row.className = 'page-header__row';
     row.append(...rowParts);
   }
