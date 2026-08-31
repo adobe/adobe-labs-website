@@ -22,7 +22,7 @@ describe('grid-line-content block', () => {
 
     expect(block.children).toHaveLength(1);
     const text = block.firstElementChild;
-    expect(text).toHaveClass('grid-line-content-text');
+    expect(text).toHaveClass('grid-line-content__text');
     expect(text.querySelector('p')).toHaveTextContent('A closing statement');
   });
 

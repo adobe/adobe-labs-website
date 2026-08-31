@@ -6,7 +6,7 @@
  */
 export default function decorate(block) {
   const text = document.createElement('div');
-  text.className = 'grid-line-content-text';
+  text.className = 'grid-line-content__text';
 
   [...block.children].forEach((row) => {
     [...row.children].forEach((cell) => {

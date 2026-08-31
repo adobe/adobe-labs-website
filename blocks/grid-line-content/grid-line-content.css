@@ -14,74 +14,74 @@
 
   position: relative;
   padding-block: 120px;
-}
 
-.grid-line-content-text {
-  position: relative;
-  max-inline-size: 58rem;
-  margin-inline: auto;
-  padding-block: var(--s2a-spacing-3xs);
-  text-align: start;
-}
+  .grid-line-content__text {
+    position: relative;
+    max-inline-size: 58rem;
+    margin-inline: auto;
+    padding-block: var(--s2a-spacing-3xs);
+    text-align: start;
 
-/* left, center (dashed) and right frame lines: overshoot the text box top/bottom by 120px so corners cross instead of closing into a square */
-.grid-line-content-text::before {
-  content: "";
-  position: absolute;
-  inset-block: -120px;
-  inset-inline: 0;
-  background-image:
-    linear-gradient(var(--grid-line-color), var(--grid-line-color)),
-    repeating-linear-gradient(
-      to bottom,
-      var(--grid-line-color) 0 4px,
-      transparent 4px 6px
-    ),
-    linear-gradient(var(--grid-line-color), var(--grid-line-color));
-  background-position: 0 0, 50% 0, 100% 0;
-  background-size: 1px 100%, 1px 100%, 1px 100%;
-  background-repeat: no-repeat;
-  pointer-events: none;
-}
+    /* left, center (dashed) and right frame lines: overshoot the text box top/bottom by 120px so corners cross instead of closing into a square */
+    &::before {
+      content: "";
+      position: absolute;
+      inset-block: -120px;
+      inset-inline: 0;
+      background-image:
+        linear-gradient(var(--grid-line-color), var(--grid-line-color)),
+        repeating-linear-gradient(
+          to bottom,
+          var(--grid-line-color) 0 4px,
+          transparent 4px 6px
+        ),
+        linear-gradient(var(--grid-line-color), var(--grid-line-color));
+      background-position: 0 0, 50% 0, 100% 0;
+      background-size: 1px 100%, 1px 100%, 1px 100%;
+      background-repeat: no-repeat;
+      pointer-events: none;
+    }
 
-/* top and bottom frame lines: overshoot the text box left/right by 120px to match, crossing the vertical lines */
-.grid-line-content-text::after {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  inset-inline: -120px;
-  background-image:
-    linear-gradient(var(--grid-line-color), var(--grid-line-color)),
-    linear-gradient(var(--grid-line-color), var(--grid-line-color));
-  background-position: 0 0, 0 100%;
-  background-size: 100% 1px, 100% 1px;
-  background-repeat: no-repeat;
-  pointer-events: none;
-}
+    /* top and bottom frame lines: overshoot the text box left/right by 120px to match, crossing the vertical lines */
+    &::after {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      inset-inline: -120px;
+      background-image:
+        linear-gradient(var(--grid-line-color), var(--grid-line-color)),
+        linear-gradient(var(--grid-line-color), var(--grid-line-color));
+      background-position: 0 0, 0 100%;
+      background-size: 100% 1px, 100% 1px;
+      background-repeat: no-repeat;
+      pointer-events: none;
+    }
 
-.grid-line-content-text > :first-child {
-  margin-block-start: 0;
-}
+    & > :first-child {
+      margin-block-start: 0;
+    }
 
-.grid-line-content-text > :last-child {
-  margin-block-end: 0;
-}
+    & > :last-child {
+      margin-block-end: 0;
+    }
 
-.grid-line-content-text p {
-  margin-block: var(--s2a-spacing-xl);
-}
+    & p {
+      margin-block: var(--s2a-spacing-xl);
+    }
 
-/* no headings authored: promote paragraphs to the larger statement typography */
-.grid-line-content-text:not(:has(h1, h2, h3, h4, h5, h6)) p {
-  color: var(--s2a-color-content-default);
-  font-family: var(--s2a-font-family-heading);
-  font-size: var(--s2a-typography-font-size-heading-2);
-  font-style: normal;
-  font-weight: var(--typography-font-weight-heading-2);
-  line-height: var(--s2a-typography-line-height-heading-2);
-  letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
+    /* no headings authored: promote paragraphs to the larger statement typography */
+    &:not(:has(h1, h2, h3, h4, h5, h6)) p {
+      color: var(--s2a-color-content-default);
+      font-family: var(--s2a-font-family-heading);
+      font-size: var(--s2a-typography-font-size-heading-2);
+      font-style: normal;
+      font-weight: var(--typography-font-weight-heading-2);
+      line-height: var(--s2a-typography-line-height-heading-2);
+      letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
 
-  /* trim the font's own ascent/descent leading so the first/last line hugs the frame like it does in Figma */
-  text-box-trim: trim-both;
-  text-box-edge: cap alphabetic;
+      /* trim the font's own ascent/descent leading so the first/last line hugs the frame like it does in Figma */
+      text-box-trim: trim-both;
+      text-box-edge: cap alphabetic;
+    }
+  }
 }
