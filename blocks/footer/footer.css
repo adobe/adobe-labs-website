@@ -219,7 +219,7 @@
 .footer__social {
   display: flex;
   align-items: center;
-  gap: var(--s2a-spacing-lg);
+  gap: var(--s2a-spacing-md);
 }
 
 .footer__social-link {
