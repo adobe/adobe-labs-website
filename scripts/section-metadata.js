@@ -1,13 +1,7 @@
-/**
- * Applies Section Metadata's non-`style` fields to a section.
- *
- * The `style` field is already handled by the backend before this code ever
- * runs: it promotes each comma-separated value into a class on the section
- * div directly (see `class="round container"` in the rendered markup), and
- * every other field lands as a plain-text `data-<field>` attribute on that
- * same div. There is no metadata table left in the DOM to parse client-side
- * by the time `decorateSections` hands us the section.
- */
+// The Helix/DA pipeline handles Section Metadata server-side: `style` becomes
+// classes, everything else becomes `data-*` attributes. No table survives
+// to parse client-side.
+import { createOptimizedPicture } from './aem.js';
 
 function toClassName(name) {
   return typeof name === 'string'
@@ -19,9 +13,11 @@ function toClassName(name) {
     : '';
 }
 
-function decorateLayoutField(section, field, value) {
+function decorateLayoutField(section, field, value, addBaseClass) {
   if (!value || value === '0') return;
-  section.classList.add(field, `${field}-${toClassName(value)}`);
+  // only grid/container are used in compound CSS selectors (e.g. .grid, .container.container-4)
+  if (addBaseClass) section.classList.add(field);
+  section.classList.add(`${field}-${toClassName(value)}`);
 }
 
 function parseColor(section) {
@@ -35,6 +31,7 @@ function parseColor(section) {
   };
 }
 
+// WCAG relative luminance
 function getRelativeLuminance({ r, g, b }) {
   const rsRGB = r / 255;
   const gsRGB = g / 255;
@@ -47,10 +44,7 @@ function getRelativeLuminance({ r, g, b }) {
   return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
 }
 
-/**
- * Sets a readable text color for a section's own solid background color,
- * independent of the site's global light/dark theme.
- */
+// contrast is per-section, independent of the site-wide theme
 function setColorScheme(section) {
   const rgb = parseColor(section);
   if (!rgb) return;
@@ -59,14 +53,17 @@ function setColorScheme(section) {
   section.classList.add(scheme);
 }
 
-/**
- * An inserted image asset resolves to an absolute published URL by the time
- * it reaches a data attribute (the pipeline flattens metadata cells to plain
- * text) — there's no `<picture>`/srcset to work with, so this is a single
- * flat background image with no responsive sources and no light/dark swap.
- */
 function isImageUrl(value) {
   return /^(https?:)?\/\//i.test(value);
+}
+
+// other images use same-origin-relative paths; this field's value is an
+// absolute URL whose baked-in origin may not match how the page is served
+export function toSameOriginPath(value) {
+  const url = new URL(value, window.location.href);
+  const isOwnAssetHost = url.hostname === window.location.hostname
+    || /\.aem\.(page|live)$/i.test(url.hostname);
+  return isOwnAssetHost ? url.pathname : value;
 }
 
 export function resolveColor(value) {
@@ -75,36 +72,34 @@ export function resolveColor(value) {
   return value;
 }
 
-function decorateBackground(section, value) {
+function decorateBackground(section, value, eager) {
   if (!value) return;
   if (isImageUrl(value)) {
+    const picture = createOptimizedPicture(toSameOriginPath(value), '', eager);
+    picture.classList.add('section-background');
+    section.prepend(picture);
     section.classList.add('has-background');
-    section.style.backgroundImage = `url('${value}')`;
     return;
   }
   section.style.backgroundColor = resolveColor(value);
   setColorScheme(section);
 }
 
-/**
- * Applies Section Metadata's grid/gap/radius/spacing/container/layout/background
- * fields — already present as classes/data attributes on each section — to
- * that section. Call after `decorateSections`.
- * @param {Element} main The container element
- */
+// call after decorateSections
 export default function decorateSectionMetadata(main) {
-  main.querySelectorAll(':scope > .section').forEach((section) => {
+  main.querySelectorAll(':scope > .section').forEach((section, index) => {
     const {
       grid, gap, radius, spacing, container, layout,
       backgroundColor, backgroundImage, background,
     } = section.dataset;
 
-    decorateLayoutField(section, 'grid', grid);
+    decorateLayoutField(section, 'grid', grid, true);
     decorateLayoutField(section, 'gap', gap);
     decorateLayoutField(section, 'radius', radius);
     decorateLayoutField(section, 'spacing', spacing);
-    decorateLayoutField(section, 'container', container);
+    decorateLayoutField(section, 'container', container, true);
     decorateLayoutField(section, 'layout', layout);
-    decorateBackground(section, backgroundColor || backgroundImage || background);
+    // only the first section's image is awaited by aem.js's waitForFirstImage
+    decorateBackground(section, backgroundColor || backgroundImage || background, index === 0);
   });
 }
