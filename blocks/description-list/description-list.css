@@ -52,7 +52,15 @@
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     align-items: start;
-    gap: var(--s2a-spacing-2xl);
+    gap: var(--s2a-spacing-xs);
+    padding-block-start: 0;
+    border-block-start: none;
+  }
+
+  .description-list__heading,
+  .description-list__items {
+    padding-block-start: var(--s2a-spacing-lg);
+    border-block-start: 1px solid var(--s2a-color-border-subtle);
   }
 
   .description-list__heading {
