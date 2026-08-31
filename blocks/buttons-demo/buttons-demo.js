@@ -72,8 +72,8 @@ export default function decorate(block) {
           paragraph: 'Static white buttons (shown against static dark surface):',
           darkSurface: true,
           buttons: [
-            { tag: 'button', opts: { className: 'button button-static-white', type: 'button', text: 'Native button, static white' } },
-            { tag: 'a', opts: { className: 'button button-static-white', href: '#', text: 'Button as link, static white' } },
+            { tag: 'button', opts: { className: 'button button--static-white', type: 'button', text: 'Native button, static white' } },
+            { tag: 'a', opts: { className: 'button button--static-white', href: '#', text: 'Button as link, static white' } },
           ],
         },
         {
@@ -83,7 +83,7 @@ export default function decorate(block) {
             {
               tag: 'button',
               opts: {
-                className: 'button button-static-white',
+                className: 'button button--static-white',
                 type: 'button',
                 disabled: true,
                 text: 'Native button, static white',
@@ -92,7 +92,7 @@ export default function decorate(block) {
             {
               tag: 'a',
               opts: {
-                className: 'button button-static-white',
+                className: 'button button--static-white',
                 href: '#',
                 'aria-disabled': 'true',
                 text: 'Button as link, static white',

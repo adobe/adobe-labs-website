@@ -331,7 +331,7 @@ main > div {
     pointer-events: none;
   }
 
-  &.button-static-white {
+  &.button--static-white {
     --color-button-background-primary: var(--s2a-color-gray-25);
     --color-button-text-primary: var(--s2a-color-gray-1000);
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
