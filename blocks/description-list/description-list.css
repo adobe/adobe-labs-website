@@ -85,3 +85,19 @@
     min-width: 0;
   }
 }
+
+.description-list.dark {
+  background-color: var(--s2a-color-background-knockout, #000);
+  color: var(--s2a-color-content-knockout, #fff);
+  border-color: var(--s2a-color-gray-700, rgb(80 80 80 / 100%));
+}
+
+.description-list.dark .description-list__item-body {
+  color: var(--s2a-color-transparent-white-64, rgb(255 255 255 / 64%));
+}
+
+.description-list.dark .description-list__heading,
+.description-list.dark .description-list__items,
+.description-list.dark .description-list__item:not(:first-child) {
+  border-color: var(--s2a-color-gray-700, rgb(80 80 80 / 100%));
+}
