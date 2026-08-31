@@ -1,11 +1,18 @@
 .hero {
-  --hero-font-size: var(--s2a-typography-font-size-heading-2);
-  --hero-line-height: var(--s2a-typography-line-height-heading-2);
-  --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
-  --hero-font-weight: var(--typography-font-weight-heading-2);
+  --hero-font-size: var(--s2a-typography-font-size-heading-4);
+  --hero-line-height: var(--s2a-typography-line-height-heading-4);
+  --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-4);
+  --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
+
+  @media (width >=768px) {
+    --hero-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-line-height: var(--s2a-typography-line-height-heading-2);
+    --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
+  }
 
   position: relative;
   isolation: isolate;
+  font-family: var(--heading-font-family);
   font-size: var(--hero-font-size);
   line-height: var(--hero-line-height);
   letter-spacing: var(--hero-letter-spacing);
@@ -54,7 +61,7 @@
     grid-template:
       "top-left top-right" min-content
       "bottom-left bottom-right" min-content
-      / 3fr 1fr;
+      / minmax(0, 1fr) max-content;
     column-gap: var(--s2a-spacing-xs);
     align-content: space-between;
     align-items: start;
@@ -84,26 +91,36 @@
 
   /* Headline */
   h1 {
+    --hero-headline-max-width: 15ch;
+
     display: inline-block;
     grid-area: bottom-left / bottom-left / bottom-right / bottom-right;
+    align-self: last baseline;
     font-size: var(--hero-font-size);
     line-height: var(--hero-line-height);
     letter-spacing: var(--hero-letter-spacing);
     font-weight: var(--hero-font-weight);
-    max-width: 25ch;
+    max-width: var(--hero-headline-max-width);
+
+    @media (width >=500px) {
+      grid-area: bottom-left;
+      --hero-headline-max-width: 20ch;
+    }
 
     @media (width >=768px) {
       grid-area: bottom-left;
-      align-self: end;
+      --hero-headline-max-width: 25ch;
     }
   }
 
   /* Category */
   .hero__content__eyebrow {
+    --hero-category-circle-gap: var(--s2a-spacing-xs);
+
     grid-area: top-left;
     display: flex;
     flex-flow: row nowrap;
-    gap: var(--s2a-spacing-sm);
+    gap: var(--hero-category-circle-gap);
     color: var(--s2a-color-gray-25, #fff);
     font-size: var(--hero-font-size);
     line-height: var(--hero-line-height);
@@ -111,15 +128,19 @@
     font-weight: var(--hero-font-weight);
     place-items: center;
 
+    @media (width >=768px) {
+      --hero-category-circle-gap: var(--s2a-spacing-sm);
+    }
+
     svg {
-      --hero-category-circle-size: 1.75rem;
+      --hero-category-circle-size: clamp(
+        0px,
+        calc(var(--hero-font-size) * 0.825),
+        38px
+      );
 
       height: var(--hero-category-circle-size);
       width: var(--hero-category-circle-size);
-
-      @media (width >=1024px) {
-        --hero-category-circle-size: 2.375rem;
-      }
     }
   }
 
@@ -172,6 +193,7 @@
     grid-area: top-right;
     justify-self: end;
     color: var(--s2a-color-gray-25, #fff);
+    white-space: nowrap;
   }
 
   /* Button wrapper */
@@ -179,7 +201,8 @@
     margin-block: 0;
     display: inline-block;
     grid-area: bottom-right;
-    place-self: end;
+    place-self: last baseline end;
+    white-space: nowrap;
   }
 
   /* Image */
@@ -209,9 +232,10 @@
     }
   }
 
-  /*--- Full-Screen variant ---*/
+  /* --- Full-Screen variant --- */
   &.hero-full-screen {
     border-radius: 0;
+    
     /* Full-screen variant is slightly taller than default on smaller screens. */
     aspect-ratio: 6 / 7;
   
