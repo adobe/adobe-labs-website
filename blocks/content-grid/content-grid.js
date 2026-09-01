@@ -99,17 +99,20 @@ function ensureElementId(el, text, suffix) {
  */
 function ensureSectionId(section, heading) {
   if (!section) return '';
-  if (section.id) return section.id;
-  const id = toClassName(heading?.textContent || '');
-  if (!id) return '';
-  const occupied = document.getElementById(id);
-  if (occupied && occupied === heading) {
-    heading.id = `${id}-title`;
-  } else if (occupied && occupied !== section) {
-    section.id = `${id}-section`;
-    return section.id;
+  if (!section.id) {
+    const id = toClassName(heading?.textContent || '');
+    if (!id) return '';
+    const occupied = document.getElementById(id);
+    if (occupied && occupied === heading) {
+      heading.id = `${id}-title`;
+      section.id = id;
+    } else if (occupied && occupied !== section) {
+      section.id = `${id}-section`;
+    } else {
+      section.id = id;
+    }
   }
-  section.id = id;
+  section.tabIndex = -1;
   return section.id;
 }
 
@@ -124,16 +127,20 @@ function ensureHeadingId(heading) {
 
 /**
  * Previous or Next control that jumps to a destination section.
+ * Accessible name includes the destination heading so links to different
+ * sections are unique (WCAG 2.4.4).
  * @param {Element} section
  * @param {Element} heading
- * @param {string} label
+ * @param {string} direction "Previous" or "Next"
  * @param {string} directionClass
  * @returns {HTMLAnchorElement|null}
  */
-function pagerLink(section, heading, label, directionClass) {
+function pagerLink(section, heading, direction, directionClass) {
   const id = ensureSectionId(section, heading);
   if (!id) return null;
 
+  const destination = heading?.textContent?.trim() || '';
+  const label = destination ? `${direction}: ${destination}` : direction;
   const a = document.createElement('a');
   a.href = `#${id}`;
   a.className = `content-grid__pager-link ${directionClass}`;

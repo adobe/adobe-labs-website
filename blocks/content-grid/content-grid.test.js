@@ -937,20 +937,23 @@ describe('content-grid block', () => {
       await decorate(blocks[2]);
 
       const first = within(blocks[0]);
-      expect(first.queryByRole('link', { name: 'Previous' })).toBeNull();
-      expect(first.getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#two');
+      expect(first.queryByRole('link', { name: 'Previous: One' })).toBeNull();
+      expect(first.getByRole('link', { name: 'Next: Two' })).toHaveAttribute('href', '#two');
       expect(first.getByRole('navigation')).toHaveAttribute('aria-labelledby', 'one-title');
       expect(blocks[0].querySelector('.content-grid__pager-icon')).toHaveAttribute('aria-hidden', 'true');
       expect(document.getElementById('two')).toHaveClass('section');
+      expect(document.getElementById('one')).toHaveAttribute('tabindex', '-1');
+      expect(document.getElementById('two')).toHaveAttribute('tabindex', '-1');
+      expect(document.getElementById('three')).toHaveAttribute('tabindex', '-1');
 
       const middle = within(blocks[1]);
-      expect(middle.getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '#one');
-      expect(middle.getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#three');
+      expect(middle.getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
+      expect(middle.getByRole('link', { name: 'Next: Three' })).toHaveAttribute('href', '#three');
       expect(middle.getByRole('navigation')).toHaveAttribute('aria-labelledby', 'two-title');
 
       const last = within(blocks[2]);
-      expect(last.getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '#two');
-      expect(last.queryByRole('link', { name: 'Next' })).toBeNull();
+      expect(last.getByRole('link', { name: 'Previous: Two' })).toHaveAttribute('href', '#two');
+      expect(last.queryByRole('link', { name: /Next:/ })).toBeNull();
     });
 
     it('does not add a pager to an isolated content grid', async () => {
@@ -989,8 +992,8 @@ describe('content-grid block', () => {
       await decorate(blocks[2]);
 
       expect(blocks[1].parentElement.hidden).toBe(true);
-      expect(within(blocks[0]).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#three');
-      expect(within(blocks[2]).getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '#one');
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Three' })).toHaveAttribute('href', '#three');
+      expect(within(blocks[2]).getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
       expect(within(blocks[1]).queryByRole('navigation')).toBeNull();
     });
 
@@ -1005,10 +1008,10 @@ describe('content-grid block', () => {
       await decorate(blocks[1]);
       await decorate(blocks[2]);
 
-      expect(within(blocks[0]).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#three');
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Three' })).toHaveAttribute('href', '#three');
       expect(within(blocks[1]).queryByRole('navigation')).toBeNull();
       expect(blocks[1].querySelector('h1, h2, h3, h4, h5, h6')).toBeNull();
-      expect(within(blocks[2]).getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '#one');
+      expect(within(blocks[2]).getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
     });
 
     it('slugs the heading text onto the section for the jump target', async () => {
@@ -1022,9 +1025,10 @@ describe('content-grid block', () => {
 
       expect(blocks[0].closest('.section')).toHaveAttribute('id', 'future-of-creative-work');
       expect(blocks[1].closest('.section')).toHaveAttribute('id', 'standards');
-      expect(within(blocks[0]).getByRole('link', { name: 'Next' }))
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Standards' }))
         .toHaveAttribute('href', '#standards');
       expect(document.getElementById('standards')).toHaveClass('section');
+      expect(document.getElementById('standards')).toHaveAttribute('tabindex', '-1');
     });
 
     it('moves an AEM heading slug onto the section so the jump target is the section', async () => {
@@ -1039,8 +1043,9 @@ describe('content-grid block', () => {
       expect(blocks[0].closest('.section')).toHaveAttribute('id', 'one');
       expect(blocks[1].closest('.section')).toHaveAttribute('id', 'two');
       expect(within(blocks[0]).getByRole('heading', { name: 'One' })).toHaveAttribute('id', 'one-title');
-      expect(within(blocks[0]).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#two');
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Two' })).toHaveAttribute('href', '#two');
       expect(document.getElementById('two')).toHaveClass('section');
+      expect(document.getElementById('two')).toHaveAttribute('tabindex', '-1');
       expect(within(blocks[0]).getByRole('navigation')).toHaveAttribute('aria-labelledby', 'one-title');
     });
 
@@ -1053,8 +1058,8 @@ describe('content-grid block', () => {
       await decorate(blocks[0]);
       await decorate(blocks[1]);
 
-      expect(within(blocks[0]).getByRole('link', { name: 'Next' })).toHaveAttribute('href', '#two');
-      expect(within(blocks[1]).getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '#one');
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Two' })).toHaveAttribute('href', '#two');
+      expect(within(blocks[1]).getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
       expect(within(blocks[0]).getByRole('navigation')).toHaveAttribute('aria-labelledby', 'custom-one');
       expect(blocks[0].closest('.section')).toHaveAttribute('id', 'one');
       expect(blocks[1].closest('.section')).toHaveAttribute('id', 'two');
@@ -1081,7 +1086,7 @@ describe('content-grid block', () => {
 
       await decorate(blocks[0]);
       await decorate(blocks[1]);
-      expect(within(blocks[0]).getByRole('link', { name: 'Next' })).toBeTruthy();
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Two' })).toBeTruthy();
 
       blocks[1].parentElement.hidden = true;
       wireStackedGridPagers(blocks[1]);
