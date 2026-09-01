@@ -96,18 +96,10 @@
     aspect-ratio: 2 / 3;
   }
 
-  .grid-item__play {
+  .play-icon {
     position: absolute;
     inset-block-end: var(--s2a-spacing-xs);
     inset-inline-start: var(--s2a-spacing-xs);
-    display: grid;
-    place-items: center;
-    width: var(--s2a-spacing-xl);
-    height: var(--s2a-spacing-xl);
-    border-radius: var(--s2a-border-radius-6);
-    background-color: var(--s2a-color-button-background-primary-transparent-on-dark-active);
-    color: var(--s2a-color-content-knockout);
-    pointer-events: none;
   }
 
   .grid-item__body {

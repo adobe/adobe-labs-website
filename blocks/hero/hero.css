@@ -68,8 +68,8 @@
     padding-inline: var(--hero-padding-inline);
     padding-block: var(--hero-padding-block);
 
-    /* Play control sits in its own row above the headline below 768px. */
-    &:has(.hero__video-icon) {
+    /* Play icon sits in its own row above the headline below 768px. */
+    &:has(.play-icon) {
       grid-template-rows: min-content 1fr auto auto;
       grid-template-areas:
         "top-left top-right"
@@ -173,54 +173,30 @@
     }
   }
 
-  /* Play control */
-  .hero__video-icon {
-    --hero-video-button-size: 2rem;
-    --hero-video-svg-size: 0.75rem;
-    --hero-video-icon-border-radius: 6px;
-    --hero-video-icon-background-blur: var(--s2a-blur-xs);
-    --hero-video-icon-gradient: linear-gradient(0deg,
-        var(--s2a-color-transparent-white-16) 0%,
-        var(--s2a-color-transparent-white-16) 100%),
-      var(--s2a-color-transparent-black-24);
-
+  /* Play icon: placement and size overrides only. Construction lives in styles.css. */
+  .play-icon {
     grid-area: play;
     place-self: start;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--hero-video-icon-gradient);
-    width: var(--hero-video-button-size);
-    height: var(--hero-video-button-size);
-    border-radius: var(--hero-video-icon-border-radius);
-    backdrop-filter: blur(var(--hero-video-icon-background-blur));
 
-    .icon {
-      width: var(--hero-video-svg-size);
-      height: var(--hero-video-svg-size);
-
-      /* Play icon is left-heavy, inset it slightly to visually center it */
-      margin-inline-start: calc(var(--hero-video-button-size) * 0.03);
-
-      img {
-        object-fit: contain;
-      }
+    /* Play glyph is left-heavy, inset it slightly to visually center it */
+    svg {
+      margin-inline-start: calc(var(--play-icon-size) * 0.03);
     }
 
     @media (width >=768px) {
-      --hero-video-button-size: 5rem;
-      --hero-video-svg-size: 1.75rem;
-      --hero-video-icon-border-radius: 15px;
-      --hero-video-icon-background-blur: var(--s2a-blur-sm);
+      --play-icon-size: 80px;
+      --play-icon-svg-size: 30px;
+      --play-icon-radius: 15px;
+      --play-icon-blur: var(--s2a-blur-sm);
 
       grid-area: top-left / top-left / bottom-right / bottom-right;
       place-self: center;
     }
 
     @media (width >=1440px) {
-      --hero-video-button-size: 7.5rem;
-      --hero-video-svg-size: 2.75rem;
-      --hero-video-icon-border-radius: 22.5px;
+      --play-icon-size: 120px;
+      --play-icon-svg-size: 45px;
+      --play-icon-radius: 22.5px;
     }
   }
 

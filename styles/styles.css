@@ -261,6 +261,36 @@ main > div {
   white-space: nowrap !important;
 }
 
+/* --- Play icon ---
+   Decorative overlay for video articles. Blocks override size, svg size,
+   radius, and blur via custom properties; they keep placement to themselves. */
+.play-icon {
+  --play-icon-size: var(--s2a-spacing-xl);
+  --play-icon-svg-size: 12px;
+  --play-icon-radius: var(--s2a-border-radius-6);
+  --play-icon-blur: var(--s2a-blur-xs);
+
+  display: grid;
+  place-items: center;
+  width: var(--play-icon-size);
+  height: var(--play-icon-size);
+  border-radius: var(--play-icon-radius);
+  color: var(--s2a-color-content-knockout);
+  pointer-events: none;
+  background:
+    linear-gradient(
+      var(--s2a-color-transparent-white-16),
+      var(--s2a-color-transparent-white-16)
+    ),
+    var(--s2a-color-transparent-black-24);
+  backdrop-filter: blur(var(--play-icon-blur));
+
+  svg {
+    width: var(--play-icon-svg-size);
+    height: var(--play-icon-svg-size);
+  }
+}
+
 /* --- Buttons --- */
 p.button-wrapper {
   margin: 12px 0;
