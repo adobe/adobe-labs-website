@@ -183,20 +183,20 @@
       margin-inline-start: calc(var(--play-icon-size) * 0.03);
     }
 
-    @media (width >=768px) {
-      --play-icon-size: 80px;
-      --play-icon-svg-size: 30px;
-      --play-icon-radius: 15px;
+    @media (width >=48rem) {
+      --play-icon-size: 5rem;
+      --play-icon-svg-size: 1.875rem;
+      --play-icon-radius: 0.9375rem;
       --play-icon-blur: var(--s2a-blur-sm);
 
       grid-area: top-left / top-left / bottom-right / bottom-right;
       place-self: center;
     }
 
-    @media (width >=1440px) {
-      --play-icon-size: 120px;
-      --play-icon-svg-size: 45px;
-      --play-icon-radius: 22.5px;
+    @media (width >=90rem) {
+      --play-icon-size: 7.5rem;
+      --play-icon-svg-size: 2.8125rem;
+      --play-icon-radius: 1.375rem;
     }
   }
 
