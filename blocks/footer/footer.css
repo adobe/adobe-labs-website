@@ -223,9 +223,17 @@
 }
 
 .footer__social {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
   display: flex;
   align-items: center;
   gap: var(--s2a-spacing-md);
+}
+
+.footer__social > li {
+  margin: 0;
+  padding: 0;
 }
 
 .footer__social-link {

@@ -29,17 +29,14 @@ const FOOTER_FRAGMENT = `
     </div></div>
   </div>
   <div class="section">
-    <div class="social-wrapper">
-      <div class="social block" data-block-name="social" data-block-status="loaded">
-        <div>
-          <div>
-            <p><a href="https://facebook.com/adobe" title="Facebook">Facebook</a></p>
-            <p><a href="https://linkedin.com/company/adobe" title="LinkedIn">LinkedIn</a></p>
-            <p><a href="https://instagram.com/adobe" title="Instagram">Instagram</a></p>
-            <p><a href="https://x.com/adobe" title="X">X</a></p>
-          </div>
-        </div>
-      </div>
+    <div class="default-content-wrapper">
+      <p><strong>Social</strong></p>
+      <ul>
+        <li><a href="https://facebook.com/adobe">Facebook</a></li>
+        <li><a href="https://linkedin.com/company/adobe">LinkedIn</a></li>
+        <li><a href="https://instagram.com/adobe">Instagram</a></li>
+        <li><a href="https://x.com/adobe">X</a></li>
+      </ul>
     </div>
   </div>
   <div class="section">

@@ -136,7 +136,7 @@ function decorateNewsletter(columns) {
  */
 
 /**
- * Extracts menu column roots from a fragment section that contains h2 headings.
+ * Extracts menu column roots from a section that contains h2 headings.
  * @param {Element} section Fragment section element
  * @returns {Element[]|null}
  */
@@ -274,12 +274,19 @@ function getSocialIconId(href) {
 }
 
 /**
- * Returns the social block node from a fragment section, if present.
+ * Returns the social block node from a section that starts with the paragraph text "Social",
+ * if present. Returns the unordered list after the text.
  * @param {Element} section Fragment section element
  * @returns {Element|null}
  */
 function parseSocialSection(section) {
-  return section.querySelector('.social.block') || null;
+  const firstParagraph = section.querySelector('.default-content-wrapper > p:first-child');
+  if (firstParagraph?.textContent?.trim().toLowerCase().startsWith('social')) {
+    if (firstParagraph?.nextElementSibling?.matches('ul')) {
+      return firstParagraph.nextElementSibling;
+    }
+  }
+  return null;
 }
 
 /**
@@ -297,21 +304,23 @@ function decorateSocial(social) {
     const target = link.target || '_blank';
 
     return `
-      <a
-        class="footer__social-link"
-        href="${escapeAttr(href)}"
-        target="${escapeAttr(target)}"
-        rel="noopener noreferrer"
-        aria-label="${escapeAttr(label)}"
-      >
-        <svg class="footer__social-icon" aria-hidden="true" focusable="false">
-          <use href="#${escapeAttr(iconId)}"></use>
-        </svg>
-      </a>
+      <li>
+        <a
+          class="footer__social-link"
+          href="${escapeAttr(href)}"
+          target="${escapeAttr(target)}"
+          rel="noopener noreferrer"
+          aria-label="${escapeAttr(label)}"
+        >
+          <svg class="footer__social-icon" aria-hidden="true" focusable="false">
+            <use href="#${escapeAttr(iconId)}"></use>
+          </svg>
+        </a>
+      </li>
     `;
   }).join('');
 
-  const socialElem = fromHTML(`<div class="footer__social">${links}</div>`);
+  const socialElem = fromHTML(`<ul class="footer__social">${links}</ul>`);
   social.replaceWith(socialElem);
   return socialElem;
 }
@@ -325,7 +334,7 @@ function decorateSocial(social) {
 const LEGAL_SELECTOR = 'p > em, a[href*="opt-out"], a[href*="privacy"]';
 
 /**
- * Returns the legal content node from a fragment section, if present.
+ * Returns the legal content node from a section, if present.
  * @param {Element} section Fragment section element
  * @returns {Element|null}
  */
