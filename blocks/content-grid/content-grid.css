@@ -99,7 +99,7 @@
 
     &:focus-visible {
       outline: var(--s2a-border-width-sm) solid var(--s2a-color-focus-ring-default);
-      outline-offset: 1px;
+      outline-offset: 0.0625rem;
     }
 
     &:focus-visible:active {
@@ -124,7 +124,7 @@
     }
   }
 
-  @container content-grid (inline-size >= 700px) {
+  @container content-grid (inline-size >= 43.75rem) {
     .content-grid__list,
     &.content-grid--has-intro {
       grid-template-columns: repeat(3, 1fr);
@@ -148,7 +148,7 @@
     }
   }
 
-  @container content-grid (inline-size >= 1024px) {
+  @container content-grid (inline-size >= 64rem) {
     .content-grid__list,
     &.content-grid--has-intro {
       grid-template-columns: repeat(4, 1fr);
