@@ -70,14 +70,14 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--s2a-color-focus-ring-default);
-      outline-offset: 2px;
+      outline: 0.125rem solid var(--s2a-color-focus-ring-default);
+      outline-offset: 0.125rem;
       border-radius: var(--s2a-border-radius-3xs);
     }
   }
 }
 
-@media (width >= 600px) {
+@media (width >= 37.5rem) {
   .page-header__row {
     grid-template-columns: minmax(0, 1fr) max-content;
   }
@@ -88,7 +88,7 @@
   }
 }
 
-@media (600px <= width < 1024px) {
+@media (37.5rem <= width < 64rem) {
   .page-header:has(.page-header__jump) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) max-content;
@@ -115,7 +115,7 @@
   }
 }
 
-@media (width >= 1024px) {
+@media (width >= 64rem) {
   .page-header__row {
     grid-template-columns: minmax(0, 1fr) minmax(0, 37.5rem);
     align-items: end;
