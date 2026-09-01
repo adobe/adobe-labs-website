@@ -9,6 +9,12 @@
   background-color: var(--s2a-color-gray-1000);
 }
 
+.footer a:focus-visible,
+.footer__menu-headline[role="button"]:focus-visible {
+  outline: 2px solid var(--s2a-color-focus-ring-default);
+  outline-offset: 2px;
+}
+
 .footer__icons {
   display: none;
 }
@@ -147,8 +153,8 @@
   background: url('./img/newsletter-submit.svg') center / contain no-repeat;
 }
 
-.footer__form:focus-within {
-  outline: 2px solid var(--footer-text);
+.footer__form:focus-within:has(input:focus) {
+  outline: 2px solid var(--s2a-color-focus-ring-default);
   outline-offset: 2px;
 }
 
@@ -269,8 +275,7 @@
 }
 
 .footer__submit:focus-visible {
-  outline: 2px solid var(--footer-text);
-  outline-offset: 2px;
+  border-radius: 9999px;
 }
 
 /* Accordion at smaller viewport. */
