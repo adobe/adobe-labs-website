@@ -273,6 +273,7 @@
   outline-offset: 2px;
 }
 
+/* Accordion at smaller viewport. */
 @media (width < 64rem) {
   .footer__menu-column--nav {
     border-block-start: 1px solid var(--s2a-color-transparent-white-12);
@@ -288,7 +289,7 @@
     align-items: center;
     justify-content: space-between;
     inline-size: 100%;
-    padding-block: var(--s2a-spacing-lg);
+    padding: var(--s2a-spacing-lg) var(--s2a-spacing-xs);
     cursor: pointer;
   }
 
@@ -310,8 +311,17 @@
     outline: 2px solid var(--footer-text);
     outline-offset: 2px;
   }
+
+  .footer__menu-column--nav .footer__menu-section {
+    gap: 0;
+  }
+
+  .footer__menu-column--nav .footer__menu-items {
+    padding: 0 var(--s2a-spacing-xs) var(--s2a-spacing-lg);
+  }
 }
 
+/* Columns and visible at larger viewport. */
 @media (width >= 64rem) {
   .footer__inner {
     padding-inline: var(--s2a-spacing-2xl);
