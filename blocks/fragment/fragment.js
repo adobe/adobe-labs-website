@@ -42,11 +42,29 @@ export async function loadFragment(path) {
   return null;
 }
 
+/**
+ * Removes an empty fragment shell after a failed load.
+ * @param {Element} block The fragment block
+ */
+function removeFragmentShell(block) {
+  const wrapper = block.closest('.fragment-wrapper');
+  const section = wrapper?.closest('.section');
+  if (section && section.children.length === 1) {
+    section.remove();
+    return;
+  }
+  (wrapper || block).remove();
+}
+
 export default async function decorate(block) {
   const link = block.querySelector('a');
   const path = link ? link.getAttribute('href') : block.textContent.trim();
   const fragment = await loadFragment(path);
-  if (!fragment) return;
+  if (!fragment) {
+    // Hidden autoblock links are not a user-facing fallback.
+    if (link?.hidden) removeFragmentShell(block);
+    return;
+  }
 
   const wrapper = block.closest('.fragment-wrapper');
   const section = wrapper.closest('.section');

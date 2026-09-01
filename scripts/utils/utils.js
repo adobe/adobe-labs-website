@@ -5,7 +5,7 @@
  * there are not an excessive number of network requests on the page.
  * `toClassName` comes from aem.js, which is already loaded on every page.
  */
-import { toClassName } from '../aem.js';
+import { buildBlock, getMetadata, toClassName } from '../aem.js';
 
 /**
  * Returns an absolute http(s) URL, or an empty string if the value is missing
@@ -85,6 +85,66 @@ export function isAuthoredTrue(cell) {
 }
 
 /**
+ * Section roots whose `/:slug` children are article detail pages.
+ * Matches the content indexes (research, workflows, sneaks, playground).
+ */
+const ARTICLE_ROOTS = ['/research', '/workflows', '/sneaks', '/playground'];
+
+const DEFAULT_ARTICLE_PRE_FOOTER = '/fragments/article-pre-footer';
+
+/**
+ * Whether a page is an article detail (not a section index or category landing).
+ * True when `template` metadata includes `article`, or the path is one extra
+ * segment under a known article root (e.g. `/research/example-article-1`).
+ *
+ * @param {string} [pathname] Path to check; defaults to the current location
+ * @returns {boolean}
+ */
+export function isArticleDetailPage(pathname = window.location.pathname) {
+  const templates = getMetadata('template')
+    .split(',')
+    .map((value) => toClassName(value.trim()))
+    .filter(Boolean);
+  if (templates.includes('article')) return true;
+
+  const path = pathname.replace(/\/+$/, '') || '/';
+  return ARTICLE_ROOTS.some((root) => {
+    const prefix = `${root}/`;
+    if (!path.startsWith(prefix)) return false;
+    const slug = path.slice(prefix.length);
+    return slug.length > 0 && !slug.includes('/');
+  });
+}
+
+/**
+ * Appends a synthetic fragment block for the shared article pre-footer.
+ * The block is wrapped in a `div` so `decorateSections` treats it as its own
+ * section (a bare block as a `main` child would be misread as the section).
+ * No-op when `main` is detached (`loadFragment` also runs `decorateMain`)
+ * or the page is not an article detail.
+ *
+ * @param {Element} main The page's main element
+ */
+export function buildArticlePreFooter(main) {
+  if (!document.body.contains(main)) return;
+  if (!isArticleDetailPage()) return;
+
+  const preFooterMeta = getMetadata('article-pre-footer');
+  const fragmentPath = preFooterMeta
+    ? new URL(preFooterMeta, window.location).pathname
+    : DEFAULT_ARTICLE_PRE_FOOTER;
+
+  const link = document.createElement('a');
+  link.setAttribute('href', fragmentPath);
+  link.textContent = fragmentPath;
+  // Keep href for fragment.js; hide until the fragment replaces this shell.
+  link.hidden = true;
+  const section = document.createElement('div');
+  section.append(buildBlock('fragment', { elems: [link] }));
+  main.append(section);
+}
+
+/**
  * Creates a delay of the provided function, waiting for a delay
  * before calling the function again.
  * @function
@@ -92,7 +152,6 @@ export function isAuthoredTrue(cell) {
  * @param {Number} timeout - The number of milliseconds to wait prior to rerun.
  * @returns {Function}
  */
-// eslint-disable-next-line import/prefer-default-export
 export const debounce = (trigger, timeout = 200) => {
   let timeoutId;
 
