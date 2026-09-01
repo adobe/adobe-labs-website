@@ -70,12 +70,19 @@ function takeIntro(block) {
   return intro;
 }
 
-const INTRO_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+/**
+ * Consecutive sibling content-grid that can take a pager.
+ * @typedef {object} StackedGrid
+ * @property {Element} block
+ * @property {Element} intro
+ * @property {Element} heading
+ * @property {Element} section
+ */
 
 /**
  * `preferred`, or `preferred-2`, `preferred-3`, … if that id is taken.
  * @param {string} preferred
- * @param {Element} [el]
+ * @param {Element} [el] Node allowed to already own this id
  * @returns {string}
  */
 function unusedId(preferred, el) {
@@ -131,15 +138,6 @@ function ensureSectionId(section, heading) {
 }
 
 /**
- * Heading id for naming the pager nav; slugs the heading text when none exists.
- * @param {Element} [heading]
- * @returns {string}
- */
-function ensureHeadingId(heading) {
-  return ensureElementId(heading, heading?.textContent, 'title');
-}
-
-/**
  * Previous or Next control that jumps to a destination section.
  * Accessible name includes the destination heading so links to different
  * sections are unique (WCAG 2.4.4).
@@ -172,9 +170,9 @@ function pagerLink(section, heading, direction, directionClass) {
 /**
  * Previous / Next nav, or null when neither neighbor has a section id.
  * Names the nav from the local intro heading when one exists.
- * @param {object|null} prevEntry
- * @param {object|null} nextEntry
- * @param {object} entry
+ * @param {StackedGrid|null} prevEntry
+ * @param {StackedGrid|null} nextEntry
+ * @param {StackedGrid} entry
  * @returns {HTMLElement|null}
  */
 function createPager(prevEntry, nextEntry, entry) {
@@ -188,7 +186,7 @@ function createPager(prevEntry, nextEntry, entry) {
 
   const nav = document.createElement('nav');
   nav.className = 'content-grid__pager';
-  const headingId = ensureHeadingId(entry.heading);
+  const headingId = ensureElementId(entry.heading, entry.heading?.textContent, 'title');
   if (headingId) {
     nav.setAttribute('aria-labelledby', headingId);
   } else {
@@ -200,40 +198,21 @@ function createPager(prevEntry, nextEntry, entry) {
 }
 
 /**
- * Intro heading for a decorated content-grid, or null.
- * @param {Element} block
- * @returns {Element|null}
- */
-function introHeading(block) {
-  const intro = block.querySelector(':scope > .content-grid__intro');
-  return intro?.querySelector(INTRO_HEADING_SELECTOR) || null;
-}
-
-/**
- * Whether a section's first child is a content-grid wrapper.
- * Extra siblings after that wrapper still count ("first or only").
- * @param {Element} section
- * @returns {boolean}
- */
-function isContentGridSection(section) {
-  const first = section.children[0];
-  return Boolean(first?.classList.contains('content-grid-wrapper'));
-}
-
-/**
  * Eligible stacked-grid entry, `'skip'` (hidden / no heading), or `'break'`.
+ * Extra siblings after a first-child content-grid wrapper still count.
  * @param {Element} section
- * @returns {'break'|'skip'|{ block: Element, intro: Element, heading: Element, section: Element }}
+ * @returns {'break'|'skip'|StackedGrid}
  */
 function classifySection(section) {
-  if (!section.classList?.contains('section') || !isContentGridSection(section)) {
+  const wrapper = section.children[0];
+  if (!section.classList?.contains('section')
+    || !wrapper?.classList.contains('content-grid-wrapper')) {
     return 'break';
   }
-  const wrapper = section.children[0];
   if (wrapper.hidden) return 'skip';
   const block = wrapper.querySelector(':scope > .content-grid');
-  const heading = block ? introHeading(block) : null;
-  const intro = heading?.closest('.content-grid__intro');
+  const intro = block?.querySelector(':scope > .content-grid__intro');
+  const heading = intro?.querySelector('h1, h2, h3, h4, h5, h6');
   if (!block || !heading || !intro) return 'skip';
   return {
     block,
@@ -247,7 +226,7 @@ function classifySection(section) {
  * Consecutive runs of eligible content grids under the same parent.
  * Hidden grids and grids with no intro heading are skipped (not a break).
  * @param {Element} parent
- * @returns {Array<Array<{ block: Element, intro: Element, heading: Element, section: Element }>>}
+ * @returns {StackedGrid[][]}
  */
 function collectRuns(parent) {
   const runs = [];
@@ -267,18 +246,6 @@ function collectRuns(parent) {
 }
 
 /**
- * Attach or replace the pager on one intro.
- * @param {{ intro: Element, heading: Element }} entry
- * @param {object|null} prevEntry
- * @param {object|null} nextEntry
- */
-function attachPager(entry, prevEntry, nextEntry) {
-  entry.intro.querySelector('.content-grid__pager')?.remove();
-  const pager = createPager(prevEntry, nextEntry, entry);
-  if (pager) entry.intro.append(pager);
-}
-
-/**
  * Wire previous/next jump links for consecutive sibling content grids.
  * Call after this block finishes rendering (including empty/hidden) so later
  * grids can update neighbors that decorated first.
@@ -295,11 +262,13 @@ export function wireStackedGridPagers(block) {
     run.forEach((entry) => ensureSectionId(entry.section, entry.heading));
     run.forEach((entry, i) => {
       wired.add(entry.block);
-      attachPager(
-        entry,
+      entry.intro.querySelector('.content-grid__pager')?.remove();
+      const pager = createPager(
         i > 0 ? run[i - 1] : null,
         i < run.length - 1 ? run[i + 1] : null,
+        entry,
       );
+      if (pager) entry.intro.append(pager);
     });
   });
 
