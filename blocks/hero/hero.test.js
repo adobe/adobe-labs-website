@@ -1,13 +1,5 @@
 import { within } from '@testing-library/dom';
-import { decorateIcons } from '../../scripts/aem.js';
 import decorate from './hero.js';
-
-jest.mock('../../scripts/aem.js', () => ({
-  toClassName: (name) => (typeof name === 'string'
-    ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
-    : ''),
-  decorateIcons: jest.fn(),
-}));
 
 /**
  * Builds a positional hero table (row 1 copy, row 2 image).
@@ -30,10 +22,15 @@ function createHeroBlock(rows) {
   return block;
 }
 
+function expectPlayIcon(block) {
+  const play = block.querySelector('.play-icon');
+  expect(within(block).getByText('Video article')).toHaveClass('visually-hidden');
+  expect(play).toHaveAttribute('aria-hidden', 'true');
+  expect(play.querySelector('svg')).toBeTruthy();
+  return play;
+}
+
 describe('hero block', () => {
-  beforeEach(() => {
-    decorateIcons.mockClear();
-  });
   it('renders category, date, linked headline, CTA, and image', async () => {
     const block = createHeroBlock([
       [
@@ -67,12 +64,13 @@ describe('hero block', () => {
     const media = block.querySelector('.hero__media');
     expect(media).toHaveAttribute('aria-hidden', 'true');
     expect(media.querySelector('picture img')).toHaveAttribute('src', expect.stringMatching(/hero\.jpg$/));
-    expect(block.querySelector('.hero__video-icon')).toBeNull();
+    expect(block.querySelector('.play-icon')).toBeNull();
   });
 
   it.each([
     ['Show Video Icon', 'true'],
     ['show-video-icon', 'yes'],
+    ['Is Video', 'true'],
   ])('adds a video icon when %s is %s', async (label, value) => {
     const block = createHeroBlock([
       [
@@ -88,10 +86,7 @@ describe('hero block', () => {
     await decorate(block);
 
     const view = within(block);
-    expect(view.getByText('Video article')).toHaveClass('visually-hidden');
-    expect(block.querySelector('.hero__video-icon')).toHaveAttribute('aria-hidden', 'true');
-    expect(block.querySelector('.hero__video-icon .icon-play')).toBeTruthy();
-    expect(decorateIcons).toHaveBeenCalled();
+    expectPlayIcon(block);
     expect(view.getByText('Oct 26')).toHaveClass('hero__date');
     expect(view.getByRole('heading', { level: 2 })).toHaveTextContent('Project Clean Take');
     expect(view.getByRole('link', { name: /video article/i }))
@@ -108,8 +103,7 @@ describe('hero block', () => {
     await decorate(block);
 
     expect(within(block).queryByText('Video article')).toBeNull();
-    expect(block.querySelector('.hero__video-icon')).toBeNull();
-    expect(decorateIcons).not.toHaveBeenCalled();
+    expect(block.querySelector('.play-icon')).toBeNull();
   });
 
   it('keeps the video icon on non-home pages', async () => {
@@ -129,8 +123,7 @@ describe('hero block', () => {
 
       await decorate(block);
 
-      expect(block.querySelector('.hero__video-icon')).toBeTruthy();
-      expect(block.querySelector('.hero__video-icon .icon-play')).toBeTruthy();
+      expectPlayIcon(block);
       expect(within(block).getByRole('link', { name: /video article/i })).toBeTruthy();
       expect(block.querySelector('.hero__eyebrow')).toBeNull();
     } finally {

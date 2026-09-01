@@ -83,3 +83,54 @@ export function getCellMedia(cell) {
 export function isAuthoredTrue(cell) {
   return /^(true|yes|1)$/i.test(getCellText(cell));
 }
+
+/**
+ * Authored cell that flags a video article.
+ * Canonical authoring name is **Is Video**; **Show Video Icon** is an alias.
+ *
+ * @param {Object<string, Element>} cells Map from getAuthoredCells
+ * @returns {Element|undefined}
+ */
+export function getAuthoredVideoCell(cells) {
+  return cells['is-video']
+    || cells.isvideo
+    || cells['show-video-icon']
+    || cells.showvideoicon;
+}
+
+/**
+ * Whether authored cells mark this item as a video article (`true`, `yes`, or `1`).
+ *
+ * @param {Object<string, Element>} cells Map from getAuthoredCells
+ * @returns {boolean}
+ */
+export function isAuthoredVideo(cells) {
+  return isAuthoredTrue(getAuthoredVideoCell(cells));
+}
+
+const PLAY_ICON_SVG = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" width="12" height="12" focusable="false">
+    <path fill="currentColor" d="M9.95 5.079c.467.269.467.943 0 1.212L3.05 10.275C2.583 10.544 2 10.207 2 9.668V1.701c0-.539.583-.876 1.05-.606z"/>
+  </svg>
+`.trim();
+
+/**
+ * Builds the decorative play icon used on video articles in Hero and Grid Item.
+ * Returns two nodes so callers can place the accessible label and the visual
+ * icon independently. Authors set **Is Video** to `true`, `yes`, or `1`;
+ * **Show Video Icon** is an alias.
+ *
+ * @returns {{ label: HTMLSpanElement, icon: HTMLSpanElement }}
+ */
+export function buildPlayIcon() {
+  const label = document.createElement('span');
+  label.className = 'visually-hidden';
+  label.textContent = 'Video article';
+
+  const icon = document.createElement('span');
+  icon.className = 'play-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = PLAY_ICON_SVG;
+
+  return { label, icon };
+}
