@@ -44,7 +44,7 @@
     z-index: -1;
     inset-block: 0;
     inset-inline: 0;
-    inline-size: calc(100% - 0.75rem);
+    inline-size: 100%;
     max-inline-size: calc(var(--site-max-inline-size, 90rem) - 0.75rem);
     margin-inline: auto;
     background-image:
