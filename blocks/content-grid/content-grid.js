@@ -73,6 +73,20 @@ function takeIntro(block) {
 const INTRO_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
 
 /**
+ * `preferred`, or `preferred-2`, `preferred-3`, … if that id is taken.
+ * @param {string} preferred
+ * @param {Element} [el]
+ * @returns {string}
+ */
+function unusedId(preferred, el) {
+  let id = preferred;
+  for (let n = 2; document.getElementById(id) && document.getElementById(id) !== el; n += 1) {
+    id = `${preferred}-${n}`;
+  }
+  return id;
+}
+
+/**
  * Assigns `el.id` from slugified `text` when missing.
  * Uses `${base}-${suffix}` when that slug is already taken by another node.
  * @param {Element} [el]
@@ -86,7 +100,7 @@ function ensureElementId(el, text, suffix) {
   const base = toClassName(text);
   if (!base) return '';
   const occupied = document.getElementById(base);
-  el.id = (!occupied || occupied === el) ? base : `${base}-${suffix}`;
+  el.id = (!occupied || occupied === el) ? base : unusedId(`${base}-${suffix}`, el);
   return el.id;
 }
 
@@ -104,10 +118,10 @@ function ensureSectionId(section, heading) {
     if (!id) return '';
     const occupied = document.getElementById(id);
     if (occupied && occupied === heading) {
-      heading.id = `${id}-title`;
+      heading.id = unusedId(`${id}-title`, heading);
       section.id = id;
     } else if (occupied && occupied !== section) {
-      section.id = `${id}-section`;
+      section.id = unusedId(`${id}-section`, section);
     } else {
       section.id = id;
     }

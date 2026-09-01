@@ -1065,6 +1065,27 @@ describe('content-grid block', () => {
       expect(blocks[1].closest('.section')).toHaveAttribute('id', 'two');
     });
 
+    it('gives unique section and heading ids when titles repeat', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>Standards</h2>' },
+        { intro: '<h2>Standards</h2>' },
+        { intro: '<h2>Standards</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+      await decorate(blocks[2]);
+
+      const sectionIds = blocks.map((block) => block.closest('.section').id);
+      const headingIds = blocks.map((block) => block.querySelector('h2').id);
+      expect(sectionIds).toEqual(['standards', 'standards-section', 'standards-section-2']);
+      expect(headingIds).toEqual(['standards-title', 'standards-title-2', 'standards-title-3']);
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Standards' }))
+        .toHaveAttribute('href', '#standards-section');
+      expect(within(blocks[1]).getByRole('link', { name: 'Next: Standards' }))
+        .toHaveAttribute('href', '#standards-section-2');
+    });
+
     it('does not add a pager when the grid is not the section first child', async () => {
       const { blocks } = createStackedPage([
         { intro: '<h2>One</h2>' },
