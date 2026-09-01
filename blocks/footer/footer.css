@@ -224,7 +224,7 @@
 
 .footer__social-link {
   display: block;
-  color: var(--s2a-color-gray-500);
+  color: var(--footer-text-subtle);
   text-decoration: none;
 }
 
