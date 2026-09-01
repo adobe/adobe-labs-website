@@ -1,46 +1,283 @@
-.hero-container .hero-wrapper {
-  max-width: unset;
+.hero {
+  --hero-font-size: var(--s2a-typography-font-size-heading-4);
+  --hero-line-height: var(--s2a-typography-line-height-heading-4);
+  --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-4);
+  --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
+
+  @media (width >=48rem) {
+    --hero-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-line-height: var(--s2a-typography-line-height-heading-2);
+    --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
+  }
+
+  position: relative;
+  isolation: isolate;
+  font-family: var(--heading-font-family);
+  font-size: var(--hero-font-size);
+  line-height: var(--hero-line-height);
+  letter-spacing: var(--hero-letter-spacing);
+  font-weight: var(--hero-font-weight);
+  border-radius: var(--s2a-border-radius-xs);
+  aspect-ratio: 3 / 2;
+
+  @media (width >=48rem) {
+    aspect-ratio: 2 / 1;
+  }
+
+  /* The inline link wraps the entire component,
+     Entire component is clickable. */
+  .hero__link-wrap {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    color: var(--s2a-color-gray-25, #fff);
+    text-decoration: none;
+
+    &:focus-visible {
+      outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+      outline-offset: var(--s2a-border-width-md);
+    }
+  }
+
+  /* Grid container for positioning child items. */
+  .hero__content {
+    /* Figma's spacing differs from s2a tokens. */
+    --hero-padding-block: var(--s2a-spacing-sm);
+    --hero-padding-inline: var(--s2a-spacing-sm);
+
+    /* TODO: add negative margins when header and first section are implemented. */
+
+    @media (width >=48rem) {
+      --hero-padding-block: var(--s2a-spacing-md);
+      --hero-padding-inline: var(--s2a-spacing-md);
+    }
+
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template:
+      "top-left top-right" min-content
+      "bottom-left bottom-right" min-content
+      / minmax(0, 1fr) max-content;
+    column-gap: var(--s2a-spacing-xs);
+    align-content: space-between;
+    align-items: start;
+    padding-inline: var(--hero-padding-inline);
+    padding-block: var(--hero-padding-block);
+
+    /* Play control sits in its own row above the headline below 48rem. */
+    &:has(.hero__video-icon) {
+      grid-template-rows: min-content 1fr auto auto;
+      grid-template-areas:
+        "top-left top-right"
+        ". ."
+        "play ."
+        "bottom-left bottom-right";
+      row-gap: var(--s2a-spacing-xs);
+      align-content: stretch;
+
+      @media (width >=48rem) {
+        grid-template-rows: min-content min-content;
+        grid-template-areas:
+          "top-left top-right"
+          "bottom-left bottom-right";
+        align-content: space-between;
+      }
+    }
+  }
+
+  /* Headline */
+  .hero__headline {
+    --hero-headline-max-width: 15ch;
+
+    display: inline-block;
+    grid-area: bottom-left / bottom-left / bottom-right / bottom-right;
+    align-self: last baseline;
+    font-size: var(--hero-font-size);
+    line-height: var(--hero-line-height);
+    letter-spacing: var(--hero-letter-spacing);
+    font-weight: var(--hero-font-weight);
+    max-width: var(--hero-headline-max-width);
+
+    @media (width >=31.25rem) {
+      --hero-headline-max-width: 20ch;
+
+      grid-area: bottom-left;
+    }
+
+    @media (width >=48rem) {
+      --hero-headline-max-width: 25ch;
+
+      grid-area: bottom-left;
+    }
+  }
+
+  /* Category */
+  .hero__eyebrow {
+    --hero-category-circle-gap: var(--s2a-spacing-xs);
+
+    grid-area: top-left;
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--hero-category-circle-gap);
+    color: var(--s2a-color-gray-25, #fff);
+    font-size: var(--hero-font-size);
+    line-height: var(--hero-line-height);
+    letter-spacing: var(--hero-letter-spacing);
+    font-weight: var(--hero-font-weight);
+    place-items: center;
+
+    @media (width >=48rem) {
+      --hero-category-circle-gap: var(--s2a-spacing-sm);
+    }
+
+    svg {
+      --hero-category-circle-size: clamp(
+        0rem,
+        calc(var(--hero-font-size) * 0.825),
+        2.375rem
+      );
+
+      height: var(--hero-category-circle-size);
+      width: var(--hero-category-circle-size);
+    }
+  }
+
+  /* Image */
+  .hero__media {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+
+    picture,
+    img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Scrim for image overlay. */
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(109deg,
+          var(--s2a-color-transparent-black-64) 0%,
+          var(--s2a-color-transparent-black-00) 55.15%);
+    }
+  }
+
+  /* Play control */
+  .hero__video-icon {
+    --hero-video-button-size: 2rem;
+    --hero-video-svg-size: 0.75rem;
+    --hero-video-icon-border-radius: var(--s2a-border-radius-6);
+    --hero-video-icon-background-blur: var(--s2a-blur-xs);
+    --hero-video-icon-gradient: linear-gradient(0deg,
+        var(--s2a-color-transparent-white-16) 0%,
+        var(--s2a-color-transparent-white-16) 100%),
+      var(--s2a-color-transparent-black-24);
+
+    grid-area: play;
+    place-self: start;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--hero-video-icon-gradient);
+    width: var(--hero-video-button-size);
+    height: var(--hero-video-button-size);
+    border-radius: var(--hero-video-icon-border-radius);
+    backdrop-filter: blur(var(--hero-video-icon-background-blur));
+
+    .icon {
+      width: var(--hero-video-svg-size);
+      height: var(--hero-video-svg-size);
+
+      /* Play icon is left-heavy, inset it slightly to visually center it */
+      margin-inline-start: calc(var(--hero-video-button-size) * 0.03);
+
+      img {
+        object-fit: contain;
+      }
+    }
+
+    @media (width >=48rem) {
+      --hero-video-button-size: 5rem;
+      --hero-video-svg-size: 1.75rem;
+      --hero-video-icon-border-radius: 1rem;
+      --hero-video-icon-background-blur: var(--s2a-blur-sm);
+
+      grid-area: top-left / top-left / bottom-right / bottom-right;
+      place-self: center;
+    }
+
+    @media (width >=1440px) {
+      --hero-video-button-size: 7.5rem;
+      --hero-video-svg-size: 2.75rem;
+      --hero-video-icon-border-radius: 1.5rem;
+    }
+  }
+
+  /* Date */
+  .hero__date {
+    grid-area: top-right;
+    justify-self: end;
+    color: var(--s2a-color-gray-25, #fff);
+    white-space: nowrap;
+  }
+
+  /* Button wrapper */
+  .hero__button-wrapper {
+    margin-block: 0;
+    display: inline-block;
+    grid-area: bottom-right;
+    place-self: last baseline end;
+    white-space: nowrap;
+  }
+
+  /* --- Full-Screen variant --- */
+  &.hero-full-screen {
+    border-radius: 0;
+    
+    /* Full-screen variant is slightly taller than default on smaller screens. */
+    aspect-ratio: 6 / 7;
+  
+    @media (width >=48rem) {
+      aspect-ratio: 2 / 1;
+    }
+
+    .hero__content {
+      /* Figma's spacing differs from s2a tokens.
+         Full-screen variant has custom vertical padding to account for overlapping content. */
+      --hero-padding-block: 5.625rem 3.125rem;
+      --hero-padding-inline: var(--s2a-section-spacing-sm);
+
+      /* TODO: add negative margins when header and first section are implemented. */
+
+      @media (width >=48rem) {
+        --hero-padding-block: 6.25rem 4.375rem;
+      }
+
+      @media (width >=64rem) {
+        --hero-padding-block: 5rem 5.625rem;
+      }
+    }
+  }
+}
+
+/* Default hero keeps main > .section > div max-inline-size and padding. */
+.hero-container:has(.hero-full-screen) .hero-wrapper {
+  max-inline-size: unset;
   padding: 0;
 }
 
-.hero {
-  position: relative;
-  padding: 40px 24px;
-  min-height: 300px;
-  color: var(--s2a-color-gray-25, #fff);
-  font-size: var(--s2a-typography-font-size-heading-2);
-  line-height: var(--s2a-typography-line-height-heading-2);
-  letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
-  font-weight: var(--typography-font-weight-heading-2);
-}
-
-.hero a {
-  color: var(--s2a-color-gray-25, #fff);
-}
-
-.hero h1 {
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
-  color: var(--background-color);
-}
-
-.hero picture {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  object-fit: cover;
-  box-sizing: border-box;
-}
-
-.hero img {
-  object-fit: cover;
-  width: 100%;
-  height: 100%;
-}
-
-@media (width >= 900px) {
-  .hero {
-    padding: 40px 32px;
-  }
+/* Dark mode */
+[data-theme="dark"] .hero__link-wrap:focus-visible {
+  outline-color: var(--s2a-color-focus-ring-knockout);
 }
