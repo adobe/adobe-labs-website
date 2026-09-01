@@ -45,8 +45,6 @@
     inset-block: 0;
     inset-inline: 0;
     inline-size: 100%;
-    max-inline-size: calc(var(--site-max-inline-size, 90rem) - 0.75rem);
-    margin-inline: auto;
     background-image:
       linear-gradient(var(--grid-line-color), var(--grid-line-color)),
       linear-gradient(var(--grid-line-color), var(--grid-line-color));
