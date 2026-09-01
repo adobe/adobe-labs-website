@@ -87,6 +87,11 @@ h1, h2, h3, h4, h5, h6 {
   text-wrap: balance;
 }
 
+/* Default focus ring. */
+:focus-visible {
+  outline: 2px solid var(--s2a-color-focus-ring-default);
+  outline-offset: 2px;
+}
 
 /* --- Elements --- */
 body {
