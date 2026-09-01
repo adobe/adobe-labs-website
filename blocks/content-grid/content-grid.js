@@ -70,6 +70,224 @@ function takeIntro(block) {
   return intro;
 }
 
+const INTRO_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+
+/**
+ * Assigns `el.id` from slugified `text` when missing.
+ * Uses `${base}-${suffix}` when that slug is already taken by another node.
+ * @param {Element} [el]
+ * @param {string} [text]
+ * @param {string} [suffix]
+ * @returns {string}
+ */
+function ensureElementId(el, text, suffix) {
+  if (!el) return '';
+  if (el.id) return el.id;
+  const base = toClassName(text);
+  if (!base) return '';
+  const occupied = document.getElementById(base);
+  el.id = (!occupied || occupied === el) ? base : `${base}-${suffix}`;
+  return el.id;
+}
+
+/**
+ * Section id for in-page jumps; slugs the intro heading text when none exists.
+ * If the heading already owns that slug (AEM auto-ids), move it onto the section.
+ * @param {Element} [section]
+ * @param {Element} [heading]
+ * @returns {string}
+ */
+function ensureSectionId(section, heading) {
+  if (!section) return '';
+  if (section.id) return section.id;
+  const id = toClassName(heading?.textContent || '');
+  if (!id) return '';
+  const occupied = document.getElementById(id);
+  if (occupied && occupied === heading) {
+    heading.id = `${id}-title`;
+  } else if (occupied && occupied !== section) {
+    section.id = `${id}-section`;
+    return section.id;
+  }
+  section.id = id;
+  return section.id;
+}
+
+/**
+ * Heading id for naming the pager nav; slugs the heading text when none exists.
+ * @param {Element} [heading]
+ * @returns {string}
+ */
+function ensureHeadingId(heading) {
+  return ensureElementId(heading, heading?.textContent, 'title');
+}
+
+/**
+ * Previous or Next control that jumps to a destination section.
+ * @param {Element} section
+ * @param {Element} heading
+ * @param {string} label
+ * @param {string} directionClass
+ * @returns {HTMLAnchorElement|null}
+ */
+function pagerLink(section, heading, label, directionClass) {
+  const id = ensureSectionId(section, heading);
+  if (!id) return null;
+
+  const a = document.createElement('a');
+  a.href = `#${id}`;
+  a.className = `content-grid__pager-link ${directionClass}`;
+  const sr = document.createElement('span');
+  sr.className = 'visually-hidden';
+  sr.textContent = label;
+  a.append(sr);
+  const icon = document.createElement('span');
+  icon.className = 'content-grid__pager-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  a.append(icon);
+  return a;
+}
+
+/**
+ * Previous / Next nav, or null when neither neighbor has a section id.
+ * Names the nav from the local intro heading when one exists.
+ * @param {object|null} prevEntry
+ * @param {object|null} nextEntry
+ * @param {object} entry
+ * @returns {HTMLElement|null}
+ */
+function createPager(prevEntry, nextEntry, entry) {
+  const prev = prevEntry
+    ? pagerLink(prevEntry.section, prevEntry.heading, 'Previous', 'content-grid__pager-link--prev')
+    : null;
+  const next = nextEntry
+    ? pagerLink(nextEntry.section, nextEntry.heading, 'Next', 'content-grid__pager-link--next')
+    : null;
+  if (!prev && !next) return null;
+
+  const nav = document.createElement('nav');
+  nav.className = 'content-grid__pager';
+  const headingId = ensureHeadingId(entry.heading);
+  if (headingId) {
+    nav.setAttribute('aria-labelledby', headingId);
+  } else {
+    nav.setAttribute('aria-label', 'Nearby sections');
+  }
+  if (prev) nav.append(prev);
+  if (next) nav.append(next);
+  return nav;
+}
+
+/**
+ * Intro heading for a decorated content-grid, or null.
+ * @param {Element} block
+ * @returns {Element|null}
+ */
+function introHeading(block) {
+  const intro = block.querySelector(':scope > .content-grid__intro');
+  return intro?.querySelector(INTRO_HEADING_SELECTOR) || null;
+}
+
+/**
+ * Whether a section's first child is a content-grid wrapper.
+ * Extra siblings after that wrapper still count ("first or only").
+ * @param {Element} section
+ * @returns {boolean}
+ */
+function isContentGridSection(section) {
+  const first = section.children[0];
+  return Boolean(first?.classList.contains('content-grid-wrapper'));
+}
+
+/**
+ * Eligible stacked-grid entry, `'skip'` (hidden / no heading), or `'break'`.
+ * @param {Element} section
+ * @returns {'break'|'skip'|{ block: Element, intro: Element, heading: Element, section: Element }}
+ */
+function classifySection(section) {
+  if (!section.classList?.contains('section') || !isContentGridSection(section)) {
+    return 'break';
+  }
+  const wrapper = section.children[0];
+  if (wrapper.hidden) return 'skip';
+  const block = wrapper.querySelector(':scope > .content-grid');
+  const heading = block ? introHeading(block) : null;
+  const intro = heading?.closest('.content-grid__intro');
+  if (!block || !heading || !intro) return 'skip';
+  return {
+    block,
+    intro,
+    heading,
+    section,
+  };
+}
+
+/**
+ * Consecutive runs of eligible content grids under the same parent.
+ * Hidden grids and grids with no intro heading are skipped (not a break).
+ * @param {Element} parent
+ * @returns {Array<Array<{ block: Element, intro: Element, heading: Element, section: Element }>>}
+ */
+function collectRuns(parent) {
+  const runs = [];
+  let current = [];
+  [...parent.children].forEach((section) => {
+    const result = classifySection(section);
+    if (result === 'break') {
+      if (current.length) runs.push(current);
+      current = [];
+      return;
+    }
+    if (result === 'skip') return;
+    current.push(result);
+  });
+  if (current.length) runs.push(current);
+  return runs;
+}
+
+/**
+ * Attach or replace the pager on one intro.
+ * @param {{ intro: Element, heading: Element }} entry
+ * @param {object|null} prevEntry
+ * @param {object|null} nextEntry
+ */
+function attachPager(entry, prevEntry, nextEntry) {
+  entry.intro.querySelector('.content-grid__pager')?.remove();
+  const pager = createPager(prevEntry, nextEntry, entry);
+  if (pager) entry.intro.append(pager);
+}
+
+/**
+ * Wire previous/next jump links for consecutive sibling content grids.
+ * Call after this block finishes rendering (including empty/hidden) so later
+ * grids can update neighbors that decorated first.
+ * @param {Element} block
+ */
+export function wireStackedGridPagers(block) {
+  const section = block.closest('.section');
+  const parent = section?.parentElement;
+  if (!parent) return;
+
+  const wired = new Set();
+  collectRuns(parent).forEach((run) => {
+    if (run.length < 2) return;
+    run.forEach((entry) => ensureSectionId(entry.section, entry.heading));
+    run.forEach((entry, i) => {
+      wired.add(entry.block);
+      attachPager(
+        entry,
+        i > 0 ? run[i - 1] : null,
+        i < run.length - 1 ? run[i + 1] : null,
+      );
+    });
+  });
+
+  parent.querySelectorAll('.content-grid__pager').forEach((pager) => {
+    const grid = pager.closest('.content-grid');
+    if (grid && !wired.has(grid)) pager.remove();
+  });
+}
+
 /**
  * Trim and lowercase category names from a string, comma list, or array.
  * @param {*} value
@@ -305,6 +523,7 @@ export default async function decorate(block) {
     // eslint-disable-next-line no-console
     console.error(`content-grid: failed to load ${endpoint}`);
     hideEmptyBlock(block);
+    wireStackedGridPagers(block);
     return;
   }
 
@@ -315,4 +534,5 @@ export default async function decorate(block) {
     items.map((entry) => createGridItem(entry, { subheadDescription, showCategory })),
     intro,
   );
+  wireStackedGridPagers(block);
 }
