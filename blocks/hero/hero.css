@@ -4,7 +4,7 @@
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-4);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
 
-  @media (width >=768px) {
+  @media (width >=48rem) {
     --hero-font-size: var(--s2a-typography-font-size-heading-2);
     --hero-line-height: var(--s2a-typography-line-height-heading-2);
     --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
@@ -20,7 +20,7 @@
   border-radius: var(--s2a-border-radius-xs);
   aspect-ratio: 3 / 2;
 
-  @media (width >=768px) {
+  @media (width >=48rem) {
     aspect-ratio: 2 / 1;
   }
 
@@ -48,7 +48,7 @@
 
     /* TODO: add negative margins when header and first section are implemented. */
 
-    @media (width >=768px) {
+    @media (width >=48rem) {
       --hero-padding-block: var(--s2a-spacing-md);
       --hero-padding-inline: var(--s2a-spacing-md);
     }
@@ -68,7 +68,7 @@
     padding-inline: var(--hero-padding-inline);
     padding-block: var(--hero-padding-block);
 
-    /* Play icon sits in its own row above the headline below 768px. */
+    /* Play icon sits in its own row above the headline below 48rem. */
     &:has(.play-icon) {
       grid-template-rows: min-content 1fr auto auto;
       grid-template-areas:
@@ -79,7 +79,7 @@
       row-gap: var(--s2a-spacing-xs);
       align-content: stretch;
 
-      @media (width >=768px) {
+      @media (width >=48rem) {
         grid-template-rows: min-content min-content;
         grid-template-areas:
           "top-left top-right"
@@ -102,13 +102,13 @@
     font-weight: var(--hero-font-weight);
     max-width: var(--hero-headline-max-width);
 
-    @media (width >=500px) {
+    @media (width >=31.25rem) {
       --hero-headline-max-width: 20ch;
 
       grid-area: bottom-left;
     }
 
-    @media (width >=768px) {
+    @media (width >=48rem) {
       --hero-headline-max-width: 25ch;
 
       grid-area: bottom-left;
@@ -130,15 +130,15 @@
     font-weight: var(--hero-font-weight);
     place-items: center;
 
-    @media (width >=768px) {
+    @media (width >=48rem) {
       --hero-category-circle-gap: var(--s2a-spacing-sm);
     }
 
     svg {
       --hero-category-circle-size: clamp(
-        0px,
+        0rem,
         calc(var(--hero-font-size) * 0.825),
-        38px
+        2.375rem
       );
 
       height: var(--hero-category-circle-size);
@@ -224,7 +224,7 @@
     /* Full-screen variant is slightly taller than default on smaller screens. */
     aspect-ratio: 6 / 7;
   
-    @media (width >=768px) {
+    @media (width >=48rem) {
       aspect-ratio: 2 / 1;
     }
 
@@ -236,11 +236,11 @@
 
       /* TODO: add negative margins when header and first section are implemented. */
 
-      @media (width >=768px) {
+      @media (width >=48rem) {
         --hero-padding-block: 6.25rem 4.375rem;
       }
 
-      @media (width >=1024px) {
+      @media (width >=64rem) {
         --hero-padding-block: 5rem 5.625rem;
       }
     }
