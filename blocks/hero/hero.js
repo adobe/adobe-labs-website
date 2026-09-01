@@ -100,9 +100,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
       </div>
       <div class="hero__date" aria-hidden="true"></div>
       <h2 class="hero__headline"><span></span></h2>
-      <p class="hero__button-wrapper">
-        <span class="button primary"></span>
-      </p>
+      <p class="hero__cta-text"></p>
     </div>
   `.trim();
 
@@ -125,7 +123,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     temp.innerHTML = VIDEO_ICON_HTML;
     const iconNodes = Array.from(temp.childNodes);
     const content = fragment.querySelector('.hero__content');
-    const insertBefore = content.querySelector('.hero__date, .hero__headline, .hero__button-wrapper');
+    const insertBefore = content.querySelector('.hero__date, .hero__headline, .hero__cta-text');
     iconNodes.forEach((node) => {
       content.insertBefore(node, insertBefore);
     });
@@ -143,12 +141,11 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     headlineSpan.textContent = headline;
   }
 
-  const buttonWrapper = fragment.querySelector('.hero__button-wrapper');
-  const cta = buttonWrapper.querySelector('.button');
+  const ctaText = fragment.querySelector('.hero__cta-text');
   if (href && linkLabel) {
-    cta.textContent = linkLabel;
+    ctaText.textContent = linkLabel;
   } else {
-    buttonWrapper.remove();
+    ctaText.remove();
   }
 
   const blockChildren = [...fragment.children];
