@@ -273,7 +273,7 @@
   outline-offset: 2px;
 }
 
-@media (width < 1024px) {
+@media (width < 64rem) {
   .footer__menu-column--nav {
     border-block-start: 1px solid var(--s2a-color-transparent-white-12);
   }
@@ -312,7 +312,7 @@
   }
 }
 
-@media (width >= 1024px) {
+@media (width >= 64rem) {
   .footer__inner {
     padding-inline: var(--s2a-spacing-2xl);
   }
