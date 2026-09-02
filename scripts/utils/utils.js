@@ -153,3 +153,28 @@ export const debounce = (trigger, timeout = 200) => {
     }, timeout);
   };
 };
+
+/**
+ * Escapes a value for safe use in an HTML attribute.
+ * @param {*} value Value to escape
+ * @returns {string}
+ */
+export function escapeAttr(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
+ * Parses an HTML string and returns its first element child.
+ * @param {string} markup HTML markup
+ * @returns {Element|null}
+ */
+export function fromHTML(markup) {
+  const template = document.createElement('template');
+  template.innerHTML = markup.trim();
+  return template.content.firstElementChild;
+}
