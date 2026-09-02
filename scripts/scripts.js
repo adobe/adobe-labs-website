@@ -246,7 +246,7 @@ function loadDelayed() {
   try {
     import('./content-credentials.js');
   } catch (error) {
-    
+    // Ignore error.
   }
 }
 
