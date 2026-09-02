@@ -428,3 +428,24 @@ main .section.highlight {
   margin: 0;
   padding: 40px 0;
 }
+
+/* --- Articles --- */
+
+body.article {
+  /* Default article content width. No s2a token represents these widths. */
+  --article-content-inline-size-narrow: 43.25rem;
+  --article-content-inline-size-wide: 72.375rem;
+
+  /* Remove site padding for article content. */
+  main > .section > div {
+    padding-inline: 0;
+  }
+
+  .default-content-wrapper {
+    max-inline-size: var(--article-content-inline-size-narrow);
+  }
+
+  .full-bleed .default-content-wrapper {
+    max-inline-size: unset;
+  }
+}
