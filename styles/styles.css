@@ -42,6 +42,7 @@
 
   /* sizing */
   --site-max-inline-size: 120rem; /* 1920px */
+  --site-root-inline-padding: var(--s2a-spacing-md, 1.0rem);
 
   /* buttons */
   --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
@@ -397,9 +398,9 @@ main > .section {
 }
 
 main > .section > div {
-  max-inline-size: var(--site-max-inline-size, 90rem);
+  max-inline-size: var(--site-max-inline-size);
   margin: auto;
-  padding: 0 var(--s2a-spacing-md, 1.0rem);
+  padding: 0 var(--site-root-inline-padding);
 }
 
 main > .section:first-of-type {
