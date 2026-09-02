@@ -310,6 +310,7 @@ function decorateSocial(social) {
     const label = link.getAttribute('title')?.trim() || link.textContent.trim();
     const { href } = link;
     const target = link.target || '_blank';
+    const ariaLabel = target === '_blank' ? `${label} (opens in a new tab)` : label;
 
     return `
       <li>
@@ -318,7 +319,7 @@ function decorateSocial(social) {
           href="${escapeAttr(href)}"
           target="${escapeAttr(target)}"
           rel="noopener noreferrer"
-          aria-label="${escapeAttr(label)}"
+          aria-label="${escapeAttr(ariaLabel)}"
         >
           <svg class="footer__social-icon" aria-hidden="true" focusable="false">
             <use href="#${escapeAttr(iconId)}"></use>
