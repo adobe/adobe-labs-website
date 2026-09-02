@@ -21,6 +21,8 @@
 
 .footer__inner {
   position: relative;
+  max-inline-size: var(--site-max-inline-size);
+  margin-inline: auto;
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -334,10 +336,16 @@
   }
 }
 
+@media (width > 48rem) {
+  .footer__inner {
+    padding-inline: var(--s2a-spacing-2xl);
+  }
+}
+
 /* Columns and visible at larger viewport. */
 @media (width >= 64rem) {
   .footer__inner {
-    padding-inline: var(--s2a-spacing-2xl);
+    padding-inline: 100px;
   }
 
   .footer__content {
@@ -362,12 +370,13 @@
   .footer__menu-nav {
     flex: 0 0 50%;
     flex-direction: row;
+    justify-content: end;
     gap: var(--s2a-spacing-xs);
   }
 
   .footer__menu-column--nav {
     flex: 1 1 0;
-    min-inline-size: 0;
+    max-inline-size: 17.5rem;
   }
 
   .footer__menu-headline {
