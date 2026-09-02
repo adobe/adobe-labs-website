@@ -39,7 +39,9 @@ describe('side-by-side-image block', () => {
     expect(items).toHaveLength(2);
     items.forEach((item) => expect(item).toHaveClass('side-by-side-image__item'));
     expect(items[0].querySelector('img')).toHaveAttribute('src', 'left.jpg');
+    expect(items[0].querySelector('img')).toHaveAttribute('alt', 'Left sketch');
     expect(items[1].querySelector('img')).toHaveAttribute('src', 'right.jpg');
+    expect(items[1].querySelector('img')).toHaveAttribute('alt', 'Right sketch');
   });
 
   it('flattens cells across multiple authored rows', () => {
