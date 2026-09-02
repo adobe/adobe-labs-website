@@ -24,6 +24,7 @@ import {
   getMetadata,
 } from './aem.js';
 import {
+  buildArticlePreFooter,
   debounce,
 } from './utils/utils.js';
 
@@ -82,6 +83,7 @@ function buildWidgetAutoBlocks(main) {
  */
 function buildAutoBlocks(main) {
   try {
+    buildArticlePreFooter(main);
     // auto load `*/fragments/*` references
     const fragments = [...main.querySelectorAll('a[href*="/fragments/"]')].filter((f) => !f.closest('.fragment'));
     if (fragments.length > 0) {

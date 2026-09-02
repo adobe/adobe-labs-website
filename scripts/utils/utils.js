@@ -5,7 +5,7 @@
  * there are not an excessive number of network requests on the page.
  * `toClassName` comes from aem.js, which is already loaded on every page.
  */
-import { toClassName } from '../aem.js';
+import { buildBlock, getMetadata, toClassName } from '../aem.js';
 
 /**
  * Returns an absolute http(s) URL, or an empty string if the value is missing
@@ -82,6 +82,50 @@ export function getCellMedia(cell) {
  */
 export function isAuthoredTrue(cell) {
   return /^(true|yes|1)$/i.test(getCellText(cell));
+}
+
+const DEFAULT_ARTICLE_PRE_FOOTER = '/fragments/article-pre-footer';
+
+/**
+ * Whether a page is an article detail.
+ * True when bulk or page-level `template` metadata includes `article`.
+ *
+ * @returns {boolean}
+ */
+export function isArticleDetailPage() {
+  const templates = getMetadata('template')
+    .split(',')
+    .map((value) => toClassName(value.trim()))
+    .filter(Boolean);
+  return templates.includes('article');
+}
+
+/**
+ * Appends a synthetic fragment block for the shared article pre-footer.
+ * The block is wrapped in a `div` so `decorateSections` treats it as its own
+ * section (a bare block as a `main` child would be misread as the section).
+ * No-op when `main` is detached (`loadFragment` also runs `decorateMain`)
+ * or the page is not an article detail.
+ *
+ * @param {Element} main The page's main element
+ */
+export function buildArticlePreFooter(main) {
+  if (!document.body.contains(main)) return;
+  if (!isArticleDetailPage()) return;
+
+  const preFooterMeta = getMetadata('article-pre-footer');
+  const fragmentPath = preFooterMeta
+    ? new URL(preFooterMeta, window.location).pathname
+    : DEFAULT_ARTICLE_PRE_FOOTER;
+
+  const link = document.createElement('a');
+  link.setAttribute('href', fragmentPath);
+  link.textContent = fragmentPath;
+  // Keep href for fragment.js; hide until the fragment replaces this shell.
+  link.hidden = true;
+  const section = document.createElement('div');
+  section.append(buildBlock('fragment', { elems: [link] }));
+  main.append(section);
 }
 
 /**
