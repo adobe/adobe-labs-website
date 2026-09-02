@@ -44,13 +44,42 @@ function getRelativeLuminance({ r, g, b }) {
   return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
 }
 
-// contrast is per-section, independent of the site-wide theme
-function setColorScheme(section) {
-  const rgb = parseColor(section);
+function applyColorScheme(section, rgb) {
   if (!rgb) return;
   const scheme = getRelativeLuminance(rgb) > 0.5 ? 'light-scheme' : 'dark-scheme';
   section.classList.remove('light-scheme', 'dark-scheme');
   section.classList.add(scheme);
+}
+
+// contrast is per-section, independent of the site-wide theme
+function setColorScheme(section) {
+  applyColorScheme(section, parseColor(section));
+}
+
+// downsample onto a tiny canvas rather than a separate thumbnail request;
+// cross-origin images (no CORS) taint the canvas and throw — left as-is
+function getAverageColor(img) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 8;
+  canvas.height = 8;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  try {
+    ctx.drawImage(img, 0, 0, 8, 8);
+    const { data } = ctx.getImageData(0, 0, 8, 8);
+    let r = 0; let g = 0; let b = 0;
+    const count = data.length / 4;
+    for (let i = 0; i < data.length; i += 4) {
+      r += data[i]; g += data[i + 1]; b += data[i + 2];
+    }
+    return { r: r / count, g: g / count, b: b / count };
+  } catch {
+    return null;
+  }
+}
+
+function setColorSchemeFromImage(section, img) {
+  applyColorScheme(section, getAverageColor(img));
 }
 
 function isImageUrl(value) {
@@ -79,6 +108,9 @@ function decorateBackground(section, value, eager) {
     picture.classList.add('section-background');
     section.prepend(picture);
     section.classList.add('has-background');
+    const img = picture.querySelector('img');
+    if (img.complete) setColorSchemeFromImage(section, img);
+    else img.addEventListener('load', () => setColorSchemeFromImage(section, img), { once: true });
     return;
   }
   section.style.backgroundColor = resolveColor(value);

@@ -124,6 +124,18 @@ describe('decorateSectionMetadata', () => {
     expect(img.src).toBe(`${window.location.origin}/media_123.jpg?width=750&format=jpg&optimize=medium`);
   });
 
+  it('does not throw and adds no scheme class when the image cannot be sampled', () => {
+    const { main, section } = createMain('<div><p>Card</p></div>', {
+      backgroundColor: 'https://main--adobe-labs-website--adobe.aem.page/media_123.jpg',
+    });
+
+    decorateSectionMetadata(main);
+    const img = section.querySelector('img');
+    expect(() => img.dispatchEvent(new Event('load'))).not.toThrow();
+
+    expect(section).not.toHaveClass('light-scheme', 'dark-scheme');
+  });
+
   it('lazy-loads a background picture on a section after the first', () => {
     const main = document.createElement('main');
     const firstSection = document.createElement('div');
