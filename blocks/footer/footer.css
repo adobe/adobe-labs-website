@@ -336,7 +336,7 @@
   }
 }
 
-@media (width > 48rem) {
+@media (width >= 48rem) {
   .footer__inner {
     padding-inline: var(--s2a-spacing-2xl);
   }
@@ -344,10 +344,6 @@
 
 /* Columns and visible at larger viewport. */
 @media (width >= 64rem) {
-  .footer__inner {
-    padding-inline: 100px;
-  }
-
   .footer__content {
     gap: var(--s2a-spacing-2xl);
   }
@@ -408,5 +404,11 @@
     flex-flow: row wrap;
     align-items: center;
     gap: var(--s2a-spacing-xl);
+  }
+}
+
+@media (width >= 90rem) {
+  .footer__inner {
+    padding-inline: 100px;
   }
 }
