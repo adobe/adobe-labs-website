@@ -121,16 +121,11 @@ function decorateBackground(section, value, eager) {
 export default function decorateSectionMetadata(main) {
   main.querySelectorAll(':scope > .section').forEach((section, index) => {
     const {
-      grid, gap, radius, spacing, container, layout,
-      backgroundColor, backgroundImage, background,
+      radius, spacing, backgroundColor, backgroundImage, background,
     } = section.dataset;
 
-    decorateLayoutField(section, 'grid', grid, true);
-    decorateLayoutField(section, 'gap', gap);
     decorateLayoutField(section, 'radius', radius);
     decorateLayoutField(section, 'spacing', spacing);
-    decorateLayoutField(section, 'container', container, true);
-    decorateLayoutField(section, 'layout', layout);
     // only the first section's image is awaited by aem.js's waitForFirstImage
     decorateBackground(section, backgroundColor || backgroundImage || background, index === 0);
   });
