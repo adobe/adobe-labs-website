@@ -233,7 +233,7 @@
   }
 
   /* Button wrapper */
-  .hero__button-wrapper {
+  .hero__cta-text {
     margin-block: 0;
     display: inline-block;
     grid-area: bottom-right;
