@@ -1,0 +1,107 @@
+.grid-line-content-container .grid-line-content-wrapper {
+  max-inline-size: unset;
+  margin: 0;
+  padding: 0;
+}
+
+.grid-line-content-container {
+  margin: 0;
+}
+
+.grid-line-content {
+  --grid-line-color: light-dark(var(--s2a-color-border-subtle), var(--s2a-color-gray-700));
+
+  position: relative;
+  z-index: 0;
+  padding-block: 5.625rem;
+
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-block: 0;
+    inset-inline: 0;
+    inline-size: calc(100% * 10 / 12);
+    max-inline-size: calc(var(--site-max-inline-size, 90rem) * 10 / 12);
+    margin-inline: auto;
+    background-image:
+      linear-gradient(var(--grid-line-color), var(--grid-line-color)),
+      repeating-linear-gradient(
+        to bottom,
+        var(--grid-line-color) 0 4px,
+        transparent 4px 6px
+      ),
+      linear-gradient(var(--grid-line-color), var(--grid-line-color));
+    background-position: 0 0, 50% 0, 100% 0;
+    background-size: 1px 100%, 1px 100%, 1px 100%;
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-block: 0;
+    inset-inline: 0;
+    inline-size: 100%;
+    background-image:
+      linear-gradient(var(--grid-line-color), var(--grid-line-color)),
+      linear-gradient(var(--grid-line-color), var(--grid-line-color));
+    background-position: 0 5.625rem, 0 calc(100% - 5.625rem);
+    background-size: 100% 1px, 100% 1px;
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+
+  .grid-line-content__text {
+    position: relative;
+    inline-size: calc(100% * 10 / 12);
+    max-inline-size: calc(var(--site-max-inline-size, 90rem) * 10 / 12);
+    margin-inline: auto;
+    padding-block: var(--s2a-spacing-3xs);
+    text-align: start;
+    padding: 0.25rem 0.125rem;
+
+    & > :first-child {
+      margin-block-start: 0;
+    }
+
+    & > :last-child {
+      margin-block-end: 0;
+    }
+
+    & p {
+      margin-block: var(--s2a-spacing-2xl);
+    }
+
+    /* no headings authored: promote paragraphs to the larger statement typography */
+    &:not(:has(h1, h2, h3, h4, h5, h6)) p {
+      color: var(--s2a-color-content-default);
+      font-family: var(--heading-font-family);
+      font-size: var(--s2a-typography-font-size-heading-2);
+      font-style: normal;
+      font-weight: var(--typography-font-weight-heading-2);
+      line-height: var(--s2a-typography-line-height-heading-2);
+      letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
+
+      /* trim the font's own ascent/descent leading so the first/last line hugs the frame like it does in Figma */
+      text-box-trim: trim-both;
+      text-box-edge: cap alphabetic;
+    }
+  }
+}
+
+@media (width >= 56.25rem) {
+  .grid-line-content {
+    padding-block: 7.5rem;
+
+    &::after {
+      background-position: 0 7.5rem, 0 calc(100% - 7.5rem);
+    }
+
+    .grid-line-content__text p {
+      margin-block: var(--s2a-spacing-4xl);
+    }
+  }
+}

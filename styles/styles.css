@@ -42,6 +42,15 @@
 
   /* sizing */
   --site-max-inline-size: 120rem; /* 1920px */
+
+  /* buttons */
+  --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
+  --color-button-background-primary-hover: var(--s2a-color-gray-800);
+  --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
+
+  &[data-theme="dark"] {
+    --color-button-background-primary-hover: var(--s2a-color-gray-75);
+  }
 }
 
 /* --- Reset --- */
@@ -110,11 +119,6 @@ h1, h2, h3, h4, h5, h6, [class*="heading-"] {
 
   strong {
     font-weight: inherit;
-  }
-
-  a,
-  a:is(:hover, :focus-visible, :active) {
-    color: currentcolor;
   }
 }
 
@@ -292,116 +296,80 @@ main > div {
 }
 
 /* --- Buttons --- */
-p.button-wrapper {
-  margin: 12px 0;
-}
 
-a.button:any-link,
-button.button {
-  box-sizing: border-box;
+/* Default .button uses the Primary button style. */
+.button {
+  --block-size-button: 2.5rem;
+  --border-radius-button: var(--s2a-border-radius-round);
+  --letter-spacing-button: var(--s2a-typography-letter-spacing-label);
+  --active-size-inline-ratio-down: 0.3333;
+  --active-size-minimum-perspective-down: 1.5rem;
+  --active-size-difference-down: -2px;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  max-width: 100%;
-  margin: 0;
-  border: 2px solid transparent;
-  border-radius: 2.4em;
-  padding: 0.5em 1.2em;
-  font: inherit;
-  font-weight: 500;
-  line-height: 1.25;
-  text-decoration: none;
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  inline-size: fit-content;
+  block-size: var(--block-size-button);
+  padding-inline: var(--s2a-spacing-lg);
+  border: var(--s2a-border-width-md) solid transparent;
+  border-radius: var(--border-radius-button);
+  font-family: var(--body-font-family);
+  font-size: var(--s2a-typography-font-size-label);
+  font-style: normal;
+  font-weight: var(--s2a-font-weight-label);
+  line-height: var(--s2a-typography-line-height-label);
+  letter-spacing: var(--letter-spacing-button);
+  text-align: center;
+  text-decoration-line: none;
+  background-color: var(--color-button-background-primary);
+  color: var(--color-button-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition-timing-function: cubic-bezier(.45,0,.4,1);
+  transition-duration: .13s;
+  transition-property: outline, border-color, color, background-color, transform;
 
-a.button[aria-disabled="true"],
-button.button:disabled {
-  cursor: not-allowed;
-  pointer-events: none;
-}
+  &:is(button) {
+    cursor: pointer;
+  }
 
-a.button.primary,
-button.button.primary {
-  border-color: var(--text-color);
-  background-color: var(--text-color);
-  color: var(--s2a-color-background-default);
-}
+  &:hover {
+    background-color: var(--color-button-background-primary-hover);
+    text-decoration-line: none;
+  }
 
-a.button.primary:hover,
-a.button.primary:focus-visible,
-button.button.primary:hover,
-button.button.primary:focus-visible {
-  border-color: var(--dark-color);
-  background-color: var(--dark-color);
-  color: var(--light-color);
-}
+  &:focus-visible {
+    outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+    outline-offset: var(--s2a-border-width-md);
+  }
 
-a.button.primary[aria-disabled="true"],
-a.button.primary[aria-disabled="true"]:hover,
-a.button.primary[aria-disabled="true"]:focus-visible,
-button.button.primary:disabled,
-button.button.primary:disabled:hover,
-button.button.primary:disabled:focus-visible {
-  background-color: var(--light-color);
-  border-color: var(--light-color);
-  color: var(--dark-color);
-}
+  &:active {
+    transform:
+      perspective(max(
+        var(--active-downstate-block-size),
+        var(--active-downstate-inline-size) * var(--active-size-inline-ratio-down)))
+      translateZ(var(--active-size-difference-down));
+  }
 
-a.button.secondary,
-button.button.secondary {
-  border-color: var(--text-color);
-  background-color: transparent;
-  color: var(--text-color);
-}
+  &:is(:disabled, [aria-disabled="true"]) {
+    --color-button-background-primary-disabled: var(--s2a-color-background-disabled);
+    --color-button-text-disabled: var(--s2a-color-gray-600); /* Adjusted for AA contrast */
 
-a.button.secondary:hover,
-a.button.secondary:focus-visible,
-button.button.secondary:hover,
-button.button.secondary:focus-visible {
-  border-color: var(--dark-color);
-  background-color: var(--light-color);
-  color: var(--dark-color);
-}
+    background-color: var(--color-button-background-primary-disabled);
+    color: var(--color-button-text-disabled);
+    pointer-events: none;
+  }
 
-a.button.secondary[aria-disabled="true"],
-a.button.secondary[aria-disabled="true"]:hover,
-a.button.secondary[aria-disabled="true"]:focus-visible,
-button.button.secondary:disabled,
-button.button.secondary:disabled:hover,
-button.button.secondary:disabled:focus-visible {
-  background-color: var(--light-color);
-  border-color: var(--light-color);
-  color: var(--dark-color);
-}
+  &.button--static-white {
+    --color-button-background-primary: var(--s2a-color-gray-25);
+    --color-button-text-primary: var(--s2a-color-gray-1000);
+    --color-button-background-primary-hover: var(--s2a-color-gray-75);
 
-/* high-impact call-to-action */
-a.button.accent,
-button.button.accent {
-  border-color: var(--link-color);
-  background-color: var(--link-color);
-  color: var(--s2a-color-background-default);
-}
-
-a.button.accent:hover,
-a.button.accent:focus-visible,
-button.button.accent:hover,
-button.button.accent:focus-visible {
-  border-color: var(--link-hover-color);
-  background-color: var(--link-hover-color);
-}
-
-a.button.accent[aria-disabled="true"],
-a.button.accent[aria-disabled="true"]:hover,
-a.button.accent[aria-disabled="true"]:focus-visible,
-button.button.accent:disabled,
-button.button.accent:disabled:hover,
-button.button.accent:disabled:focus-visible {
-  background-color: var(--light-color);
-  border-color: var(--light-color);
-  color: var(--dark-color);
+    &:focus-visible {
+      outline-color: var(--s2a-color-blue-500);
+    }
+  }
 }
 
 /* --- Icons --- */

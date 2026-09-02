@@ -60,7 +60,8 @@ describe('hero block', () => {
     );
     expect(view.getByRole('link', { name: 'How AI is Redistributing Creative Work. Read' }))
       .toHaveAttribute('href', expect.stringMatching(/\/research\/example-article-1$/));
-    expect(block.querySelector('.button.primary')).toHaveTextContent('Read');
+    expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
+    expect(block.querySelector('.button')).toBeNull();
     const media = block.querySelector('.hero__media');
     expect(media).toHaveAttribute('aria-hidden', 'true');
     expect(media.querySelector('picture img')).toHaveAttribute('src', expect.stringMatching(/hero\.jpg$/));
@@ -91,7 +92,7 @@ describe('hero block', () => {
     expect(view.getByRole('heading', { level: 2 })).toHaveTextContent('Project Clean Take');
     expect(view.getByRole('link', { name: /video article/i }))
       .toHaveAttribute('href', expect.stringMatching(/\/sneaks\/project-clean-take$/));
-    expect(block.querySelector('.button.primary')).toHaveTextContent('Read');
+    expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
   });
 
   it('does not add a video icon when Show Video Icon is false', async () => {
@@ -143,7 +144,7 @@ describe('hero block', () => {
     expect(block.querySelector('.hero__media')).toBeNull();
     expect(within(block).getByRole('heading', { level: 2 })).toHaveTextContent('Headline only');
     expect(within(block).getByRole('link', { name: 'Headline only Read' })).toBeTruthy();
-    expect(block.querySelector('.button.primary')).toHaveTextContent('Read');
+    expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
   });
 
   it('keeps the hero-full-screen variant class', async () => {
@@ -166,6 +167,6 @@ describe('hero block', () => {
 
     expect(block.querySelector('h2 a')).toBeNull();
     expect(block.querySelector('h2')).toHaveTextContent('Unsafe headline');
-    expect(block.querySelector('.hero__button-wrapper')).toBeNull();
+    expect(block.querySelector('.hero__cta-text')).toBeNull();
   });
 });

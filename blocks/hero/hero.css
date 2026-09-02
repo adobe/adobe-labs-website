@@ -208,8 +208,8 @@
     white-space: nowrap;
   }
 
-  /* Button wrapper */
-  .hero__button-wrapper {
+  /* CTA label (not a button — the whole card is the link) */
+  .hero__cta-text {
     margin-block: 0;
     display: inline-block;
     grid-area: bottom-right;
@@ -220,10 +220,10 @@
   /* --- Full-Screen variant --- */
   &.hero-full-screen {
     border-radius: 0;
-    
+
     /* Full-screen variant is slightly taller than default on smaller screens. */
     aspect-ratio: 6 / 7;
-  
+
     @media (width >=48rem) {
       aspect-ratio: 2 / 1;
     }
