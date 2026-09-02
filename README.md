@@ -169,3 +169,16 @@ Add extra classes for variants as needed, for example `button--static-white`.
 
 ##### Disabled buttons as links
 `decorateButtons` runs before block JavaScript. For a disabled link that you create as `a.button` in block JS, set `aria-disabled="true"`, set `tabIndex = "-1"`, and call `event.preventDefault()` on click.
+
+## Vendoring third-party JS libraries
+
+This project has no build/bundler step in its request path, so npm packages can't be `import`ed by name and we don't want to load runtime libraries from a public CDN in production. Instead, third-party libraries are vendored: bundled once at dev time into a self-contained ESM file with `esbuild`, committed under `scripts/vendor/<library>/`, and imported via a relative path at runtime. This mirrors the pattern [aemsites/author-kit](https://github.com/aemsites/author-kit) uses to ship Lit without a build system.
+
+### Updating the vendored c2pa-web library
+
+`@contentauth/c2pa-web` (used by [scripts/content-credentials.js](scripts/content-credentials.js)) is vendored this way. To rebuild it, e.g. after bumping the version in `package.json`:
+
+```sh
+npm install
+npm run vendor:c2pa
+```

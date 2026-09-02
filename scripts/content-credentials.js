@@ -4,17 +4,17 @@
  * - Reads content credentials data from signed images, using the open source c2pa-web library.
  * - Adds a "CR" button to the image if it has credentials.
  * - The button is a component that toggles a popover displaying the image data.
- * 
+ *
  * Intended to run on deferred / delayed load due to the library size, processing time,
  * and its lower priority for the intial page render.
- * 
- * TODO:
- * Do no load JS libraries from external CDN for production! May need to build artifact
- * or some other way of loading without a bundler.
+ *
+ * The c2pa-web library is vendored locally under scripts/vendor/c2pa-web/ (see the
+ * "vendor:c2pa" npm script) rather than loaded from a CDN, since this project has no
+ * build/bundler step. Run `npm run vendor:c2pa` after bumping the version in package.json.
  */
 
 // Import the Content Authenticity Initiative (CAI) open-source SDK.
-import { createC2pa } from 'https://cdn.jsdelivr.net/npm/@contentauth/c2pa-web@0.13.4/+esm';
+import { createC2pa } from './vendor/c2pa-web/index.js';
 
 // c2pa instance with the WASM binary.
 let c2pa = null;
@@ -35,7 +35,7 @@ const readCredentials = async (img) => {
 	// Create a c2pa instance with the WASM binary.
 	if (!c2pa) {
 		c2pa = await createC2pa({
-			wasmSrc: 'https://cdn.jsdelivr.net/npm/@contentauth/c2pa-web@0.13.4/dist/resources/c2pa_bg.wasm'
+			wasmSrc: new URL('./vendor/c2pa-web/resources/c2pa_bg.wasm', import.meta.url).href
 		});
 	}
 

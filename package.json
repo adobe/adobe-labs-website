@@ -10,7 +10,8 @@
     "lint": "npm run lint:js && npm run lint:css",
     "lint:fix": "npm run lint:js -- --fix && npm run lint:css -- --fix",
     "test": "jest",
-    "prepare": "husky"
+    "prepare": "husky",
+    "vendor:c2pa": "rm -rf scripts/vendor/c2pa-web && mkdir -p scripts/vendor/c2pa-web/resources && esbuild node_modules/@contentauth/c2pa-web/dist/index.js --format=esm --bundle --outfile=scripts/vendor/c2pa-web/index.js && cp node_modules/@contentauth/c2pa-web/dist/c2pa_worker.js scripts/vendor/c2pa-web/c2pa_worker.js && cp node_modules/@contentauth/c2pa-web/dist/resources/c2pa_bg.wasm scripts/vendor/c2pa-web/resources/c2pa_bg.wasm"
   },
   "repository": {
     "type": "git",
@@ -25,10 +26,12 @@
   "devDependencies": {
     "@babel/core": "7.29.7",
     "@babel/eslint-parser": "7.29.7",
+    "@contentauth/c2pa-web": "^0.13.4",
     "@babel/preset-env": "7.29.7",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "7.0.1",
     "babel-jest": "30.5.1",
+    "esbuild": "^0.24.2",
     "eslint": "8.57.1",
     "eslint-config-airbnb-base": "15.0.0",
     "eslint-plugin-import": "2.32.0",
