@@ -269,8 +269,12 @@ function decorateMenuColumns(columns) {
  * @returns {string}
  */
 function getSocialIconId(href) {
-  const lower = new URL(href).hostname.replace(/^www\./, '').split('.')[0];
-  return `footer-icon-${lower}`;
+  try {
+    const lower = new URL(href).hostname.replace(/^www\./, '').split('.')[0];
+    return `footer-icon-${lower}`;
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -299,6 +303,10 @@ function decorateSocial(social) {
 
   const links = [...social.querySelectorAll('a[href]')].map((link) => {
     const iconId = getSocialIconId(link.getAttribute('href'));
+
+    // Don't render the item if no associated icon was found.
+    if (!iconId) { return ''; }
+
     const label = link.getAttribute('title')?.trim() || link.textContent.trim();
     const { href } = link;
     const target = link.target || '_blank';
