@@ -1,0 +1,15 @@
+.elastic-router {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s2a-spacing-xs);
+
+  p {
+    color: var(--s2a-color-content-label);
+  }
+}
+
+@media (width >= 48rem) {
+  .elastic-router {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
