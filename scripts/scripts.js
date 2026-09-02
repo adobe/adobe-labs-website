@@ -165,13 +165,23 @@ export function decorateMain(main) {
 }
 
 /**
- * Applies the dark-mode theme attribute based on page metadata.
- * Some video related sections of the site default to dark mode.
+ * Applies the dark or light mode theme attribute to the HTML tag, that is used by
+ * color tokens and scripts. It is applied either by the existence of page
+ * metadata (i.e. dark mode is forced) or a user's preferred color scheme.
  */
 function decorateDarkMode() {
-  if (getMetadata('dark-mode')?.toLowerCase() === 'true') {
-    document.documentElement.dataset.theme = 'dark';
-  }
+  const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const updateColorTheme = (useDark) => {
+    document.documentElement.dataset.theme = (useDark ? 'dark' : 'light');
+  };
+
+  // Prefers dark mode, or page is always dark mode.
+  updateColorTheme(darkModeQuery.matches || getMetadata('dark-mode')?.toLowerCase() === 'true');
+
+  // Listen for any browser/OS change to prefers-color-scheme, and update.
+  darkModeQuery.addEventListener('change', (event) => {
+    updateColorTheme(event.matches || getMetadata('dark-mode')?.toLowerCase() === 'true');
+  });
 }
 
 /**
