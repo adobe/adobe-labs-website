@@ -1,0 +1,36 @@
+/* The block's content is wider than its article-text container, so it
+   escapes the section's default max-inline-size and re-applies the site's
+   own max-width instead — same escape used by grid-line-content. */
+.side-by-side-image-wrapper {
+  max-inline-size: unset;
+  margin: 0;
+  padding: 0;
+}
+
+.side-by-side-image-container {
+  margin: 0;
+}
+
+.side-by-side-image {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: var(--s2a-spacing-md, 1rem);
+  max-inline-size: var(--site-max-inline-size, 90rem);
+  margin-inline: auto;
+  padding-inline: var(--s2a-spacing-md, 1rem);
+}
+
+.side-by-side-image__item img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (width >= 900px) {
+  .side-by-side-image {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s2a-spacing-lg, 1.5rem);
+    padding-inline: var(--s2a-spacing-lg, 1.5rem);
+  }
+}
