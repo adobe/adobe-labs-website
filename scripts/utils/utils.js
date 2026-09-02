@@ -84,36 +84,20 @@ export function isAuthoredTrue(cell) {
   return /^(true|yes|1)$/i.test(getCellText(cell));
 }
 
-/**
- * Section roots whose `/:slug` children are article detail pages.
- * Matches the content indexes (research, workflows, sneaks, playground).
- */
-const ARTICLE_ROOTS = ['/research', '/workflows', '/sneaks', '/playground'];
-
 const DEFAULT_ARTICLE_PRE_FOOTER = '/fragments/article-pre-footer';
 
 /**
- * Whether a page is an article detail (not a section index or category landing).
- * True when `template` metadata includes `article`, or the path is one extra
- * segment under a known article root (e.g. `/research/example-article-1`).
+ * Whether a page is an article detail.
+ * True when bulk or page-level `template` metadata includes `article`.
  *
- * @param {string} [pathname] Path to check; defaults to the current location
  * @returns {boolean}
  */
-export function isArticleDetailPage(pathname = window.location.pathname) {
+export function isArticleDetailPage() {
   const templates = getMetadata('template')
     .split(',')
     .map((value) => toClassName(value.trim()))
     .filter(Boolean);
-  if (templates.includes('article')) return true;
-
-  const path = pathname.replace(/\/+$/, '') || '/';
-  return ARTICLE_ROOTS.some((root) => {
-    const prefix = `${root}/`;
-    if (!path.startsWith(prefix)) return false;
-    const slug = path.slice(prefix.length);
-    return slug.length > 0 && !slug.includes('/');
-  });
+  return templates.includes('article');
 }
 
 /**

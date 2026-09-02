@@ -140,6 +140,8 @@ excluded from the query index JSON, so these must be filtered on the frontend.
 Default metadata values are set via the root `/metadata` spreadsheet.
 See [AEM bulk metadata docs](https://www.aem.live/docs/bulk-metadata) for more info.
 
+Article detail pages (`/research/*`, `/workflows/*`, `/sneaks/*`, `/playground/*`) get `template: article` from that spreadsheet. The article pre-footer autoblock keys off this metadata, not a hardcoded path list. A page-level metadata block can still add or omit `article` for an exception.
+
 Individual pages can then set metadata values via a `metadata` block, including overriding any of those default values.
 See [AEM metadata block docs](https://www.aem.live/developer/block-collection/metadata) for more info. 
 ### Buttons

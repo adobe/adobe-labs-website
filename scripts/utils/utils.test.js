@@ -32,8 +32,11 @@ function mockBuildBlock(blockName, content) {
   return block;
 }
 
-function setPath(pathname) {
-  window.history.pushState({}, '', pathname);
+function mockTemplate(template, extra = {}) {
+  getMetadata.mockImplementation((name) => {
+    if (name === 'template') return template;
+    return extra[name] || '';
+  });
 }
 
 describe('isArticleDetailPage', () => {
@@ -43,37 +46,23 @@ describe('isArticleDetailPage', () => {
     buildBlock.mockImplementation(mockBuildBlock);
   });
 
-  it.each([
-    ['/research/example-article-1'],
-    ['/research/example-article-1/'],
-    ['/workflows/example-workflow-article'],
-    ['/sneaks/example-sneaks-article'],
-    ['/playground/example-playground-article'],
-  ])('returns true for article path %s', (pathname) => {
-    expect(isArticleDetailPage(pathname)).toBe(true);
+  it('returns false when template metadata is empty', () => {
+    expect(isArticleDetailPage()).toBe(false);
   });
 
-  it.each([
-    ['/'],
-    ['/research'],
-    ['/research/'],
-    ['/workflows'],
-    ['/sneaks'],
-    ['/playground'],
-    ['/research/future-of-creative-work/nested'],
-    ['/about'],
-  ])('returns false for non-article path %s', (pathname) => {
-    expect(isArticleDetailPage(pathname)).toBe(false);
+  it('returns false when template metadata is unrelated', () => {
+    getMetadata.mockReturnValue('home');
+    expect(isArticleDetailPage()).toBe(false);
   });
 
   it('returns true when template metadata includes article', () => {
     getMetadata.mockReturnValue('article');
-    expect(isArticleDetailPage('/')).toBe(true);
+    expect(isArticleDetailPage()).toBe(true);
   });
 
   it('returns true when template metadata lists article among others', () => {
     getMetadata.mockReturnValue('Dark, Article');
-    expect(isArticleDetailPage('/')).toBe(true);
+    expect(isArticleDetailPage()).toBe(true);
   });
 });
 
@@ -83,11 +72,10 @@ describe('buildArticlePreFooter', () => {
     getMetadata.mockReturnValue('');
     buildBlock.mockImplementation(mockBuildBlock);
     document.body.innerHTML = '';
-    setPath('/');
   });
 
   it('does not inject when main is detached from the document', () => {
-    setPath('/research/example-article-1');
+    mockTemplate('article');
     const main = document.createElement('main');
 
     buildArticlePreFooter(main);
@@ -107,7 +95,7 @@ describe('buildArticlePreFooter', () => {
   });
 
   it('appends a fragment block for the default article pre-footer path', () => {
-    setPath('/research/example-article-1');
+    mockTemplate('article');
     const main = document.createElement('main');
     document.body.append(main);
 
@@ -127,10 +115,7 @@ describe('buildArticlePreFooter', () => {
   });
 
   it('uses article-pre-footer metadata when present', () => {
-    setPath('/research/example-article-1');
-    getMetadata.mockImplementation((name) => (
-      name === 'article-pre-footer' ? '/fragments/custom-pre-footer' : ''
-    ));
+    mockTemplate('article', { 'article-pre-footer': '/fragments/custom-pre-footer' });
     const main = document.createElement('main');
     document.body.append(main);
 
