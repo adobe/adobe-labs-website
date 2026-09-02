@@ -52,28 +52,6 @@
     outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
     outline-offset: var(--s2a-border-width-md);
     background-color: var(--hover-list-row-background-hover);
-
-    .hover-list__headline {
-      text-decoration-color: currentColor;
-    }
-
-    .hover-list__arrow {
-      color: var(--s2a-color-content-default);
-    }
-  }
-}
-
-@media (hover: hover) {
-  .hover-list__link:hover {
-    background-color: var(--hover-list-row-background-hover);
-  }
-
-  .hover-list__link:hover .hover-list__headline {
-    text-decoration-color: currentColor;
-  }
-
-  .hover-list__link:hover .hover-list__arrow {
-    color: var(--s2a-color-content-default);
   }
 }
 
@@ -115,6 +93,28 @@
     display: block;
     width: 100%;
     height: 100%;
+  }
+}
+
+.hover-list__link:focus-visible .hover-list__headline {
+  text-decoration-color: currentcolor;
+}
+
+.hover-list__link:focus-visible .hover-list__arrow {
+  color: var(--s2a-color-content-default);
+}
+
+@media (hover: hover) {
+  .hover-list__link:hover {
+    background-color: var(--hover-list-row-background-hover);
+  }
+
+  .hover-list__link:hover .hover-list__headline {
+    text-decoration-color: currentcolor;
+  }
+
+  .hover-list__link:hover .hover-list__arrow {
+    color: var(--s2a-color-content-default);
   }
 }
 
