@@ -64,6 +64,15 @@
   color: var(--s2a-color-content-default);
 }
 
+.hover-list__text {
+  min-width: 0;
+  text-wrap: balance;
+}
+
+.hover-list__end {
+  white-space: nowrap;
+}
+
 .hover-list__headline,
 .hover-list__arrow {
   @media (width >= 48rem) {
@@ -81,10 +90,11 @@
 }
 
 .hover-list__arrow {
-  flex-shrink: 0;
-  display: block;
+  display: inline-block;
   width: 0.75em;
   height: 0.75em;
+  margin-inline-start: var(--s2a-spacing-sm);
+  vertical-align: middle;
   line-height: 0;
   color: var(--s2a-color-content-disabled);
   transition: color var(--hover-list-transition-duration) var(--hover-list-transition-easing);

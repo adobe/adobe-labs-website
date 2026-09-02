@@ -91,7 +91,24 @@ function getHoverListItems(block) {
 }
 
 /**
- * Builds one list row: generated number, headline, decorative arrow.
+ * Splits a headline so the last word can wrap with the arrow.
+ *
+ * @param {string} headline
+ * @returns {{ lead: string, last: string }}
+ */
+function splitLastWord(headline) {
+  const trimmed = headline.trim();
+  const i = trimmed.lastIndexOf(' ');
+  if (i === -1) return { lead: '', last: trimmed };
+  return {
+    lead: trimmed.slice(0, i + 1),
+    last: trimmed.slice(i + 1),
+  };
+}
+
+/**
+ * Builds one list row: generated number, then headline with the last word
+ * and arrow kept together so the icon does not wrap onto a line by itself.
  * Stashes hover image URLs on `data-hover-images` for the idle media pass.
  *
  * @param {HoverListItem} data Parsed row
@@ -111,16 +128,32 @@ function buildHoverListItem(data, index) {
   number.setAttribute('aria-hidden', 'true');
   number.textContent = String(index + 1);
 
-  const headline = document.createElement('span');
-  headline.className = 'hover-list__headline heading-6';
-  headline.textContent = data.headline;
+  const { lead, last } = splitLastWord(data.headline);
+
+  const lastWord = document.createElement('span');
+  lastWord.className = 'hover-list__headline heading-6';
+  lastWord.textContent = last;
 
   const arrow = document.createElement('span');
   arrow.className = 'hover-list__arrow heading-6';
   arrow.setAttribute('aria-hidden', 'true');
   arrow.append(createArrowIcon());
 
-  link.append(number, headline, arrow);
+  const end = document.createElement('span');
+  end.className = 'hover-list__end';
+  end.append(lastWord, arrow);
+
+  const text = document.createElement('span');
+  text.className = 'hover-list__text';
+  if (lead) {
+    const headline = document.createElement('span');
+    headline.className = 'hover-list__headline heading-6';
+    headline.textContent = lead;
+    text.append(headline);
+  }
+  text.append(end);
+
+  link.append(number, text);
   item.append(link);
 
   if (data.mediaSrcs.length) {

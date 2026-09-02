@@ -120,9 +120,17 @@ describe('hover-list block', () => {
 
     decorate(block);
 
-    const headline = block.querySelector('.hover-list__headline');
-    expect(headline).toHaveClass('heading-6');
-    expect(headline).not.toHaveStyle({ whiteSpace: 'nowrap' });
+    const text = block.querySelector('.hover-list__text');
+    const headlines = [...text.querySelectorAll('.hover-list__headline')];
+    expect(headlines.length).toBeGreaterThan(0);
+    headlines.forEach((el) => {
+      expect(el).toHaveClass('heading-6');
+      expect(el).not.toHaveStyle({ whiteSpace: 'nowrap' });
+    });
+    const end = text.querySelector('.hover-list__end');
+    expect(end).toBeTruthy();
+    expect(end.querySelector('.hover-list__headline')).toHaveTextContent('row');
+    expect(end.querySelector('.hover-list__arrow')).toBeTruthy();
 
     const items = [...block.querySelectorAll('.hover-list__item')];
     expect(items[0]).not.toHaveAttribute('data-hover-images');
