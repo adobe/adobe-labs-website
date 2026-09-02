@@ -1,7 +1,9 @@
 .hover-list {
   --hover-list-padding-vertical: var(--s2a-spacing-lg);
   --hover-list-number-padding-inline: var(--s2a-spacing-md);
-  --hover-list-row-padding-inline-end: var(--s2a-spacing-md);
+  --hover-list-row-padding-inline-end: calc(
+    var(--s2a-spacing-sm) + var(--s2a-spacing-sm) + var(--s2a-spacing-md)
+  );
   --hover-list-divider-color: var(--s2a-color-border-subtle);
   --hover-list-row-background-hover: color-mix(in srgb, black 5%, transparent);
   --hover-list-transition-duration: 0.2s;
@@ -12,6 +14,7 @@
   @media (width >= 48rem) {
     --hover-list-padding-vertical: var(--s2a-spacing-2xl);
     --hover-list-number-padding-inline: var(--s2a-spacing-lg);
+    --hover-list-row-padding-inline-end: var(--s2a-spacing-md);
   }
 }
 
@@ -37,6 +40,7 @@
 }
 
 .hover-list__link {
+  position: relative;
   display: flex;
   align-items: center;
   width: 100%;
@@ -45,7 +49,7 @@
   gap: var(--s2a-spacing-sm);
   color: inherit;
   text-decoration: none;
-  border-block-start: 1px solid var(--hover-list-divider-color);
+  border-block-start: 0.0625rem solid var(--hover-list-divider-color);
   transition: background-color var(--hover-list-transition-duration) var(--hover-list-transition-easing);
 
   &:focus-visible {
@@ -65,7 +69,7 @@
 }
 
 .hover-list__text {
-  min-width: 0;
+  min-inline-size: 0;
   text-wrap: balance;
 }
 
@@ -90,11 +94,13 @@
 }
 
 .hover-list__arrow {
+  position: absolute;
+  inset-inline-end: var(--s2a-spacing-md);
+  inset-block-start: 50%;
+  translate: 0 -50%;
   display: inline-block;
   width: 0.75em;
   height: 0.75em;
-  margin-inline-start: var(--s2a-spacing-sm);
-  vertical-align: middle;
   line-height: 0;
   color: var(--s2a-color-content-disabled);
   transition: color var(--hover-list-transition-duration) var(--hover-list-transition-easing);
@@ -103,6 +109,14 @@
     display: block;
     width: 100%;
     height: 100%;
+  }
+
+  @media (width >= 48rem) {
+    position: static;
+    inset: auto;
+    translate: none;
+    margin-inline-start: var(--s2a-spacing-sm);
+    vertical-align: middle;
   }
 }
 
