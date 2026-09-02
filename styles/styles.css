@@ -361,7 +361,6 @@ main > .section {
   margin: 40px 0;
 
   --top-bottom-spacing: 0;
-  --section-container-width: 100%;
   --section-radius: 0;
   --section-text-on-light: var(--s2a-color-gray-1000);
   --section-text-on-dark: var(--s2a-color-gray-25);

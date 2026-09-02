@@ -13,10 +13,8 @@ function toClassName(name) {
     : '';
 }
 
-function decorateLayoutField(section, field, value, addBaseClass) {
+function decorateLayoutField(section, field, value) {
   if (!value || value === '0') return;
-  // only grid/container are used in compound CSS selectors (e.g. .grid, .container.container-4)
-  if (addBaseClass) section.classList.add(field);
   section.classList.add(`${field}-${toClassName(value)}`);
 }
 
