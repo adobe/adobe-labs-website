@@ -1,0 +1,49 @@
+.related-content-wrapper {
+  container: related-content / inline-size;
+}
+
+.related-content {
+  display: grid;
+  align-items: start;
+  grid-template-columns: 1fr;
+  gap: var(--s2a-spacing-2xl) var(--s2a-spacing-xs);
+
+  .grid-item {
+    /* Allow cards to fill the grid track instead of the standalone 50ch cap. */
+    max-width: none;
+  }
+
+  &__heading {
+    margin: 0;
+  }
+
+  &__list {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--s2a-spacing-2xl) var(--s2a-spacing-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @container related-content (inline-size >= 700px) {
+    &__list {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @container related-content (inline-size >= 1024px) {
+    grid-template-columns: 1fr 3fr;
+
+    &__heading {
+      grid-column: 1;
+      padding-inline-end: var(--s2a-spacing-4xl);
+    }
+
+    &__list {
+      grid-column: 2 / -1;
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}
