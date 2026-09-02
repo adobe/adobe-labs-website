@@ -127,13 +127,13 @@ describe('footer block', () => {
     await decorate(block);
 
     expect(block.querySelectorAll('.footer__social-link')).toHaveLength(4);
-    expect(block.querySelector('a[aria-label="Facebook"] .footer__social-icon use'))
+    expect(block.querySelector('a[aria-label^="Facebook"] .footer__social-icon use'))
       .toHaveAttribute('href', '#footer-icon-facebook');
-    expect(block.querySelector('a[aria-label="LinkedIn"]')).toHaveAttribute(
+    expect(block.querySelector('a[aria-label^="LinkedIn"]')).toHaveAttribute(
       'href',
       'https://linkedin.com/company/adobe',
     );
-    expect(block.querySelector('a[aria-label="X"] .footer__social-icon use'))
+    expect(block.querySelector('a[aria-label^="X"] .footer__social-icon use'))
       .toHaveAttribute('href', '#footer-icon-x');
   });
 
