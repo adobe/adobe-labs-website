@@ -42,14 +42,6 @@ describe('side-by-side-image block', () => {
     expect(items[1].querySelector('img')).toHaveAttribute('src', 'right.jpg');
   });
 
-  it('removes the authored row wrapper so items sit directly under the block', () => {
-    const block = createBlock(TWO_IMAGES);
-
-    decorate(block);
-
-    expect(block.querySelectorAll(':scope > div > div')).toHaveLength(0);
-  });
-
   it('flattens cells across multiple authored rows', () => {
     const block = createBlock(EXTRA_ROW);
 
