@@ -1,6 +1,7 @@
-import { decorateIcons } from '../../scripts/aem.js';
 import {
+  buildPlayIcon,
   getAuthoredCells,
+  getAuthoredVideoCell,
   getCellLinkHref,
   getCellMedia,
   getCellText,
@@ -11,7 +12,8 @@ import {
 /**
  * Data used to decorate a hero. Parsed from the positional AEM table:
  * row 1 is category, date, headline link, link label; row 2 is the image.
- * An optional key/value row (`Show Video Icon` | `true`) adds a play icon.
+ * An optional key/value row (`Is Video` | `true`) adds a play icon.
+ * `Show Video Icon` is an alias for that flag.
  *
  * @typedef {object} HeroData
  * @property {Element|null} image `<picture>` or `<img>` from AEM (source + alt)
@@ -20,15 +22,8 @@ import {
  * @property {string} headline
  * @property {string} href Article URL from the headline link
  * @property {string} linkLabel
- * @property {boolean} [showVideoIcon]
+ * @property {boolean} [isVideo]
  */
-
-const VIDEO_ICON_HTML = `
-  <span class="visually-hidden">Video article</span>
-  <span class="hero__video-icon" aria-hidden="true">
-    <span class="icon icon-play"></span>
-  </span>
-`.trim();
 
 /**
  * Reads authored cells from a hero block.
@@ -38,13 +33,13 @@ const VIDEO_ICON_HTML = `
  */
 export function getHeroData(block) {
   const authored = getAuthoredCells(block);
-  const showVideoIconCell = authored['show-video-icon'] || authored.showvideoicon;
-  const showVideoIcon = isAuthoredTrue(showVideoIconCell);
+  const videoCell = getAuthoredVideoCell(authored);
+  const isVideo = isAuthoredTrue(videoCell);
 
   const skip = new Set();
-  if (showVideoIconCell) {
-    skip.add(showVideoIconCell);
-    const labelCell = showVideoIconCell.previousElementSibling;
+  if (videoCell) {
+    skip.add(videoCell);
+    const labelCell = videoCell.previousElementSibling;
     if (labelCell) skip.add(labelCell);
   }
 
@@ -67,7 +62,7 @@ export function getHeroData(block) {
     headline,
     href,
     linkLabel,
-    showVideoIcon,
+    isVideo,
   };
 }
 
@@ -84,7 +79,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   const date = data.date || '';
   const headline = data.headline || '';
   const linkLabel = data.linkLabel || '';
-  const showVideoIcon = Boolean(data.showVideoIcon);
+  const isVideo = Boolean(data.isVideo);
   const isHome = window.location.pathname === '/'
     || window.location.pathname === '/index.html';
   const showCategory = Boolean(category) && isHome;
@@ -118,15 +113,12 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     eyebrow.append(document.createTextNode(category));
   }
 
-  if (showVideoIcon) {
-    const temp = document.createElement('div');
-    temp.innerHTML = VIDEO_ICON_HTML;
-    const iconNodes = Array.from(temp.childNodes);
+  if (isVideo) {
+    const { label, icon } = buildPlayIcon();
     const content = fragment.querySelector('.hero__content');
     const insertBefore = content.querySelector('.hero__date, .hero__headline, .hero__cta-text');
-    iconNodes.forEach((node) => {
-      content.insertBefore(node, insertBefore);
-    });
+    content.insertBefore(label, insertBefore);
+    content.insertBefore(icon, insertBefore);
   }
 
   const dateEl = fragment.querySelector('.hero__date');
@@ -163,7 +155,6 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   }
 
   root.replaceChildren(wrappedContent);
-  if (showVideoIcon) decorateIcons(root);
   return root;
 }
 
