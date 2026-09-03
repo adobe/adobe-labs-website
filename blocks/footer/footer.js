@@ -158,52 +158,58 @@ function parseMenuSection(section) {
   ));
 }
 
+let menuItemsId = 0;
+
 /**
- * Syncs nav headline a11y and item visibility for the current viewport.
- * @param {Element} heading Menu headline element
+ * Syncs the accordion toggle button a11y and item visibility for the current viewport.
+ * Below the desktop breakpoint the button drives a collapsible panel; at and above it the
+ * panel is always visible and the button is taken out of the tab order since it does nothing.
+ * @param {Element} button Menu toggle button element
  * @param {Element} items Menu items container
  * @param {MediaQueryList} desktopQuery Desktop layout media query
  */
-function syncHeadline(heading, items, desktopQuery) {
+function syncHeadline(button, items, desktopQuery) {
   if (desktopQuery.matches) {
-    heading.removeAttribute('role');
-    heading.removeAttribute('tabindex');
-    heading.removeAttribute('aria-expanded');
-    heading.removeAttribute('aria-haspopup');
+    button.setAttribute('aria-expanded', 'true');
+    button.setAttribute('tabindex', '-1');
     items.hidden = false;
     return;
   }
 
-  heading.setAttribute('role', 'button');
-  heading.setAttribute('tabindex', '0');
-  heading.setAttribute('aria-expanded', 'false');
-  heading.setAttribute('aria-haspopup', 'true');
+  button.setAttribute('aria-expanded', 'false');
+  button.removeAttribute('tabindex');
   items.hidden = true;
 }
 
 /**
- * Makes a nav column heading an accordion toggle on mobile.
+ * Makes a nav column heading an accordion toggle on mobile. The heading itself stays a plain
+ * h2 so its heading role is preserved for screen readers; a native button nested inside it
+ * provides the expand/collapse control, per the APG accordion pattern.
  * @param {Element} heading Authored h2 element
  * @param {Element} items Menu items container
  */
 function decorateHeadline(heading, items) {
-  heading.classList.add('footer__menu-headline', 'footer__menu-headline--toggle');
+  heading.classList.add('footer__menu-headline');
+
+  menuItemsId += 1;
+  items.id = `footer-menu-items-${menuItemsId}`;
+
+  const button = fromHTML('<button type="button" class="footer__menu-toggle"></button>');
+  button.setAttribute('aria-controls', items.id);
+  while (heading.firstChild) button.append(heading.firstChild);
+  heading.append(button);
 
   const desktopQuery = window.matchMedia('(min-width: 1024px)');
-  const onActivate = (e) => {
+  const onActivate = () => {
     if (desktopQuery.matches) return;
-    if (e.type === 'keydown' && e.code !== 'Enter' && e.code !== 'Space') return;
-    if (e.type === 'keydown') e.preventDefault();
-
-    const expanded = heading.getAttribute('aria-expanded') === 'true';
-    heading.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+    const expanded = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', expanded ? 'false' : 'true');
     items.hidden = expanded;
   };
 
-  heading.addEventListener('click', onActivate);
-  heading.addEventListener('keydown', onActivate);
-  desktopQuery.addEventListener('change', () => syncHeadline(heading, items, desktopQuery));
-  syncHeadline(heading, items, desktopQuery);
+  button.addEventListener('click', onActivate);
+  desktopQuery.addEventListener('change', () => syncHeadline(button, items, desktopQuery));
+  syncHeadline(button, items, desktopQuery);
 }
 
 /**
