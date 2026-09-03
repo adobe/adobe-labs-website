@@ -42,8 +42,8 @@ const FOOTER_FRAGMENT = `
   <div class="section">
     <div class="default-content-wrapper">
       <p><em>All rights reserved.</em></p>
-      <p><a href="https://www.adobe.com/privacy/opt-out.html">Do not sell or share my personal information</a></p>
-      <p><a href="#interest-based-ads">AdChoices</a></p>
+      <p><a href="https://www.adobe.com/privacy/opt-out.html" title="Do not sell or share my personal information">Do not sell or share my personal information</a></p>
+      <p><a href="#interest-based-ads" title="AdChoices">AdChoices</a></p>
     </div>
   </div>
 `;
@@ -161,6 +161,9 @@ describe('footer block', () => {
     expect(block).toHaveTextContent('Do not sell or share my personal information');
     expect(block.querySelector('.footer__adchoices-icon')).toBeTruthy();
     expect(block.querySelector('.footer__mark-image')).toBeTruthy();
+
+    const privacyLinks = block.querySelectorAll('.footer__privacy-link');
+    privacyLinks.forEach((link) => expect(link).not.toHaveAttribute('title'));
   });
 
   it('assembles the footer wrapper with parallax logo', async () => {

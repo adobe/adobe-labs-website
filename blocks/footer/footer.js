@@ -19,6 +19,18 @@ function getFooterAsset(path) {
 }
 
 /**
+ * Removes a link's title attribute when it just repeats the visible text. decorateButtons()
+ * in scripts.js defaults every link's title to its own text, which is a redundant tooltip
+ * that adds no information; an author-supplied title that differs from the text is kept.
+ * @param {Element} link Anchor element to check
+ */
+function dropRedundantTitle(link) {
+  if (link.getAttribute('title')?.trim() === link.textContent.trim()) {
+    link.removeAttribute('title');
+  }
+}
+
+/**
  * Fetches and injects the footer SVG icon sprite into the block once.
  * @param {Element} block The footer block element
  * @returns {Promise<void>}
@@ -235,11 +247,7 @@ function decorateColumn(column) {
     decorateHeadline(heading, items);
     column.querySelectorAll('p a').forEach((link) => {
       link.classList.add('footer__menu-link');
-      // decorateButtons() in scripts.js defaults title to the link's own text; that's
-      // a redundant tooltip that adds no information, so drop it when it's not distinct.
-      if (link.getAttribute('title')?.trim() === link.textContent.trim()) {
-        link.removeAttribute('title');
-      }
+      dropRedundantTitle(link);
       const item = fromHTML('<li></li>');
       item.append(link);
       items.append(item);
@@ -402,6 +410,7 @@ function decorateLegal(legal) {
 
   legal.querySelectorAll('a').forEach((link) => {
     link.classList.add('footer__privacy-link');
+    dropRedundantTitle(link);
     if (/interest-based-ads/.test(link.getAttribute('href') || '')) {
       link.insertAdjacentHTML(
         'afterbegin',
