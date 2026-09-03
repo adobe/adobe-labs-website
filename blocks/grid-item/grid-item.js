@@ -18,7 +18,8 @@ import {
  * @property {string} [title]
  * @property {string} [href] Item URL; omit for a non-linked card
  * @property {string} [subhead]
- * @property {string} [contentType] Authored section label; resolved to a known path inside buildGridItem
+ * @property {string} [contentType] Authored section label; resolved to a known
+ *   path inside buildGridItem
  * @property {Element} [mediaElement] `<picture>` or `<img>` from AEM
  * @property {string} [imageUrl] Image URL from JSON (Content Grid)
  * @property {string} [imageAlt]

@@ -197,7 +197,8 @@ function toAspectClass(value) {
  * @param {ContentItem} entry
  * @param {object} [options]
  * @param {boolean} [options.subheadDescription] Use description instead of the date subhead
- * @param {boolean} [options.showContentType] Include the content-type (section) label (off by default)
+ * @param {boolean} [options.showContentType] Include the content-type (section) label
+ *   (off by default)
  * @returns {HTMLDivElement}
  */
 function createGridItem(entry, { subheadDescription, showContentType } = {}) {
