@@ -221,7 +221,7 @@ function decorateColumn(column) {
   const wrapper = fromHTML(`
     <div class="footer__menu-column footer__menu-column--nav">
       <div class="footer__menu-section">
-        <div class="footer__menu-items"></div>
+        <ul class="footer__menu-items"></ul>
       </div>
     </div>
   `);
@@ -235,7 +235,9 @@ function decorateColumn(column) {
     decorateHeadline(heading, items);
     column.querySelectorAll('p a').forEach((link) => {
       link.classList.add('footer__menu-link');
-      items.append(link);
+      const item = fromHTML('<li></li>');
+      item.append(link);
+      items.append(item);
     });
   }
 
@@ -252,7 +254,7 @@ function decorateMenuColumns(columns) {
   if (!columns?.length) return null;
 
   const menu = fromHTML('<div class="footer__menu"></div>');
-  const navColumns = fromHTML('<div class="footer__menu-nav"></div>');
+  const navColumns = fromHTML('<nav class="footer__menu-nav" aria-label="Footer"></nav>');
 
   columns.forEach((column) => {
     if (isNewsletterColumn(column)) {

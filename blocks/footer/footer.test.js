@@ -173,7 +173,7 @@ describe('footer block', () => {
     addSpy.mockRestore();
   });
 
-  it('toggles mobile accordion sections on headline click', async () => {
+  it('toggles mobile accordion sections on toggle button click', async () => {
     window.matchMedia = jest.fn().mockImplementation(() => ({
       matches: false,
       addEventListener: jest.fn(),
@@ -186,17 +186,54 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    const headline = block.querySelector('.footer__menu-headline--toggle');
-    const items = headline.closest('.footer__menu-section').querySelector('.footer__menu-items');
+    const heading = block.querySelector('.footer__menu-column--nav .footer__menu-headline');
+    const toggle = heading.querySelector('.footer__menu-toggle');
+    const items = toggle.closest('.footer__menu-section').querySelector('.footer__menu-items');
 
-    expect(headline).toHaveAttribute('aria-expanded', 'false');
+    expect(heading.tagName).toBe('H2');
+    expect(toggle.tagName).toBe('BUTTON');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAttribute('aria-controls', items.id);
+    expect(toggle).not.toHaveAttribute('aria-haspopup');
     expect(items).toHaveAttribute('hidden');
 
-    headline.click();
+    toggle.click();
 
-    expect(headline).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(items).not.toHaveAttribute('hidden');
 
     block.remove();
+  });
+
+  it('keeps the heading role intact and disables the toggle on desktop', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    const heading = block.querySelector('.footer__menu-column--nav .footer__menu-headline');
+    const toggle = heading.querySelector('.footer__menu-toggle');
+    const items = toggle.closest('.footer__menu-section').querySelector('.footer__menu-items');
+
+    expect(heading.tagName).toBe('H2');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAttribute('tabindex', '-1');
+    expect(items).not.toHaveAttribute('hidden');
+  });
+
+  it('renders nav menu links as a list inside a footer navigation landmark', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    const nav = block.querySelector('.footer__menu-nav');
+    expect(nav.tagName).toBe('NAV');
+    expect(nav).toHaveAttribute('aria-label');
+
+    const items = block.querySelector('.footer__menu-column--nav .footer__menu-items');
+    expect(items.tagName).toBe('UL');
+    expect(items.querySelectorAll(':scope > li').length).toBeGreaterThan(0);
+    expect(items.querySelector('li > .footer__menu-link')).toBeTruthy();
   });
 });
