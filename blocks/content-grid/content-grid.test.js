@@ -160,11 +160,11 @@ describe('content-grid block', () => {
         title.textContent = data.title;
         el.append(title);
       }
-      if (data.category) {
-        const category = document.createElement('span');
-        category.className = 'grid-item__category';
-        category.textContent = data.category;
-        el.append(category);
+      if (data.contentType) {
+        const contentType = document.createElement('span');
+        contentType.className = 'grid-item__content-type';
+        contentType.textContent = data.contentType;
+        el.append(contentType);
       }
       if (data.subhead) {
         const subhead = document.createElement('p');
@@ -174,7 +174,7 @@ describe('content-grid block', () => {
       }
       if (data.isVideo) {
         const play = document.createElement('span');
-        play.className = 'grid-item__play';
+        play.className = 'play-icon';
         el.append(play);
       }
       return el;
@@ -199,7 +199,7 @@ describe('content-grid block', () => {
     expect(list).toHaveAttribute('role', 'list');
     expect(list.children).toHaveLength(3);
     expect(list.querySelectorAll('.grid-item')).toHaveLength(3);
-    expect(list.querySelector('.grid-item')).toHaveClass('aspect-3-2');
+    expect(list.querySelector('.grid-item')).toHaveClass('aspect-1-1');
     expect(list.querySelector('li')).toHaveClass('content-grid__item', 'grid-item-wrapper');
     expect(buildGridItem).toHaveBeenCalledTimes(3);
     expect(decorateBlock).toHaveBeenCalledTimes(3);
@@ -331,7 +331,7 @@ describe('content-grid block', () => {
     expect(titlesFromCards()).toEqual(['Nested categories']);
   });
 
-  it('omits the section label on grid-item by default', async () => {
+  it('omits the content-type label on grid-item by default', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'All',
@@ -340,20 +340,20 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(dataFromCall(0).category).toBe('');
+    expect(dataFromCall(0).contentType).toBe('');
   });
 
-  it('passes the section label to grid-item when show-category is set', async () => {
+  it('passes the content-type label to grid-item when show-content-type is set', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'All',
       'Count:': '1',
     });
-    block.classList.add('show-category');
+    block.classList.add('show-content-type');
 
     await decorate(block);
 
-    expect(dataFromCall(0).category).toBe('Research');
+    expect(dataFromCall(0).contentType).toBe('Research');
   });
 
   it('filters by JSON category independently of the page path', async () => {
@@ -371,15 +371,15 @@ describe('content-grid block', () => {
       'Category:': 'Research',
       'Count:': '8',
     });
-    block.classList.add('show-category');
+    block.classList.add('show-content-type');
 
     await decorate(block);
 
     expect(titlesFromCards()).toEqual(['Filed under workflows']);
-    expect(dataFromCall(0).category).toBe('Workflows');
+    expect(dataFromCall(0).contentType).toBe('Workflows');
   });
 
-  it('omits the section label for unknown path folders', async () => {
+  it('omits the content-type label for unknown path folders', async () => {
     dataStore.getData.mockResolvedValue({
       data: [{
         path: '/policy/terms',
@@ -397,7 +397,7 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(titlesFromCards()).toEqual(['Terms']);
-    expect(dataFromCall(0).category).toBe('');
+    expect(dataFromCall(0).contentType).toBe('');
   });
 
   it('fetches the workflows endpoint for Content Type Workflows', async () => {
@@ -555,7 +555,7 @@ describe('content-grid block', () => {
     expect(block.querySelector('.grid-item')).toHaveClass('aspect-4-5');
   });
 
-  it('defaults Image Aspect to 3:2 when the value is missing or unknown', async () => {
+  it('defaults Image Aspect to 1:1 when the value is missing or unknown', async () => {
     dataStore.getData.mockResolvedValue({
       data: [{
         path: '/research/ratio',
@@ -573,11 +573,11 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(block.querySelector('.grid-item')).toHaveClass('aspect-3-2');
-    expect(block.querySelector('.grid-item')).not.toHaveClass('aspect-1-1');
+    expect(block.querySelector('.grid-item')).toHaveClass('aspect-1-1');
+    expect(block.querySelector('.grid-item')).not.toHaveClass('aspect-3-2');
   });
 
-  it('defaults Image Aspect to 3:2 when the index omits the field', async () => {
+  it('defaults Image Aspect to 1:1 when the index omits the field', async () => {
     dataStore.getData.mockResolvedValue({
       data: [{
         path: '/research/ratio',
@@ -594,7 +594,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(block.querySelector('.grid-item')).toHaveClass('aspect-3-2');
+    expect(block.querySelector('.grid-item')).toHaveClass('aspect-1-1');
   });
 
   it('maps index fields onto the generated grid-item', async () => {
@@ -613,7 +613,7 @@ describe('content-grid block', () => {
         title: 'Newer research',
         href: expect.stringMatching(/\/research\/newer$/),
         subhead: 'Aug 20',
-        category: '',
+        contentType: '',
         imageUrl: '/newer.jpg',
         imageAlt: '',
         isVideo: false,

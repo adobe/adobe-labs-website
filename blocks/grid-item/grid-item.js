@@ -1,11 +1,12 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
 import {
+  buildPlayIcon,
   getAuthoredCells,
   getCellLinkHref,
   getCellMedia,
   getCellText,
   getSection,
-  isAuthoredTrue,
+  isAuthoredVideo,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
@@ -17,11 +18,12 @@ import {
  * @property {string} [title]
  * @property {string} [href] Item URL; omit for a non-linked card
  * @property {string} [subhead]
- * @property {string} [category] Authored label; resolved to a known path inside buildGridItem
+ * @property {string} [contentType] Authored section label; resolved to a known
+ *   path inside buildGridItem
  * @property {Element} [mediaElement] `<picture>` or `<img>` from AEM
  * @property {string} [imageUrl] Image URL from JSON (Content Grid)
  * @property {string} [imageAlt]
- * @property {boolean} [isVideo]
+ * @property {boolean} [isVideo] True when authors set Is Video (Show Video Icon is an alias)
  */
 
 /**
@@ -36,9 +38,10 @@ export function getGridItemData(block) {
     title: getCellText(cells.title),
     href: getCellLinkHref(cells.title),
     subhead: getCellText(cells.subhead),
-    category: getCellText(cells.category),
+    // Prefer Content Type; fall back to legacy Category for existing draft tables.
+    contentType: getCellText(cells['content-type'] || cells.category),
     mediaElement: getCellMedia(cells.image),
-    isVideo: isAuthoredTrue(cells.isvideo || cells['is-video']),
+    isVideo: isAuthoredVideo(cells),
   };
 }
 
@@ -52,7 +55,7 @@ export function getGridItemData(block) {
 export function buildGridItem(data = {}, root = document.createElement('div')) {
   const title = data.title || '';
   const href = toSafeHttpUrl(data.href);
-  const category = getSection(data.category);
+  const contentType = getSection(data.contentType);
   const subhead = data.subhead || '';
   const isVideo = Boolean(data.isVideo);
   let mediaElement = data.mediaElement || null;
@@ -64,19 +67,12 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
 
   const template = document.createElement('template');
   template.innerHTML = `
-    ${category ? `<a class="grid-item__category label" href="${category.path}">
-      <span class="grid-item__category-swatch" aria-hidden="true"></span>
-      <span class="grid-item__category-name"></span>
+    ${contentType ? `<a class="grid-item__content-type label" href="${contentType.path}">
+      <span class="grid-item__content-type-swatch" aria-hidden="true"></span>
+      <span class="grid-item__content-type-name"></span>
     </a>` : ''}
     <${mainTag} class="grid-item__main">
-      ${isVideo ? '<span class="visually-hidden">Video article</span>' : ''}
-      <div class="grid-item__image">
-        ${isVideo ? `<span class="grid-item__play" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" width="12" height="12" focusable="false">
-            <path fill="currentColor" d="M9.95 5.079c.467.269.467.943 0 1.212L3.05 10.275C2.583 10.544 2 10.207 2 9.668V1.701c0-.539.583-.876 1.05-.606z"/>
-          </svg>
-        </span>` : ''}
-      </div>
+      <div class="grid-item__image"></div>
       <div class="grid-item__body">
         ${title ? '<p class="grid-item__title heading-6"></p>' : ''}
         ${subhead ? '<p class="grid-item__subhead body-md"></p>' : ''}
@@ -88,18 +84,25 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
   const main = fragment.querySelector('.grid-item__main');
   if (href) main.href = href;
 
+  const image = fragment.querySelector('.grid-item__image');
+  let playIcon;
+  if (isVideo) {
+    const { label, icon } = buildPlayIcon();
+    main.prepend(label);
+    image.append(icon);
+    playIcon = icon;
+  }
+
   // Move authored media into the card; keep the image alt from AEM.
   if (mediaElement) {
-    const image = fragment.querySelector('.grid-item__image');
-    const play = image.querySelector('.grid-item__play');
-    if (play) play.before(mediaElement);
+    if (playIcon) playIcon.before(mediaElement);
     else image.append(mediaElement);
   }
 
   // Assign copy via textContent rather than interpolating into HTML.
-  if (category) {
-    fragment.querySelector('.grid-item__category-name').textContent = category.label;
-    root.dataset.category = category.slug;
+  if (contentType) {
+    fragment.querySelector('.grid-item__content-type-name').textContent = contentType.label;
+    root.dataset.contentType = contentType.slug;
   }
 
   if (title) fragment.querySelector('.grid-item__title').textContent = title;
@@ -111,7 +114,7 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
 }
 
 /**
- * Decorates a grid-item block: key/value rows become a category link and a
+ * Decorates a grid-item block: key/value rows become a content-type link and a
  * card (image, title, optional subhead). The card links when the title is a link.
  * Already-built cards (`.grid-item__main` present) are left as-is so nested
  * `loadBlock` from content-grid does not wipe `buildGridItem` output.

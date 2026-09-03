@@ -16,7 +16,7 @@ import { buildGridItem } from '../grid-item/grid-item.js';
 const DEFAULT_COUNT = 8;
 /** /content.json still includes `/`. */
 const HOME_PATHS = new Set(['', '/', '/index']);
-const DEFAULT_ASPECT_CLASS = 'aspect-3-2';
+const DEFAULT_ASPECT_CLASS = 'aspect-1-1';
 const ASPECT_CLASSES = new Set(['aspect-1-1', 'aspect-4-5', 'aspect-3-2', 'aspect-2-3']);
 
 /**
@@ -366,7 +366,8 @@ function isVideoItem(item) {
 
 /**
  * Grid-item aspect class from the index `imageAspect` value.
- * Accepts `3:2`, `3/2`, `3-2`, or `aspect-3-2` (and the other known ratios).
+ * Accepts `1:1`, `4:5`, `3:2`, `2:3` (separators `:`, `/`, or `-`, optional `aspect-` prefix).
+ * Missing or unknown values default to 1:1.
  * @param {string} [value]
  * @returns {string}
  */
@@ -386,10 +387,11 @@ function toAspectClass(value) {
  * @param {ContentItem} entry
  * @param {object} [options]
  * @param {boolean} [options.subheadDescription] Use description instead of the date subhead
- * @param {boolean} [options.showCategory] Include the section label (off by default)
+ * @param {boolean} [options.showContentType] Include the content-type (section) label
+ *   (off by default)
  * @returns {HTMLDivElement}
  */
-function createGridItem(entry, { subheadDescription, showCategory } = {}) {
+function createGridItem(entry, { subheadDescription, showContentType } = {}) {
   const section = getSectionFromPath(entry.path);
   const title = itemField(entry, 'title');
   const publicationDate = itemField(entry, 'publicationDate', 'date');
@@ -402,7 +404,7 @@ function createGridItem(entry, { subheadDescription, showCategory } = {}) {
     title,
     href: itemField(entry, 'path'),
     subhead,
-    category: showCategory && section ? section.label : '',
+    contentType: showContentType && section ? section.label : '',
     imageUrl: itemField(entry, 'image'),
     imageAlt: title ? '' : (description || 'Article'),
     isVideo: isVideoItem(entry),
@@ -486,7 +488,7 @@ export default async function decorate(block) {
   const parsedCount = Number.parseInt(String(config.count || '').trim(), 10);
   const count = Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : DEFAULT_COUNT;
   const subheadDescription = block.classList.contains('subhead-description');
-  const showCategory = block.classList.contains('show-category');
+  const showContentType = block.classList.contains('show-content-type');
 
   block.replaceChildren();
 
@@ -503,7 +505,7 @@ export default async function decorate(block) {
   const items = selectItems(data, { category: config.category, count });
   await renderGrid(
     block,
-    items.map((entry) => createGridItem(entry, { subheadDescription, showCategory })),
+    items.map((entry) => createGridItem(entry, { subheadDescription, showContentType })),
     intro,
   );
   wireStackedGridPagers(block);

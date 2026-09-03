@@ -113,7 +113,7 @@
     }
   }
 
-  @container content-grid (inline-size >= 43.75rem) {
+  @container content-grid (inline-size >= 700px) {
     .content-grid__list,
     &.content-grid--has-intro {
       grid-template-columns: repeat(3, 1fr);
@@ -138,7 +138,7 @@
     }
   }
 
-  @container content-grid (inline-size >= 64rem) {
+  @container content-grid (inline-size >= 1024px) {
     .content-grid__list,
     &.content-grid--has-intro {
       grid-template-columns: repeat(4, 1fr);

@@ -21,7 +21,12 @@ import {
   loadSections,
   loadCSS,
   buildBlock,
+  getMetadata,
 } from './aem.js';
+import {
+  buildArticlePreFooter,
+  debounce,
+} from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
   const innerTT = window.trustedTypes.createPolicy('tt-inner', {
@@ -78,6 +83,7 @@ function buildWidgetAutoBlocks(main) {
  */
 function buildAutoBlocks(main) {
   try {
+    buildArticlePreFooter(main);
     // auto load `*/fragments/*` references
     const fragments = [...main.querySelectorAll('a[href*="/fragments/"]')].filter((f) => !f.closest('.fragment'));
     if (fragments.length > 0) {
@@ -127,6 +133,10 @@ function decorateButtons(main) {
 
     p.className = 'button-wrapper';
     a.className = 'button';
+    if (a.getAttribute('aria-disabled') === 'true') {
+      a.tabIndex = -1;
+      a.addEventListener('click', (event) => event.preventDefault());
+    }
     if (strong && em) { // high-impact call-to-action
       a.classList.add('accent');
       const outer = strong.contains(em) ? strong : em;
@@ -155,11 +165,32 @@ export function decorateMain(main) {
 }
 
 /**
+ * Applies the dark or light mode theme attribute to the HTML tag, that is used by
+ * color tokens and scripts. It is applied either by the existence of page
+ * metadata (i.e. dark mode is forced) or a user's preferred color scheme.
+ */
+function decorateDarkMode() {
+  const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const updateColorTheme = (useDark) => {
+    document.documentElement.dataset.theme = (useDark ? 'dark' : 'light');
+  };
+
+  // Prefers dark mode, or page is always dark mode.
+  updateColorTheme(darkModeQuery.matches || getMetadata('dark-mode')?.toLowerCase() === 'true');
+
+  // Listen for any browser/OS change to prefers-color-scheme, and update.
+  darkModeQuery.addEventListener('change', (event) => {
+    updateColorTheme(event.matches || getMetadata('dark-mode')?.toLowerCase() === 'true');
+  });
+}
+
+/**
  * Loads everything needed to get to LCP.
  * @param {Element} doc The container element
  */
 async function loadEager(doc) {
   document.documentElement.lang = 'en';
+  decorateDarkMode();
   decorateTemplateAndTheme();
   const main = doc.querySelector('main');
   if (main) {
@@ -167,6 +198,22 @@ async function loadEager(doc) {
     document.body.classList.add('appear');
     await loadSection(main.querySelector('.section'), waitForFirstImage);
   }
+}
+
+/**
+ * Down state: include inline and block sizes for elements that use S2 calculated perspective.
+ * Sets custom property values used by the perspective CSS.
+ */
+function setCalculatedPerspective() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+  const elements = document.querySelectorAll('.button, .filter-group__button');
+  elements.forEach((el) => {
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
+    el.style.setProperty('--active-downstate-inline-size', `${el.offsetWidth}px`);
+    el.style.setProperty('--active-downstate-block-size', `${el.offsetHeight}px`);
+  });
 }
 
 /**
@@ -186,6 +233,11 @@ async function loadLazy(doc) {
   loadFooter(doc.querySelector('body > footer'));
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
+
+  // Down state: include inline and block sizes for elements that use S2 calculated perspective.
+  setCalculatedPerspective();
+  const setCalcPerspectiveDebounced = debounce(setCalculatedPerspective);
+  window.addEventListener('resize', setCalcPerspectiveDebounced);
 }
 
 /**
