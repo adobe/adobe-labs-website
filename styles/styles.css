@@ -42,7 +42,7 @@
 
   /* sizing */
   --site-max-inline-size: 120rem; /* 1920px */
-  --site-root-inline-padding: var(--s2a-spacing-md, 1.0rem);
+  --site-root-inline-padding: var(--s2a-spacing-md, 1.5rem);
 
   /* buttons */
   --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
@@ -51,6 +51,12 @@
 
   &[data-theme="dark"] {
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
+  }
+}
+
+@media (width >= 48rem) {
+  :root {
+    --site-root-inline-padding: var(--s2a-spacing-lg, 1.0rem);
   }
 }
 
