@@ -235,6 +235,11 @@ function decorateColumn(column) {
     decorateHeadline(heading, items);
     column.querySelectorAll('p a').forEach((link) => {
       link.classList.add('footer__menu-link');
+      // decorateButtons() in scripts.js defaults title to the link's own text; that's
+      // a redundant tooltip that adds no information, so drop it when it's not distinct.
+      if (link.getAttribute('title')?.trim() === link.textContent.trim()) {
+        link.removeAttribute('title');
+      }
       const item = fromHTML('<li></li>');
       item.append(link);
       items.append(item);

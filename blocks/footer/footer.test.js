@@ -21,11 +21,11 @@ const FOOTER_FRAGMENT = `
     <div><div>
       <h2>Connect</h2>
       <p><a href="/collaborate">Collaborate</a></p>
-      <p><a href="/reuse">Reuse</a></p>
+      <p><a href="/reuse" title="Reuse it responsibly">Reuse</a></p>
     </div></div>
     <div><div>
       <h2>Explore</h2>
-      <p><a href="/research">Research</a></p>
+      <p><a href="/research" title="Research">Research</a></p>
     </div></div>
   </div>
   <div class="section">
@@ -118,6 +118,19 @@ describe('footer block', () => {
     expect(block).toHaveTextContent('Connect');
     expect(block).toHaveTextContent('Collaborate');
     expect(block).toHaveTextContent('Research');
+  });
+
+  it('strips redundant title attributes that just repeat the link text', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    const researchLink = within(block).getByText('Research');
+    expect(researchLink).not.toHaveAttribute('title');
+
+    const reuseLink = within(block).getByText('Reuse');
+    expect(reuseLink).toHaveAttribute('title', 'Reuse it responsibly');
   });
 
   it('renders social links with icons and accessible names', async () => {
