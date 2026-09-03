@@ -1,11 +1,12 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
 import {
+  buildPlayIcon,
   getAuthoredCells,
   getCellLinkHref,
   getCellMedia,
   getCellText,
   getSection,
-  isAuthoredTrue,
+  isAuthoredVideo,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
@@ -21,7 +22,7 @@ import {
  * @property {Element} [mediaElement] `<picture>` or `<img>` from AEM
  * @property {string} [imageUrl] Image URL from JSON (Content Grid)
  * @property {string} [imageAlt]
- * @property {boolean} [isVideo]
+ * @property {boolean} [isVideo] True when authors set Is Video (Show Video Icon is an alias)
  */
 
 /**
@@ -39,7 +40,7 @@ export function getGridItemData(block) {
     // Prefer Content Type; fall back to legacy Category for existing draft tables.
     contentType: getCellText(cells['content-type'] || cells.category),
     mediaElement: getCellMedia(cells.image),
-    isVideo: isAuthoredTrue(cells.isvideo || cells['is-video']),
+    isVideo: isAuthoredVideo(cells),
   };
 }
 
@@ -70,14 +71,7 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
       <span class="grid-item__content-type-name"></span>
     </a>` : ''}
     <${mainTag} class="grid-item__main">
-      ${isVideo ? '<span class="visually-hidden">Video article</span>' : ''}
-      <div class="grid-item__image">
-        ${isVideo ? `<span class="grid-item__play" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" width="12" height="12" focusable="false">
-            <path fill="currentColor" d="M9.95 5.079c.467.269.467.943 0 1.212L3.05 10.275C2.583 10.544 2 10.207 2 9.668V1.701c0-.539.583-.876 1.05-.606z"/>
-          </svg>
-        </span>` : ''}
-      </div>
+      <div class="grid-item__image"></div>
       <div class="grid-item__body">
         ${title ? '<p class="grid-item__title heading-6"></p>' : ''}
         ${subhead ? '<p class="grid-item__subhead body-md"></p>' : ''}
@@ -89,11 +83,18 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
   const main = fragment.querySelector('.grid-item__main');
   if (href) main.href = href;
 
+  const image = fragment.querySelector('.grid-item__image');
+  let playIcon;
+  if (isVideo) {
+    const { label, icon } = buildPlayIcon();
+    main.prepend(label);
+    image.append(icon);
+    playIcon = icon;
+  }
+
   // Move authored media into the card; keep the image alt from AEM.
   if (mediaElement) {
-    const image = fragment.querySelector('.grid-item__image');
-    const play = image.querySelector('.grid-item__play');
-    if (play) play.before(mediaElement);
+    if (playIcon) playIcon.before(mediaElement);
     else image.append(mediaElement);
   }
 

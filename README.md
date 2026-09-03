@@ -60,14 +60,26 @@ See [The Anatomy of a Project](https://www.aem.live/developer/anatomy-of-a-proje
 
 Authors insert blocks from the Library in [Document Authoring](https://da.live/#/adobe/adobe-labs-website). That catalog lives in DA under `/docs/library/`, not in this repo. Code merges ship separately from content publish.
 
-1. Open `/docs/library/blocks/` and create a document named after the block.
-2. In that document, author one or more default instances (tables whose first row is the block name, plus sample content). Use section breaks between variants so Library can list them separately. This is what gets placed when an author adds the block. Preview and publish the document.
-3. Open the `blocks` spreadsheet in `/docs/library/` and add a row:
-   - `name`: the label shown in Library → Blocks
-   - `path`: the content URL of the document, for example `https://content.da.live/adobe/adobe-labs-website/docs/library/blocks/<block-name>` (use `content.da.live`, not `da.live`)
-4. Preview and publish the spreadsheet.
+Library lists two kinds of variants:
 
-Authors can then add the block from Library → Blocks. For more on library setup, see [Setup library](https://docs.da.live/administrators/guides/setup-library).
+- **Content variants**: an H2 above each sample table. The heading text is the sub-item name in Library.
+- **Visual variants**: options in the table header, as in `grid-item (aspect-4/5)` above. Section breaks are for page layout, not for grouping Library items.
+
+1. Create a document named after the block in the [blocks folder](https://da.live/#/adobe/adobe-labs-website/docs/library/blocks).
+2. For each variant, add an H2 (the Library label), then a block table with dummy content. Use header options for visual variants.
+3. Optionally add a `Library Metadata` table after a sample block so Library shows an info icon with that description. Wrap a heading with the block in `library-container-start` / `library-container-end` if the heading should insert with the block.
+4. Preview the document so Library can read it. Publish if authors on the live site should see it.
+5. Add a row on the [blocks spreadsheet](https://da.live/sheet#/adobe/adobe-labs-website/docs/library/blocks):
+   - `name`: the label shown in Library → Blocks
+   - `path`: `https://content.da.live/adobe/adobe-labs-website/docs/library/blocks/<block-name>` (use `content.da.live`, not `da.live`)
+6. Preview the spreadsheet (publish if live authors need it).
+7. In DA, open Library → Blocks and confirm the new name, with nested H2 variants.
+
+### Library setup
+
+Blocks, Templates, Placeholders, and Icons are registered on the **library** tab of the [site config](https://da.live/config#/adobe/adobe-labs-website/) (for example Blocks → `https://content.da.live/adobe/adobe-labs-website/docs/library/blocks.json`). Put those rows on the **library** tab, not **data**. Edit this tab only when adding a new *type* of library, not for each block.
+
+For Templates, Placeholders, and Icons, see [Setup library](https://docs.da.live/administrators/guides/setup-library).
 
 ### content-grid (query-driven)
 
@@ -156,5 +168,34 @@ excluded from the query index JSON, so these must be filtered on the frontend.
 Default metadata values are set via the root `/metadata` spreadsheet.
 See [AEM bulk metadata docs](https://www.aem.live/docs/bulk-metadata) for more info.
 
+Article detail pages (`/research/*`, `/workflows/*`, `/sneaks/*`, `/playground/*`) get `template: article` from that spreadsheet. The article pre-footer autoblock keys off this metadata, not a hardcoded path list. A page-level metadata block can still add or omit `article` for an exception.
+
 Individual pages can then set metadata values via a `metadata` block, including overriding any of those default values.
 See [AEM metadata block docs](https://www.aem.live/developer/block-collection/metadata) for more info. 
+### Buttons
+
+The default `.button` class uses the Primary style. So far only the default/primary style is supported until others are needed.
+
+Default buttons are dark-mode aware. The `.button--static-white` variant can be used for non-theme-aware buttons, like in the hero.
+
+#### Adding a button in AEM
+
+Follow [AEM's Buttons docs](https://www.aem.live/developer/block-collection/buttons#code).
+
+The paragraph must contain only the link. `decorateButtons` then adds class `button` to the link and class `button-wrapper` to the paragraph.
+
+`.button-wrapper` is a `p`, so it has the default paragraph margin.
+
+You can use the same steps for a standalone button in default content and for a button in a block cell. 
+
+> [!NOTE]
+> The AEM docs incorrectly state that `p > a` (without `<strong>` or `<em>`). This is outdated, as standalone plain links do not receive the `.button` class. See [decorateButtons](https://github.com/adobe/adobe-labs-website/blob/9cd669eb7227dfea2350286db816361dc8bd55da/scripts/scripts.js#L123).
+
+#### Adding a button in JavaScript
+
+Create a native `button` or `a` as needed and add class `button` to it.
+
+Add extra classes for variants as needed, for example `button--static-white`.
+
+##### Disabled buttons as links
+`decorateButtons` runs before block JavaScript. For a disabled link that you create as `a.button` in block JS, set `aria-disabled="true"`, set `tabIndex = "-1"`, and call `event.preventDefault()` on click.

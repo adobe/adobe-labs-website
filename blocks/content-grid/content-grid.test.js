@@ -174,7 +174,7 @@ describe('content-grid block', () => {
       }
       if (data.isVideo) {
         const play = document.createElement('span');
-        play.className = 'grid-item__play';
+        play.className = 'play-icon';
         el.append(play);
       }
       return el;

@@ -7,8 +7,8 @@
 - Story: [ADBLABS-XX](https://sparkbox.atlassian.net/browse/ADBLABS-XX)
 
 ## Test URLs:
-- Before: https://main--adobe-labs-website--adobe.aem.page/
-- After: https://<branch>--adobe-labs-website--adobe.aem.page/
+- Before: https://main--adobe-labs-website--adobe.aem.live/
+- After: https://<branch>--adobe-labs-website--adobe.aem.live/
 
 ## Checklist
 <!-- Delete anything irrelevant to this PR -->
@@ -40,3 +40,9 @@ Blocks and pages should undergo comprehensive testing to ensure they work as exp
 * [ ] Firefox
 * [ ] Chrome
 * [ ] Safari
+
+### Dark mode and light mode
+Most pages support both dark and light mode, based on `prefers-color-scheme`. 
+Changes that affect the frontend should support both color schemes.
+
+* [ ] Frontend changes have been tested in both light mode and dark mode. 

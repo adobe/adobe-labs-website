@@ -126,6 +126,7 @@ describe('grid-item block', () => {
   it.each([
     ['Is Video', 'true'],
     ['isvideo', 'yes'],
+    ['Show Video Icon', 'true'],
   ])('adds video affordances when %s is %s', (label, value) => {
     const block = createBlock({
       Title: 'Lab project',
@@ -137,7 +138,8 @@ describe('grid-item block', () => {
 
     const image = block.querySelector('.grid-item__image');
     expect(within(block).getByText('Video article')).toHaveClass('visually-hidden');
-    expect(image.querySelector('.grid-item__play')).toHaveAttribute('aria-hidden', 'true');
+    expect(image.querySelector('.play-icon')).toHaveAttribute('aria-hidden', 'true');
+    expect(image.querySelector('.play-icon svg')).toBeTruthy();
     expect(image.firstElementChild.tagName).toBe('PICTURE');
   });
 
@@ -150,7 +152,7 @@ describe('grid-item block', () => {
     decorate(block);
 
     expect(within(block).queryByText('Video article')).toBeNull();
-    expect(block.querySelector('.grid-item__play')).toBeNull();
+    expect(block.querySelector('.play-icon')).toBeNull();
   });
 
   it('preserves alt text already on the image', () => {
