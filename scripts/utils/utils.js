@@ -8,6 +8,38 @@
 import { buildBlock, getMetadata, toClassName } from '../aem.js';
 
 /**
+ * Site sections shared by content-grid and grid-item.
+ * @type {Object<string, {label: string, path: string}>}
+ */
+export const SECTIONS = {
+  research: { label: 'Research', path: '/research/' },
+  workflows: { label: 'Workflows', path: '/workflows/' },
+  sneaks: { label: 'Sneaks', path: '/sneaks/' },
+  playground: { label: 'Playground', path: '/playground/' },
+};
+
+/**
+ * Known section for a slug or authored name, or null if unknown.
+ * @param {string} [name]
+ * @returns {{ slug: string, label: string, path: string }|null}
+ */
+export function getSection(name) {
+  const slug = toClassName(name);
+  const section = SECTIONS[slug];
+  if (!section) return null;
+  return { slug, label: section.label, path: section.path };
+}
+
+/**
+ * Known section for a page path's first segment, or null if unknown.
+ * @param {string} [path]
+ * @returns {{ slug: string, label: string, path: string }|null}
+ */
+export function getSectionFromPath(path) {
+  return getSection(String(path || '').split('/').filter(Boolean)[0]);
+}
+
+/**
  * Returns an absolute http(s) URL, or an empty string if the value is missing
  * or uses a non-http protocol (javascript:, data:, etc.).
  *
@@ -82,6 +114,44 @@ export function getCellMedia(cell) {
  */
 export function isAuthoredTrue(cell) {
   return /^(true|yes|1)$/i.test(getCellText(cell));
+}
+
+/**
+ * Parse a publication date without shifting ISO calendar days across timezones.
+ * @param {string} [value] ISO (`YYYY-MM-DD`) or any string `Date` can parse
+ * @returns {Date|null}
+ */
+export function parseCardDate(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (iso) {
+    const date = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * Card subhead date: "Oct 21" in the current year, "Oct 21, 2027" otherwise.
+ * @param {string} [value] Publication date string
+ * @param {Date} [now=new Date()] Reference date for the current-year check
+ * @returns {string} Formatted label, or an empty string when unparseable
+ */
+export function formatCardDate(value, now = new Date()) {
+  const date = parseCardDate(value);
+  if (!date) return '';
+
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
 }
 
 const DEFAULT_ARTICLE_PRE_FOOTER = '/fragments/article-pre-footer';

@@ -1,0 +1,92 @@
+.content-grid-wrapper {
+  container: content-grid / inline-size;
+}
+
+.content-grid {
+  .grid-item {
+    /* Allow cards to fill the grid track instead of the standalone 50ch cap. */
+    max-width: none;
+  }
+
+  .content-grid__list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--s2a-spacing-2xl) var(--s2a-spacing-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &.content-grid--has-intro {
+    display: grid;
+    align-items: start;
+    grid-template-columns: 1fr;
+    gap: var(--s2a-spacing-2xl) var(--s2a-spacing-xs);
+
+    .content-grid__list {
+      grid-column: 1 / -1;
+      grid-template-columns: 1fr;
+      grid-template-columns: subgrid;
+    }
+  }
+
+  .content-grid__item,
+  .content-grid__intro {
+    min-inline-size: 0;
+  }
+
+  .content-grid__intro-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2a-spacing-md);
+    max-width: 50ch;
+
+    & :is(h1, h2, h3, h4, h5, h6, p) {
+      margin: 0;
+    }
+
+    & p {
+      font-size: var(--s2a-typography-font-size-heading-6);
+      line-height: var(--s2a-typography-line-height-heading-6);
+      letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+    }
+
+    & h6 {
+      color: var(--s2a-color-content-body-subtle);
+    }
+  }
+
+  @container content-grid (inline-size >= 700px) {
+    .content-grid__list,
+    &.content-grid--has-intro {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    &.content-grid--has-intro .content-grid__list {
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: subgrid;
+    }
+
+    &.content-grid--has-intro .content-grid__intro {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @container content-grid (inline-size >= 1024px) {
+    .content-grid__list,
+    &.content-grid--has-intro {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    &.content-grid--has-intro .content-grid__intro {
+      grid-column: 1;
+      padding-inline-end: var(--s2a-spacing-4xl);
+    }
+
+    &.content-grid--has-intro .content-grid__list {
+      grid-column: 2 / -1;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: subgrid;
+    }
+  }
+}

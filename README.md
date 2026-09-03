@@ -81,6 +81,34 @@ Blocks, Templates, Placeholders, and Icons are registered on the **library** tab
 
 For Templates, Placeholders, and Icons, see [Setup library](https://docs.da.live/administrators/guides/setup-library).
 
+### content-grid (query-driven)
+
+The homepage **Latest Content** section uses `content-grid` with a key/value table:
+
+| Field | Meaning |
+| --- | --- |
+| Content Type | `All` (default) fetches `/content.json`. A section name — Research, Workflows, Sneaks, Playground — fetches that folder’s `content.json` |
+| Category | Optional. `All` or omitted means no filter. Otherwise matched against the index `category` field (array or comma-separated string) after trim + lowercase |
+| Count | How many cards to show (defaults to 8) |
+| Intro | Optional freeform first cell (heading, paragraph, links). Extra; does not count toward Count |
+
+The block fetches the Content Type endpoint via `dataStore`, filters by Category after the fetch, and renders each hit as a `grid-item`. If nothing matches, the block and its `.content-grid-wrapper` are hidden (including authored Intro). An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Card image frames follow the index `imageAspect` value (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). Missing or unknown values default to 1:1. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Card content-type labels (when `show-content-type` is set) come from the first path segment (Research, Workflows, Sneaks, Playground)—not the topic Category metadata.
+
+Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027` otherwise). Add `subhead-description` to the content-grid block header (`content-grid (subhead-description)`) to use the index description instead.
+
+Standalone `grid-item` cards link when the Title cell is a link. Content-type labels on cards are off by default. Add `show-content-type` to the content-grid block header (`content-grid (show-content-type)`) to render each card’s `.grid-item__content-type` link. On a standalone `grid-item`, author a `Content Type` row (legacy `Category` still works).
+
+Cards stay empty until indexed article pages exist. Index config lives at [tools.aem.live](https://www.aem.live/developer/indexing) (this repo does not contain `helix-query.yaml`).
+
+**Index properties** (reindex after saving):
+
+- Keep `title`, `image`, `description`, `publicationDate`, `robots`
+- Add `category` as an array or comma-separated list so the Category filter can match
+- Add `isVideo` from `meta[name="isvideo"]` so the play icon can follow page metadata outside `/sneaks/`
+- Add `imageAspect` from `meta[name="image-aspect"]` so card frames follow page metadata `Image Aspect`
+
+**On each Labs article in DA**, put the page under `/research`, `/workflows`, `/sneaks`, or `/playground`, and author description, `og:image`, publication date, and `Image Aspect` (`1:1`, `4:5`, `3:2`, or `2:3`). The block drops `noindex` pages and section index pages (`/research/`, `/workflows/index`, and the other known sections).
+
 ## Testing
 
 To run tests:
