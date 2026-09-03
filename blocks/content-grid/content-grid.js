@@ -176,7 +176,8 @@ function isVideoItem(item) {
 
 /**
  * Grid-item aspect class from the index `imageAspect` value.
- * Accepts `3:2`, `3/2`, `3-2`, or `aspect-3-2` (and the other known ratios).
+ * Accepts `1:1`, `4:5`, `3:2`, `2:3` (separators `:`, `/`, or `-`, optional `aspect-` prefix).
+ * Missing or unknown values default to 1:1.
  * @param {string} [value]
  * @returns {string}
  */

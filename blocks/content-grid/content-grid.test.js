@@ -199,7 +199,7 @@ describe('content-grid block', () => {
     expect(list).toHaveAttribute('role', 'list');
     expect(list.children).toHaveLength(3);
     expect(list.querySelectorAll('.grid-item')).toHaveLength(3);
-    expect(list.querySelector('.grid-item')).toHaveClass('aspect-3-2');
+    expect(list.querySelector('.grid-item')).toHaveClass('aspect-1-1');
     expect(list.querySelector('li')).toHaveClass('content-grid__item', 'grid-item-wrapper');
     expect(buildGridItem).toHaveBeenCalledTimes(3);
     expect(decorateBlock).toHaveBeenCalledTimes(3);
@@ -555,7 +555,7 @@ describe('content-grid block', () => {
     expect(block.querySelector('.grid-item')).toHaveClass('aspect-4-5');
   });
 
-  it('defaults Image Aspect to 3:2 when the value is missing or unknown', async () => {
+  it('defaults Image Aspect to 1:1 when the value is missing or unknown', async () => {
     dataStore.getData.mockResolvedValue({
       data: [{
         path: '/research/ratio',
@@ -573,11 +573,11 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(block.querySelector('.grid-item')).toHaveClass('aspect-3-2');
-    expect(block.querySelector('.grid-item')).not.toHaveClass('aspect-1-1');
+    expect(block.querySelector('.grid-item')).toHaveClass('aspect-1-1');
+    expect(block.querySelector('.grid-item')).not.toHaveClass('aspect-3-2');
   });
 
-  it('defaults Image Aspect to 3:2 when the index omits the field', async () => {
+  it('defaults Image Aspect to 1:1 when the index omits the field', async () => {
     dataStore.getData.mockResolvedValue({
       data: [{
         path: '/research/ratio',
@@ -594,7 +594,7 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(block.querySelector('.grid-item')).toHaveClass('aspect-3-2');
+    expect(block.querySelector('.grid-item')).toHaveClass('aspect-1-1');
   });
 
   it('maps index fields onto the generated grid-item', async () => {
