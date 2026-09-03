@@ -175,7 +175,7 @@ See [AEM metadata block docs](https://www.aem.live/developer/block-collection/me
 
 ### Full-bleed images in articles
 
-For full-bleed default content in an article (for example a lone image), use a section break and Section Metadata Style: full-bleed. Keep that content in its own section.
+To use full-bleed default content in an article (for example a lone image), in the AEM editor use a section break and a Section Metadata block that includes "full-bleed" as a value for "Style". Keep that content in its own section.
 
 ## Buttons
 
