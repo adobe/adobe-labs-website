@@ -12,10 +12,10 @@ import { toClassName } from '../aem.js';
  * @type {Object<string, {label: string, path: string}>}
  */
 export const SECTIONS = {
-  research: { label: 'Research', path: '/research' },
-  workflows: { label: 'Workflows', path: '/workflows' },
-  sneaks: { label: 'Sneaks', path: '/sneaks' },
-  playground: { label: 'Playground', path: '/playground' },
+  research: { label: 'Research', path: '/research/' },
+  workflows: { label: 'Workflows', path: '/workflows/' },
+  sneaks: { label: 'Sneaks', path: '/sneaks/' },
+  playground: { label: 'Playground', path: '/playground/' },
 };
 
 /**

@@ -160,11 +160,11 @@ describe('content-grid block', () => {
         title.textContent = data.title;
         el.append(title);
       }
-      if (data.category) {
-        const category = document.createElement('span');
-        category.className = 'grid-item__category';
-        category.textContent = data.category;
-        el.append(category);
+      if (data.contentType) {
+        const contentType = document.createElement('span');
+        contentType.className = 'grid-item__content-type';
+        contentType.textContent = data.contentType;
+        el.append(contentType);
       }
       if (data.subhead) {
         const subhead = document.createElement('p');
@@ -331,7 +331,7 @@ describe('content-grid block', () => {
     expect(titlesFromCards()).toEqual(['Nested categories']);
   });
 
-  it('omits the section label on grid-item by default', async () => {
+  it('omits the content-type label on grid-item by default', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'All',
@@ -340,20 +340,20 @@ describe('content-grid block', () => {
 
     await decorate(block);
 
-    expect(dataFromCall(0).category).toBe('');
+    expect(dataFromCall(0).contentType).toBe('');
   });
 
-  it('passes the section label to grid-item when show-category is set', async () => {
+  it('passes the content-type label to grid-item when show-content-type is set', async () => {
     const block = createBlock({
       'Content Type:': 'All',
       'Category:': 'All',
       'Count:': '1',
     });
-    block.classList.add('show-category');
+    block.classList.add('show-content-type');
 
     await decorate(block);
 
-    expect(dataFromCall(0).category).toBe('Research');
+    expect(dataFromCall(0).contentType).toBe('Research');
   });
 
   it('filters by JSON category independently of the page path', async () => {
@@ -371,15 +371,15 @@ describe('content-grid block', () => {
       'Category:': 'Research',
       'Count:': '8',
     });
-    block.classList.add('show-category');
+    block.classList.add('show-content-type');
 
     await decorate(block);
 
     expect(titlesFromCards()).toEqual(['Filed under workflows']);
-    expect(dataFromCall(0).category).toBe('Workflows');
+    expect(dataFromCall(0).contentType).toBe('Workflows');
   });
 
-  it('omits the section label for unknown path folders', async () => {
+  it('omits the content-type label for unknown path folders', async () => {
     dataStore.getData.mockResolvedValue({
       data: [{
         path: '/policy/terms',
@@ -397,7 +397,7 @@ describe('content-grid block', () => {
     await decorate(block);
 
     expect(titlesFromCards()).toEqual(['Terms']);
-    expect(dataFromCall(0).category).toBe('');
+    expect(dataFromCall(0).contentType).toBe('');
   });
 
   it('fetches the workflows endpoint for Content Type Workflows', async () => {
@@ -613,7 +613,7 @@ describe('content-grid block', () => {
         title: 'Newer research',
         href: expect.stringMatching(/\/research\/newer$/),
         subhead: 'Aug 20',
-        category: '',
+        contentType: '',
         imageUrl: '/newer.jpg',
         imageAlt: '',
         isVideo: false,

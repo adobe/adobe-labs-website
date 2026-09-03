@@ -17,7 +17,7 @@ import {
  * @property {string} [title]
  * @property {string} [href] Item URL; omit for a non-linked card
  * @property {string} [subhead]
- * @property {string} [category] Authored label; resolved to a known path inside buildGridItem
+ * @property {string} [contentType] Authored section label; resolved to a known path inside buildGridItem
  * @property {Element} [mediaElement] `<picture>` or `<img>` from AEM
  * @property {string} [imageUrl] Image URL from JSON (Content Grid)
  * @property {string} [imageAlt]
@@ -36,7 +36,8 @@ export function getGridItemData(block) {
     title: getCellText(cells.title),
     href: getCellLinkHref(cells.title),
     subhead: getCellText(cells.subhead),
-    category: getCellText(cells.category),
+    // Prefer Content Type; fall back to legacy Category for existing draft tables.
+    contentType: getCellText(cells['content-type'] || cells.category),
     mediaElement: getCellMedia(cells.image),
     isVideo: isAuthoredTrue(cells.isvideo || cells['is-video']),
   };
@@ -52,7 +53,7 @@ export function getGridItemData(block) {
 export function buildGridItem(data = {}, root = document.createElement('div')) {
   const title = data.title || '';
   const href = toSafeHttpUrl(data.href);
-  const category = getSection(data.category);
+  const contentType = getSection(data.contentType);
   const subhead = data.subhead || '';
   const isVideo = Boolean(data.isVideo);
   let mediaElement = data.mediaElement || null;
@@ -64,9 +65,9 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
 
   const template = document.createElement('template');
   template.innerHTML = `
-    ${category ? `<a class="grid-item__category label" href="${category.path}">
-      <span class="grid-item__category-swatch" aria-hidden="true"></span>
-      <span class="grid-item__category-name"></span>
+    ${contentType ? `<a class="grid-item__content-type label" href="${contentType.path}">
+      <span class="grid-item__content-type-swatch" aria-hidden="true"></span>
+      <span class="grid-item__content-type-name"></span>
     </a>` : ''}
     <${mainTag} class="grid-item__main">
       ${isVideo ? '<span class="visually-hidden">Video article</span>' : ''}
@@ -97,9 +98,9 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
   }
 
   // Assign copy via textContent rather than interpolating into HTML.
-  if (category) {
-    fragment.querySelector('.grid-item__category-name').textContent = category.label;
-    root.dataset.category = category.slug;
+  if (contentType) {
+    fragment.querySelector('.grid-item__content-type-name').textContent = contentType.label;
+    root.dataset.contentType = contentType.slug;
   }
 
   if (title) fragment.querySelector('.grid-item__title').textContent = title;
@@ -111,7 +112,7 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
 }
 
 /**
- * Decorates a grid-item block: key/value rows become a category link and a
+ * Decorates a grid-item block: key/value rows become a content-type link and a
  * card (image, title, optional subhead). The card links when the title is a link.
  * Already-built cards (`.grid-item__main` present) are left as-is so nested
  * `loadBlock` from content-grid does not wipe `buildGridItem` output.
