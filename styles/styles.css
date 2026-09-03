@@ -433,12 +433,8 @@ main .section.highlight {
 
 body.article {
   /* Default article content width. No s2a token represents these widths. */
-  --article-content-inline-size-narrow: 43.25rem;
-  --article-content-inline-size-wide: 72.375rem;
-
-  main > .section > div {
-    padding-inline: var(--site-root-inline-padding);
-  }
+  --article-content-inline-size-narrow: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
+  --article-content-inline-size-wide: calc(72.375rem + (var(--site-root-inline-padding, 0px) * 2));
 
   .default-content-wrapper {
     max-inline-size: var(--article-content-inline-size-narrow);
