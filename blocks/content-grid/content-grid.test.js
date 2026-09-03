@@ -939,17 +939,14 @@ describe('content-grid block', () => {
       const first = within(blocks[0]);
       expect(first.queryByRole('link', { name: 'Previous: One' })).toBeNull();
       expect(first.getByRole('link', { name: 'Next: Two' })).toHaveAttribute('href', '#two');
-      expect(first.getByRole('navigation')).toHaveAttribute('aria-labelledby', 'one-title');
+      expect(first.getByRole('navigation')).toHaveAttribute('aria-label', 'One section');
       expect(blocks[0].querySelector('.content-grid__pager-icon')).toHaveAttribute('aria-hidden', 'true');
       expect(document.getElementById('two')).toHaveClass('section');
-      expect(document.getElementById('one')).toHaveAttribute('tabindex', '-1');
-      expect(document.getElementById('two')).toHaveAttribute('tabindex', '-1');
-      expect(document.getElementById('three')).toHaveAttribute('tabindex', '-1');
 
       const middle = within(blocks[1]);
       expect(middle.getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
       expect(middle.getByRole('link', { name: 'Next: Three' })).toHaveAttribute('href', '#three');
-      expect(middle.getByRole('navigation')).toHaveAttribute('aria-labelledby', 'two-title');
+      expect(middle.getByRole('navigation')).toHaveAttribute('aria-label', 'Two section');
 
       const last = within(blocks[2]);
       expect(last.getByRole('link', { name: 'Previous: Two' })).toHaveAttribute('href', '#two');
@@ -1028,7 +1025,6 @@ describe('content-grid block', () => {
       expect(within(blocks[0]).getByRole('link', { name: 'Next: Standards' }))
         .toHaveAttribute('href', '#standards');
       expect(document.getElementById('standards')).toHaveClass('section');
-      expect(document.getElementById('standards')).toHaveAttribute('tabindex', '-1');
     });
 
     it('moves an AEM heading slug onto the section so the jump target is the section', async () => {
@@ -1045,11 +1041,10 @@ describe('content-grid block', () => {
       expect(within(blocks[0]).getByRole('heading', { name: 'One' })).toHaveAttribute('id', 'one-title');
       expect(within(blocks[0]).getByRole('link', { name: 'Next: Two' })).toHaveAttribute('href', '#two');
       expect(document.getElementById('two')).toHaveClass('section');
-      expect(document.getElementById('two')).toHaveAttribute('tabindex', '-1');
-      expect(within(blocks[0]).getByRole('navigation')).toHaveAttribute('aria-labelledby', 'one-title');
+      expect(within(blocks[0]).getByRole('navigation')).toHaveAttribute('aria-label', 'One section');
     });
 
-    it('keeps an authored heading id for the nav name, not the jump', async () => {
+    it('keeps an authored heading id on the heading, not the jump target', async () => {
       const { blocks } = createStackedPage([
         { intro: '<h2 id="custom-one">One</h2>' },
         { intro: '<h2 id="custom-two">Two</h2>' },
@@ -1060,12 +1055,13 @@ describe('content-grid block', () => {
 
       expect(within(blocks[0]).getByRole('link', { name: 'Next: Two' })).toHaveAttribute('href', '#two');
       expect(within(blocks[1]).getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
-      expect(within(blocks[0]).getByRole('navigation')).toHaveAttribute('aria-labelledby', 'custom-one');
+      expect(within(blocks[0]).getByRole('navigation')).toHaveAttribute('aria-label', 'One section');
+      expect(within(blocks[0]).getByRole('heading', { name: 'One' })).toHaveAttribute('id', 'custom-one');
       expect(blocks[0].closest('.section')).toHaveAttribute('id', 'one');
       expect(blocks[1].closest('.section')).toHaveAttribute('id', 'two');
     });
 
-    it('gives unique section and heading ids when titles repeat', async () => {
+    it('gives unique section ids when titles repeat', async () => {
       const { blocks } = createStackedPage([
         { intro: '<h2>Standards</h2>' },
         { intro: '<h2>Standards</h2>' },
@@ -1077,13 +1073,33 @@ describe('content-grid block', () => {
       await decorate(blocks[2]);
 
       const sectionIds = blocks.map((block) => block.closest('.section').id);
-      const headingIds = blocks.map((block) => block.querySelector('h2').id);
       expect(sectionIds).toEqual(['standards', 'standards-section', 'standards-section-2']);
-      expect(headingIds).toEqual(['standards-title', 'standards-title-2', 'standards-title-3']);
+      expect(blocks.map((block) => block.querySelector('h2').id)).toEqual(['', '', '']);
       expect(within(blocks[0]).getByRole('link', { name: 'Next: Standards' }))
         .toHaveAttribute('href', '#standards-section');
       expect(within(blocks[1]).getByRole('link', { name: 'Next: Standards' }))
         .toHaveAttribute('href', '#standards-section-2');
+    });
+
+    it('focuses the destination heading on pager click without changing the hash target', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>One</h2>' },
+        { intro: '<h2>Two</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+
+      const next = within(blocks[0]).getByRole('link', { name: 'Next: Two' });
+      expect(next).toHaveAttribute('href', '#two');
+      next.click();
+      await Promise.resolve();
+
+      const destinationHeading = within(blocks[1]).getByRole('heading', { name: 'Two' });
+      expect(destinationHeading).toHaveAttribute('tabindex', '-1');
+      expect(destinationHeading).toHaveFocus();
+      expect(document.getElementById('two')).toHaveClass('section');
+      expect(document.getElementById('two')).not.toHaveAttribute('tabindex');
     });
 
     it('does not add a pager when the grid is not the section first child', async () => {

@@ -94,24 +94,6 @@ function unusedId(preferred, el) {
 }
 
 /**
- * Assigns `el.id` from slugified `text` when missing.
- * Uses `${base}-${suffix}` when that slug is already taken by another node.
- * @param {Element} [el]
- * @param {string} [text]
- * @param {string} [suffix]
- * @returns {string}
- */
-function ensureElementId(el, text, suffix) {
-  if (!el) return '';
-  if (el.id) return el.id;
-  const base = toClassName(text);
-  if (!base) return '';
-  const occupied = document.getElementById(base);
-  el.id = (!occupied || occupied === el) ? base : unusedId(`${base}-${suffix}`, el);
-  return el.id;
-}
-
-/**
  * Section id for in-page jumps; slugs the intro heading text when none exists.
  * If the heading already owns that slug (AEM auto-ids), move it onto the section.
  * @param {Element} [section]
@@ -133,7 +115,6 @@ function ensureSectionId(section, heading) {
       section.id = id;
     }
   }
-  section.tabIndex = -1;
   return section.id;
 }
 
@@ -164,6 +145,11 @@ function pagerLink(section, heading, direction, directionClass) {
   icon.className = 'content-grid__pager-icon';
   icon.setAttribute('aria-hidden', 'true');
   a.append(icon);
+  a.addEventListener('click', () => {
+    if (!heading) return;
+    heading.tabIndex = -1;
+    queueMicrotask(() => heading.focus({ preventScroll: true }));
+  });
   return a;
 }
 
@@ -186,12 +172,8 @@ function createPager(prevEntry, nextEntry, entry) {
 
   const nav = document.createElement('nav');
   nav.className = 'content-grid__pager';
-  const headingId = ensureElementId(entry.heading, entry.heading?.textContent, 'title');
-  if (headingId) {
-    nav.setAttribute('aria-labelledby', headingId);
-  } else {
-    nav.setAttribute('aria-label', 'Nearby sections');
-  }
+  const title = entry.heading?.textContent?.trim();
+  nav.setAttribute('aria-label', title ? `${title} section` : 'Nearby sections');
   if (prev) nav.append(prev);
   if (next) nav.append(next);
   return nav;
