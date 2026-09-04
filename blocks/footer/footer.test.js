@@ -21,11 +21,11 @@ const FOOTER_FRAGMENT = `
     <div><div>
       <h2>Connect</h2>
       <p><a href="/collaborate">Collaborate</a></p>
-      <p><a href="/reuse">Reuse</a></p>
+      <p><a href="/reuse" title="Reuse it responsibly">Reuse</a></p>
     </div></div>
     <div><div>
       <h2>Explore</h2>
-      <p><a href="/research">Research</a></p>
+      <p><a href="/research" title="Research">Research</a></p>
     </div></div>
   </div>
   <div class="section">
@@ -42,8 +42,8 @@ const FOOTER_FRAGMENT = `
   <div class="section">
     <div class="default-content-wrapper">
       <p><em>All rights reserved.</em></p>
-      <p><a href="https://www.adobe.com/privacy/opt-out.html">Do not sell or share my personal information</a></p>
-      <p><a href="#interest-based-ads">AdChoices</a></p>
+      <p><a href="https://www.adobe.com/privacy/opt-out.html" title="Do not sell or share my personal information">Do not sell or share my personal information</a></p>
+      <p><a href="#interest-based-ads" title="AdChoices">AdChoices</a></p>
     </div>
   </div>
 `;
@@ -64,7 +64,7 @@ describe('footer block', () => {
       text: () => Promise.resolve('<svg><symbol id="footer-icon-facebook"></symbol></svg>'),
     });
     window.matchMedia = jest.fn().mockImplementation((query) => ({
-      matches: query === '(min-width: 1024px)',
+      matches: query === '(min-width: 64rem)',
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     }));
@@ -79,6 +79,17 @@ describe('footer block', () => {
 
     expect(getMetadata).toHaveBeenCalledWith('footer');
     expect(loadFragment).toHaveBeenCalledWith('/fragments/footer');
+  });
+
+  it('labels the surrounding footer landmark for assistive tech', async () => {
+    const footerEl = document.createElement('footer');
+    const block = document.createElement('div');
+    block.className = 'footer';
+    footerEl.append(block);
+
+    await decorate(block);
+
+    expect(footerEl).toHaveAttribute('aria-label');
   });
 
   it('loads a custom footer fragment from footer metadata', async () => {
@@ -100,6 +111,7 @@ describe('footer block', () => {
     const form = block.querySelector('.footer__form');
     expect(form).toHaveAttribute('action', 'https://example.com/subscribe');
     expect(form).toHaveAttribute('method', 'post');
+    expect(form).toHaveAttribute('aria-label');
     expect(within(block).getByLabelText('Your email address')).toHaveAttribute('type', 'email');
     expect(block.querySelector('.footer__submit')).toHaveAttribute('aria-label', 'Subscribe');
   });
@@ -118,6 +130,19 @@ describe('footer block', () => {
     expect(block).toHaveTextContent('Connect');
     expect(block).toHaveTextContent('Collaborate');
     expect(block).toHaveTextContent('Research');
+  });
+
+  it('strips redundant title attributes that just repeat the link text', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    const researchLink = within(block).getByText('Research');
+    expect(researchLink).not.toHaveAttribute('title');
+
+    const reuseLink = within(block).getByText('Reuse');
+    expect(reuseLink).toHaveAttribute('title', 'Reuse it responsibly');
   });
 
   it('renders social links with icons and accessible names', async () => {
@@ -148,6 +173,9 @@ describe('footer block', () => {
     expect(block).toHaveTextContent('Do not sell or share my personal information');
     expect(block.querySelector('.footer__adchoices-icon')).toBeTruthy();
     expect(block.querySelector('.footer__mark-image')).toBeTruthy();
+
+    const privacyLinks = block.querySelectorAll('.footer__privacy-link');
+    privacyLinks.forEach((link) => expect(link).not.toHaveAttribute('title'));
   });
 
   it('assembles the footer wrapper with parallax logo', async () => {
@@ -173,7 +201,7 @@ describe('footer block', () => {
     addSpy.mockRestore();
   });
 
-  it('toggles mobile accordion sections on headline click', async () => {
+  it('toggles mobile accordion sections on toggle button click', async () => {
     window.matchMedia = jest.fn().mockImplementation(() => ({
       matches: false,
       addEventListener: jest.fn(),
@@ -186,17 +214,64 @@ describe('footer block', () => {
 
     await decorate(block);
 
-    const headline = block.querySelector('.footer__menu-headline--toggle');
-    const items = headline.closest('.footer__menu-section').querySelector('.footer__menu-items');
+    const heading = block.querySelector('.footer__menu-column--nav .footer__menu-headline');
+    const toggle = heading.querySelector('.footer__menu-toggle');
+    const items = toggle.closest('.footer__menu-section').querySelector('.footer__menu-items');
 
-    expect(headline).toHaveAttribute('aria-expanded', 'false');
+    expect(heading.tagName).toBe('H2');
+    expect(toggle.tagName).toBe('BUTTON');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAttribute('aria-controls', items.id);
+    expect(toggle).not.toHaveAttribute('aria-haspopup');
     expect(items).toHaveAttribute('hidden');
 
-    headline.click();
+    toggle.click();
 
-    expect(headline).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(items).not.toHaveAttribute('hidden');
 
     block.remove();
+  });
+
+  it('keeps the heading role intact and disables the toggle on desktop', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    const heading = block.querySelector('.footer__menu-column--nav .footer__menu-headline');
+    const toggle = heading.querySelector('.footer__menu-toggle');
+    const items = toggle.closest('.footer__menu-section').querySelector('.footer__menu-items');
+
+    expect(heading.tagName).toBe('H2');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAttribute('tabindex', '-1');
+    expect(items).not.toHaveAttribute('hidden');
+  });
+
+  it('renders each nav column as its own labelled navigation landmark', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    const columns = block.querySelectorAll('.footer__menu-column--nav');
+    expect(columns.length).toBeGreaterThan(0);
+
+    columns.forEach((column) => {
+      const nav = column.querySelector('.footer__menu-section');
+      const heading = nav.querySelector(':scope > h2');
+      expect(nav.tagName).toBe('NAV');
+      expect(heading.id).toBeTruthy();
+      expect(nav).toHaveAttribute('aria-labelledby', heading.id);
+
+      const items = nav.querySelector('.footer__menu-items');
+      expect(items.tagName).toBe('UL');
+      expect(items.querySelectorAll(':scope > li').length).toBeGreaterThan(0);
+      expect(items.querySelector('li > .footer__menu-link')).toBeTruthy();
+    });
+
+    const headingIds = [...columns].map((c) => c.querySelector('h2').id);
+    expect(new Set(headingIds).size).toBe(headingIds.length);
   });
 });

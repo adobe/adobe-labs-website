@@ -19,6 +19,18 @@ function getFooterAsset(path) {
 }
 
 /**
+ * Removes a link's title attribute when it just repeats the visible text. decorateButtons()
+ * in scripts.js defaults every link's title to its own text, which is a redundant tooltip
+ * that adds no information; an author-supplied title that differs from the text is kept.
+ * @param {Element} link Anchor element to check
+ */
+function dropRedundantTitle(link) {
+  if (link.getAttribute('title')?.trim() === link.textContent.trim()) {
+    link.removeAttribute('title');
+  }
+}
+
+/**
  * Fetches and injects the footer SVG icon sprite into the block once.
  * @param {Element} block The footer block element
  * @returns {Promise<void>}
@@ -87,7 +99,7 @@ function decorateNewsletterColumn(column) {
     <div class="footer__menu-column footer__menu-column--newsletter">
       <div class="footer__menu-section">
         <div class="footer__menu-items footer__menu-items--newsletter">
-          <form class="footer__form" action="${escapeAttr(action)}" method="post">
+          <form class="footer__form" action="${escapeAttr(action)}" method="post" aria-label="Newsletter signup">
             <label class="footer__label" for="footer-email">Your email address</label>
             <input
               id="footer-email"
@@ -158,65 +170,92 @@ function parseMenuSection(section) {
   ));
 }
 
+let menuItemsId = 0;
+const usedHeadingIds = new Set();
+
 /**
- * Syncs nav headline a11y and item visibility for the current viewport.
- * @param {Element} heading Menu headline element
+ * Builds a document-unique id for a menu column heading, slugified from its text so it stays
+ * meaningful (used to label the column's nav landmark via aria-labelledby).
+ * @param {string} text Heading text
+ * @returns {string}
+ */
+function uniqueHeadingId(text) {
+  const base = text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'footer-menu-heading';
+  let id = base;
+  let suffix = 1;
+  while (usedHeadingIds.has(id)) {
+    suffix += 1;
+    id = `${base}-${suffix}`;
+  }
+  usedHeadingIds.add(id);
+  return id;
+}
+
+/**
+ * Syncs the accordion toggle button a11y and item visibility for the current viewport.
+ * Below the desktop breakpoint the button drives a collapsible panel; at and above it the
+ * panel is always visible and the button is taken out of the tab order since it does nothing.
+ * @param {Element} button Menu toggle button element
  * @param {Element} items Menu items container
  * @param {MediaQueryList} desktopQuery Desktop layout media query
  */
-function syncHeadline(heading, items, desktopQuery) {
+function syncHeadline(button, items, desktopQuery) {
   if (desktopQuery.matches) {
-    heading.removeAttribute('role');
-    heading.removeAttribute('tabindex');
-    heading.removeAttribute('aria-expanded');
-    heading.removeAttribute('aria-haspopup');
+    button.setAttribute('aria-expanded', 'true');
+    button.setAttribute('tabindex', '-1');
     items.hidden = false;
     return;
   }
 
-  heading.setAttribute('role', 'button');
-  heading.setAttribute('tabindex', '0');
-  heading.setAttribute('aria-expanded', 'false');
-  heading.setAttribute('aria-haspopup', 'true');
+  button.setAttribute('aria-expanded', 'false');
+  button.removeAttribute('tabindex');
   items.hidden = true;
 }
 
 /**
- * Makes a nav column heading an accordion toggle on mobile.
+ * Makes a nav column heading an accordion toggle on mobile. The heading itself stays a plain
+ * h2 so its heading role is preserved for screen readers; a native button nested inside it
+ * provides the expand/collapse control, per the APG accordion pattern.
  * @param {Element} heading Authored h2 element
  * @param {Element} items Menu items container
  */
 function decorateHeadline(heading, items) {
-  heading.classList.add('footer__menu-headline', 'footer__menu-headline--toggle');
+  heading.classList.add('footer__menu-headline');
 
-  const desktopQuery = window.matchMedia('(min-width: 1024px)');
-  const onActivate = (e) => {
+  menuItemsId += 1;
+  items.id = `footer-menu-items-${menuItemsId}`;
+
+  const button = fromHTML('<button type="button" class="footer__menu-toggle"></button>');
+  button.setAttribute('aria-controls', items.id);
+  while (heading.firstChild) button.append(heading.firstChild);
+  heading.append(button);
+
+  const desktopQuery = window.matchMedia('(min-width: 64rem)');
+  const onActivate = () => {
     if (desktopQuery.matches) return;
-    if (e.type === 'keydown' && e.code !== 'Enter' && e.code !== 'Space') return;
-    if (e.type === 'keydown') e.preventDefault();
-
-    const expanded = heading.getAttribute('aria-expanded') === 'true';
-    heading.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+    const expanded = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', expanded ? 'false' : 'true');
     items.hidden = expanded;
   };
 
-  heading.addEventListener('click', onActivate);
-  heading.addEventListener('keydown', onActivate);
-  desktopQuery.addEventListener('change', () => syncHeadline(heading, items, desktopQuery));
-  syncHeadline(heading, items, desktopQuery);
+  button.addEventListener('click', onActivate);
+  desktopQuery.addEventListener('change', () => syncHeadline(button, items, desktopQuery));
+  syncHeadline(button, items, desktopQuery);
 }
 
 /**
- * Decorates a single nav menu column with headline and links.
+ * Decorates a single nav menu column with headline and links. The column is its own nav
+ * landmark, labelled by its own heading, so each topic (Connect, Explore, ...) is a distinct,
+ * self-labelled region rather than one generic "Footer" region covering every column.
  * @param {Element} column Authored menu column element
  * @returns {Element}
  */
 function decorateColumn(column) {
   const wrapper = fromHTML(`
     <div class="footer__menu-column footer__menu-column--nav">
-      <div class="footer__menu-section">
-        <div class="footer__menu-items"></div>
-      </div>
+      <nav class="footer__menu-section">
+        <ul class="footer__menu-items"></ul>
+      </nav>
     </div>
   `);
 
@@ -225,11 +264,16 @@ function decorateColumn(column) {
   const heading = column.querySelector('h2');
 
   if (heading) {
+    heading.id = uniqueHeadingId(heading.textContent);
+    section.setAttribute('aria-labelledby', heading.id);
     section.prepend(heading);
     decorateHeadline(heading, items);
     column.querySelectorAll('p a').forEach((link) => {
       link.classList.add('footer__menu-link');
-      items.append(link);
+      dropRedundantTitle(link);
+      const item = fromHTML('<li></li>');
+      item.append(link);
+      items.append(item);
     });
   }
 
@@ -389,6 +433,7 @@ function decorateLegal(legal) {
 
   legal.querySelectorAll('a').forEach((link) => {
     link.classList.add('footer__privacy-link');
+    dropRedundantTitle(link);
     if (/interest-based-ads/.test(link.getAttribute('href') || '')) {
       link.insertAdjacentHTML(
         'afterbegin',
@@ -521,6 +566,10 @@ function parseFooterFragment(fragment) {
  * @returns {Promise<void>}
  */
 export default async function decorate(block) {
+  // The <footer> landmark itself is page-shell markup, not authored content this block
+  // owns, so label it here rather than in a template this repo doesn't control.
+  block.closest('footer')?.setAttribute('aria-label', 'Site footer');
+
   const footerMeta = getMetadata('footer');
   const footerPath = footerMeta ? new URL(footerMeta, window.location).pathname : '/fragments/footer';
   const fragment = await loadFragment(footerPath);
