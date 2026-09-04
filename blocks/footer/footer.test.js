@@ -81,6 +81,17 @@ describe('footer block', () => {
     expect(loadFragment).toHaveBeenCalledWith('/fragments/footer');
   });
 
+  it('labels the surrounding footer landmark for assistive tech', async () => {
+    const footerEl = document.createElement('footer');
+    const block = document.createElement('div');
+    block.className = 'footer';
+    footerEl.append(block);
+
+    await decorate(block);
+
+    expect(footerEl).toHaveAttribute('aria-label');
+  });
+
   it('loads a custom footer fragment from footer metadata', async () => {
     getMetadata.mockReturnValue('/fragments/custom-footer');
     const block = document.createElement('div');
@@ -100,6 +111,7 @@ describe('footer block', () => {
     const form = block.querySelector('.footer__form');
     expect(form).toHaveAttribute('action', 'https://example.com/subscribe');
     expect(form).toHaveAttribute('method', 'post');
+    expect(form).toHaveAttribute('aria-label');
     expect(within(block).getByLabelText('Your email address')).toHaveAttribute('type', 'email');
     expect(block.querySelector('.footer__submit')).toHaveAttribute('aria-label', 'Subscribe');
   });

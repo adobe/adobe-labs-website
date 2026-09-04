@@ -99,7 +99,7 @@ function decorateNewsletterColumn(column) {
     <div class="footer__menu-column footer__menu-column--newsletter">
       <div class="footer__menu-section">
         <div class="footer__menu-items footer__menu-items--newsletter">
-          <form class="footer__form" action="${escapeAttr(action)}" method="post">
+          <form class="footer__form" action="${escapeAttr(action)}" method="post" aria-label="Newsletter signup">
             <label class="footer__label" for="footer-email">Your email address</label>
             <input
               id="footer-email"
@@ -566,6 +566,10 @@ function parseFooterFragment(fragment) {
  * @returns {Promise<void>}
  */
 export default async function decorate(block) {
+  // The <footer> landmark itself is page-shell markup, not authored content this block
+  // owns, so label it here rather than in a template this repo doesn't control.
+  block.closest('footer')?.setAttribute('aria-label', 'Site footer');
+
   const footerMeta = getMetadata('footer');
   const footerPath = footerMeta ? new URL(footerMeta, window.location).pathname : '/fragments/footer';
   const fragment = await loadFragment(footerPath);
