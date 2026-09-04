@@ -72,6 +72,13 @@
   }
 }
 
+/* Offset in-page anchors for the fixed header below 900px. */
+@media (width < 56.25rem) {
+  html {
+    scroll-padding-top: var(--nav-height);
+  }
+}
+
 img, picture, video, canvas, svg {
   display: block;
   max-width: 100%;

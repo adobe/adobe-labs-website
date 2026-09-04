@@ -6,7 +6,7 @@ import {
 } from '../../scripts/aem.js';
 import { buildGridItem } from '../grid-item/grid-item.js';
 import dataStore from '../../scripts/utils/dataStore.js';
-import decorate from './content-grid.js';
+import decorate, { wireStackedGridPagers } from './content-grid.js';
 
 jest.mock('../../scripts/aem.js', () => ({
   readBlockConfig: jest.fn(),
@@ -878,6 +878,257 @@ describe('content-grid block', () => {
       await decorate(block);
 
       expect(dataFromCall(0).subhead).toBe('A short description');
+    });
+  });
+
+  describe('stacked jump links', () => {
+    function createStackedPage(specs) {
+      const main = document.createElement('main');
+      const blocks = specs.map((spec) => {
+        if (spec === 'break') {
+          const section = document.createElement('div');
+          section.className = 'section';
+          const wrap = document.createElement('div');
+          wrap.className = 'default-content-wrapper';
+          wrap.innerHTML = '<h2>Other section</h2>';
+          section.append(wrap);
+          main.append(section);
+          return null;
+        }
+        const section = document.createElement('div');
+        section.className = 'section content-grid-container';
+        const fields = {
+          'Content Type:': spec.contentType || 'All',
+          'Category:': spec.category || 'All',
+          'Count:': spec.count || '8',
+        };
+        if (spec.intro) fields.Intro = spec.intro;
+        const block = createBlock(fields);
+        if (spec.notFirst) {
+          const extra = document.createElement('div');
+          extra.className = 'default-content-wrapper';
+          extra.textContent = 'before';
+          section.append(extra, block.parentElement);
+        } else {
+          section.append(block.parentElement);
+        }
+        main.append(section);
+        return block;
+      });
+      document.body.append(main);
+      return { main, blocks };
+    }
+
+    afterEach(() => {
+      document.body.replaceChildren();
+    });
+
+    it('adds Next only, both, then Previous only across a stack of three', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>One</h2>' },
+        { intro: '<h2>Two</h2>' },
+        { intro: '<h2>Three</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      expect(within(blocks[0]).queryByRole('navigation')).toBeNull();
+
+      await decorate(blocks[1]);
+      await decorate(blocks[2]);
+
+      const first = within(blocks[0]);
+      expect(first.queryByRole('link', { name: 'Previous: One' })).toBeNull();
+      expect(first.getByRole('link', { name: 'Next: Two' })).toHaveAttribute('href', '#two');
+      expect(first.getByRole('navigation')).toHaveAttribute('aria-label', 'One section');
+      expect(blocks[0].querySelector('.content-grid__pager-icon')).toHaveAttribute('aria-hidden', 'true');
+      expect(document.getElementById('two')).toHaveClass('section');
+
+      const middle = within(blocks[1]);
+      expect(middle.getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
+      expect(middle.getByRole('link', { name: 'Next: Three' })).toHaveAttribute('href', '#three');
+      expect(middle.getByRole('navigation')).toHaveAttribute('aria-label', 'Two section');
+
+      const last = within(blocks[2]);
+      expect(last.getByRole('link', { name: 'Previous: Two' })).toHaveAttribute('href', '#two');
+      expect(last.queryByRole('link', { name: /Next:/ })).toBeNull();
+    });
+
+    it('does not add a pager to an isolated content grid', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>Only</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+
+      expect(within(blocks[0]).queryByRole('navigation')).toBeNull();
+    });
+
+    it('does not link grids across a non-grid section', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>One</h2>' },
+        'break',
+        { intro: '<h2>Three</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[2]);
+
+      expect(within(blocks[0]).queryByRole('navigation')).toBeNull();
+      expect(within(blocks[2]).queryByRole('navigation')).toBeNull();
+    });
+
+    it('skips a hidden empty grid and still links neighbors', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>One</h2>' },
+        { intro: '<h2>Empty</h2>', category: 'Playground' },
+        { intro: '<h2>Three</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+      await decorate(blocks[2]);
+
+      expect(blocks[1].parentElement.hidden).toBe(true);
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Three' })).toHaveAttribute('href', '#three');
+      expect(within(blocks[2]).getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
+      expect(within(blocks[1]).queryByRole('navigation')).toBeNull();
+    });
+
+    it('skips a grid with no intro heading and is not a jump target', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>One</h2>' },
+        {},
+        { intro: '<h2>Three</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+      await decorate(blocks[2]);
+
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Three' })).toHaveAttribute('href', '#three');
+      expect(within(blocks[1]).queryByRole('navigation')).toBeNull();
+      expect(blocks[1].querySelector('h1, h2, h3, h4, h5, h6')).toBeNull();
+      expect(within(blocks[2]).getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
+    });
+
+    it('slugs the heading text onto the section for the jump target', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>Future of Creative Work</h2>' },
+        { intro: '<h2>Standards</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+
+      expect(blocks[0].closest('.section')).toHaveAttribute('id', 'future-of-creative-work');
+      expect(blocks[1].closest('.section')).toHaveAttribute('id', 'standards');
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Standards' }))
+        .toHaveAttribute('href', '#standards');
+      expect(document.getElementById('standards')).toHaveClass('section');
+    });
+
+    it('moves an AEM heading slug onto the section so the jump target is the section', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2 id="one">One</h2>' },
+        { intro: '<h2 id="two">Two</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+
+      expect(blocks[0].closest('.section')).toHaveAttribute('id', 'one');
+      expect(blocks[1].closest('.section')).toHaveAttribute('id', 'two');
+      expect(within(blocks[0]).getByRole('heading', { name: 'One' })).toHaveAttribute('id', 'one-title');
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Two' })).toHaveAttribute('href', '#two');
+      expect(document.getElementById('two')).toHaveClass('section');
+      expect(within(blocks[0]).getByRole('navigation')).toHaveAttribute('aria-label', 'One section');
+    });
+
+    it('keeps an authored heading id on the heading, not the jump target', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2 id="custom-one">One</h2>' },
+        { intro: '<h2 id="custom-two">Two</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Two' })).toHaveAttribute('href', '#two');
+      expect(within(blocks[1]).getByRole('link', { name: 'Previous: One' })).toHaveAttribute('href', '#one');
+      expect(within(blocks[0]).getByRole('navigation')).toHaveAttribute('aria-label', 'One section');
+      expect(within(blocks[0]).getByRole('heading', { name: 'One' })).toHaveAttribute('id', 'custom-one');
+      expect(blocks[0].closest('.section')).toHaveAttribute('id', 'one');
+      expect(blocks[1].closest('.section')).toHaveAttribute('id', 'two');
+    });
+
+    it('gives unique section ids when titles repeat', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>Standards</h2>' },
+        { intro: '<h2>Standards</h2>' },
+        { intro: '<h2>Standards</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+      await decorate(blocks[2]);
+
+      const sectionIds = blocks.map((block) => block.closest('.section').id);
+      expect(sectionIds).toEqual(['standards', 'standards-section', 'standards-section-2']);
+      expect(blocks.map((block) => block.querySelector('h2').id)).toEqual(['', '', '']);
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Standards' }))
+        .toHaveAttribute('href', '#standards-section');
+      expect(within(blocks[1]).getByRole('link', { name: 'Next: Standards' }))
+        .toHaveAttribute('href', '#standards-section-2');
+    });
+
+    it('focuses the destination heading on pager click without changing the hash target', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>One</h2>' },
+        { intro: '<h2>Two</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+
+      const next = within(blocks[0]).getByRole('link', { name: 'Next: Two' });
+      expect(next).toHaveAttribute('href', '#two');
+      next.click();
+      await Promise.resolve();
+
+      const destinationHeading = within(blocks[1]).getByRole('heading', { name: 'Two' });
+      expect(destinationHeading).toHaveAttribute('tabindex', '-1');
+      expect(destinationHeading).toHaveFocus();
+      expect(document.getElementById('two')).toHaveClass('section');
+      expect(document.getElementById('two')).not.toHaveAttribute('tabindex');
+    });
+
+    it('does not add a pager when the grid is not the section first child', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>One</h2>' },
+        { intro: '<h2>Two</h2>', notFirst: true },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+
+      expect(within(blocks[0]).queryByRole('navigation')).toBeNull();
+      expect(within(blocks[1]).queryByRole('navigation')).toBeNull();
+    });
+
+    it('removes a stale pager when a neighbor later hides', async () => {
+      const { blocks } = createStackedPage([
+        { intro: '<h2>One</h2>' },
+        { intro: '<h2>Two</h2>' },
+      ]);
+
+      await decorate(blocks[0]);
+      await decorate(blocks[1]);
+      expect(within(blocks[0]).getByRole('link', { name: 'Next: Two' })).toBeTruthy();
+
+      blocks[1].parentElement.hidden = true;
+      wireStackedGridPagers(blocks[1]);
+
+      expect(within(blocks[0]).queryByRole('navigation')).toBeNull();
     });
   });
 });

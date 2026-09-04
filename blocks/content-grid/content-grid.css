@@ -35,6 +35,12 @@
     min-inline-size: 0;
   }
 
+  .content-grid__intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2a-spacing-xl);
+  }
+
   .content-grid__intro-copy {
     display: flex;
     flex-direction: column;
@@ -56,6 +62,57 @@
     }
   }
 
+  .content-grid__pager {
+    display: none;
+  }
+
+  .content-grid__pager-link {
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    width: var(--s2a-spacing-xl);
+    height: var(--s2a-spacing-xl);
+    border: none;
+    border-radius: var(--s2a-border-radius-6);
+    background-color: var(--s2a-color-transparent-black-12);
+    color: var(--s2a-color-content-default);
+    text-decoration: none;
+
+    &:hover {
+      background-color: color-mix(
+        in srgb,
+        var(--s2a-color-content-default) 12%,
+        var(--s2a-color-background-subtle)
+      );
+    }
+
+    &:active {
+      background-color: var(--s2a-color-background-inverse);
+      color: var(--s2a-color-content-inverse);
+    }
+
+    &:focus-visible {
+      outline: var(--s2a-border-width-sm) solid var(--s2a-color-focus-ring-default);
+      outline-offset: 0.0625rem;
+    }
+  }
+
+  .content-grid__pager-icon {
+    display: block;
+    width: var(--s2a-spacing-sm);
+    height: var(--s2a-spacing-sm);
+    overflow: clip;
+    background-color: currentcolor;
+    mask: url('../../icons/arrow-down.svg') center / contain no-repeat;
+  }
+
+  .content-grid__pager-link--prev {
+    .content-grid__pager-icon {
+      mask: url('../../icons/arrow-up.svg') center / contain no-repeat;
+    }
+  }
+
   @container content-grid (inline-size >= 700px) {
     .content-grid__list,
     &.content-grid--has-intro {
@@ -68,7 +125,16 @@
     }
 
     &.content-grid--has-intro .content-grid__intro {
+      flex-direction: row;
+      align-items: start;
       grid-column: 1 / -1;
+    }
+
+    &.content-grid--has-intro .content-grid__pager {
+      display: flex;
+      flex-shrink: 0;
+      gap: var(--s2a-spacing-2xs);
+      margin-inline-start: auto;
     }
   }
 
@@ -79,6 +145,7 @@
     }
 
     &.content-grid--has-intro .content-grid__intro {
+      flex-direction: column;
       grid-column: 1;
       padding-inline-end: var(--s2a-spacing-4xl);
     }
@@ -87,6 +154,10 @@
       grid-column: 2 / -1;
       grid-template-columns: repeat(3, 1fr);
       grid-template-columns: subgrid;
+    }
+
+    &.content-grid--has-intro .content-grid__pager {
+      margin-inline-start: 0;
     }
   }
 }
