@@ -7,8 +7,6 @@
     content="script-src 'nonce-aem' 'strict-dynamic' 'unsafe-inline' http: https:; base-uri 'self'; object-src 'none';"
     move-to-http-header="true"
   >
-  <link rel="preconnect" href="https://use.typekit.net" crossorigin>
-  <link rel="preconnect" href="https://p.typekit.net" crossorigin>
   <title>Page not found</title>
   <script nonce="aem" type="text/javascript">
     window.isErrorPage = true;
@@ -37,8 +35,8 @@
     import { sampleRUM } from '/scripts/aem.js';
     sampleRUM('404', { source: document.referrer });
   </script>
+  <link rel="stylesheet" href="/styles/lib/s2a-tokens-0.0.21/min/tokens.min.css">
   <link rel="stylesheet" href="/styles/styles.css">
-  <link rel="stylesheet" href="https://use.typekit.net/xsh2otx.css">
   <style>
     main.error {
       min-height: calc(100vh - var(--nav-height));
