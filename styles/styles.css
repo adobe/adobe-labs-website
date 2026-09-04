@@ -37,12 +37,6 @@
   --color-section-surface-blue: #edf6ff;
   --color-section-surface-pink: #fff4f2;
 
-  &[data-theme="dark"] {
-    --color-section-surface-default: #262626;
-    --color-section-surface-blue: #111f2f;
-    --color-section-surface-pink: #301517;
-  }
-
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, "Arial Bold Adjusted", sans-serif;
@@ -61,6 +55,9 @@
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
 
   &[data-theme="dark"] {
+    --color-section-surface-default: #262626;
+    --color-section-surface-blue: #111f2f;
+    --color-section-surface-pink: #301517;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
 }
@@ -449,8 +446,9 @@ main > .section:first-of-type {
   }
 }
 
-/* section metadata 
+/* section metadata
    TODO: boilerplate - will these be used and can they be removed? */
+
 /* main .section.light,
 main .section.highlight {
   background-color: var(--light-color);
@@ -465,8 +463,7 @@ main .section[class^="section-rounded-"] {
   --section-border-radius: 30px;
 
   border-radius: var(--section-border-radius) var(--section-border-radius) 0 0;
-  padding-block-start: var(--section-padding-block-start);
-  padding-block-end: var(--section-padding-block-end);
+  padding-block: var(--section-padding-block-start) var(--section-padding-block-end);
 
   &:nth-last-child(1 of [class*="section-rounded-"]) {
     --section-padding-block-end: var(--s2a-viewport-vertical-padding-lg);
@@ -485,9 +482,11 @@ main .section {
   &.section-rounded-default {
     background: var(--color-section-surface-default);
   }
+
   &.section-rounded-blue {
     background: var(--color-section-surface-blue);
   }
+
   &.section-rounded-pink {
     background: var(--color-section-surface-pink);
   }
