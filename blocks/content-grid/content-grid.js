@@ -1,5 +1,6 @@
 import {
   decorateBlock,
+  getMetadata,
   loadBlock,
   readBlockConfig,
   toClassName,
@@ -290,13 +291,22 @@ function matchesCategory(item, category) {
 }
 
 /**
+ * Path with trailing slashes removed, or "/" for the root.
+ * @param {string} [path]
+ * @returns {string}
+ */
+function normalizePath(path) {
+  return String(path || '').replace(/\/+$/, '') || '/';
+}
+
+/**
  * Whether a path should be omitted from the grid (home and section indexes).
  * @param {string} [path]
  * @returns {boolean}
  */
 function isExcludedPath(path) {
   if (!path) return true;
-  const clean = path.replace(/\/+$/, '') || '/';
+  const clean = normalizePath(path);
   if (HOME_PATHS.has(clean)) return true;
   const segments = clean.split('/').filter(Boolean);
   const isSectionRoot = segments.length === 1
@@ -335,12 +345,16 @@ function compareNewestFirst(a, b) {
  * @param {object} options
  * @param {string} [options.category]
  * @param {number} options.count
+ * @param {string} [options.excludePath] Extra path to omit (the current page, in auto modes)
  * @returns {ContentItem[]}
  */
-function selectItems(data, { category, count }) {
+function selectItems(data, {
+  category, count, excludePath,
+}) {
   return data
     .filter((item) => !/noindex/i.test(String(item.robots || ''))
       && !isExcludedPath(item.path)
+      && (!excludePath || normalizePath(item.path) !== normalizePath(excludePath))
       && matchesCategory(item, category))
     .sort(compareNewestFirst)
     .slice(0, count);
@@ -474,6 +488,16 @@ async function renderGrid(block, gridItems, header) {
 /**
  * Replace the authored config table with a list of grid-item cards
  * from the content-type's dataStore endpoint.
+ *
+ * A `Related content: true` row turns this into a "related content" grid
+ * instead of an explicitly authored one: the content type is derived from
+ * the current page's own URL section and the category from the current
+ * page's `category` metadata, ignoring any authored Content Type / Category
+ * rows. It also excludes the current page from its own results, and falls
+ * back to any item in the same content type when the category match is
+ * empty instead of coming up empty. Meant for a single shared placement
+ * (e.g. the article pre-footer fragment) that renders differently per page
+ * without being re-authored per page.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
@@ -481,7 +505,12 @@ export default async function decorate(block) {
   const intro = takeIntro(block);
 
   const config = readBlockConfig(block);
-  const section = getSection(config['content-type']);
+  const isRelated = /^(true|yes|1)$/i.test(String(config['related-content'] || '').trim());
+  const currentPath = window.location.pathname;
+
+  const section = isRelated
+    ? getSectionFromPath(currentPath)
+    : getSection(config['content-type']);
   const endpoint = section
     ? dataStore.commonEndpoints[section.slug]
     : dataStore.commonEndpoints.allContent;
@@ -489,7 +518,10 @@ export default async function decorate(block) {
   const count = Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : DEFAULT_COUNT;
   const subheadDescription = block.classList.contains('subhead-description');
   const showContentType = block.classList.contains('show-content-type');
+  const category = isRelated ? getMetadata('category') : config.category;
+  const excludePath = isRelated ? currentPath : '';
 
+  block.classList.toggle('content-grid--related', isRelated);
   block.replaceChildren();
 
   const payload = await dataStore.getData(endpoint);
@@ -502,7 +534,10 @@ export default async function decorate(block) {
   }
 
   const data = Array.isArray(payload.data) ? payload.data : [];
-  const items = selectItems(data, { category: config.category, count });
+  let items = selectItems(data, { category, count, excludePath });
+  if (isRelated && category && !items.length) {
+    items = selectItems(data, { category: '', count, excludePath });
+  }
   await renderGrid(
     block,
     items.map((entry) => createGridItem(entry, { subheadDescription, showContentType })),
