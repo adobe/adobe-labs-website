@@ -275,15 +275,15 @@ footer .footer[data-block-status="loaded"] {
   visibility: visible;
 }
 
-/* main > div {
-  margin: 40px 16px;
-} */
-
 /* Overall sitewide spacing between sections and blocks. */
 main {
   display: flex;
   flex-flow: column nowrap;
   gap: var(--s2a-spacing-xl);
+
+  @media (width >= 768px) {
+    gap: var(--s2a-viewport-vertical-padding-lg);
+  }
 }
 
 /* Hides content visually but keeps it in the accessibility tree.

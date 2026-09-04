@@ -17,7 +17,7 @@
     list-style: none;
 
     @media (width >= 768px) {
-      gap-block: var(--s2a-spacing-2xl);
+      row-gap: var(--s2a-section-spacing-lg);
     }
   }
 
@@ -28,7 +28,7 @@
     gap: var(--s2a-spacing-lg) var(--s2a-spacing-xs);
 
     @media (width >= 768px) {
-      gap-block: var(--s2a-spacing-2xl);
+      row-gap: var(--s2a-section-spacing-lg);
     }
 
     .content-grid__list {
