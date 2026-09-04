@@ -200,13 +200,18 @@ Article detail pages (`/research/*`, `/workflows/*`, `/sneaks/*`, `/playground/*
 
 Individual pages can then set metadata values via a `metadata` block, including overriding any of those default values.
 See [AEM metadata block docs](https://www.aem.live/developer/block-collection/metadata) for more info. 
-### Buttons
+
+### Full-bleed images in articles
+
+To use full-bleed default content in an article (for example a lone image), in the AEM editor use a section break and a Section Metadata block that includes "full-bleed" as a value for "Style". Keep that content in its own section.
+
+## Buttons
 
 The default `.button` class uses the Primary style. So far only the default/primary style is supported until others are needed.
 
 Default buttons are dark-mode aware. The `.button--static-white` variant can be used for non-theme-aware buttons, like in the hero.
 
-#### Adding a button in AEM
+### Adding a button in AEM
 
 Follow [AEM's Buttons docs](https://www.aem.live/developer/block-collection/buttons#code).
 
@@ -219,11 +224,11 @@ You can use the same steps for a standalone button in default content and for a 
 > [!NOTE]
 > The AEM docs incorrectly state that `p > a` (without `<strong>` or `<em>`). This is outdated, as standalone plain links do not receive the `.button` class. See [decorateButtons](https://github.com/adobe/adobe-labs-website/blob/9cd669eb7227dfea2350286db816361dc8bd55da/scripts/scripts.js#L123).
 
-#### Adding a button in JavaScript
+### Adding a button in JavaScript
 
 Create a native `button` or `a` as needed and add class `button` to it.
 
 Add extra classes for variants as needed, for example `button--static-white`.
 
-##### Disabled buttons as links
+#### Disabled buttons as links
 `decorateButtons` runs before block JavaScript. For a disabled link that you create as `a.button` in block JS, set `aria-disabled="true"`, set `tabIndex = "-1"`, and call `event.preventDefault()` on click.

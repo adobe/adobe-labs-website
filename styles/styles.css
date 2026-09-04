@@ -435,3 +435,19 @@ main .section.highlight {
   margin: 0;
   padding: 40px 0;
 }
+
+/* --- Articles --- */
+
+body.article main {
+  /* Default article content width. No s2a token represents these widths. */
+  --article-content-inline-size-narrow: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
+
+  .default-content-wrapper {
+    max-inline-size: var(--article-content-inline-size-narrow);
+  }
+
+  .full-bleed .default-content-wrapper {
+    max-inline-size: none;
+    padding-inline: 0;
+  }
+}
