@@ -237,19 +237,29 @@ describe('footer block', () => {
     expect(items).not.toHaveAttribute('hidden');
   });
 
-  it('renders nav menu links as a list inside a footer navigation landmark', async () => {
+  it('renders each nav column as its own labelled navigation landmark', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
 
     await decorate(block);
 
-    const nav = block.querySelector('.footer__menu-nav');
-    expect(nav.tagName).toBe('NAV');
-    expect(nav).toHaveAttribute('aria-label');
+    const columns = block.querySelectorAll('.footer__menu-column--nav');
+    expect(columns.length).toBeGreaterThan(0);
 
-    const items = block.querySelector('.footer__menu-column--nav .footer__menu-items');
-    expect(items.tagName).toBe('UL');
-    expect(items.querySelectorAll(':scope > li').length).toBeGreaterThan(0);
-    expect(items.querySelector('li > .footer__menu-link')).toBeTruthy();
+    columns.forEach((column) => {
+      const nav = column.querySelector('.footer__menu-section');
+      const heading = nav.querySelector(':scope > h2');
+      expect(nav.tagName).toBe('NAV');
+      expect(heading.id).toBeTruthy();
+      expect(nav).toHaveAttribute('aria-labelledby', heading.id);
+
+      const items = nav.querySelector('.footer__menu-items');
+      expect(items.tagName).toBe('UL');
+      expect(items.querySelectorAll(':scope > li').length).toBeGreaterThan(0);
+      expect(items.querySelector('li > .footer__menu-link')).toBeTruthy();
+    });
+
+    const headingIds = [...columns].map((c) => c.querySelector('h2').id);
+    expect(new Set(headingIds).size).toBe(headingIds.length);
   });
 });
