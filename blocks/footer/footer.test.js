@@ -64,7 +64,7 @@ describe('footer block', () => {
       text: () => Promise.resolve('<svg><symbol id="footer-icon-facebook"></symbol></svg>'),
     });
     window.matchMedia = jest.fn().mockImplementation((query) => ({
-      matches: query === '(min-width: 1024px)',
+      matches: query === '(min-width: 64rem)',
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     }));

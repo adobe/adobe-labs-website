@@ -211,7 +211,7 @@ function decorateHeadline(heading, items) {
   while (heading.firstChild) button.append(heading.firstChild);
   heading.append(button);
 
-  const desktopQuery = window.matchMedia('(min-width: 1024px)');
+  const desktopQuery = window.matchMedia('(min-width: 64rem)');
   const onActivate = () => {
     if (desktopQuery.matches) return;
     const expanded = button.getAttribute('aria-expanded') === 'true';
