@@ -427,13 +427,44 @@ main > .section:first-of-type {
   }
 }
 
+/* --- Sections --- */
+
 /* section metadata 
    TODO: boilerplate - will these be used and can they be removed? */
-main .section.light,
+/* main .section.light,
 main .section.highlight {
   background-color: var(--light-color);
   margin: 0;
   padding: 40px 0;
+} */
+
+main .section[class^="section-rounded-"] {
+  --section-padding-block-start: var(--s2a-spacing-lg);
+  --section-padding-block-end: var(--s2a-viewport-vertical-padding-xl);
+  --section-margin-negative-offset: 30px;
+
+  border-radius: 30px 30px 0 0;
+  padding-block-start: var(--section-padding-block-start);
+
+  &:not(:nth-last-child(1 of [class^="section-rounded-"])) {
+    padding-block-end: var(--section-padding-block-end);
+    margin-block-end: calc(-1 * (var(--section-padding-block-end) + var(--section-padding-block-start) - var(--section-margin-negative-offset)));
+  }
+}
+
+main .section {
+  &.section-rounded-default {
+    background: pink;
+  }
+  &.section-rounded-blue {
+    background: blue;
+  }
+  &.section-rounded-pink {
+    background: green;
+  }
+  &.section-rounded-yellow {
+    background: yellow;
+  }
 }
 
 /* --- Articles --- */
