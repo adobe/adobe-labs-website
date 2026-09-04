@@ -1,6 +1,7 @@
 import { within } from '@testing-library/dom';
 import {
   decorateBlock,
+  getMetadata,
   loadBlock,
   readBlockConfig,
 } from '../../scripts/aem.js';
@@ -12,6 +13,7 @@ jest.mock('../../scripts/aem.js', () => ({
   readBlockConfig: jest.fn(),
   decorateBlock: jest.fn(),
   loadBlock: jest.fn(),
+  getMetadata: jest.fn(() => ''),
   toClassName: (name) => (typeof name === 'string'
     ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     : ''),
@@ -124,7 +126,9 @@ describe('content-grid block', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    window.history.pushState({}, '', '/');
     dataStore.getData.mockResolvedValue(INDEX);
+    getMetadata.mockReturnValue('');
     consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     readBlockConfig.mockImplementation((block) => {
@@ -878,6 +882,128 @@ describe('content-grid block', () => {
       await decorate(block);
 
       expect(dataFromCall(0).subhead).toBe('A short description');
+    });
+  });
+
+  describe('Related content: true (related content)', () => {
+    const RELATED_INDEX = {
+      data: [
+        {
+          path: '/research/current',
+          title: 'Current article',
+          category: 'Future of Creative Work',
+          publicationDate: '2026-08-20',
+        },
+        {
+          path: '/research/shared-category',
+          title: 'Shares a category',
+          category: ['Future of Creative Work', 'Another Category'],
+          publicationDate: '2026-08-18',
+        },
+        {
+          path: '/research/no-shared-category',
+          title: 'No shared category',
+          category: 'Standards & Practices',
+          publicationDate: '2026-08-19',
+        },
+      ],
+    };
+
+    it('derives the endpoint from the current page path when Related content is true', async () => {
+      window.history.pushState({}, '', '/research/current');
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(dataStore.getData).toHaveBeenCalledWith('/research/content.json');
+    });
+
+    it('ignores an authored Content Type value when Related content is true', async () => {
+      window.history.pushState({}, '', '/research/current');
+      const block = createBlock({ 'Related content:': 'true', 'Content Type:': 'Workflows', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(dataStore.getData).toHaveBeenCalledWith('/research/content.json');
+    });
+
+    it('derives the category from page metadata instead of an authored value when Related content is true', async () => {
+      window.history.pushState({}, '', '/research/current');
+      getMetadata.mockReturnValue('Future of Creative Work');
+      dataStore.getData.mockResolvedValue(RELATED_INDEX);
+      const block = createBlock({
+        'Related content:': 'true', 'Content Type:': 'Research', 'Category:': 'Standards & Practices', 'Count:': '8',
+      });
+
+      await decorate(block);
+
+      expect(getMetadata).toHaveBeenCalledWith('category');
+      expect(titlesFromCards()).toEqual(['Shares a category']);
+    });
+
+    it('excludes the current page from its own results when Related content is true', async () => {
+      window.history.pushState({}, '', '/research/current');
+      getMetadata.mockReturnValue('Future of Creative Work');
+      dataStore.getData.mockResolvedValue(RELATED_INDEX);
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(titlesFromCards()).not.toContain('Current article');
+    });
+
+    it('does not exclude the current page when Related content is not set', async () => {
+      window.history.pushState({}, '', '/research/current');
+      dataStore.getData.mockResolvedValue(RELATED_INDEX);
+      const block = createBlock({ 'Content Type:': 'Research', 'Category:': 'All', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(titlesFromCards()).toContain('Current article');
+    });
+
+    it('falls back to the same content type when Related content matches no category', async () => {
+      window.history.pushState({}, '', '/research/current');
+      getMetadata.mockReturnValue('A Topic Nothing Has');
+      dataStore.getData.mockResolvedValue(RELATED_INDEX);
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(titlesFromCards().sort()).toEqual(
+        ['Shares a category', 'No shared category'].sort(),
+      );
+    });
+
+    it('hides the block when the Related content fallback also has nothing to show', async () => {
+      window.history.pushState({}, '', '/research/current');
+      getMetadata.mockReturnValue('A Topic Nothing Has');
+      dataStore.getData.mockResolvedValue({
+        data: [{
+          path: '/research/current',
+          title: 'Current article',
+          category: 'Future of Creative Work',
+          publicationDate: '2026-08-20',
+        }],
+      });
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(block.children).toHaveLength(0);
+      expect(block.parentElement.hidden).toBe(true);
+    });
+
+    it('adds content-grid--related for the fixed intro heading style, and removes it otherwise', async () => {
+      window.history.pushState({}, '', '/research/current');
+      dataStore.getData.mockResolvedValue(RELATED_INDEX);
+      const related = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+      await decorate(related);
+      expect(related).toHaveClass('content-grid--related');
+
+      const plain = createBlock({ 'Content Type:': 'All', 'Category:': 'All', 'Count:': '8' });
+      await decorate(plain);
+      expect(plain).not.toHaveClass('content-grid--related');
     });
   });
 
