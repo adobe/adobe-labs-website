@@ -98,7 +98,15 @@ function decorateNewsletterColumn(column) {
               placeholder="Your email address"
               ${descId ? `aria-describedby="${escapeAttr(descId)}"` : ''}
             >
-            <button type="submit" class="footer__submit" aria-label="${escapeAttr(label)}"></button>
+            <button type="submit" class="footer__submit" aria-label="${escapeAttr(label)}">
+              <svg class="footer__submit-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle class="footer__submit-circle" cx="12" cy="12" r="12" />
+                <path
+                  class="footer__submit-arrow"
+                  d="M11.707 7.29297C11.3165 6.90244 10.6835 6.90244 10.293 7.29297C9.90264 7.68352 9.9025 8.31657 10.293 8.70703L13.5859 12L10.293 15.293C9.90258 15.6835 9.90248 16.3165 10.293 16.707C10.6835 17.0973 11.3165 17.0973 11.707 16.707L15.707 12.707C16.0975 12.3166 16.0974 11.6835 15.707 11.293L11.707 7.29297Z"
+                />
+              </svg>
+            </button>
           </form>
         </div>
       </div>

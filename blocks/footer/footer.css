@@ -152,7 +152,33 @@
   padding: 0;
   border: none;
   cursor: pointer;
-  background: url('./img/newsletter-submit.svg') center / contain no-repeat;
+  background: none;
+}
+
+.footer__submit-icon {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.footer__submit-circle {
+  fill: var(--s2a-color-transparent-white-16);
+  transition: fill 0.15s ease;
+}
+
+.footer__submit-arrow {
+  fill: var(--footer-text);
+  transition: fill 0.15s ease;
+}
+
+.footer__submit:hover .footer__submit-circle,
+.footer__submit:focus-visible .footer__submit-circle {
+  fill: var(--s2a-color-gray-25);
+}
+
+.footer__submit:hover .footer__submit-arrow,
+.footer__submit:focus-visible .footer__submit-arrow {
+  fill: var(--s2a-color-gray-1000);
 }
 
 .footer__form:focus-within:has(input:focus) {
