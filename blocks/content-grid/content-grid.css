@@ -66,10 +66,10 @@
      regardless of the level the author picked, since this heading is a
      section label rather than a page-level heading. */
   &.content-grid--related .content-grid__intro-copy :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--s2a-color-content-subtle);
     font-size: var(--s2a-typography-font-size-heading-6);
-    line-height: var(--s2a-typography-line-height-heading-6);
+    line-height: var(--s2a-typography-line-height-title-6, 16px);
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
-    color: inherit;
   }
 
   .content-grid__pager {
