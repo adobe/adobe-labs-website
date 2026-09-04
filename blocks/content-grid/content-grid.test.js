@@ -952,6 +952,17 @@ describe('content-grid block', () => {
       expect(titlesFromCards()).not.toContain('Current article');
     });
 
+    it('excludes the current page even when the URL and the index disagree about a trailing slash', async () => {
+      window.history.pushState({}, '', '/research/current/');
+      getMetadata.mockReturnValue('Future of Creative Work');
+      dataStore.getData.mockResolvedValue(RELATED_INDEX);
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(titlesFromCards()).not.toContain('Current article');
+    });
+
     it('does not exclude the current page when Related content is not set', async () => {
       window.history.pushState({}, '', '/research/current');
       dataStore.getData.mockResolvedValue(RELATED_INDEX);

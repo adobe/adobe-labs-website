@@ -291,13 +291,22 @@ function matchesCategory(item, category) {
 }
 
 /**
+ * Path with trailing slashes removed, or "/" for the root.
+ * @param {string} [path]
+ * @returns {string}
+ */
+function normalizePath(path) {
+  return String(path || '').replace(/\/+$/, '') || '/';
+}
+
+/**
  * Whether a path should be omitted from the grid (home and section indexes).
  * @param {string} [path]
  * @returns {boolean}
  */
 function isExcludedPath(path) {
   if (!path) return true;
-  const clean = path.replace(/\/+$/, '') || '/';
+  const clean = normalizePath(path);
   if (HOME_PATHS.has(clean)) return true;
   const segments = clean.split('/').filter(Boolean);
   const isSectionRoot = segments.length === 1
@@ -345,7 +354,7 @@ function selectItems(data, {
   return data
     .filter((item) => !/noindex/i.test(String(item.robots || ''))
       && !isExcludedPath(item.path)
-      && (!excludePath || item.path !== excludePath)
+      && (!excludePath || normalizePath(item.path) !== normalizePath(excludePath))
       && matchesCategory(item, category))
     .sort(compareNewestFirst)
     .slice(0, count);
