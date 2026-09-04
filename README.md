@@ -137,6 +137,14 @@ Cards stay empty until indexed article pages exist. Index config lives at [tools
 
 **On each Labs article in DA**, put the page under `/research`, `/workflows`, `/sneaks`, or `/playground`, and author description, `og:image`, publication date, and `Image Aspect` (`1:1`, `4:5`, `3:2`, or `2:3`). The block drops `noindex` pages and section index pages (`/research/`, `/workflows/index`, and the other known sections).
 
+### Hero (first section)
+
+Keep the hero in its own first section. That is what makes the hero image load quickly.
+
+The page already loads the first image in the first section right away, and AEM lazy-loads the rest. If the content grid, Explore, or article body sit in that same section, the page waits on them before it starts the hero.
+
+In Document Authoring, insert a section break after the hero table. Paste the hero image as a normal picture — you do not need to set `loading` or `fetchpriority`. Adding `fetchpriority="high"` or a preload usually makes Lighthouse scores worse on Edge Delivery; see Adobe’s [keeping-it-100](https://www.aem.live/developer/keeping-it-100) guidance.
+
 ## Testing
 
 To run tests:
