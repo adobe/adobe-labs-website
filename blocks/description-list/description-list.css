@@ -2,8 +2,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--s2a-spacing-lg);
-  padding-block-start: var(--s2a-spacing-lg);
+  padding-block-start: var(--s2a-spacing-sm);
   border-block-start: 1px solid var(--s2a-color-border-subtle);
+
+  @media (width >= 768px) {
+    padding-block-start: var(--s2a-section-spacing-md);
+  }
 
   .description-list__heading,
   .description-list__item-heading,
@@ -39,7 +43,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--s2a-spacing-2xs);
-    padding-block: var(--s2a-spacing-md);
+    padding-block: var(--s2a-spacing-xl);
 
     &:not(:first-child) {
       border-block-start: 1px solid var(--s2a-color-border-subtle);

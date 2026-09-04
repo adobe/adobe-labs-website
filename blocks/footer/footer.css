@@ -7,6 +7,7 @@
   font-size: var(--s2a-typography-font-size-body-md);
   text-size-adjust: none;
   background-color: var(--s2a-color-gray-1000);
+  z-index: -1;
 }
 
 .footer a:focus-visible,

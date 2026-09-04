@@ -32,6 +32,11 @@
   --color-content-type-sneaks: #a179ec;
   --color-content-type-playground: #64b180;
 
+  /* section surface colors (most not in S2A) */
+  --color-section-surface-default: var(--s2a-color-background-default);
+  --color-section-surface-blue: #edf6ff;
+  --color-section-surface-pink: #fff4f2;
+
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, "Arial Bold Adjusted", sans-serif;
@@ -50,6 +55,9 @@
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
 
   &[data-theme="dark"] {
+    --color-section-surface-default: #262626;
+    --color-section-surface-blue: #111f2f;
+    --color-section-surface-pink: #301517;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
 }
@@ -264,9 +272,15 @@ footer .footer[data-block-status="loaded"] {
   visibility: visible;
 }
 
-/* TODO: boilerplate - better handling of this for overall site spacing. And use tokens. */
-main > div {
-  margin: 40px 16px;
+/* Overall sitewide spacing between sections and blocks. */
+main {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: var(--s2a-spacing-xl);
+
+  @media (width >= 768px) {
+    gap: var(--s2a-viewport-vertical-padding-lg);
+  }
 }
 
 /* Hides content visually but keeps it in the accessibility tree.
@@ -408,13 +422,18 @@ main > div {
 
 /* TODO: boilerplate - Sections - better handling of this group of styles for overall site spacing. And use tokens. */
 main > .section {
-  margin: 40px 0;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: var(--s2a-spacing-xl);
+  margin-inline: 0;
 }
 
 main > .section > div {
+  inline-size: 100%;
   max-inline-size: var(--site-max-inline-size);
   margin: auto;
   padding: 0 var(--site-root-inline-padding);
+
 }
 
 main > .section:first-of-type {
@@ -427,13 +446,50 @@ main > .section:first-of-type {
   }
 }
 
-/* section metadata 
+/* section metadata
    TODO: boilerplate - will these be used and can they be removed? */
-main .section.light,
+
+/* main .section.light,
 main .section.highlight {
   background-color: var(--light-color);
   margin: 0;
   padding: 40px 0;
+} */
+
+main .section[class^="section-rounded-"] {
+  --section-padding-block-start: var(--s2a-viewport-vertical-padding-xs);
+  --section-padding-block-end: var(--s2a-viewport-vertical-padding-xl);
+  --section-margin-negative-offset: 30px;
+  --section-border-radius: 30px;
+
+  border-radius: var(--section-border-radius) var(--section-border-radius) 0 0;
+  padding-block: var(--section-padding-block-start) var(--section-padding-block-end);
+
+  &:nth-last-child(1 of [class*="section-rounded-"]) {
+    --section-padding-block-end: var(--s2a-viewport-vertical-padding-lg);
+
+    border-bottom-left-radius: var(--section-border-radius);
+    border-bottom-right-radius: var(--section-border-radius);
+    margin-block-end: calc(-1 * var(--section-margin-negative-offset));
+  }
+
+  &:not(:nth-last-child(1 of [class*="section-rounded-"])) {
+    margin-block-end: calc(-1 * (var(--section-padding-block-end) + var(--section-padding-block-start) - var(--section-margin-negative-offset)));
+  }
+}
+
+main .section {
+  &.section-rounded-default {
+    background: var(--color-section-surface-default);
+  }
+
+  &.section-rounded-blue {
+    background: var(--color-section-surface-blue);
+  }
+
+  &.section-rounded-pink {
+    background: var(--color-section-surface-pink);
+  }
 }
 
 /* --- Articles --- */
