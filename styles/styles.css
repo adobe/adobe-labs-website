@@ -68,6 +68,16 @@
   --color-content-type-sneaks: #a179ec;
   --color-content-type-playground: #64b180;
 
+  /* section surface colors (not in S2A) */
+  --color-section-surface-default: var(--s2a-color-background-default);
+  --color-section-surface-blue: #edf6ff;
+  --color-section-surface-pink: #fff4f2;
+
+  &[data-theme="dark"] {
+    --color-section-surface-blue: #111f2f;
+    --color-section-surface-pink: #301517;
+  }
+
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, adobe-clean-fallback, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, adobe-clean-display-fallback, sans-serif;
@@ -460,7 +470,7 @@ main > div {
 /* TODO: boilerplate - Sections - better handling of this group of styles for overall site spacing. And use tokens. */
 main > .section {
   margin: 40px 0;
-}
+} */
 
 main > .section > div {
   max-inline-size: var(--site-max-inline-size);
@@ -477,8 +487,6 @@ main > .section:first-of-type {
     padding: 0 var(--s2a-spacing-lg, 1.5rem);
   }
 }
-
-/* --- Sections --- */
 
 /* section metadata 
    TODO: boilerplate - will these be used and can they be removed? */
@@ -505,16 +513,13 @@ main .section[class^="section-rounded-"] {
 
 main .section {
   &.section-rounded-default {
-    background: pink;
+    background: var(--s2a-color-background-default);
   }
   &.section-rounded-blue {
-    background: blue;
+    background: var(--color-section-surface-blue);
   }
   &.section-rounded-pink {
-    background: green;
-  }
-  &.section-rounded-yellow {
-    background: yellow;
+    background: var(--color-section-surface-pink);
   }
 }
 
