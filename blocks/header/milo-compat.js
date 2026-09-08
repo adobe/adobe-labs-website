@@ -9,6 +9,10 @@ import {
   loadScript as loadAemScript,
 } from '../../scripts/aem.js';
 
+/**
+ * English fallbacks for Milo placeholder keys used by the copied gnav.
+ * @type {Object<string, string>}
+ */
 const PLACEHOLDER_FALLBACKS = {
   search: 'Search',
   menu: 'Menu',
@@ -19,6 +23,10 @@ const PLACEHOLDER_FALLBACKS = {
   'please-try-again': 'Please try again',
 };
 
+/**
+ * Minimal Milo `getConfig()` object. IMS, Universal Nav, merch, and dark theme are off.
+ * @type {object}
+ */
 const config = {
   codeRoot: '',
   miloLibs: undefined,
@@ -34,6 +42,9 @@ const config = {
   searchEnabled: 'off',
 };
 
+/**
+ * Points Milo `codeRoot` at the copied gnav folder under this block.
+ */
 function refreshCodeRoot() {
   const base = window.hlx?.codeBasePath || '';
   config.codeRoot = `${base}/blocks/header/gnav`;
@@ -41,7 +52,7 @@ function refreshCodeRoot() {
 
 /**
  * Minimal Milo getConfig used by global navigation.
- * @returns {object}
+ * @returns {object} Labs shim of Milo's runtime config
  */
 export function getConfig() {
   refreshCodeRoot();
@@ -49,8 +60,9 @@ export function getConfig() {
 }
 
 /**
- * @param {string} name
- * @param {Document} [doc]
+ * Reads a page metadata value via EDS `getMetadata`.
+ * @param {string} name Metadata name (for example `nav`)
+ * @param {Document} [doc] Document to read from
  * @returns {string}
  */
 export function getMetadata(name, doc = document) {
@@ -58,7 +70,7 @@ export function getMetadata(name, doc = document) {
 }
 
 /**
- * Nav fragment path. Prefers `nav` metadata; defaults to /fragments/nav.
+ * Nav fragment path. Prefers `nav` metadata; defaults to `/fragments/nav`.
  * @returns {Promise<string>}
  */
 export async function getGnavSource() {
@@ -73,8 +85,8 @@ export async function getGnavSource() {
 
 /**
  * Milo loadStyle(href, callback) wrapper around EDS loadCSS.
- * @param {string} href
- * @param {Function} [callback]
+ * @param {string} href Stylesheet URL
+ * @param {Function} [callback] Called with no args on success, `'error'` on failure
  */
 export function loadStyle(href, callback) {
   loadCSS(href)
@@ -83,7 +95,7 @@ export function loadStyle(href, callback) {
 }
 
 /**
- * @param {string} [message]
+ * Installs a no-op `window.lana` logger when Milo logging is not present.
  */
 export function loadLana() {
   if (window.lana?.log) return;
@@ -101,18 +113,23 @@ export function loadIms() {
 }
 
 /**
- * @param {string} url
+ * Loads a script via EDS `loadScript`.
+ * @param {string} url Script URL
  * @returns {Promise<void>}
  */
 export function loadScript(url) {
   return loadAemScript(url);
 }
 
-/** Temporary origin for mega-menu docs and media until they are copied into Labs DA. */
+/**
+ * Temporary origin for mega-menu docs and media until they are copied into Labs DA.
+ * @type {string}
+ */
 export const FEDERAL_ORIGIN = 'https://main--federal--adobecom.aem.live';
 
 /**
- * @param {string} url
+ * Pass-through for Milo federated URL rewriting. Labs fetches same-origin only.
+ * @param {string} url Source URL
  * @returns {string}
  */
 export function getFederatedUrl(url) {
@@ -120,6 +137,7 @@ export function getFederatedUrl(url) {
 }
 
 /**
+ * Origin used when rewriting federal media paths.
  * @returns {string}
  */
 export function getFederatedContentRoot() {
@@ -127,6 +145,7 @@ export function getFederatedContentRoot() {
 }
 
 /**
+ * Placeholder config object consumed by Milo gnav copy.
  * @returns {object}
  */
 export function getFedsPlaceholderConfig() {
@@ -134,6 +153,7 @@ export function getFedsPlaceholderConfig() {
 }
 
 /**
+ * Free-trial link gating is unused on Labs.
  * @returns {false}
  */
 export function shouldBlockFreeTrialLinks() {
@@ -141,6 +161,7 @@ export function shouldBlockFreeTrialLinks() {
 }
 
 /**
+ * Lingo (geo language) is unused on Labs.
  * @returns {false}
  */
 export function lingoActive() {
@@ -148,6 +169,7 @@ export function lingoActive() {
 }
 
 /**
+ * Lingo region lookup is unused on Labs.
  * @returns {Promise<null>}
  */
 export async function getLingoRegion() {
@@ -155,6 +177,7 @@ export async function getLingoRegion() {
 }
 
 /**
+ * Whether the current header is in Milo local-nav mode.
  * @returns {boolean}
  */
 export function isLocalNav() {
@@ -166,7 +189,7 @@ export function isLocalNav() {
 /**
  * Product-card icons are authored as `https://…svg | Alt text` links.
  * Convert those to images so mega-menu icons render without a product-card block.
- * @param {Element} root
+ * @param {Element} root Root whose descendant SVG links should be converted
  */
 function decorateSvgIconLinks(root) {
   root.querySelectorAll('a[href*=".svg"]').forEach((anchor) => {
@@ -181,7 +204,8 @@ function decorateSvgIconLinks(root) {
 }
 
 /**
- * @param {Element} root
+ * Decorates links in a fragment the way Milo `decorateLinksAsync` would.
+ * @param {Element} root Fragment root
  * @returns {Promise<Element>}
  */
 export async function decorateLinksAsync(root) {
@@ -190,7 +214,8 @@ export async function decorateLinksAsync(root) {
 }
 
 /**
- * @param {string} href
+ * Locale-aware link rewriting is unused on Labs.
+ * @param {string} href Link href
  * @returns {Promise<string>}
  */
 export async function localizeLinkAsync(href) {
@@ -198,7 +223,8 @@ export async function localizeLinkAsync(href) {
 }
 
 /**
- * @param {string} [str]
+ * Analytics label processing is unused on Labs; returns the string as-is.
+ * @param {string} [str] Raw label
  * @returns {string}
  */
 export function processTrackingLabels(str) {
@@ -206,10 +232,11 @@ export function processTrackingLabels(str) {
 }
 
 /**
- * @param {string} tag
- * @param {object} [attributes]
- * @param {string|Node} [html]
- * @param {{ parent?: Element }} [options]
+ * Creates a DOM element with optional attributes, children, and parent.
+ * @param {string} tag Tag name
+ * @param {object} [attributes] Attribute map
+ * @param {string|Node} [html] Child HTML string or node
+ * @param {{ parent?: Element }} [options] Optional parent to append to
  * @returns {Element}
  */
 export function createTag(tag, attributes, html, options = {}) {
@@ -230,8 +257,9 @@ export function createTag(tag, attributes, html, options = {}) {
 }
 
 /**
- * @param {Function} fn
- * @param {number} delay
+ * Returns a debounced function.
+ * @param {Function} fn Function to debounce
+ * @param {number} delay Delay in milliseconds
  * @returns {Function}
  */
 export function debounce(fn, delay) {
@@ -242,12 +270,18 @@ export function debounce(fn, delay) {
   };
 }
 
+/**
+ * Resolves a Milo placeholder key to English fallback copy.
+ * @param {string} key Placeholder key
+ * @returns {string}
+ */
 function placeholderValue(key) {
   return PLACEHOLDER_FALLBACKS[key] || key;
 }
 
 /**
- * @param {string} key
+ * Looks up a single placeholder string.
+ * @param {string} key Placeholder key
  * @returns {Promise<string>}
  */
 export async function replaceKey(key) {
@@ -255,7 +289,8 @@ export async function replaceKey(key) {
 }
 
 /**
- * @param {string[]} keys
+ * Looks up several placeholder strings.
+ * @param {string[]} keys Placeholder keys
  * @returns {Promise<string[]>}
  */
 export async function replaceKeyArray(keys) {
@@ -263,7 +298,8 @@ export async function replaceKeyArray(keys) {
 }
 
 /**
- * @param {string} text
+ * Placeholder token replacement is unused on Labs.
+ * @param {string} text Source text
  * @returns {Promise<string>}
  */
 export async function replaceText(text) {
@@ -271,18 +307,29 @@ export async function replaceText(text) {
 }
 
 /**
+ * Placeholder dictionary fetch is unused on Labs.
  * @returns {Promise<object>}
  */
 export async function fetchPlaceholders() {
   return {};
 }
 
+/**
+ * Milo personalization tag predicates. Labs always returns false.
+ * @type {{ safari: function(): boolean }}
+ */
 export const PERSONALIZATION_TAGS = {
   safari: () => false,
 };
+
+/**
+ * Milo personalization flag names used by the copied gnav.
+ * @type {{ includeGnav: string }}
+ */
 export const FLAGS = { includeGnav: 'includeGnav' };
 
 /**
+ * Milo personalization command runner. No-op on Labs.
  * @returns {Promise<void>}
  */
 export async function handleCommands() {
@@ -290,6 +337,7 @@ export async function handleCommands() {
 }
 
 /**
+ * Locale settings consumed by unused merch / geo helpers.
  * @returns {{ country: string }}
  */
 export function getMiloLocaleSettings() {
@@ -297,6 +345,7 @@ export function getMiloLocaleSettings() {
 }
 
 /**
+ * MAS geo detection is unused on Labs.
  * @returns {boolean}
  */
 export function isMasGeoDetectionEnabled() {
@@ -305,7 +354,7 @@ export function isMasGeoDetectionEnabled() {
 
 /**
  * Identity merch decorate — merch is out of scope.
- * @param {Element} elem
+ * @param {Element} elem Element Milo would turn into a merch CTA
  * @returns {Promise<Element>}
  */
 export default async function merch(elem) {

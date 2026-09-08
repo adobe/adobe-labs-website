@@ -1,3 +1,6 @@
+/**
+ * Labs shims for Milo APIs used by the copied global-navigation sources.
+ */
 import { decorateLinksAsync } from './milo-compat.js';
 
 describe('milo-compat decorateLinksAsync', () => {

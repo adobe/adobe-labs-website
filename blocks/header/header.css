@@ -1,4 +1,9 @@
-/* Glue between Labs chrome and Milo feds-* nav. Milo CSS loads from gnav/. */
+/**
+ * Labs header glue. Block class is `.header` (BEM).
+ * Descendant `.feds-*` selectors target Milo-generated markup in gnav/
+ * and are not renamed.
+ */
+
 header {
   --feds-height-nav: var(--nav-height, 64px);
 
@@ -12,107 +17,109 @@ header.global-navigation {
   overflow: visible;
 }
 
-header .header.global-navigation {
-  background-color: var(--feds-background-nav, #f8f8f8);
-}
+.header {
+  background-color: var(--feds-background-nav, var(--s2a-color-gray-50, #f8f8f8));
 
-/* Universal Nav / app switcher is out of scope. */
-header.global-navigation .feds-utilities,
-header.global-navigation #unav-app-switcher,
-header.global-navigation .unav-comp-app-switcher {
-  display: none;
-}
-
-header.global-navigation .feds-profile {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-}
-
-/* Milo class is camelCase (`feds-signIn`); do not BEM-ify it. */
-/* stylelint-disable selector-class-pattern */
-header.global-navigation .feds-signIn.button {
-  width: auto;
-  color: var(--color-button-text-primary);
-  text-align: center;
-}
-
-header.global-navigation .feds-signIn.button:hover {
-  color: var(--color-button-text-primary);
-}
-/* stylelint-enable selector-class-pattern */
-
-/*
- * Small-screen chrome: logo, two-line hamburger, utility CTA.
- * Matches adobe.com mobile gnav without the app switcher.
- */
-@media (width < 900px) {
-  header.global-navigation.new-nav .feds-topnav {
-    align-items: center;
-    padding-inline: 8px 12px;
-  }
-
-  header.global-navigation.new-nav .feds-brand-container {
-    display: flex;
-    align-items: center;
-    gap: 0;
-  }
-
-  /* Adobe.com order: mark, then hamburger. */
-  header.global-navigation.new-nav .feds-brand {
-    order: 0;
-    padding-inline: 8px;
-  }
-
-  header.global-navigation.new-nav .feds-brand-label,
-  header.global-navigation.new-nav .feds-logo {
+  /* Universal Nav / app switcher is out of scope. */
+  .feds-utilities,
+  #unav-app-switcher,
+  .unav-comp-app-switcher {
     display: none;
   }
 
-  header.global-navigation.new-nav .feds-toggle {
-    order: 1;
-    position: relative;
-    width: 44px;
-    min-width: 44px;
-    height: 44px;
-    margin: 0;
-    padding: 0;
-    font-size: 0;
-    color: var(--feds-color-hamburger, #2d2d2d);
+  .feds-profile {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
   }
 
-  header.global-navigation.new-nav .feds-toggle::before,
-  header.global-navigation.new-nav .feds-toggle::after {
-    content: "";
-    position: absolute;
-    left: 13px;
-    width: 18px;
-    height: 2px;
-    background: currentcolor;
-    border-radius: 1px;
+  /* Milo class is camelCase (`feds-signIn`); do not BEM-ify it. */
+  /* stylelint-disable selector-class-pattern */
+  .feds-signIn.button {
+    width: auto;
+    color: var(--color-button-text-primary);
+    text-align: center;
   }
 
-  header.global-navigation.new-nav .feds-toggle::before {
-    top: 17px;
+  .feds-signIn.button:hover {
+    color: var(--color-button-text-primary);
   }
+  /* stylelint-enable selector-class-pattern */
 
-  header.global-navigation.new-nav .feds-toggle::after {
-    top: 25px;
-  }
+  /*
+   * Small-screen chrome: logo, two-line hamburger, utility CTA.
+   * Matches adobe.com mobile gnav without the app switcher.
+   */
+  @media (width < 900px) {
+    &.new-nav {
+      .feds-topnav {
+        align-items: center;
+        padding-inline: 8px 12px;
+      }
 
-  header.global-navigation.new-nav .feds-toggle[aria-expanded="true"]::before {
-    top: 21px;
-    transform: rotate(45deg);
-  }
+      .feds-brand-container {
+        display: flex;
+        align-items: center;
+        gap: 0;
+      }
 
-  header.global-navigation.new-nav .feds-toggle[aria-expanded="true"]::after {
-    top: 21px;
-    transform: rotate(-45deg);
-  }
+      /* Adobe.com order: mark, then hamburger. */
+      .feds-brand {
+        order: 0;
+        padding-inline: 8px;
+      }
 
-  header.global-navigation.new-nav .feds-toggle:focus-visible,
-  header.global-navigation.new-nav .feds-brand:focus-visible {
-    outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
-    outline-offset: 2px;
+      .feds-brand-label,
+      .feds-logo {
+        display: none;
+      }
+
+      .feds-toggle {
+        order: 1;
+        position: relative;
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        margin: 0;
+        padding: 0;
+        font-size: 0;
+        color: var(--feds-color-hamburger, var(--s2a-color-gray-800, #2d2d2d));
+      }
+
+      .feds-toggle::before,
+      .feds-toggle::after {
+        content: "";
+        position: absolute;
+        left: 13px;
+        width: 18px;
+        height: 2px;
+        background: currentcolor;
+        border-radius: 1px;
+      }
+
+      .feds-toggle::before {
+        top: 17px;
+      }
+
+      .feds-toggle::after {
+        top: 25px;
+      }
+
+      .feds-toggle[aria-expanded="true"]::before {
+        top: 21px;
+        transform: rotate(45deg);
+      }
+
+      .feds-toggle[aria-expanded="true"]::after {
+        top: 21px;
+        transform: rotate(-45deg);
+      }
+
+      .feds-toggle:focus-visible,
+      .feds-brand:focus-visible {
+        outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
+        outline-offset: 2px;
+      }
+    }
   }
 }

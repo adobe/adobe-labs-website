@@ -1,10 +1,12 @@
 /**
  * Header block. Loads Milo global navigation against the nav fragment.
  * Content path: `nav` metadata, or `/fragments/nav` by default.
- * @param {Element} block The header block element
  */
 
-/** Milo CSS/JS target these on `<header>`; EDS puts them on the inner block. */
+/**
+ * Milo CSS/JS target these on `<header>`; EDS puts them on the inner `.header` block.
+ * @type {string[]}
+ */
 const HEADER_MIRROR_CLASSES = [
   'global-navigation',
   'new-nav',
@@ -18,8 +20,8 @@ const HEADER_MIRROR_CLASSES = [
 
 /**
  * Keep `<header>` classList in sync with the EDS block so Milo `header.*` selectors match.
- * @param {Element} block
- * @param {Element} [headerEl]
+ * @param {Element} block The header block element
+ * @param {Element} [headerEl] The page `<header>` wrapping the block
  */
 function mirrorHeaderClasses(block, headerEl) {
   if (!headerEl) return;
@@ -32,6 +34,11 @@ function mirrorHeaderClasses(block, headerEl) {
   new MutationObserver(sync).observe(block, { attributes: true, attributeFilter: ['class'] });
 }
 
+/**
+ * Decorates the header by booting Milo global navigation.
+ * @param {Element} block The header block element
+ * @returns {Promise<void>}
+ */
 export default async function decorate(block) {
   const headerEl = block.closest('header');
   block.classList.add('global-navigation');

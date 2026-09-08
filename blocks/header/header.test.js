@@ -1,3 +1,6 @@
+/**
+ * Header block tests. Fixtures follow the Milo gnav content shape.
+ */
 import { within } from '@testing-library/dom';
 import { getMetadata, loadCSS } from '../../scripts/aem.js';
 
@@ -11,6 +14,10 @@ jest.mock('../../scripts/aem.js', () => ({
 let desktopMatches = true;
 let decorate;
 
+/**
+ * Federal-shaped nav fragment used by most header tests.
+ * @type {string}
+ */
 const GNAV_HTML = `
   <div class="adobe-logo">
     <p><a href="/"><img src="/logo.svg" alt="Adobe, Inc."></a></p>
@@ -26,6 +33,10 @@ const GNAV_HTML = `
   <p><a href="https://www.adobe.com/creativecloud/plans.html">Plans</a></p>
 `;
 
+/**
+ * Nav fragment that includes a CMS-authored Subscribe CTA.
+ * @type {string}
+ */
 const GNAV_WITH_CTA_HTML = `
   ${GNAV_HTML}
   <div class="cta">
@@ -35,6 +46,12 @@ const GNAV_WITH_CTA_HTML = `
   </div>
 `;
 
+/**
+ * Builds a fetch-like Response stub.
+ * @param {number} status HTTP status
+ * @param {string} [html=''] Response body
+ * @returns {{ status: number, ok: boolean, statusText: string, url: string, text: function(): Promise<string>, clone: function(): object }}
+ */
 function jsonResponse(status, html = '') {
   return {
     status,
@@ -48,6 +65,12 @@ function jsonResponse(status, html = '') {
   };
 }
 
+/**
+ * Polls until `predicate` is true or `timeout` elapses.
+ * @param {function(): boolean} predicate Condition to wait for
+ * @param {number} [timeout=2000] Timeout in milliseconds
+ * @returns {Promise<void>}
+ */
 async function waitFor(predicate, timeout = 2000) {
   const start = Date.now();
   while (Date.now() - start < timeout) {
@@ -60,6 +83,12 @@ async function waitFor(predicate, timeout = 2000) {
   throw new Error('Timed out waiting for header decoration');
 }
 
+/**
+ * Creates a header block, runs decorate, and waits for the Milo topnav.
+ * @param {{ append?: boolean }} [options]
+ * @param {boolean} [options.append] Unused; block is always appended to `document.body`
+ * @returns {Promise<HTMLElement>} Decorated header block
+ */
 async function decorateHeader({ append = false } = {}) {
   const block = document.createElement('div');
   block.className = 'header';
