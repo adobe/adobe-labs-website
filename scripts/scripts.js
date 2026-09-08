@@ -185,6 +185,19 @@ function decorateDarkMode() {
 }
 
 /**
+ * Load Typekit after LCP. Adobe Fonts is a second origin; connecting
+ * to it in `<head>` competes with first-party CSS and the LCP image.
+ */
+async function loadFonts() {
+  await loadCSS('https://use.typekit.net/xsh2otx.css');
+  try {
+    if (!window.location.hostname.includes('localhost')) sessionStorage.setItem('fonts-loaded', 'true');
+  } catch (e) {
+    // sessionStorage can throw in some privacy modes
+  }
+}
+
+/**
  * Loads everything needed to get to LCP.
  * @param {Element} doc The container element
  */
@@ -197,6 +210,15 @@ async function loadEager(doc) {
     decorateMain(main);
     document.body.classList.add('appear');
     await loadSection(main.querySelector('.section'), waitForFirstImage);
+  }
+
+  try {
+    /* if desktop (proxy for fast connection) or fonts already loaded, load Typekit */
+    if (window.innerWidth >= 900 || sessionStorage.getItem('fonts-loaded')) {
+      loadFonts();
+    }
+  } catch (e) {
+    // do nothing
   }
 }
 
@@ -233,6 +255,7 @@ async function loadLazy(doc) {
   loadFooter(doc.querySelector('body > footer'));
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
+  loadFonts();
 
   // Down state: include inline and block sizes for elements that use S2 calculated perspective.
   setCalculatedPerspective();
