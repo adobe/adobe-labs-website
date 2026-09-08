@@ -31,6 +31,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  container-type: inline-size;
 
   @media (width >= 48rem) {
     flex-flow: row wrap;
@@ -81,6 +82,16 @@
   aspect-ratio: 3 / 2;
   background-color: var(--s2a-color-background-subtle);
 
+  /* From 48rem, height is fixed to the *row's* width (25% of it, at a 3:2
+     ratio, matching the 4-card default) via container query units, not the
+     card's own width. Figma: cards expand in width only on hover/focus —
+     height never changes — so aspect-ratio (which would tie height to the
+     card's current, growing width) can't drive this above that breakpoint. */
+  @media (width >= 48rem) {
+    aspect-ratio: auto;
+    height: calc(25cqi * 2 / 3);
+  }
+
   picture,
   img {
     position: absolute;
@@ -88,17 +99,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
-  }
-}
-
-.elastic-router__item:focus-within .elastic-router__media img {
-  transform: scale(1.05);
-}
-
-@media (hover: hover) {
-  .elastic-router__item:hover .elastic-router__media img {
-    transform: scale(1.05);
   }
 }
 
