@@ -219,6 +219,24 @@
 
   /* --- Full-Screen variant --- */
   &.hero-full-screen {
+    /* Figma's spacing differs from s2a tokens.
+    Full-screen variant has custom vertical padding to account for overlapping content. */
+    --hero-padding-block-start: 5.625rem;
+    --hero-padding-block-end: 3.125rem;
+    --hero-padding-inline: var(--s2a-section-spacing-sm);
+    --hero-margin-negative-offset: calc(-1 * calc(var(--hero-padding-block-end) - var(--section-padding-block-start) + var(--main-gap)));
+
+    @media (width >=48rem) {
+      --hero-padding-block-start: 6.25rem;
+      --hero-padding-block-end: 4.375rem;
+    }
+
+    @media (width >=64rem) {
+      --hero-padding-block-start: 5rem;
+      --hero-padding-block-end: 5.625rem;
+    }
+
+    margin-block-end: var(--hero-margin-negative-offset);
     border-radius: 0;
 
     /* Full-screen variant is slightly taller than default on smaller screens. */
@@ -229,20 +247,8 @@
     }
 
     .hero__content {
-      /* Figma's spacing differs from s2a tokens.
-         Full-screen variant has custom vertical padding to account for overlapping content. */
-      --hero-padding-block: 5.625rem 3.125rem;
-      --hero-padding-inline: var(--s2a-section-spacing-sm);
-
-      /* TODO: add negative margins when header and first section are implemented. */
-
-      @media (width >=48rem) {
-        --hero-padding-block: 6.25rem 4.375rem;
-      }
-
-      @media (width >=64rem) {
-        --hero-padding-block: 5rem 5.625rem;
-      }
+      padding-block: var(--hero-padding-block-start) var(--hero-padding-block-end);
+      padding-inline: var(--hero-padding-inline);
     }
   }
 }
