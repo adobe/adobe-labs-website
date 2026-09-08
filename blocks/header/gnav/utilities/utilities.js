@@ -9,7 +9,6 @@ import {
   localizeLinkAsync,
   getFederatedContentRoot,
   getFederatedUrl,
-  FEDERAL_ORIGIN,
   getFedsPlaceholderConfig,
   createTag,
   loadBlock,
@@ -612,8 +611,8 @@ function toPlainHtmlUrl(url) {
 }
 
 /**
- * Fetches .plain.html, preferring Labs, then federal for nested /federal/ docs.
- * Root /fragments/nav never falls back to federal.
+ * Fetches .plain.html for nav and mega-menu docs from this site only.
+ * Adobe.com / federal menu bodies are not used as a fallback.
  * @param {string} url
  * @param {Promise<Response>|null} plainHTMLPromise
  * @returns {Promise<Response|null>}
@@ -629,35 +628,22 @@ async function fetchPlainHtml(url, plainHTMLPromise) {
   }
 
   const plainUrl = toPlainHtmlUrl(url);
-  let pathname = plainUrl;
+  let parsed;
   try {
-    pathname = new URL(plainUrl, window.location.href).pathname;
+    parsed = new URL(plainUrl, window.location.href);
   } catch {
-    pathname = plainUrl;
+    return null;
   }
 
-  const isRootNav = pathname === '/fragments/nav.plain.html'
-    || pathname.endsWith('/fragments/nav.plain.html');
-  const isFederalPath = pathname.startsWith('/federal/');
-  const federalUrl = `${FEDERAL_ORIGIN}${pathname}`;
+  // Mega-menu hrefs must stay on this origin (Labs DA), not a third-party host.
+  if (parsed.origin !== window.location.origin) return null;
 
-  const tryFetch = async (target) => {
-    try {
-      const res = await fetch(target);
-      return res.status === 200 ? res : null;
-    } catch {
-      return null;
-    }
-  };
-
-  if (isRootNav) return tryFetch(plainUrl);
-
-  // Nested mega-menu docs still live on federal until copied into Labs DA.
-  if (isFederalPath) {
-    return (await tryFetch(federalUrl)) || tryFetch(pathname);
+  try {
+    const res = await fetch(`${parsed.pathname}${parsed.search}`);
+    return res.status === 200 ? res : null;
+  } catch {
+    return null;
   }
-
-  return (await tryFetch(plainUrl)) || tryFetch(federalUrl);
 }
 
 export async function fetchAndProcessPlainHtml({
