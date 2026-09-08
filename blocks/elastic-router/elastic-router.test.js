@@ -132,6 +132,38 @@ describe('elastic-router block', () => {
     expect(block.querySelector('.elastic-router__item')).not.toHaveAttribute('data-content-type');
   });
 
+  it('labels the nav landmark from a heading authored before the block', () => {
+    const block = createBlock([
+      '<h3><a href="/research/">Research</a></h3>',
+    ]);
+    const section = document.createElement('div');
+    const contentWrapper = document.createElement('div');
+    contentWrapper.innerHTML = '<h2>Explore</h2>';
+    const blockWrapper = document.createElement('div');
+    blockWrapper.append(block);
+    section.append(contentWrapper, blockWrapper);
+    document.body.append(section);
+
+    try {
+      decorate(block);
+
+      expect(within(block).getByRole('navigation', { name: 'Explore' })).toBeTruthy();
+      expect(section.querySelector('h2')).toHaveAttribute('id', 'explore');
+    } finally {
+      section.remove();
+    }
+  });
+
+  it('leaves the nav landmark unlabeled when there is no preceding heading', () => {
+    const block = createBlock([
+      '<h3><a href="/research/">Research</a></h3>',
+    ]);
+
+    decorate(block);
+
+    expect(block.querySelector('nav')).not.toHaveAttribute('aria-labelledby');
+  });
+
   it('renders one list item per authored row, in order', () => {
     const block = createBlock([
       '<h3><a href="/research/">Research</a></h3>',

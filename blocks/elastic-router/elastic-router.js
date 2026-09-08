@@ -1,3 +1,4 @@
+import { toClassName } from '../../scripts/aem.js';
 import { getSectionFromPath, toSafeHttpUrl } from '../../scripts/utils/utils.js';
 
 /**
@@ -104,8 +105,29 @@ function buildElasticRouterItem(data) {
 }
 
 /**
+ * Heading authored immediately before this block (e.g. an "Explore" H2 in
+ * the same section, ahead of the block's own wrapper), used to label the
+ * block's nav landmark via `aria-labelledby`. Assigns an id if the heading
+ * doesn't already have one. Returns null when there's no such heading —
+ * e.g. the block reused without one — so the landmark is left unlabeled
+ * rather than mislabeled.
+ *
+ * @param {Element} block The elastic-router block, still in the page tree
+ * @returns {Element|null}
+ */
+function getSectionHeading(block) {
+  const heading = block.parentElement
+    ?.previousElementSibling
+    ?.querySelector('h1, h2, h3, h4, h5, h6');
+  if (!heading) return null;
+  if (!heading.id) heading.id = toClassName(heading.textContent);
+  return heading;
+}
+
+/**
  * Decorates an elastic-router block: authored rows become a grid of linked
- * cards. The grid/expand-on-hover behavior lives entirely in CSS
+ * cards inside a `nav` landmark (this block routes to the site's main
+ * sections). The grid/expand-on-hover behavior lives entirely in CSS
  * (`:hover` / `:focus-within`) so keyboard and pointer interaction stay in
  * sync without extra JS.
  *
@@ -113,9 +135,16 @@ function buildElasticRouterItem(data) {
  */
 export default function decorate(block) {
   const items = getElasticRouterItems(block);
+
+  const nav = document.createElement('nav');
+  const heading = getSectionHeading(block);
+  if (heading) nav.setAttribute('aria-labelledby', heading.id);
+
   const list = document.createElement('ul');
   list.className = 'elastic-router__list';
   list.setAttribute('role', 'list');
   items.forEach((item) => list.append(buildElasticRouterItem(item)));
-  block.replaceChildren(list);
+
+  nav.append(list);
+  block.replaceChildren(nav);
 }
