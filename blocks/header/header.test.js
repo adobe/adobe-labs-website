@@ -50,7 +50,14 @@ const GNAV_WITH_CTA_HTML = `
  * Builds a fetch-like Response stub.
  * @param {number} status HTTP status
  * @param {string} [html=''] Response body
- * @returns {{ status: number, ok: boolean, statusText: string, url: string, text: function(): Promise<string>, clone: function(): object }}
+ * @returns {{
+ *   status: number,
+ *   ok: boolean,
+ *   statusText: string,
+ *   url: string,
+ *   text: function(): Promise<string>,
+ *   clone: function(): object,
+ * }}
  */
 function jsonResponse(status, html = '') {
   return {
