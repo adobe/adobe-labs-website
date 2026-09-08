@@ -1,15 +1,141 @@
+/**
+ * Card count: the grid is built for 2-4 items (the authored home page use
+ * case). Flex-wrap keeps 5+ items from breaking the layout — they wrap onto
+ * a second row instead of being capped — but the expand interaction and
+ * card sizing are only tuned for up to 4 per row.
+ */
 .elastic-router {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--s2a-spacing-xs);
+  --elastic-router-radius: var(--s2a-border-radius-xs);
+  --elastic-router-gap: var(--s2a-spacing-sm);
+  --elastic-router-card-min: 14rem;
+  --elastic-router-card-max: 26rem;
+  --elastic-router-grow: 2.5;
+  --elastic-router-transition-duration: 0.5s;
+  --elastic-router-transition-easing: cubic-bezier(0.65, 0, 0.35, 1);
 
-  p {
-    color: var(--s2a-color-content-label);
+  @media (prefers-reduced-motion: reduce) {
+    --elastic-router-transition-duration: 0s;
   }
 }
 
-@media (width >= 48rem) {
-  .elastic-router {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+.elastic-router__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--elastic-router-gap);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  /* Tablet: cards are too small to expand meaningfully, so stack 2x2. */
+  @media (48rem <= width < 64rem) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  /* Desktop/oversize: single row, elastic on hover/focus. */
+  @media (width >= 64rem) {
+    flex-flow: row wrap;
+    justify-content: center;
+  }
+}
+
+.elastic-router__item {
+  min-width: 0;
+
+  @media (width >= 64rem) {
+    flex: 1 1 var(--elastic-router-card-min);
+    max-width: var(--elastic-router-card-max);
+    transition: flex-grow var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
+  }
+}
+
+@media (width >= 64rem) {
+  .elastic-router__item:focus-within {
+    flex-grow: var(--elastic-router-grow);
+  }
+}
+
+@media (hover: hover) and (width >= 64rem) {
+  .elastic-router__item:hover {
+    flex-grow: var(--elastic-router-grow);
+  }
+}
+
+.elastic-router__link {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: var(--s2a-spacing-xs);
+  border-radius: var(--elastic-router-radius);
+  color: inherit;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+    outline-offset: var(--s2a-border-width-md);
+  }
+}
+
+.elastic-router__media {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--elastic-router-radius);
+  aspect-ratio: 3 / 2;
+  background-color: var(--s2a-color-background-subtle);
+
+  picture,
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
+  }
+}
+
+.elastic-router__item:focus-within .elastic-router__media img {
+  transform: scale(1.05);
+}
+
+@media (hover: hover) {
+  .elastic-router__item:hover .elastic-router__media img {
+    transform: scale(1.05);
+  }
+}
+
+.elastic-router__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2a-spacing-3xs);
+}
+
+.elastic-router__title {
+  margin: 0;
+  font-size: var(--s2a-typography-font-size-heading-5);
+  line-height: var(--s2a-typography-line-height-heading-5);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-5);
+  color: var(--s2a-color-content-default);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
+}
+
+.elastic-router__item:focus-within .elastic-router__title {
+  text-decoration-color: currentcolor;
+}
+
+@media (hover: hover) {
+  .elastic-router__item:hover .elastic-router__title {
+    text-decoration-color: currentcolor;
+  }
+}
+
+.elastic-router__description {
+  margin: 0;
+  color: var(--s2a-color-content-subtle);
+}
+
+[data-theme="dark"] .elastic-router__link:focus-visible {
+  outline-color: var(--s2a-color-focus-ring-knockout);
 }
