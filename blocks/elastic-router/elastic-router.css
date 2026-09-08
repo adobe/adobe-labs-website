@@ -1,15 +1,21 @@
 /**
- * Card count: the grid is built for 2-4 items (the authored home page use
- * case). Flex-wrap keeps 5+ items from breaking the layout — they wrap onto
- * a second row instead of being capped — but the expand interaction and
- * card sizing are only tuned for up to 4 per row.
+ * Card count: Figma specs 4 cards, unchanged (4-across) from the S/768px
+ * breakpoint through XL/1920px+ — only type scale changes between tiers,
+ * which the s2a typography tokens already handle. `min-width` below is a
+ * safety net for 5+ authored items: flex-basis: 0 sizes cards purely from
+ * the grow ratio, so extra cards would otherwise shrink indefinitely rather
+ * than wrapping. 2-3 items are sized the same way and simply take a larger
+ * (even) share of the row.
  */
 .elastic-router {
   --elastic-router-radius: var(--s2a-border-radius-xs);
   --elastic-router-gap: var(--s2a-spacing-sm);
-  --elastic-router-card-min: 14rem;
-  --elastic-router-card-max: 26rem;
-  --elastic-router-grow: 2.5;
+  --elastic-router-card-min: 8rem;
+
+  /* Default: even split (25% each of 4). Hover: 40% hovered / 20% each
+     of the other 3 — i.e. flex-grow 2 vs the default 1. Figma: "Use this
+     formula for every breakpoint." */
+  --elastic-router-grow: 2;
   --elastic-router-transition-duration: 0.5s;
   --elastic-router-transition-easing: cubic-bezier(0.65, 0, 0.35, 1);
 
@@ -26,36 +32,28 @@
   margin: 0;
   padding: 0;
 
-  /* Tablet: cards are too small to expand meaningfully, so stack 2x2. */
-  @media (48rem <= width < 64rem) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  /* Desktop/oversize: single row, elastic on hover/focus. */
-  @media (width >= 64rem) {
+  @media (width >= 48rem) {
     flex-flow: row wrap;
-    justify-content: center;
   }
 }
 
 .elastic-router__item {
   min-width: 0;
 
-  @media (width >= 64rem) {
-    flex: 1 1 var(--elastic-router-card-min);
-    max-width: var(--elastic-router-card-max);
+  @media (width >= 48rem) {
+    flex: 1 1 0%;
+    min-width: var(--elastic-router-card-min);
     transition: flex-grow var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
   }
 }
 
-@media (width >= 64rem) {
+@media (width >= 48rem) {
   .elastic-router__item:focus-within {
     flex-grow: var(--elastic-router-grow);
   }
 }
 
-@media (hover: hover) and (width >= 64rem) {
+@media (hover: hover) and (width >= 48rem) {
   .elastic-router__item:hover {
     flex-grow: var(--elastic-router-grow);
   }
@@ -114,8 +112,13 @@
   margin: 0;
   font-size: var(--s2a-typography-font-size-heading-5);
   line-height: var(--s2a-typography-line-height-heading-5);
-  letter-spacing: var(--s2a-typography-letter-spacing-heading-5);
-  color: var(--s2a-color-content-default);
+
+  /* Fixed per Figma, unlike the heading-5 utility class: letter-spacing
+     stays constant across breakpoints instead of following the responsive
+     heading-5 alias (font-family/weight-900 already come from the site's
+     global h1-h6 rule). */
+  letter-spacing: var(--s2a-font-letter-spacing-4xl);
+  color: var(--s2a-color-content-label);
   text-decoration: underline;
   text-decoration-color: transparent;
   transition: text-decoration-color var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
@@ -131,9 +134,42 @@
   }
 }
 
+/* Content-type swatch: reuses the same section colors as grid-item. Only
+   rendered when the card's href resolves to a known site section. */
+.elastic-router__item[data-content-type="research"] {
+  --elastic-router-content-type-color: var(--color-content-type-research);
+}
+
+.elastic-router__item[data-content-type="workflows"] {
+  --elastic-router-content-type-color: var(--color-content-type-workflows);
+}
+
+.elastic-router__item[data-content-type="sneaks"] {
+  --elastic-router-content-type-color: var(--color-content-type-sneaks);
+}
+
+.elastic-router__item[data-content-type="playground"] {
+  --elastic-router-content-type-color: var(--color-content-type-playground);
+}
+
+.elastic-router__item[data-content-type] .elastic-router__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2a-spacing-2xs);
+
+  &::before {
+    content: "";
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--s2a-border-radius-3xs);
+    background: var(--elastic-router-content-type-color);
+  }
+}
+
 .elastic-router__description {
   margin: 0;
-  color: var(--s2a-color-content-subtle);
+  color: var(--s2a-color-content-label);
 }
 
 [data-theme="dark"] .elastic-router__link:focus-visible {

@@ -2,7 +2,9 @@ import { within } from '@testing-library/dom';
 import decorate from './elastic-router.js';
 
 jest.mock('../../scripts/aem.js', () => ({
-  toClassName: jest.fn(),
+  toClassName: (name) => (typeof name === 'string'
+    ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    : ''),
   getMetadata: jest.fn(),
   buildBlock: jest.fn(),
 }));
@@ -105,6 +107,29 @@ describe('elastic-router block', () => {
     decorate(block);
 
     expect(block.querySelectorAll('.elastic-router__item')).toHaveLength(0);
+  });
+
+  it('sets data-content-type from the href for a known section', () => {
+    const block = createBlock([
+      '<h3><a href="/workflows/">Workflows</a></h3>',
+    ]);
+
+    decorate(block);
+
+    expect(block.querySelector('.elastic-router__item')).toHaveAttribute(
+      'data-content-type',
+      'workflows',
+    );
+  });
+
+  it('omits data-content-type for a link outside the known sections', () => {
+    const block = createBlock([
+      '<h3><a href="https://example.com/other/">Other</a></h3>',
+    ]);
+
+    decorate(block);
+
+    expect(block.querySelector('.elastic-router__item')).not.toHaveAttribute('data-content-type');
   });
 
   it('renders one list item per authored row, in order', () => {

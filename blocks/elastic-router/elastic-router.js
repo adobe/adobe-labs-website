@@ -1,4 +1,4 @@
-import { toSafeHttpUrl } from '../../scripts/utils/utils.js';
+import { getSectionFromPath, toSafeHttpUrl } from '../../scripts/utils/utils.js';
 
 /**
  * One authored elastic-router entry.
@@ -70,6 +70,9 @@ function buildElasticRouterItem(data) {
   const item = document.createElement('li');
   item.className = 'elastic-router__item';
 
+  const section = getSectionFromPath(new URL(data.href).pathname);
+  if (section) item.dataset.contentType = section.slug;
+
   const link = document.createElement('a');
   link.className = 'elastic-router__link';
   link.href = data.href;
@@ -90,7 +93,7 @@ function buildElasticRouterItem(data) {
 
   if (data.description) {
     const description = document.createElement('p');
-    description.className = 'elastic-router__description body-md';
+    description.className = 'elastic-router__description eyebrow';
     description.textContent = data.description;
     body.append(description);
   }
