@@ -74,6 +74,7 @@ function mockHeaderFetch() {
 
 let desktopMatches = true;
 let mediaChangeHandlers = [];
+let observerInstances = [];
 
 /**
  * Creates a header block, appends it, and runs decorate.
@@ -87,6 +88,22 @@ async function decorateHeader() {
   document.body.append(header);
   await decorate(block);
   return block;
+}
+
+/**
+ * First-section full-screen hero used for overlay / inverse tests.
+ * @returns {HTMLElement}
+ */
+function addFirstSectionFullScreenHero() {
+  const main = document.createElement('main');
+  const section = document.createElement('div');
+  section.className = 'section hero-container';
+  const hero = document.createElement('div');
+  hero.className = 'hero hero-full-screen';
+  section.append(hero);
+  main.append(section);
+  document.body.append(main);
+  return hero;
 }
 
 beforeAll(() => {
@@ -106,6 +123,14 @@ beforeAll(() => {
     removeListener: jest.fn(),
     dispatchEvent: jest.fn(),
   }));
+  global.IntersectionObserver = jest.fn(function MockIntersectionObserver(callback, options) {
+    this.callback = callback;
+    this.options = options || {};
+    this.observe = jest.fn();
+    this.disconnect = jest.fn();
+    this.unobserve = jest.fn();
+    observerInstances.push(this);
+  });
 });
 
 describe('header block', () => {
@@ -113,7 +138,9 @@ describe('header block', () => {
     jest.clearAllMocks();
     desktopMatches = true;
     mediaChangeHandlers = [];
+    observerInstances = [];
     document.body.innerHTML = '';
+    document.documentElement.classList.remove('header-scroll-lock');
     getMetadata.mockReturnValue('');
     loadFragment.mockResolvedValue(createFragment(NAV_HTML));
     global.fetch = mockHeaderFetch();
@@ -122,6 +149,7 @@ describe('header block', () => {
 
   afterEach(() => {
     document.body.innerHTML = '';
+    document.documentElement.classList.remove('header-scroll-lock');
   });
 
   it('loads the default nav fragment when nav metadata is empty', async () => {
@@ -273,5 +301,81 @@ describe('header block', () => {
     expect(block.querySelector('.header__item--has-menu > .header__link .header__chevron')).not.toBeNull();
     expect(panel).not.toHaveAttribute('hidden');
     expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
+  });
+
+  it('applies inverse chrome over a first-section full-screen hero', async () => {
+    window.history.pushState({}, '', '/sneaks/clip');
+    addFirstSectionFullScreenHero();
+
+    const block = await decorateHeader();
+
+    expect(block).toHaveClass('header--inverse');
+    expect(block).not.toHaveClass('header--scrolled');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('button--static-white');
+  });
+
+  it('frosts the overlay bar once the page has scrolled', async () => {
+    addFirstSectionFullScreenHero();
+
+    const block = await decorateHeader();
+    const scrollObserver = observerInstances.find((obs) => !obs.options.rootMargin);
+
+    expect(block).toHaveClass('header--inverse');
+    expect(block).not.toHaveClass('header--scrolled');
+    expect(document.querySelector('.header-scroll-sentinel')).not.toBeNull();
+    expect(scrollObserver).toBeDefined();
+
+    scrollObserver.callback([{ isIntersecting: false }]);
+
+    expect(block).toHaveClass('header--scrolled');
+
+    scrollObserver.callback([{ isIntersecting: true }]);
+
+    expect(block).not.toHaveClass('header--scrolled');
+  });
+
+  it('does not invert without a first-section full-screen hero', async () => {
+    const block = await decorateHeader();
+
+    expect(block).not.toHaveClass('header--inverse');
+    expect(block).not.toHaveClass('header--scrolled');
+    expect(document.querySelector('.header-scroll-sentinel')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('button--static-white');
+  });
+
+  it('drops inverse when the full-screen hero scrolls away', async () => {
+    addFirstSectionFullScreenHero();
+
+    const block = await decorateHeader();
+
+    expect(block).toHaveClass('header--inverse');
+    const heroObserver = observerInstances.find((obs) => obs.options.rootMargin);
+    expect(heroObserver).toBeDefined();
+
+    heroObserver.callback([{ isIntersecting: false }]);
+
+    expect(block).not.toHaveClass('header--inverse');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('button--static-white');
+
+    heroObserver.callback([{ isIntersecting: true }]);
+
+    expect(block).toHaveClass('header--inverse');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('button--static-white');
+  });
+
+  it('locks document scroll while the mobile drawer is open', async () => {
+    desktopMatches = false;
+    const block = await decorateHeader();
+    const toggle = within(block).getByRole('button', { name: 'Menu' });
+
+    toggle.click();
+
+    expect(block).toHaveClass('header--nav-open');
+    expect(document.documentElement).toHaveClass('header-scroll-lock');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(block).not.toHaveClass('header--nav-open');
+    expect(document.documentElement).not.toHaveClass('header-scroll-lock');
   });
 });

@@ -30,10 +30,10 @@ const DESKTOP_MQ = '(width >= 48rem)';
 const CTA_LABEL = 'Subscribe';
 
 /**
- * Listener abort controllers keyed by header block, so re-decorate does not leak.
- * @type {WeakMap<Element, AbortController>}
+ * Listener abort controller for the live header (one on the page).
+ * @type {AbortController|undefined}
  */
-const headerAborts = new WeakMap();
+let headerAbort;
 
 /**
  * One mega-panel column parsed from a nested list.
@@ -203,6 +203,56 @@ function getNavPath() {
   } catch {
     return navMeta;
   }
+}
+
+/**
+ * Reserved header height in CSS pixels (`--nav-height`).
+ *
+ * @returns {number}
+ */
+function getNavHeightPx() {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--nav-height')
+    .trim();
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : 64;
+}
+
+/**
+ * Full-screen hero in the first main section, if any.
+ *
+ * @returns {Element|null}
+ */
+function firstSectionFullScreenHero() {
+  return document.querySelector('main > .section:first-of-type .hero-full-screen');
+}
+
+/**
+ * Locks or unlocks document scroll while the mobile drawer is open.
+ *
+ * @param {boolean} lock Whether to lock
+ * @returns {void}
+ */
+function setScrollLock(lock) {
+  if (lock) {
+    document.documentElement.classList.add('header-scroll-lock');
+    return;
+  }
+  if (!document.querySelector('.header.header--nav-open')) {
+    document.documentElement.classList.remove('header-scroll-lock');
+  }
+}
+
+/**
+ * Applies or removes knockout chrome on the header bar.
+ *
+ * @param {Element} block Header block
+ * @param {boolean} inverse Whether the bar is inverse
+ * @returns {void}
+ */
+function setHeaderInverse(block, inverse) {
+  block.classList.toggle('header--inverse', inverse);
+  block.querySelector('.header__cta')?.classList.toggle('button--static-white', inverse);
 }
 
 /**
@@ -517,6 +567,23 @@ function setMenuToggle(toggle, open) {
 }
 
 /**
+ * Opens or closes the mobile drawer and scroll-lock.
+ *
+ * @param {Element} block Header block
+ * @param {boolean} open Whether the drawer is open
+ * @param {Element} [restoreTo] Element to focus when closing
+ * @returns {void}
+ */
+function setDrawerOpen(block, open, restoreTo) {
+  const toggle = block.querySelector('.header__toggle');
+  if (!toggle) return;
+  setMenuToggle(toggle, open);
+  block.classList.toggle('header--nav-open', open);
+  setScrollLock(open && !isDesktop());
+  if (!open) restoreTo?.focus();
+}
+
+/**
  * Closes the mobile drawer.
  *
  * @param {Element} block Header block
@@ -524,11 +591,7 @@ function setMenuToggle(toggle, open) {
  * @returns {void}
  */
 function closeDrawer(block, restoreTo) {
-  const toggle = block.querySelector('.header__toggle');
-  if (!toggle) return;
-  setMenuToggle(toggle, false);
-  block.classList.remove('header--nav-open');
-  restoreTo?.focus();
+  setDrawerOpen(block, false, restoreTo);
 }
 
 /**
@@ -581,6 +644,56 @@ function syncViewport(block) {
   block.querySelectorAll('.header__item--has-menu').forEach((item) => {
     syncMenuItem(item, mobile);
   });
+  if (!mobile) closeDrawer(block);
+}
+
+/**
+ * Inverse while a top-of-page full-screen hero sits under the bar.
+ *
+ * @param {Element} block Header block
+ * @param {AbortSignal} signal Listener abort signal
+ * @returns {void}
+ */
+function bindHeroInverse(block, signal) {
+  const hero = firstSectionFullScreenHero();
+  if (!hero || typeof IntersectionObserver !== 'function') return;
+
+  const observer = new IntersectionObserver((entries) => {
+    const intersecting = entries.some((entry) => entry.isIntersecting);
+    setHeaderInverse(block, intersecting);
+  }, {
+    root: null,
+    rootMargin: `-${getNavHeightPx()}px 0px 0px 0px`,
+    threshold: 0,
+  });
+  observer.observe(hero);
+  signal.addEventListener('abort', () => observer.disconnect(), { once: true });
+}
+
+/**
+ * Frosted fill + blur after the page has scrolled off the top.
+ *
+ * @param {Element} block Header block
+ * @param {AbortSignal} signal Listener abort signal
+ * @returns {void}
+ */
+function bindScrollFrost(block, signal) {
+  if (!firstSectionFullScreenHero() || typeof IntersectionObserver !== 'function') return;
+
+  const sentinel = document.createElement('div');
+  sentinel.className = 'header-scroll-sentinel';
+  sentinel.setAttribute('aria-hidden', 'true');
+  document.body.append(sentinel);
+
+  const observer = new IntersectionObserver((entries) => {
+    const atTop = entries.some((entry) => entry.isIntersecting);
+    block.classList.toggle('header--scrolled', !atTop);
+  });
+  observer.observe(sentinel);
+  signal.addEventListener('abort', () => {
+    observer.disconnect();
+    sentinel.remove();
+  }, { once: true });
 }
 
 /**
@@ -593,10 +706,10 @@ function bindHeader(block) {
   const toggle = block.querySelector('.header__toggle');
   const nav = block.querySelector('.header__nav');
 
-  headerAborts.get(block)?.abort();
-  const abort = new AbortController();
-  headerAborts.set(block, abort);
-  const { signal } = abort;
+  headerAbort?.abort();
+  headerAbort = new AbortController();
+  const { signal } = headerAbort;
+  signal.addEventListener('abort', () => setScrollLock(false), { once: true });
 
   block.addEventListener('click', (event) => {
     const trigger = event.target.closest('.header__item--has-menu > button.header__link');
@@ -607,8 +720,7 @@ function bindHeader(block) {
 
   toggle?.addEventListener('click', () => {
     const open = toggle.getAttribute('aria-expanded') !== 'true';
-    setMenuToggle(toggle, open);
-    block.classList.toggle('header--nav-open', open);
+    setDrawerOpen(block, open);
     closePanels(block);
   }, { signal });
 
@@ -647,6 +759,8 @@ function bindHeader(block) {
   const mq = window.matchMedia(DESKTOP_MQ);
   mq.addEventListener('change', () => syncViewport(block), { signal });
   syncViewport(block);
+  bindHeroInverse(block, signal);
+  bindScrollFrost(block, signal);
 }
 
 /**
@@ -664,6 +778,9 @@ function bindHeader(block) {
 export default async function decorate(block) {
   ensureSkipLink(document);
 
+  const overlayHero = Boolean(firstSectionFullScreenHero());
+  if (overlayHero) block.classList.add('header--inverse');
+
   const iconsPromise = Promise.all([
     loadHeaderIcon('img/logo-desktop.svg', 'header__logo-desktop'),
     loadHeaderIcon('img/logo-mobile.svg', 'header__logo-mobile'),
@@ -672,7 +789,10 @@ export default async function decorate(block) {
   ]);
 
   const fragment = await loadFragment(getNavPath());
-  if (!fragment) return;
+  if (!fragment) {
+    block.classList.remove('header--inverse');
+    return;
+  }
 
   const [logoDesktopSvg, logoMobileSvg, menuSvg, chevronSvg] = await iconsPromise;
   block.replaceChildren(buildHeaderBar(parseNavFragment(fragment), {
@@ -681,5 +801,6 @@ export default async function decorate(block) {
     menuSvg,
     chevronSvg,
   }));
+  if (overlayHero) setHeaderInverse(block, true);
   bindHeader(block);
 }

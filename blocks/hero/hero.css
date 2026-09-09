@@ -46,8 +46,6 @@
     --hero-padding-block: var(--s2a-spacing-sm);
     --hero-padding-inline: var(--s2a-spacing-sm);
 
-    /* TODO: add negative margins when header and first section are implemented. */
-
     @media (width >=48rem) {
       --hero-padding-block: var(--s2a-spacing-md);
       --hero-padding-inline: var(--s2a-spacing-md);
@@ -234,8 +232,6 @@
       --hero-padding-block: 5.625rem 3.125rem;
       --hero-padding-inline: var(--s2a-section-spacing-sm);
 
-      /* TODO: add negative margins when header and first section are implemented. */
-
       @media (width >=48rem) {
         --hero-padding-block: 6.25rem 4.375rem;
       }
@@ -251,6 +247,13 @@
 .hero-container:has(.hero-full-screen) .hero-wrapper {
   max-inline-size: unset;
   padding: 0;
+}
+
+/* Full-screen hero at the top of the page sits under the sticky header.
+   Must beat `main > .section:first-of-type { margin-top: 0 }` in styles.css. */
+main > .section.hero-container:first-of-type:has(.hero-full-screen),
+main > .section.hero-container--overlay {
+  margin-top: calc(-1 * var(--nav-height));
 }
 
 /* Dark mode */

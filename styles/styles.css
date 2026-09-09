@@ -109,11 +109,12 @@
   }
 }
 
-/* Offset in-page anchors for the fixed header below 900px. */
-@media (width < 56.25rem) {
-  html {
-    scroll-padding-top: var(--nav-height);
-  }
+html {
+  scroll-padding-top: var(--nav-height);
+}
+
+html.header-scroll-lock {
+  overflow: hidden;
 }
 
 img, picture, video, canvas, svg {
@@ -288,12 +289,15 @@ pre {
 
 /* TODO: these header and footer styles come from the boilerplate and need to be reevaluated. */
 header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   height: var(--nav-height);
   overflow: visible;
 
   .header__skip:focus-visible {
     position: absolute;
-    z-index: 4;
+    z-index: 11;
     inset-block-start: var(--s2a-spacing-xs, 0.5rem);
     inset-inline-start: var(--s2a-spacing-xs, 0.5rem);
     padding: var(--s2a-spacing-xs, 0.5rem) var(--s2a-spacing-sm, 0.75rem);
@@ -470,6 +474,11 @@ main > .section > div {
 
 main > .section:first-of-type {
   margin-top: 0;
+}
+
+/* Full-screen hero in the first section sits under the sticky header. */
+main > .section.hero-container:first-of-type:has(.hero-full-screen) {
+  margin-top: calc(-1 * var(--nav-height));
 }
 
 @media (width >= 900px) {
