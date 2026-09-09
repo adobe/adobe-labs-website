@@ -152,6 +152,7 @@ function mockHeaderFetch(override) {
 }
 
 let desktopMatches = true;
+let mediaChangeHandlers = [];
 
 /**
  * Creates a header block, appends it, and runs decorate.
@@ -174,8 +175,12 @@ beforeAll(() => {
       return query.includes('width < 48rem') ? !desktopMatches : desktopMatches;
     },
     media: query,
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
+    addEventListener: jest.fn((event, handler) => {
+      if (event === 'change') mediaChangeHandlers.push(handler);
+    }),
+    removeEventListener: jest.fn((event, handler) => {
+      mediaChangeHandlers = mediaChangeHandlers.filter((fn) => fn !== handler);
+    }),
     addListener: jest.fn(),
     removeListener: jest.fn(),
     dispatchEvent: jest.fn(),
@@ -186,6 +191,7 @@ describe('header block', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     desktopMatches = true;
+    mediaChangeHandlers = [];
     document.body.innerHTML = '';
     getMetadata.mockReturnValue('');
     loadFragment.mockResolvedValue(createFragment(NAV_HTML));
@@ -215,11 +221,16 @@ describe('header block', () => {
   it('renders lockup, links, and Subscribe', async () => {
     const block = await decorateHeader();
 
-    expect(block.querySelector('.header__lockup')).toHaveAttribute('alt', 'Adobe Labs');
+    expect(block.querySelector('.header__lockup')).toHaveAttribute('alt', '');
+    expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
+    expect(within(document.body).getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main');
     expect(within(block).getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
     expect(within(block).getByRole('link', { name: 'Research' })).toHaveAttribute('href', '/research');
     expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveAttribute('href', 'https://www.adobe.com/');
     expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('header__cta', 'button');
+    expect(within(block).getByRole('button', { name: 'Products' })).not.toHaveAttribute('aria-haspopup');
+    expect(within(block).getByRole('button', { name: 'Products' }).querySelector('.header__chevron')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(block).getByRole('link', { name: 'Research' }).querySelector('.header__chevron')).toBeNull();
   });
 
   it('marks the matching path with aria-current', async () => {
@@ -291,6 +302,10 @@ describe('header block', () => {
 
     expect(block).not.toHaveClass('header--nav-open');
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(block).queryByRole('button', { name: 'Products' })).toBeNull();
+    expect(block.querySelector('.header__item--has-menu > .header__link').tagName).toBe('SPAN');
+    expect(block.querySelector('.header__item--has-menu > .header__link .header__chevron')).not.toBeNull();
+    expect(block.querySelector('#header-panel-2')).not.toHaveAttribute('hidden');
     expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
     expect(block.querySelector('#unav-app-switcher, .unav-comp-app-switcher, .feds-utilities')).toBeNull();
     expect(block.querySelector('.feds-signIn')).toBeNull();
@@ -298,11 +313,13 @@ describe('header block', () => {
     toggle.click();
 
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(within(block).getByRole('button', { name: 'Close menu' })).toBe(toggle);
     expect(block).toHaveClass('header--nav-open');
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(block).getByRole('button', { name: 'Menu' })).toBe(toggle);
     expect(block).not.toHaveClass('header--nav-open');
   });
 
@@ -320,7 +337,8 @@ describe('header block', () => {
       .map((el) => el.textContent.trim());
 
     expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toHaveAttribute('href', '/');
-    expect(block.querySelector('svg.header__lockup')).toHaveAttribute('aria-label', 'Adobe Labs');
+    expect(block.querySelector('svg.header__lockup')).toHaveAttribute('aria-hidden', 'true');
+    expect(block.querySelector('svg.header__lockup')).not.toHaveAttribute('aria-label');
     expect(block.querySelector('svg.header__lockup path')).toHaveAttribute('fill', 'currentColor');
     expect(labels).toEqual(['Research', 'Workflows', 'Fragment Mega Menu', 'Inline Mega Menu']);
     expect(within(block).getByRole('link', { name: 'Research' })).toHaveAttribute('href', '/research/');
@@ -355,5 +373,56 @@ describe('header block', () => {
 
     expect(within(block).getByRole('link', { name: 'One' })).toHaveAttribute('href', '/explore/one');
     expect(within(block).getByRole('link', { name: 'Two' })).toHaveAttribute('href', '/explore/two');
+    expect(within(block).getByRole('list', { name: 'Explore' })).toBeInTheDocument();
+    expect(within(block).getByRole('list', { name: 'Get involved' })).toBeInTheDocument();
+  });
+
+  it('drops javascript: hrefs and HTML tags from nav labels', async () => {
+    loadFragment.mockResolvedValue(createFragment(`
+      <div>
+        <p><a href="/">Adobe Labs</a></p>
+        <ul>
+          <li><a href="javascript:alert(1)">XSS</a></li>
+          <li><a href="/safe">A <em>nested</em> label</a></li>
+        </ul>
+      </div>
+    `));
+
+    const block = await decorateHeader();
+    const safe = within(block).getByRole('link', { name: 'A nested label' });
+
+    expect(within(block).queryByRole('link', { name: 'XSS' })).toBeNull();
+    expect(safe).toHaveAttribute('href', '/safe');
+    expect(safe.innerHTML).toBe('A nested label');
+  });
+
+  it('does not use javascript: brand image sources', async () => {
+    loadFragment.mockResolvedValue(createFragment(`
+      <p><a href="/"><img src="javascript:alert(1)" alt="Adobe Labs"></a></p>
+      <ul><li><a href="/research">Research</a></li></ul>
+    `));
+
+    const block = await decorateHeader();
+
+    expect(block.querySelector('img.header__lockup')).toBeNull();
+    expect(block.querySelector('svg.header__lockup')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
+  });
+
+  it('turns mega-menu buttons into static labels at the mobile breakpoint', async () => {
+    const block = await decorateHeader();
+    const panel = block.querySelector('#header-panel-2');
+
+    expect(within(block).getByRole('button', { name: 'Products' })).toBeInTheDocument();
+    expect(panel).toHaveAttribute('hidden');
+
+    desktopMatches = false;
+    mediaChangeHandlers.forEach((handler) => handler());
+
+    expect(within(block).queryByRole('button', { name: 'Products' })).toBeNull();
+    expect(block.querySelector('.header__item--has-menu > .header__link').tagName).toBe('SPAN');
+    expect(block.querySelector('.header__item--has-menu > .header__link .header__chevron')).not.toBeNull();
+    expect(panel).not.toHaveAttribute('hidden');
+    expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
   });
 });

@@ -292,3 +292,25 @@ export function fromHTML(markup) {
   template.innerHTML = markup.trim();
   return template.content.firstElementChild;
 }
+
+/**
+ * First-tab-stop skip link targeting `body > main`. No-ops if one already exists.
+ * @param {Document} [doc=document]
+ */
+export function ensureSkipLink(doc = document) {
+  if (doc.querySelector('a.header__skip[href="#main"]')) return;
+
+  const main = doc.querySelector('body > main');
+  if (main) {
+    if (!main.id) main.id = 'main';
+    if (!main.hasAttribute('tabindex')) main.tabIndex = -1;
+  }
+
+  const skip = doc.createElement('a');
+  skip.className = 'header__skip visually-hidden';
+  skip.href = '#main';
+  skip.textContent = 'Skip to main content';
+
+  const header = doc.querySelector('body > header');
+  (header || doc.body).prepend(skip);
+}

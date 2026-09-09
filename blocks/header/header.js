@@ -4,7 +4,12 @@
  * Content path: `nav` metadata, or `/fragments/nav` by default.
  */
 import { getMetadata } from '../../scripts/aem.js';
-import { escapeAttr, fromHTML, toSafeHttpUrl } from '../../scripts/utils/utils.js';
+import {
+  ensureSkipLink,
+  escapeAttr,
+  fromHTML,
+  toSafeHttpUrl,
+} from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
 const MOBILE_MQ = '(width < 48rem)';
@@ -379,7 +384,7 @@ function parseNavFragment(fragment) {
       image: null,
       label: 'Adobe Labs',
     },
-    items: items.filter((item) => item.label),
+    items: items.filter((item) => item.label && (item.href || item.columns.length || item.menuSrc)),
     cta: ctaLink ? {
       href: toNavHref(ctaLink.getAttribute('href')),
       label: ctaLink.textContent.trim() || 'Subscribe',
@@ -403,12 +408,16 @@ async function hydrateMenuDocuments(items) {
 /**
  * Markup for a mega-panel column.
  * @param {{ heading: string, links: Element[] }} column
+ * @param {number} itemIndex Primary nav item index
+ * @param {number} columnIndex Column index within the item
  * @returns {string}
  */
-function columnMarkup(column) {
+function columnMarkup(column, itemIndex, columnIndex) {
+  const headingId = column.heading ? `header-col-${itemIndex}-${columnIndex}` : '';
   const heading = column.heading
-    ? `<p class="header__column-heading">${escapeAttr(column.heading)}</p>`
+    ? `<p class="header__column-heading" id="${headingId}">${escapeAttr(column.heading)}</p>`
     : '';
+  const labelledBy = headingId ? ` aria-labelledby="${headingId}"` : '';
   const links = column.links.map((link) => {
     const href = escapeAttr(toNavHref(link.getAttribute('href')));
     const label = escapeAttr(link.textContent.trim());
@@ -418,7 +427,7 @@ function columnMarkup(column) {
   return `
     <div class="header__column">
       ${heading}
-      <ul class="header__column-list">${links}</ul>
+      <ul class="header__column-list"${labelledBy}>${links}</ul>
     </div>
   `;
 }
@@ -427,9 +436,10 @@ function columnMarkup(column) {
  * Markup for one primary nav item.
  * @param {{ label: string, href: string, columns: object[] }} item
  * @param {number} index Item index
+ * @param {string} chevronSvg Inlined decorative chevron, or empty
  * @returns {string}
  */
-function itemMarkup(item, index) {
+function itemMarkup(item, index, chevronSvg) {
   const label = escapeAttr(item.label);
   const hasMenu = item.columns.length > 0;
   const current = item.href && pathMatches(item.href) ? ' aria-current="page"' : '';
@@ -442,16 +452,17 @@ function itemMarkup(item, index) {
     `;
   }
   const panelId = `header-panel-${index}`;
-  const columns = item.columns.map(columnMarkup).join('');
+  const columns = item.columns.map((column, columnIndex) => (
+    columnMarkup(column, index, columnIndex)
+  )).join('');
   return `
     <li class="header__item header__item--has-menu">
       <button
         type="button"
         class="header__link"
         aria-expanded="false"
-        aria-haspopup="true"
         aria-controls="${panelId}"
-      >${label}</button>
+      >${label}${chevronSvg}</button>
       <div class="header__panel" id="${panelId}" hidden>
         ${columns}
       </div>
@@ -474,11 +485,11 @@ function isMobile() {
  */
 function closePanels(block, exceptTrigger) {
   block.querySelectorAll('.header__item--has-menu').forEach((item) => {
-    const trigger = item.querySelector(':scope > .header__link');
+    const trigger = item.querySelector(':scope > button.header__link');
     const panel = item.querySelector('.header__panel');
     if (!trigger || !panel || trigger === exceptTrigger) return;
     trigger.setAttribute('aria-expanded', 'false');
-    if (!isMobile()) panel.hidden = true;
+    panel.hidden = true;
     item.classList.remove('header__item--open');
   });
 }
@@ -496,8 +507,19 @@ function setPanelOpen(block, trigger, forceOpen) {
   const open = forceOpen ?? trigger.getAttribute('aria-expanded') !== 'true';
   closePanels(block, open ? trigger : undefined);
   trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-  panel.hidden = isMobile() ? false : !open;
+  panel.hidden = !open;
   item.classList.toggle('header__item--open', open);
+}
+
+/**
+ * Sets the mobile menu button expanded state and accessible name.
+ * @param {Element} toggle Menu button
+ * @param {boolean} open Whether the drawer is open
+ */
+function setMenuToggle(toggle, open) {
+  toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  const label = toggle.querySelector('.visually-hidden');
+  if (label) label.textContent = open ? 'Close menu' : 'Menu';
 }
 
 /**
@@ -508,9 +530,57 @@ function setPanelOpen(block, trigger, forceOpen) {
 function closeDrawer(block, restoreTo) {
   const toggle = block.querySelector('.header__toggle');
   if (!toggle) return;
-  toggle.setAttribute('aria-expanded', 'false');
+  setMenuToggle(toggle, false);
   block.classList.remove('header--nav-open');
   restoreTo?.focus();
+}
+
+/**
+ * Desktop: disclosure button. Mobile: static label, panel always shown.
+ * @param {Element} item `.header__item--has-menu`
+ * @param {boolean} mobile Whether the mobile breakpoint matches
+ */
+function syncMenuItem(item, mobile) {
+  const panel = item.querySelector('.header__panel');
+  let trigger = item.querySelector(':scope > .header__link');
+  if (!panel || !trigger) return;
+
+  if (mobile) {
+    if (trigger.tagName === 'BUTTON') {
+      const label = document.createElement('span');
+      label.className = 'header__link';
+      label.append(...trigger.childNodes);
+      trigger.replaceWith(label);
+    }
+    panel.hidden = false;
+    item.classList.remove('header__item--open');
+    return;
+  }
+
+  if (trigger.tagName !== 'BUTTON') {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'header__link';
+    button.append(...trigger.childNodes);
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-controls', panel.id);
+    trigger.replaceWith(button);
+    trigger = button;
+  }
+  trigger.setAttribute('aria-expanded', 'false');
+  panel.hidden = true;
+  item.classList.remove('header__item--open');
+}
+
+/**
+ * Aligns mega-menu triggers with the current viewport.
+ * @param {Element} block Header block
+ */
+function syncViewport(block) {
+  const mobile = isMobile();
+  block.querySelectorAll('.header__item--has-menu').forEach((item) => {
+    syncMenuItem(item, mobile);
+  });
 }
 
 /**
@@ -521,34 +591,24 @@ function bindHeader(block) {
   const toggle = block.querySelector('.header__toggle');
   const nav = block.querySelector('.header__nav');
 
-  block.querySelectorAll('.header__item--has-menu').forEach((item) => {
-    const trigger = item.querySelector(':scope > .header__link');
-    const panel = item.querySelector('.header__panel');
-    if (!trigger || !panel) return;
-    trigger.addEventListener('click', () => {
-      if (isMobile()) return;
-      const open = trigger.getAttribute('aria-expanded') !== 'true';
-      setPanelOpen(block, trigger, open);
-    });
-  });
-
-  if (isMobile()) {
-    block.querySelectorAll('.header__panel').forEach((panel) => {
-      panel.hidden = false;
-    });
-  }
-
-  toggle?.addEventListener('click', () => {
-    const open = toggle.getAttribute('aria-expanded') !== 'true';
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    block.classList.toggle('header--nav-open', open);
-    closePanels(block);
-  });
-
   headerAborts.get(block)?.abort();
   const abort = new AbortController();
   headerAborts.set(block, abort);
   const { signal } = abort;
+
+  block.addEventListener('click', (event) => {
+    const trigger = event.target.closest('.header__item--has-menu > button.header__link');
+    if (!trigger || !block.contains(trigger)) return;
+    const open = trigger.getAttribute('aria-expanded') !== 'true';
+    setPanelOpen(block, trigger, open);
+  }, { signal });
+
+  toggle?.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') !== 'true';
+    setMenuToggle(toggle, open);
+    block.classList.toggle('header--nav-open', open);
+    closePanels(block);
+  }, { signal });
 
   document.addEventListener('click', (event) => {
     if (!block.contains(event.target)) {
@@ -559,9 +619,9 @@ function bindHeader(block) {
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    const openTrigger = block.querySelector('.header__link[aria-expanded="true"]');
+    const openTrigger = block.querySelector('button.header__link[aria-expanded="true"]');
     const drawerOpen = toggle?.getAttribute('aria-expanded') === 'true';
-    if (openTrigger && openTrigger !== toggle) {
+    if (openTrigger) {
       setPanelOpen(block, openTrigger, false);
       openTrigger.focus();
       return;
@@ -572,7 +632,19 @@ function bindHeader(block) {
   nav?.addEventListener('click', (event) => {
     if (!isMobile()) return;
     if (event.target.closest('a')) closeDrawer(block);
-  });
+  }, { signal });
+
+  nav?.addEventListener('focusout', (event) => {
+    if (isMobile()) return;
+    const openItem = block.querySelector('.header__item--open');
+    if (!openItem || openItem.contains(event.relatedTarget)) return;
+    const trigger = openItem.querySelector(':scope > button.header__link');
+    if (trigger) setPanelOpen(block, trigger, false);
+  }, { signal });
+
+  const mq = window.matchMedia(MOBILE_MQ);
+  mq.addEventListener('change', () => syncViewport(block), { signal });
+  syncViewport(block);
 }
 
 /**
@@ -581,10 +653,13 @@ function bindHeader(block) {
  * @returns {Promise<void>}
  */
 export default async function decorate(block) {
+  ensureSkipLink(document);
+
   const iconsPromise = Promise.all([
     fetchHeaderSvg('img/lockup.svg'),
     fetchHeaderSvg('img/mark.svg'),
     fetchHeaderSvg('img/menu.svg'),
+    fetchHeaderSvg('img/chevron-down.svg'),
   ]);
 
   const navMeta = getMetadata('nav');
@@ -602,12 +677,14 @@ export default async function decorate(block) {
 
   const data = parseNavFragment(fragment);
   await hydrateMenuDocuments(data.items);
+  data.items = data.items.filter((item) => item.href || item.columns.length);
 
-  const [lockupMarkup, markMarkup, menuMarkup] = await iconsPromise;
+  const [lockupMarkup, markMarkup, menuMarkup, chevronMarkup] = await iconsPromise;
   const brandLabel = data.brand.label || 'Adobe Labs';
-  const lockupSvg = inlineHeaderSvg(lockupMarkup, 'header__lockup', { label: brandLabel });
+  const lockupSvg = inlineHeaderSvg(lockupMarkup, 'header__lockup');
   const markSvg = inlineHeaderSvg(markMarkup, 'header__mark');
   const menuSvg = inlineHeaderSvg(menuMarkup, 'header__toggle-icon');
+  const chevronSvg = inlineHeaderSvg(chevronMarkup, 'header__chevron');
   const brandHref = escapeAttr(data.brand.href || '/');
   const authoredImage = data.brand.image;
   let brandMedia = `${lockupSvg}${markSvg}`;
@@ -615,24 +692,24 @@ export default async function decorate(block) {
     const img = authoredImage.tagName === 'PICTURE'
       ? authoredImage.querySelector('img')
       : authoredImage;
-    const src = img?.getAttribute('src');
-    const alt = escapeAttr(img?.getAttribute('alt') || brandLabel);
+    const src = toSafeHttpUrl(img?.getAttribute('src'));
     if (src) {
       brandMedia = `
-        <img class="header__lockup" src="${escapeAttr(src)}" alt="${alt}">
+        <img class="header__lockup" src="${escapeAttr(src)}" alt="">
         ${markSvg}
       `;
     }
   }
 
-  const items = data.items.map(itemMarkup).join('');
+  const items = data.items.map((item, index) => itemMarkup(item, index, chevronSvg)).join('');
   const cta = data.cta?.href
     ? `<a class="header__cta button" href="${escapeAttr(data.cta.href)}">${escapeAttr(data.cta.label)}</a>`
     : '';
+  const brandName = escapeAttr(brandLabel);
 
   const bar = fromHTML(`
     <div class="header__bar">
-      <a class="header__brand" href="${brandHref}">
+      <a class="header__brand" href="${brandHref}" aria-label="${brandName}">
         ${brandMedia}
       </a>
       <button type="button" class="header__toggle" aria-expanded="false" aria-controls="header-nav">

@@ -12,7 +12,9 @@ header {
   --header-inset: 0;
   --header-radius: 0;
   --header-link: var(--s2a-color-content-default, #000);
+  --header-link-muted: var(--s2a-color-content-subtle, rgb(0 0 0 / 64%));
   --header-bg: var(--s2a-color-background-default, #fff);
+  --header-rule: color-mix(in srgb, var(--header-link) 8%, transparent);
 
   position: relative;
   z-index: 2;
@@ -23,13 +25,13 @@ header {
 .header__bar {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: var(--s2a-spacing-sm, 0.75rem);
   box-sizing: border-box;
   min-block-size: var(--header-bar-height);
   padding-block: var(--s2a-spacing-sm, 0.75rem);
   padding-inline: var(--s2a-spacing-lg, 1.5rem) var(--s2a-spacing-md, 1rem);
   border-radius: var(--header-radius);
-  border-block-end: 1px solid rgb(0 0 0 / 8%);
+  border-block-end: 1px solid var(--header-rule);
   background-color: var(--header-bg);
 }
 
@@ -63,8 +65,8 @@ header {
   margin: 0;
   padding: 0;
   border: 0;
-  inline-size: 2.75rem;
-  block-size: 2.75rem;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
   background: transparent;
   color: var(--header-link);
   cursor: pointer;
@@ -113,7 +115,7 @@ header {
 }
 
 .header__item--has-menu .header__panel[hidden] {
-  display: block;
+  display: none !important;
 }
 
 .header__link {
@@ -131,17 +133,49 @@ header {
   letter-spacing: var(--s2a-typography-letter-spacing-label, 0);
   text-decoration: none;
   white-space: nowrap;
+}
+
+a.header__link,
+button.header__link {
   cursor: pointer;
+}
+
+.header__chevron {
+  display: none;
+  flex-shrink: 0;
+  margin-inline-start: var(--s2a-spacing-4, 0.25rem);
+  inline-size: 0.375rem;
+  block-size: 0.25rem;
+  color: var(--header-link);
 }
 
 .header__link:hover {
   text-decoration: none;
 }
 
+.header__link[aria-current="page"],
+.header__panel-link[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.header__link[aria-current="page"]:hover,
+.header__panel-link[aria-current="page"]:hover {
+  text-decoration: underline;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .header__link {
-    transition: opacity 0.15s ease;
+    transition: color 0.15s ease;
   }
+
+  .header__chevron {
+    transition: transform 0.15s ease;
+  }
+}
+
+button.header__link[aria-expanded="true"] .header__chevron {
+  transform: rotate(180deg);
 }
 
 .header__cta {
@@ -156,14 +190,19 @@ header {
 }
 
 .header__panel-link {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 1.5rem;
+  padding-block: var(--s2a-spacing-xs, 0.5rem);
   color: var(--header-link);
   font-size: var(--s2a-typography-font-size-label, 0.875rem);
   text-decoration: none;
 }
 
 .header--inverse {
-  --header-link: var(--s2a-color-gray-25, #fff);
-  --header-bg: var(--s2a-color-gray-1000, #000);
+  --header-link: var(--s2a-color-content-knockout, #fff);
+  --header-link-muted: var(--s2a-color-transparent-white-64, rgb(255 255 255 / 64%));
+  --header-bg: var(--s2a-color-background-knockout, #000);
 }
 
 .header__brand:focus-visible,
@@ -217,22 +256,24 @@ header {
     gap: 1.5rem;
   }
 
+  .header__chevron {
+    display: block;
+  }
+
   /* Dim sibling labels when one is hovered, like adobe.com. */
   .header__list:has(> .header__item > .header__link:hover) > .header__item:not(:hover) > .header__link {
-    opacity: var(--s2a-opacity-48, 0.48);
+    color: var(--header-link-muted);
   }
 
   .header__item {
     position: static;
   }
 
-  .header__item--has-menu .header__panel,
-  .header__item--has-menu .header__panel[hidden] {
+  .header__item--has-menu .header__panel {
     display: none;
   }
 
-  .header__item--open .header__panel,
-  .header__item--open .header__panel[hidden] {
+  .header__item--open .header__panel {
     display: flex;
     position: absolute;
     z-index: 3;

@@ -286,6 +286,19 @@ main > div {
   white-space: nowrap !important;
 }
 
+.header__skip:focus-visible {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: var(--s2a-spacing-xs, 0.5rem);
+  inset-inline-start: var(--s2a-spacing-xs, 0.5rem);
+  padding: var(--s2a-spacing-xs, 0.5rem) var(--s2a-spacing-sm, 0.75rem);
+  background-color: var(--s2a-color-background-default, #fff);
+  color: var(--s2a-color-content-default, #000);
+  text-decoration: none;
+  outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
+  outline-offset: 2px;
+}
+
 /* --- Play icon ---
    Decorative overlay for video articles. Blocks override size, svg size,
    radius, and blur via custom properties; they keep placement to themselves. */
