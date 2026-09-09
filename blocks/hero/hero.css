@@ -252,6 +252,12 @@
   }
 }
 
+.hero-container:has(.hero-full-screen) + [class*="section-rounded-"] {
+  --hero-margin-negative-offset: calc(-1 * var(--section-border-radius) - var(--main-gap));
+  
+  margin-block-start: var(--hero-margin-negative-offset);
+}
+
 /* Default hero keeps main > .section > div max-inline-size and padding. */
 .hero-container:has(.hero-full-screen) .hero-wrapper {
   max-inline-size: unset;

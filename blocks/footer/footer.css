@@ -1,13 +1,17 @@
 .footer {
   --footer-text: var(--s2a-color-gray-25);
   --footer-text-subtle: var(--s2a-color-transparent-white-64);
+  
+  /* Footer is overlapped by the last section, so we need to add to its padding to compensate. */
+  --footer-margin-offset: var(--section-border-radius);
 
   position: relative;
   color: var(--footer-text);
   font-size: var(--s2a-typography-font-size-body-md);
   text-size-adjust: none;
   background-color: var(--s2a-color-gray-1000);
-  z-index: -1;
+  margin-block-start: calc(-1 * var(--section-border-radius));
+  z-index: 0;
 }
 
 .footer__menu-toggle {
@@ -35,13 +39,19 @@
 }
 
 .footer__inner {
+  --footer-inner-padding-block-start: calc(var(--footer-margin-offset) + var(--s2a-spacing-4xl));
+
+  @media (width >= 1024px) {
+    --footer-inner-padding-block-start: calc(var(--footer-margin-offset) + var(--s2a-layout-sm));
+  }
+
   position: relative;
   max-inline-size: var(--site-max-inline-size);
   margin-inline: auto;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  padding-block: var(--s2a-layout-sm) var(--s2a-spacing-2xl);
+  padding-block: var(--footer-inner-padding-block-start) var(--s2a-spacing-2xl);
   padding-inline: var(--s2a-spacing-lg);
   background-color: var(--s2a-color-gray-1000);
 }
