@@ -14,10 +14,10 @@ import { loadFragment } from '../fragment/fragment.js';
  */
 
 /**
- * Viewport query for the mobile drawer (`< 48rem`).
+ * Viewport query for the desktop nav (`>= 48rem`).
  * @type {string}
  */
-const MOBILE_MQ = '(width < 48rem)';
+const DESKTOP_MQ = '(width >= 48rem)';
 
 /**
  * Fragment nodes skipped when collecting nav links (merch, promo, imagery).
@@ -551,12 +551,12 @@ function itemMarkup(item, index, chevronSvg) {
 }
 
 /**
- * Whether the viewport is the mobile nav breakpoint.
+ * Whether the viewport is the desktop nav breakpoint.
  *
  * @returns {boolean}
  */
-function isMobile() {
-  return window.matchMedia(MOBILE_MQ).matches;
+function isDesktop() {
+  return window.matchMedia(DESKTOP_MQ).matches;
 }
 
 /**
@@ -670,7 +670,7 @@ function syncMenuItem(item, mobile) {
  * @returns {void}
  */
 function syncViewport(block) {
-  const mobile = isMobile();
+  const mobile = !isDesktop();
   block.querySelectorAll('.header__item--has-menu').forEach((item) => {
     syncMenuItem(item, mobile);
   });
@@ -708,7 +708,7 @@ function bindHeader(block) {
   document.addEventListener('click', (event) => {
     if (!block.contains(event.target)) {
       closePanels(block);
-      if (isMobile()) closeDrawer(block);
+      if (!isDesktop()) closeDrawer(block);
     }
   }, { signal });
 
@@ -725,19 +725,19 @@ function bindHeader(block) {
   }, { signal });
 
   nav?.addEventListener('click', (event) => {
-    if (!isMobile()) return;
+    if (isDesktop()) return;
     if (event.target.closest('a')) closeDrawer(block);
   }, { signal });
 
   nav?.addEventListener('focusout', (event) => {
-    if (isMobile()) return;
+    if (!isDesktop()) return;
     const openItem = block.querySelector('.header__item--open');
     if (!openItem || openItem.contains(event.relatedTarget)) return;
     const trigger = openItem.querySelector(':scope > button.header__link');
     if (trigger) setPanelOpen(block, trigger, false);
   }, { signal });
 
-  const mq = window.matchMedia(MOBILE_MQ);
+  const mq = window.matchMedia(DESKTOP_MQ);
   mq.addEventListener('change', () => syncViewport(block), { signal });
   syncViewport(block);
 }

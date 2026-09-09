@@ -172,7 +172,7 @@ beforeAll(() => {
   window.hlx = { codeBasePath: '' };
   window.matchMedia = jest.fn((query) => ({
     get matches() {
-      return query.includes('width < 48rem') ? !desktopMatches : desktopMatches;
+      return query.includes('width >= 48rem') ? desktopMatches : !desktopMatches;
     },
     media: query,
     addEventListener: jest.fn((event, handler) => {
