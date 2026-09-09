@@ -11,6 +11,10 @@ import { loadFragment } from '../fragment/fragment.js';
  * @file Header block. Loads the nav fragment and paints Labs global navigation:
  * brand lockup, primary links, optional mega panels, and a Subscribe CTA.
  * Content path: `nav` metadata, or `/fragments/nav` by default.
+ *
+ * Authored fragment shape: a list whose first item is the brand (nav nested
+ * under it, optional mega under an item) and a sibling Subscribe link; or a
+ * brand paragraph, sibling list, and `.button` CTA.
  */
 
 /**
@@ -20,29 +24,15 @@ import { loadFragment } from '../fragment/fragment.js';
 const DESKTOP_MQ = '(width >= 48rem)';
 
 /**
- * Fragment nodes skipped when collecting nav links (merch, promo, imagery).
- * @type {string}
- */
-const SKIP_MENU_SELECTOR = '.merch, .gnav-promo, .promo, .gnav-image, .cross-cloud-menu';
-
-/**
  * Listener abort controllers keyed by header block, so re-decorate does not leak.
  * @type {WeakMap<Element, AbortController>}
  */
 const headerAborts = new WeakMap();
 
 /**
- * Options for inlining a header SVG.
- *
- * @typedef {object} HeaderSvgOptions
- * @property {string} [label] Accessible name; omits `aria-hidden` when set
- */
-
-/**
- * One mega-panel column parsed from a menu document or nested list.
+ * One mega-panel column parsed from a nested list.
  *
  * @typedef {object} HeaderNavColumn
- * @property {string} heading Column heading, or empty
  * @property {Element[]} links Safe column links
  */
 
@@ -53,7 +43,6 @@ const headerAborts = new WeakMap();
  * @property {string} label Visible label
  * @property {string} href Primary href, or empty for menu-only items
  * @property {HeaderNavColumn[]} columns Mega-menu columns
- * @property {string} menuSrc Same-origin menu document to fetch, or empty
  */
 
 /**
@@ -83,6 +72,22 @@ const headerAborts = new WeakMap();
  */
 
 /**
+ * Inlined header icons used to paint the bar.
+ *
+ * @typedef {object} HeaderIcons
+ * @property {string} lockupSvg Desktop lockup markup
+ * @property {string} markSvg Mobile mark markup
+ * @property {string} menuSvg Menu toggle markup
+ * @property {string} chevronSvg Mega-menu chevron markup
+ */
+
+/**
+ * ==================================================================
+ * UTILS
+ * ==================================================================
+ */
+
+/**
  * URL for an asset under this block.
  *
  * @param {string} path Path relative to `blocks/header/`
@@ -94,43 +99,38 @@ function getHeaderAsset(path) {
 }
 
 /**
- * Fetches an SVG asset from this block.
- *
- * @param {string} path Path relative to `blocks/header/`
- * @returns {Promise<string>} SVG markup, or empty on failure
- */
-async function fetchHeaderSvg(path) {
-  try {
-    const resp = await fetch(getHeaderAsset(path));
-    if (!resp.ok) return '';
-    return await resp.text();
-  } catch {
-    return '';
-  }
-}
-
-/**
- * Turns fetched SVG markup into an inline icon that inherits `--header-link`.
+ * Turns fetched SVG markup into an inline decorative icon.
  *
  * @param {string} markup SVG document
  * @param {string} className Class to add
- * @param {HeaderSvgOptions} [options]
  * @returns {string} Inlined SVG markup, or empty if none was found
  */
-function inlineHeaderSvg(markup, className, options = {}) {
+function inlineHeaderSvg(markup, className) {
   const wrap = document.createElement('div');
   wrap.innerHTML = markup.trim();
   const svg = wrap.querySelector('svg');
   if (!svg) return '';
   svg.classList.add(className);
   svg.setAttribute('focusable', 'false');
-  if (options.label) {
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', options.label);
-  } else {
-    svg.setAttribute('aria-hidden', 'true');
-  }
+  svg.setAttribute('aria-hidden', 'true');
   return svg.outerHTML;
+}
+
+/**
+ * Fetches a block SVG and inlines it as a decorative icon.
+ *
+ * @param {string} path Path relative to `blocks/header/`
+ * @param {string} className Class to add
+ * @returns {Promise<string>} Inlined SVG markup, or empty on failure
+ */
+async function loadHeaderIcon(path, className) {
+  try {
+    const resp = await fetch(getHeaderAsset(path));
+    if (!resp.ok) return '';
+    return inlineHeaderSvg(await resp.text(), className);
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -148,22 +148,6 @@ function toNavHref(value) {
       return `${url.pathname}${url.search}${url.hash}` || '/';
     }
     return abs;
-  } catch {
-    return '';
-  }
-}
-
-/**
- * Same-origin pathname for a candidate href, or empty if it cannot be fetched.
- *
- * @param {string} href Authored href
- * @returns {string} Pathname, or empty if cross-origin or invalid
- */
-function sameOriginPathname(href) {
-  try {
-    const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin) return '';
-    return url.pathname;
   } catch {
     return '';
   }
@@ -189,94 +173,37 @@ function pathMatches(href) {
 }
 
 /**
- * Safe http(s) links inside `root`, skipping merch/promo blocks.
+ * Safe http(s) links inside `root`.
  *
  * @param {Element} root Tree to search
  * @returns {Element[]}
  */
 function collectLinks(root) {
-  return [...root.querySelectorAll('a[href]')].filter((link) => {
-    if (link.closest(SKIP_MENU_SELECTOR)) return false;
-    return Boolean(toSafeHttpUrl(link.getAttribute('href')));
-  });
+  return [...root.querySelectorAll('a[href]')].filter((link) => (
+    Boolean(toSafeHttpUrl(link.getAttribute('href')))
+  ));
 }
 
 /**
- * Flattens a menu document into heading + link columns.
+ * Fragment path from `nav` metadata, or the default nav fragment.
  *
- * @param {Element} root Fetched menu root
- * @returns {HeaderNavColumn[]}
+ * @returns {string}
  */
-function columnsFromMenuRoot(root) {
-  const nodes = [...root.querySelectorAll('h2, h3, h4, h5, h6, a[href]')]
-    .filter((node) => !node.closest(SKIP_MENU_SELECTOR));
-  const columns = [];
-  let current = { heading: '', links: [] };
-
-  const flush = () => {
-    if (current.links.length) columns.push(current);
-  };
-
-  nodes.forEach((node) => {
-    if (/^H[1-6]$/.test(node.tagName)) {
-      flush();
-      current = { heading: node.textContent.trim(), links: [] };
-      return;
-    }
-    if (node.closest('h1, h2, h3, h4, h5, h6')) return;
-    if (!toSafeHttpUrl(node.getAttribute('href'))) return;
-    current.links.push(node);
-  });
-  flush();
-  return columns;
-}
-
-/**
- * Fetches a same-origin menu document and flattens it into columns.
- *
- * @param {string} href Menu document href
- * @returns {Promise<HeaderNavColumn[]>}
- */
-async function fetchMenuColumns(href) {
-  const pathname = sameOriginPathname(href);
-  if (!pathname) return [];
+function getNavPath() {
+  const navMeta = getMetadata('nav');
+  if (!navMeta) return '/fragments/nav';
   try {
-    const resp = await fetch(`${pathname}.plain.html`);
-    if (!resp.ok) return [];
-    const wrap = document.createElement('div');
-    wrap.innerHTML = await resp.text();
-    return columnsFromMenuRoot(wrap);
+    return new URL(navMeta, window.location.href).pathname;
   } catch {
-    return [];
+    return navMeta;
   }
 }
 
 /**
- * Nested list columns under a list item.
- *
- * @param {Element} itemEl `li` element
- * @returns {HeaderNavColumn[]}
+ * ==================================================================
+ * PARSE
+ * ==================================================================
  */
-function columnsFromNestedList(itemEl) {
-  const nested = itemEl.querySelector(':scope > ul');
-  if (!nested) return [];
-  const nestedItems = [...nested.children];
-  const hasNestedLists = nestedItems.some((child) => child.querySelector(':scope > ul'));
-  if (hasNestedLists) {
-    return nestedItems.map((child) => {
-      const headingLink = child.querySelector(':scope > a, :scope > p > a');
-      const links = collectLinks(child).filter((link) => link !== headingLink);
-      const nestedLinks = links.length ? links : [];
-      if (!nestedLinks.length && headingLink) nestedLinks.push(headingLink);
-      return {
-        heading: (headingLink || child).textContent.trim(),
-        links: nestedLinks,
-      };
-    }).filter((column) => column.links.length);
-  }
-  const links = collectLinks(nested);
-  return links.length ? [{ heading: '', links }] : [];
-}
 
 /**
  * Whether a link is the Subscribe / utility CTA.
@@ -286,7 +213,6 @@ function columnsFromNestedList(itemEl) {
  */
 function isCtaLink(link) {
   if (link.classList.contains('button')) return true;
-  if (link.closest('.cta, .profile')) return true;
   return link.textContent.trim().toLowerCase() === 'subscribe';
 }
 
@@ -298,112 +224,67 @@ function isCtaLink(link) {
  */
 function isBrandLink(link) {
   if (link.querySelector('img, picture')) return true;
-  if (link.closest('.adobe-logo, .gnav-brand')) return true;
-  const href = link.getAttribute('href') || '';
   try {
-    const url = new URL(href, window.location.href);
-    return url.pathname === '/' && !link.textContent.trim();
-  } catch {
-    return false;
+    if (new URL(link.getAttribute('href') || '', window.location.href).pathname === '/') {
+      return true;
+    }
+  } catch { /* not a URL */ }
+  const item = link.closest('li');
+  const topList = item?.parentElement;
+  if (topList?.tagName !== 'UL' || topList.parentElement?.closest('ul')) return false;
+  return item === topList.children[0]
+    && item.querySelector(':scope > a[href], :scope > p > a[href]') === link
+    && Boolean(item.querySelector(':scope > ul'));
+}
+
+/**
+ * Nested list under a list item, as one unlabeled mega column.
+ *
+ * @param {Element} itemEl `li` element
+ * @returns {HeaderNavColumn[]}
+ */
+function nestedMegaColumn(itemEl) {
+  const nested = itemEl.querySelector(':scope > ul');
+  if (!nested) return [];
+  const links = collectLinks(nested);
+  return links.length ? [{ links }] : [];
+}
+
+/**
+ * List of primary items: nested under the brand when DA nests the menu there,
+ * otherwise the first top-level list.
+ *
+ * @param {Element|undefined} list First top-level `ul`
+ * @param {Element|undefined} brandLink Brand anchor
+ * @returns {Element|undefined}
+ */
+function primaryNavList(list, brandLink) {
+  if (!list) return undefined;
+  const brandItem = brandLink?.closest('li');
+  if (brandItem && list.contains(brandItem)) {
+    const nested = brandItem.querySelector(':scope > ul');
+    if (nested) return nested;
   }
+  return list;
 }
 
 /**
- * Whether an href points at a static asset rather than a page.
+ * Primary nav items from a list of `li`s.
  *
- * @param {string} href Candidate href
- * @returns {boolean}
+ * @param {Element|undefined} list `ul` element
+ * @param {Set<Element>} skip Brand and CTA links
+ * @returns {HeaderNavItem[]}
  */
-function isAssetHref(href) {
-  return /\.(svg|png|jpe?g|gif|webp)(\?|$)/i.test(href || '');
-}
-
-/**
- * Pushes a leftover `.large-menu` block as one nav item.
- *
- * @param {Element} menu Menu root
- * @param {HeaderNavItem[]} items Item list
- * @param {Set<Element>} used Consumed links
- * @param {Set<Element>} seenMenus Already-processed menus
- * @returns {void}
- */
-function consumeLargeMenu(menu, items, used, seenMenus) {
-  if (seenMenus.has(menu)) return;
-  seenMenus.add(menu);
-  const heading = menu.querySelector('h2, h3, h4, h5, h6');
-  const trigger = heading?.querySelector('a[href]');
-  const label = (heading || trigger)?.textContent.trim();
-  if (!label) return;
-  collectLinks(menu).forEach((link) => used.add(link));
-  const nested = columnsFromMenuRoot(menu);
-  const triggerHref = trigger?.getAttribute('href') || '';
-  let menuSrc = '';
-  if (!nested.length && sameOriginPathname(triggerHref)) menuSrc = triggerHref;
-  items.push({
-    label,
-    href: toNavHref(triggerHref),
-    columns: nested,
-    menuSrc,
-  });
-}
-
-/**
- * Pushes top-level list items into the nav.
- *
- * @param {Element} list `ul` element
- * @param {HeaderNavItem[]} items Item list
- * @param {Set<Element>} used Consumed links
- * @param {Set<Element>} seenLists Already-processed lists
- * @returns {void}
- */
-function consumeNavList(list, items, used, seenLists) {
-  if (seenLists.has(list) || list.parentElement?.closest('ul') || list.closest('.large-menu')) return;
-  seenLists.add(list);
-  [...list.children].forEach((itemEl) => {
-    const trigger = itemEl.querySelector(':scope > a[href], :scope > p > a[href], :scope > h2 a[href]');
-    if (trigger && used.has(trigger)) return;
-    const columns = columnsFromNestedList(itemEl);
-    if (trigger) {
-      used.add(trigger);
-      collectLinks(itemEl).forEach((link) => used.add(link));
-      items.push({
-        label: trigger.textContent.trim(),
-        href: toNavHref(trigger.getAttribute('href')),
-        columns,
-        menuSrc: '',
-      });
-      return;
-    }
-    if (columns.length) {
-      collectLinks(itemEl).forEach((link) => used.add(link));
-      const label = itemEl.childNodes[0]?.textContent?.trim() || columns[0].heading;
-      items.push({
-        label,
-        href: '',
-        columns,
-        menuSrc: '',
-      });
-    }
-  });
-}
-
-/**
- * Pushes a remaining heading/link as a plain nav item.
- *
- * @param {Element} link Anchor
- * @param {HeaderNavItem[]} items Item list
- * @param {Set<Element>} used Consumed links
- * @returns {void}
- */
-function consumeLeftoverLink(link, items, used) {
-  if (used.has(link) || isAssetHref(link.getAttribute('href'))) return;
-  if (link.closest('.large-menu')) return;
-  used.add(link);
-  items.push({
-    label: link.textContent.trim(),
-    href: toNavHref(link.getAttribute('href')),
-    columns: [],
-    menuSrc: '',
+function itemsFromList(list, skip) {
+  if (!list) return [];
+  return [...list.children].flatMap((itemEl) => {
+    const trigger = itemEl.querySelector(':scope > a[href], :scope > p > a[href]');
+    if (!trigger || skip.has(trigger)) return [];
+    const columns = nestedMegaColumn(itemEl);
+    const href = toNavHref(trigger.getAttribute('href'));
+    const label = trigger.textContent.trim();
+    if (!label || (!href && !columns.length)) return [];
+    return [{ label, href, columns }];
   });
 }
 
@@ -414,36 +295,12 @@ function consumeLeftoverLink(link, items, used) {
  * @returns {HeaderNavData}
  */
 function parseNavFragment(fragment) {
-  const used = new Set();
-  const seenMenus = new Set();
-  const seenLists = new Set();
   const allLinks = collectLinks(fragment);
-
-  const brandLink = allLinks.find((link) => isBrandLink(link) && !isAssetHref(link.getAttribute('href')));
-  if (brandLink) used.add(brandLink);
-  fragment.querySelectorAll('.adobe-logo a[href], .gnav-brand a[href]').forEach((link) => used.add(link));
-
-  const ctaLink = [...allLinks].reverse().find((link) => !used.has(link) && isCtaLink(link));
-  if (ctaLink) used.add(ctaLink);
-
-  const items = [];
-  const sections = fragment.children.length ? [...fragment.children] : [fragment];
-  sections.forEach((section) => {
-    section.querySelectorAll('.large-menu').forEach((menu) => {
-      consumeLargeMenu(menu, items, used, seenMenus);
-    });
-    section.querySelectorAll('ul').forEach((list) => {
-      consumeNavList(list, items, used, seenLists);
-    });
-    collectLinks(section).forEach((link) => consumeLeftoverLink(link, items, used));
-  });
-  fragment.querySelectorAll('.large-menu').forEach((menu) => {
-    consumeLargeMenu(menu, items, used, seenMenus);
-  });
-  fragment.querySelectorAll('ul').forEach((list) => {
-    consumeNavList(list, items, used, seenLists);
-  });
-  allLinks.forEach((link) => consumeLeftoverLink(link, items, used));
+  const brandLink = allLinks.find(isBrandLink);
+  const ctaLink = [...allLinks].reverse().find((link) => link !== brandLink && isCtaLink(link));
+  const list = [...fragment.querySelectorAll('ul')].find((ul) => !ul.parentElement?.closest('ul'));
+  const skip = new Set([brandLink, ctaLink].filter(Boolean));
+  const items = itemsFromList(primaryNavList(list, brandLink), skip);
 
   const brandImage = brandLink?.querySelector('img, picture') || null;
   const brandLabel = brandLink?.textContent.trim()
@@ -461,7 +318,7 @@ function parseNavFragment(fragment) {
       image: null,
       label: 'Adobe Labs',
     },
-    items: items.filter((item) => item.label && (item.href || item.columns.length || item.menuSrc)),
+    items: items.filter((item) => item.href || item.columns.length),
     cta: ctaLink ? {
       href: toNavHref(ctaLink.getAttribute('href')),
       label: ctaLink.textContent.trim() || 'Subscribe',
@@ -470,33 +327,18 @@ function parseNavFragment(fragment) {
 }
 
 /**
- * Fills empty mega items by fetching leftover `.large-menu` documents.
- *
- * @param {HeaderNavItem[]} items Primary nav items
- * @returns {Promise<void>}
+ * ==================================================================
+ * MARKUP
+ * ==================================================================
  */
-async function hydrateMenuDocuments(items) {
-  await Promise.all(items.map(async (item) => {
-    if (!item.menuSrc || item.columns.length) return;
-    item.columns = await fetchMenuColumns(item.menuSrc);
-    if (!item.columns.length) item.menuSrc = '';
-  }));
-}
 
 /**
  * Markup for a mega-panel column.
  *
  * @param {HeaderNavColumn} column Column data
- * @param {number} itemIndex Primary nav item index
- * @param {number} columnIndex Column index within the item
  * @returns {string} Column HTML
  */
-function columnMarkup(column, itemIndex, columnIndex) {
-  const headingId = column.heading ? `header-col-${itemIndex}-${columnIndex}` : '';
-  const heading = column.heading
-    ? `<p class="header__column-heading" id="${headingId}">${escapeAttr(column.heading)}</p>`
-    : '';
-  const labelledBy = headingId ? ` aria-labelledby="${headingId}"` : '';
+function columnMarkup(column) {
   const links = column.links.map((link) => {
     const href = escapeAttr(toNavHref(link.getAttribute('href')));
     const label = escapeAttr(link.textContent.trim());
@@ -505,8 +347,7 @@ function columnMarkup(column, itemIndex, columnIndex) {
   }).join('');
   return `
     <div class="header__column">
-      ${heading}
-      <ul class="header__column-list"${labelledBy}>${links}</ul>
+      <ul class="header__column-list">${links}</ul>
     </div>
   `;
 }
@@ -532,9 +373,7 @@ function itemMarkup(item, index, chevronSvg) {
     `;
   }
   const panelId = `header-panel-${index}`;
-  const columns = item.columns.map((column, columnIndex) => (
-    columnMarkup(column, index, columnIndex)
-  )).join('');
+  const columns = item.columns.map((column) => columnMarkup(column)).join('');
   return `
     <li class="header__item header__item--has-menu">
       <button
@@ -549,6 +388,68 @@ function itemMarkup(item, index, chevronSvg) {
     </li>
   `;
 }
+
+/**
+ * Brand lockup markup: authored image when safe, otherwise inlined SVGs.
+ *
+ * @param {HeaderBrand} brand Parsed brand
+ * @param {string} lockupSvg Desktop lockup SVG
+ * @param {string} markSvg Mobile mark SVG
+ * @returns {string}
+ */
+function brandMediaMarkup(brand, lockupSvg, markSvg) {
+  const fallback = `${lockupSvg}${markSvg}`;
+  const authoredImage = brand.image;
+  if (!authoredImage) return fallback;
+  const img = authoredImage.tagName === 'PICTURE'
+    ? authoredImage.querySelector('img')
+    : authoredImage;
+  const src = toSafeHttpUrl(img?.getAttribute('src'));
+  if (!src) return fallback;
+  return `
+    <img class="header__lockup" src="${escapeAttr(src)}" alt="">
+    ${markSvg}
+  `;
+}
+
+/**
+ * Builds the header bar from parsed nav data and inlined icons.
+ *
+ * @param {HeaderNavData} data Parsed fragment
+ * @param {HeaderIcons} icons Inlined SVGs
+ * @returns {Element}
+ */
+function buildHeaderBar(data, icons) {
+  const brandName = escapeAttr(data.brand.label || 'Adobe Labs');
+  const brandHref = escapeAttr(data.brand.href || '/');
+  const brandMedia = brandMediaMarkup(data.brand, icons.lockupSvg, icons.markSvg);
+  const items = data.items.map((item, index) => itemMarkup(item, index, icons.chevronSvg)).join('');
+  const cta = data.cta?.href
+    ? `<a class="header__cta button" href="${escapeAttr(data.cta.href)}">${escapeAttr(data.cta.label)}</a>`
+    : '';
+
+  return fromHTML(`
+    <div class="header__bar">
+      <a class="header__brand" href="${brandHref}" aria-label="${brandName}">
+        ${brandMedia}
+      </a>
+      <button type="button" class="header__toggle" aria-expanded="false" aria-controls="header-nav">
+        ${icons.menuSvg}
+        <span class="visually-hidden">Menu</span>
+      </button>
+      <nav class="header__nav" id="header-nav" aria-label="Main">
+        <ul class="header__list">${items}</ul>
+      </nav>
+      ${cta}
+    </div>
+  `);
+}
+
+/**
+ * ==================================================================
+ * BEHAVIOR
+ * ==================================================================
+ */
 
 /**
  * Whether the viewport is the desktop nav breakpoint.
@@ -743,6 +644,12 @@ function bindHeader(block) {
 }
 
 /**
+ * ==================================================================
+ * DECORATE
+ * ==================================================================
+ */
+
+/**
  * Decorates the header from the nav fragment.
  *
  * @param {Element} block Header block
@@ -752,73 +659,21 @@ export default async function decorate(block) {
   ensureSkipLink(document);
 
   const iconsPromise = Promise.all([
-    fetchHeaderSvg('img/lockup.svg'),
-    fetchHeaderSvg('img/mark.svg'),
-    fetchHeaderSvg('img/menu.svg'),
-    fetchHeaderSvg('img/chevron-down.svg'),
+    loadHeaderIcon('img/lockup.svg', 'header__lockup'),
+    loadHeaderIcon('img/mark.svg', 'header__mark'),
+    loadHeaderIcon('img/menu.svg', 'header__toggle-icon'),
+    loadHeaderIcon('img/chevron-down.svg', 'header__chevron'),
   ]);
 
-  const navMeta = getMetadata('nav');
-  let navPath = '/fragments/nav';
-  if (navMeta) {
-    try {
-      navPath = new URL(navMeta, window.location.href).pathname;
-    } catch {
-      navPath = navMeta;
-    }
-  }
-
-  const fragment = await loadFragment(navPath);
+  const fragment = await loadFragment(getNavPath());
   if (!fragment) return;
 
-  const data = parseNavFragment(fragment);
-  await hydrateMenuDocuments(data.items);
-  data.items = data.items.filter((item) => item.href || item.columns.length);
-
-  const [lockupMarkup, markMarkup, menuMarkup, chevronMarkup] = await iconsPromise;
-  const brandLabel = data.brand.label || 'Adobe Labs';
-  const lockupSvg = inlineHeaderSvg(lockupMarkup, 'header__lockup');
-  const markSvg = inlineHeaderSvg(markMarkup, 'header__mark');
-  const menuSvg = inlineHeaderSvg(menuMarkup, 'header__toggle-icon');
-  const chevronSvg = inlineHeaderSvg(chevronMarkup, 'header__chevron');
-  const brandHref = escapeAttr(data.brand.href || '/');
-  const authoredImage = data.brand.image;
-  let brandMedia = `${lockupSvg}${markSvg}`;
-  if (authoredImage) {
-    const img = authoredImage.tagName === 'PICTURE'
-      ? authoredImage.querySelector('img')
-      : authoredImage;
-    const src = toSafeHttpUrl(img?.getAttribute('src'));
-    if (src) {
-      brandMedia = `
-        <img class="header__lockup" src="${escapeAttr(src)}" alt="">
-        ${markSvg}
-      `;
-    }
-  }
-
-  const items = data.items.map((item, index) => itemMarkup(item, index, chevronSvg)).join('');
-  const cta = data.cta?.href
-    ? `<a class="header__cta button" href="${escapeAttr(data.cta.href)}">${escapeAttr(data.cta.label)}</a>`
-    : '';
-  const brandName = escapeAttr(brandLabel);
-
-  const bar = fromHTML(`
-    <div class="header__bar">
-      <a class="header__brand" href="${brandHref}" aria-label="${brandName}">
-        ${brandMedia}
-      </a>
-      <button type="button" class="header__toggle" aria-expanded="false" aria-controls="header-nav">
-        ${menuSvg}
-        <span class="visually-hidden">Menu</span>
-      </button>
-      <nav class="header__nav" id="header-nav" aria-label="Main">
-        <ul class="header__list">${items}</ul>
-      </nav>
-      ${cta}
-    </div>
-  `);
-
-  block.replaceChildren(bar);
+  const [lockupSvg, markSvg, menuSvg, chevronSvg] = await iconsPromise;
+  block.replaceChildren(buildHeaderBar(parseNavFragment(fragment), {
+    lockupSvg,
+    markSvg,
+    menuSvg,
+    chevronSvg,
+  }));
   bindHeader(block);
 }
