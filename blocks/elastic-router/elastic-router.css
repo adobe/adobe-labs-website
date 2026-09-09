@@ -9,7 +9,10 @@
  */
 .elastic-router {
   --elastic-router-radius: var(--s2a-border-radius-xs);
-  --elastic-router-gap: var(--s2a-spacing-sm);
+
+  /* Stacked mobile rows need more vertical breathing room than the desktop
+     row gutter. */
+  --elastic-router-gap: 2rem;
   --elastic-router-card-min: 8rem;
 
   /* Default: even split (25% each of 4). Hover: 40% hovered / 20% each
@@ -18,6 +21,10 @@
   --elastic-router-grow: 2;
   --elastic-router-transition-duration: 0.5s;
   --elastic-router-transition-easing: cubic-bezier(0.65, 0, 0.35, 1);
+
+  @media (width >= 48rem) {
+    --elastic-router-gap: var(--s2a-spacing-sm);
+  }
 
   @media (prefers-reduced-motion: reduce) {
     --elastic-router-transition-duration: 0s;
