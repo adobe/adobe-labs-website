@@ -244,9 +244,12 @@ describe('header block', () => {
     expect(block).not.toHaveClass('header--nav-open');
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(within(block).queryByRole('button', { name: 'Products' })).toBeNull();
-    expect(block.querySelector('.header__item--has-menu > .header__link').tagName).toBe('SPAN');
-    expect(block.querySelector('.header__item--has-menu > .header__link .header__chevron')).not.toBeNull();
+    expect(block.querySelector('.header__trigger')).toHaveAttribute('hidden');
+    expect(block.querySelector('.header__menu-label')).not.toHaveAttribute('hidden');
+    expect(block.querySelector('.header__menu-label')).toHaveTextContent('Products');
     expect(block.querySelector('#header-panel-2')).not.toHaveAttribute('hidden');
+    expect(block.querySelector('#header-panel-2')).toHaveAttribute('role', 'group');
+    expect(block.querySelector('#header-panel-2')).toHaveAttribute('aria-label', 'Products');
     expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
     expect(block.querySelector('#unav-app-switcher, .unav-comp-app-switcher, .feds-utilities')).toBeNull();
     expect(block.querySelector('.feds-signIn')).toBeNull();
@@ -258,6 +261,7 @@ describe('header block', () => {
     expect(block).toHaveClass('header--nav-open');
     expect(toggle.querySelector('.header__toggle-line--top')).not.toBeNull();
     expect(toggle.querySelector('.header__toggle-line--bottom')).not.toBeNull();
+    expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
@@ -298,20 +302,24 @@ describe('header block', () => {
     expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
   });
 
-  it('turns mega-menu buttons into static labels at the mobile breakpoint', async () => {
+  it('hides mega-menu triggers and shows static labels at the mobile breakpoint', async () => {
     const block = await decorateHeader();
     const panel = block.querySelector('#header-panel-2');
+    const trigger = within(block).getByRole('button', { name: 'Products' });
 
-    expect(within(block).getByRole('button', { name: 'Products' })).toBeInTheDocument();
+    expect(trigger).toBeInTheDocument();
     expect(panel).toHaveAttribute('hidden');
 
     desktopMatches = false;
     mediaChangeHandlers.forEach((handler) => handler());
 
     expect(within(block).queryByRole('button', { name: 'Products' })).toBeNull();
-    expect(block.querySelector('.header__item--has-menu > .header__link').tagName).toBe('SPAN');
-    expect(block.querySelector('.header__item--has-menu > .header__link .header__chevron')).not.toBeNull();
+    expect(trigger).toHaveAttribute('hidden');
+    expect(block.querySelector('.header__menu-label')).not.toHaveAttribute('hidden');
+    expect(block.querySelector('.header__menu-label')).toHaveTextContent('Products');
     expect(panel).not.toHaveAttribute('hidden');
+    expect(panel).toHaveAttribute('role', 'group');
+    expect(panel).toHaveAttribute('aria-label', 'Products');
     expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
   });
 
@@ -389,5 +397,89 @@ describe('header block', () => {
 
     expect(block).not.toHaveClass('header--nav-open');
     expect(document.documentElement).not.toHaveClass('header-scroll-lock');
+  });
+
+  it('inerts page content while the mobile drawer is open', async () => {
+    desktopMatches = false;
+    const main = document.createElement('main');
+    const pageLink = document.createElement('a');
+    pageLink.href = '/research';
+    pageLink.textContent = 'In page';
+    main.append(pageLink);
+    document.body.append(main);
+
+    const block = await decorateHeader();
+    const toggle = within(block).getByRole('button', { name: 'Menu' });
+
+    toggle.click();
+
+    expect(main.inert).toBe(true);
+    expect(block.closest('header').inert).toBe(false);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(main.inert).toBe(false);
+  });
+
+  it('closes the mobile drawer when the skip link is used', async () => {
+    desktopMatches = false;
+    const main = document.createElement('main');
+    document.body.append(main);
+
+    const block = await decorateHeader();
+    const toggle = within(block).getByRole('button', { name: 'Menu' });
+    toggle.click();
+
+    expect(block).toHaveClass('header--nav-open');
+    expect(main.inert).toBe(true);
+
+    within(document.body).getByRole('link', { name: 'Skip to main content' }).click();
+
+    expect(block).not.toHaveClass('header--nav-open');
+    expect(main.inert).toBe(false);
+  });
+
+  it('parses a nav nested under the brand list item', async () => {
+    loadFragment.mockResolvedValue(createFragment(`
+      <ul>
+        <li>
+          <a href="/"><img src="/logo.svg" alt="Adobe Labs"></a>
+          <ul>
+            <li><a href="/research">Research</a></li>
+            <li>
+              <a href="/products">Products</a>
+              <ul>
+                <li><a href="/products/photoshop">Photoshop</a></li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li><a class="button" href="https://www.adobe.com/">Subscribe</a></li>
+      </ul>
+    `));
+
+    const block = await decorateHeader();
+
+    expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toHaveAttribute('href', '/');
+    expect(within(block).getByRole('link', { name: 'Research' })).toHaveAttribute('href', '/research');
+    expect(within(block).getByRole('button', { name: 'Products' })).toBeInTheDocument();
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('header__cta');
+  });
+
+  it('keeps a Subscribe nav item when the CTA is a sibling button', async () => {
+    loadFragment.mockResolvedValue(createFragment(`
+      <p><a href="/">Adobe Labs</a></p>
+      <ul>
+        <li><a href="/research">Research</a></li>
+        <li><a href="/subscribe">Subscribe</a></li>
+      </ul>
+      <p><a class="button" href="https://www.adobe.com/">Join</a></p>
+    `));
+
+    const block = await decorateHeader();
+
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveAttribute('href', '/subscribe');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('header__cta');
+    expect(within(block).getByRole('link', { name: 'Join' })).toHaveClass('header__cta');
   });
 });

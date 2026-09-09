@@ -24,6 +24,15 @@ import { loadFragment } from '../fragment/fragment.js';
 const DESKTOP_MQ = '(width >= 48rem)';
 
 /**
+ * Whether the viewport is the desktop nav breakpoint.
+ *
+ * @returns {boolean}
+ */
+function isDesktop() {
+  return window.matchMedia(DESKTOP_MQ).matches;
+}
+
+/**
  * Default CTA label, and the text used to detect an unstyled Subscribe link.
  * @type {string}
  */
@@ -263,12 +272,16 @@ function setHeaderInverse(block, inverse) {
 
 /**
  * Whether a link is the Subscribe / utility CTA.
+ * `.button` always counts. The "Subscribe" label only counts outside the
+ * primary nav list, so a nav item with that name stays a nav item.
  *
  * @param {Element} link Anchor
+ * @param {Element|undefined} primaryList Primary nav `ul`
  * @returns {boolean}
  */
-function isCtaLink(link) {
+function isCtaLink(link, primaryList) {
   if (link.classList.contains('button')) return true;
+  if (primaryList?.contains(link)) return false;
   return link.textContent.trim().toLowerCase() === CTA_LABEL.toLowerCase();
 }
 
@@ -353,10 +366,13 @@ function itemsFromList(list, skip) {
 function parseNavFragment(fragment) {
   const allLinks = collectLinks(fragment);
   const brandLink = allLinks.find(isBrandLink);
-  const ctaLink = [...allLinks].reverse().find((link) => link !== brandLink && isCtaLink(link));
   const list = [...fragment.querySelectorAll('ul')].find((ul) => !ul.parentElement?.closest('ul'));
+  const primaryList = primaryNavList(list, brandLink);
+  const ctaLink = [...allLinks].reverse().find((link) => (
+    link !== brandLink && isCtaLink(link, primaryList)
+  ));
   const skip = new Set([brandLink, ctaLink].filter(Boolean));
-  const items = itemsFromList(primaryNavList(list, brandLink), skip);
+  const items = itemsFromList(primaryList, skip);
 
   const brandImage = brandLink?.querySelector('img, picture') || null;
   const brandLabel = brandLink?.textContent.trim()
@@ -421,24 +437,27 @@ function itemMarkup(item, index, chevronSvg) {
   const hasMenu = item.columns.length > 0;
   const current = item.href && pathMatches(item.href) ? ' aria-current="page"' : '';
   if (!hasMenu) {
-    const href = escapeAttr(item.href || '#');
+    const href = escapeAttr(item.href);
     return `
       <li class="header__item">
         <a class="header__link" href="${href}"${current}>${label}</a>
       </li>
     `;
   }
+  const mobile = !isDesktop();
   const panelId = `header-panel-${index}`;
   const columns = item.columns.map((column) => columnMarkup(column)).join('');
   return `
     <li class="header__item header__item--has-menu">
       <button
         type="button"
-        class="header__link"
+        class="header__link header__trigger"
         aria-expanded="false"
         aria-controls="${panelId}"
+        ${mobile ? 'hidden' : ''}
       >${label}${chevronSvg}</button>
-      <div class="header__panel" id="${panelId}" hidden>
+      <span class="header__link header__menu-label" aria-hidden="true"${mobile ? '' : ' hidden'}>${label}</span>
+      <div class="header__panel" id="${panelId}" role="group" aria-label="${label}"${mobile ? '' : ' hidden'}>
         ${columns}
       </div>
     </li>
@@ -508,15 +527,6 @@ function buildHeaderBar(data, icons) {
  */
 
 /**
- * Whether the viewport is the desktop nav breakpoint.
- *
- * @returns {boolean}
- */
-function isDesktop() {
-  return window.matchMedia(DESKTOP_MQ).matches;
-}
-
-/**
  * Closes every open mega panel in the header.
  *
  * @param {Element} block Header block
@@ -524,6 +534,7 @@ function isDesktop() {
  * @returns {void}
  */
 function closePanels(block, exceptTrigger) {
+  if (!isDesktop()) return;
   block.querySelectorAll('.header__item--has-menu').forEach((item) => {
     const trigger = item.querySelector(':scope > button.header__link');
     const panel = item.querySelector('.header__panel');
@@ -543,6 +554,7 @@ function closePanels(block, exceptTrigger) {
  * @returns {void}
  */
 function setPanelOpen(block, trigger, forceOpen) {
+  if (!isDesktop()) return;
   const item = trigger.closest('.header__item');
   const panel = item?.querySelector('.header__panel');
   if (!item || !panel) return;
@@ -567,7 +579,25 @@ function setMenuToggle(toggle, open) {
 }
 
 /**
- * Opens or closes the mobile drawer and scroll-lock.
+ * Inerts page content outside the live header while the mobile drawer is open.
+ *
+ * @param {boolean} lock Whether to inert
+ * @param {Element} liveRoot Header element that stays interactive
+ * @returns {void}
+ */
+function setPageInert(lock, liveRoot) {
+  [...document.body.children].forEach((el) => {
+    if (el === liveRoot || liveRoot.contains(el)) {
+      el.inert = false;
+      return;
+    }
+    if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'LINK') return;
+    el.inert = lock;
+  });
+}
+
+/**
+ * Opens or closes the mobile drawer, scroll-lock, and page inert.
  *
  * @param {Element} block Header block
  * @param {boolean} open Whether the drawer is open
@@ -577,9 +607,12 @@ function setMenuToggle(toggle, open) {
 function setDrawerOpen(block, open, restoreTo) {
   const toggle = block.querySelector('.header__toggle');
   if (!toggle) return;
+  const liveRoot = block.closest('header') || block;
+  const lock = open && !isDesktop();
   setMenuToggle(toggle, open);
   block.classList.toggle('header--nav-open', open);
-  setScrollLock(open && !isDesktop());
+  setScrollLock(lock);
+  setPageInert(lock, liveRoot);
   if (!open) restoreTo?.focus();
 }
 
@@ -603,33 +636,14 @@ function closeDrawer(block, restoreTo) {
  */
 function syncMenuItem(item, mobile) {
   const panel = item.querySelector('.header__panel');
-  let trigger = item.querySelector(':scope > .header__link');
+  const trigger = item.querySelector(':scope > button.header__link');
+  const label = item.querySelector(':scope > .header__menu-label');
   if (!panel || !trigger) return;
 
-  if (mobile) {
-    if (trigger.tagName === 'BUTTON') {
-      const label = document.createElement('span');
-      label.className = 'header__link';
-      label.append(...trigger.childNodes);
-      trigger.replaceWith(label);
-    }
-    panel.hidden = false;
-    item.classList.remove('header__item--open');
-    return;
-  }
-
-  if (trigger.tagName !== 'BUTTON') {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'header__link';
-    button.append(...trigger.childNodes);
-    button.setAttribute('aria-expanded', 'false');
-    button.setAttribute('aria-controls', panel.id);
-    trigger.replaceWith(button);
-    trigger = button;
-  }
+  trigger.hidden = mobile;
+  if (label) label.hidden = !mobile;
   trigger.setAttribute('aria-expanded', 'false');
-  panel.hidden = true;
+  panel.hidden = !mobile;
   item.classList.remove('header__item--open');
 }
 
@@ -709,7 +723,11 @@ function bindHeader(block) {
   headerAbort?.abort();
   headerAbort = new AbortController();
   const { signal } = headerAbort;
-  signal.addEventListener('abort', () => setScrollLock(false), { once: true });
+  const liveRoot = block.closest('header') || block;
+  signal.addEventListener('abort', () => {
+    setScrollLock(false);
+    setPageInert(false, liveRoot);
+  }, { once: true });
 
   block.addEventListener('click', (event) => {
     const trigger = event.target.closest('.header__item--has-menu > button.header__link');
@@ -754,6 +772,10 @@ function bindHeader(block) {
     if (!openItem || openItem.contains(event.relatedTarget)) return;
     const trigger = openItem.querySelector(':scope > button.header__link');
     if (trigger) setPanelOpen(block, trigger, false);
+  }, { signal });
+
+  document.querySelector('a.header__skip')?.addEventListener('click', () => {
+    closeDrawer(block);
   }, { signal });
 
   const mq = window.matchMedia(DESKTOP_MQ);
