@@ -160,8 +160,8 @@
   &::before {
     content: "";
     flex-shrink: 0;
-    width: 10px;
-    height: 10px;
+    width: 0.875rem;
+    height: 0.875rem;
     border-radius: var(--s2a-border-radius-3xs);
     background: var(--elastic-router-content-type-color);
   }
