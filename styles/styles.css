@@ -37,7 +37,7 @@
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, "Arial Bold Adjusted", sans-serif;
   --typography-font-weight-heading-2: var(--s2a-font-weight-adobe-clean-display-black);
 
-  /* nav height */
+  /* nav height: 64px mobile bar, 80px desktop (8px inset + 64px bar) */
   --nav-height: 64px;
 
   /* sizing */
@@ -57,6 +57,7 @@
 @media (width >= 48rem) {
   :root {
     --site-root-inline-padding: var(--s2a-spacing-lg, 1.0rem);
+    --nav-height: 80px;
   }
 }
 

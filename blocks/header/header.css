@@ -1,125 +1,252 @@
 /**
- * Labs header glue. Block class is `.header` (BEM).
- * Descendant `.feds-*` selectors target Milo-generated markup in gnav/
- * and are not renamed.
+ * Labs header. Block class is `.header` (BEM).
+ * Desktop and mobile chrome match Figma Nav 334:29071.
  */
 
 header {
-  --feds-height-nav: var(--nav-height, 64px);
-
-  position: relative;
-  z-index: 2;
-}
-
-/* Boilerplate `header { height: var(--nav-height) }` clips mega-menu popups. */
-header.global-navigation {
-  height: auto;
   overflow: visible;
 }
 
 .header {
-  background-color: var(--feds-background-nav, var(--s2a-color-gray-50, #f8f8f8));
+  --header-bar-height: 4rem;
+  --header-inset: 0;
+  --header-radius: 0;
+  --header-link: var(--s2a-color-content-default, #000);
+  --header-bg: var(--s2a-color-background-default, #fff);
 
-  /* Universal Nav / app switcher is out of scope. */
-  .feds-utilities,
-  #unav-app-switcher,
-  .unav-comp-app-switcher {
+  position: relative;
+  z-index: 2;
+  padding: var(--header-inset);
+  background: transparent;
+}
+
+.header__bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  box-sizing: border-box;
+  min-block-size: var(--header-bar-height);
+  padding-block: var(--s2a-spacing-sm, 0.75rem);
+  padding-inline: var(--s2a-spacing-lg, 1.5rem) var(--s2a-spacing-md, 1rem);
+  border-radius: var(--header-radius);
+  border-block-end: 1px solid rgb(0 0 0 / 8%);
+  background-color: var(--header-bg);
+}
+
+.header__brand {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  text-decoration: none;
+}
+
+.header__lockup {
+  display: none;
+  block-size: 1.0625rem;
+  inline-size: 7.25rem;
+  color: var(--header-link);
+}
+
+.header__mark {
+  display: block;
+  block-size: 1rem;
+  inline-size: 1.125rem;
+  color: var(--header-link);
+}
+
+.header__toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  background: transparent;
+  color: var(--header-link);
+  cursor: pointer;
+}
+
+.header__toggle-icon {
+  display: block;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  color: var(--header-link);
+}
+
+.header__nav {
+  display: none;
+  flex: 1 1 auto;
+}
+
+.header--nav-open .header__bar {
+  border-block-end: 0;
+}
+
+.header--nav-open .header__nav {
+  display: block;
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline: 0;
+  padding: var(--s2a-spacing-md, 1rem);
+  background-color: var(--header-bg);
+}
+
+.header__list,
+.header__column-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2a-spacing-sm, 0.75rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.header__item--has-menu .header__panel {
+  display: block;
+  position: static;
+  padding-block-start: var(--s2a-spacing-xs, 0.5rem);
+  padding-inline-start: var(--s2a-spacing-md, 1rem);
+}
+
+.header__item--has-menu .header__panel[hidden] {
+  display: block;
+}
+
+.header__link {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: var(--s2a-spacing-xs, 0.5rem) 0;
+  border: 0;
+  background: transparent;
+  color: var(--header-link);
+  font-family: var(--body-font-family);
+  font-size: var(--s2a-typography-font-size-label, 0.875rem);
+  font-weight: var(--s2a-font-weight-adobe-clean-bold, 700);
+  line-height: var(--s2a-typography-line-height-label, 1.125rem);
+  letter-spacing: var(--s2a-typography-letter-spacing-label, 0);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.header__link:hover {
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .header__link {
+    transition: opacity 0.15s ease;
+  }
+}
+
+.header__cta {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+
+.header__column-heading {
+  margin: 0 0 var(--s2a-spacing-xs, 0.5rem);
+  font-size: var(--s2a-typography-font-size-label, 0.875rem);
+  font-weight: var(--s2a-font-weight-adobe-clean-bold, 700);
+}
+
+.header__panel-link {
+  color: var(--header-link);
+  font-size: var(--s2a-typography-font-size-label, 0.875rem);
+  text-decoration: none;
+}
+
+.header--inverse {
+  --header-link: var(--s2a-color-gray-25, #fff);
+  --header-bg: var(--s2a-color-gray-1000, #000);
+}
+
+.header__brand:focus-visible,
+.header__link:focus-visible,
+.header__toggle:focus-visible,
+.header__panel-link:focus-visible {
+  outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
+  outline-offset: 2px;
+}
+
+@media (width >= 48rem) {
+  .header {
+    --header-bar-height: 4rem;
+    --header-inset: var(--s2a-spacing-xs, 0.5rem);
+    --header-radius: 1rem;
+  }
+
+  .header__bar {
+    justify-content: flex-start;
+    gap: var(--s2a-spacing-lg, 1.5rem);
+    padding-inline: var(--s2a-spacing-md, 1rem);
+    padding-block: 0;
+    border-block-end: 0;
+    backdrop-filter: blur(4rem);
+  }
+
+  .header__lockup {
+    display: block;
+  }
+
+  .header__mark {
     display: none;
   }
 
-  .feds-profile {
-    margin-left: auto;
-    display: flex;
+  .header__toggle {
+    display: none;
+  }
+
+  .header__nav,
+  .header--nav-open .header__nav {
+    display: block;
+    position: static;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .header__list {
+    flex-direction: row;
     align-items: center;
+    gap: 1.5rem;
   }
 
-  /* Milo class is camelCase (`feds-signIn`); do not BEM-ify it. */
-  /* stylelint-disable selector-class-pattern */
-  .feds-signIn.button {
-    width: auto;
-    color: var(--color-button-text-primary);
-    text-align: center;
+  /* Dim sibling labels when one is hovered, like adobe.com. */
+  .header__list:has(> .header__item > .header__link:hover) > .header__item:not(:hover) > .header__link {
+    opacity: var(--s2a-opacity-48, 0.48);
   }
 
-  .feds-signIn.button:hover {
-    color: var(--color-button-text-primary);
+  .header__item {
+    position: static;
   }
-  /* stylelint-enable selector-class-pattern */
 
-  /*
-   * Small-screen chrome: logo, two-line hamburger, utility CTA.
-   * Matches adobe.com mobile gnav without the app switcher.
-   */
-  @media (width < 900px) {
-    &.new-nav {
-      .feds-topnav {
-        align-items: center;
-        padding-inline: 8px 12px;
-      }
+  .header__item--has-menu .header__panel,
+  .header__item--has-menu .header__panel[hidden] {
+    display: none;
+  }
 
-      .feds-brand-container {
-        display: flex;
-        align-items: center;
-        gap: 0;
-      }
+  .header__item--open .header__panel,
+  .header__item--open .header__panel[hidden] {
+    display: flex;
+    position: absolute;
+    z-index: 3;
+    inset-block-start: calc(100% - var(--header-inset));
+    inset-inline: var(--header-inset);
+    box-sizing: border-box;
+    padding: var(--s2a-spacing-lg, 1.5rem);
+    border-radius: 1rem;
+    background-color: var(--header-bg);
+    box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 12%);
+    gap: var(--s2a-spacing-xl, 2rem);
+  }
 
-      /* Adobe.com order: mark, then hamburger. */
-      .feds-brand {
-        order: 0;
-        padding-inline: 8px;
-      }
-
-      .feds-brand-label,
-      .feds-logo {
-        display: none;
-      }
-
-      .feds-toggle {
-        order: 1;
-        position: relative;
-        width: 44px;
-        min-width: 44px;
-        height: 44px;
-        margin: 0;
-        padding: 0;
-        font-size: 0;
-        color: var(--feds-color-hamburger, var(--s2a-color-gray-800, #2d2d2d));
-      }
-
-      .feds-toggle::before,
-      .feds-toggle::after {
-        content: "";
-        position: absolute;
-        left: 13px;
-        width: 18px;
-        height: 2px;
-        background: currentcolor;
-        border-radius: 1px;
-      }
-
-      .feds-toggle::before {
-        top: 17px;
-      }
-
-      .feds-toggle::after {
-        top: 25px;
-      }
-
-      .feds-toggle[aria-expanded="true"]::before {
-        top: 21px;
-        transform: rotate(45deg);
-      }
-
-      .feds-toggle[aria-expanded="true"]::after {
-        top: 21px;
-        transform: rotate(-45deg);
-      }
-
-      .feds-toggle:focus-visible,
-      .feds-brand:focus-visible {
-        outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
-        outline-offset: 2px;
-      }
-    }
+  .header__column {
+    min-inline-size: 10rem;
   }
 }
