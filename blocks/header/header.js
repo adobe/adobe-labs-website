@@ -9,7 +9,7 @@ import { loadFragment } from '../fragment/fragment.js';
 
 /**
  * @file Header block. Loads the nav fragment and paints Labs global navigation:
- * brand lockup, primary links, optional mega panels, and a Subscribe CTA.
+ * brand logo, primary links, optional mega panels, and a Subscribe CTA.
  * Content path: `nav` metadata, or `/fragments/nav` by default.
  *
  * Authored fragment shape: a list whose first item is the brand (nav nested
@@ -22,6 +22,12 @@ import { loadFragment } from '../fragment/fragment.js';
  * @type {string}
  */
 const DESKTOP_MQ = '(width >= 48rem)';
+
+/**
+ * Default CTA label, and the text used to detect an unstyled Subscribe link.
+ * @type {string}
+ */
+const CTA_LABEL = 'Subscribe';
 
 /**
  * Listener abort controllers keyed by header block, so re-decorate does not leak.
@@ -46,7 +52,7 @@ const headerAborts = new WeakMap();
  */
 
 /**
- * Brand lockup parsed from the nav fragment.
+ * Brand logo parsed from the nav fragment.
  *
  * @typedef {object} HeaderBrand
  * @property {string} href Brand home href
@@ -75,8 +81,8 @@ const headerAborts = new WeakMap();
  * Inlined header icons used to paint the bar.
  *
  * @typedef {object} HeaderIcons
- * @property {string} lockupSvg Desktop lockup markup
- * @property {string} markSvg Mobile mark markup
+ * @property {string} logoDesktopSvg Desktop logo markup
+ * @property {string} logoMobileSvg Mobile logo markup
  * @property {string} menuSvg Menu toggle markup
  * @property {string} chevronSvg Mega-menu chevron markup
  */
@@ -213,11 +219,11 @@ function getNavPath() {
  */
 function isCtaLink(link) {
   if (link.classList.contains('button')) return true;
-  return link.textContent.trim().toLowerCase() === 'subscribe';
+  return link.textContent.trim().toLowerCase() === CTA_LABEL.toLowerCase();
 }
 
 /**
- * Whether a link is the brand / home lockup.
+ * Whether a link is the brand / home logo.
  *
  * @param {Element} link Anchor
  * @returns {boolean}
@@ -321,7 +327,7 @@ function parseNavFragment(fragment) {
     items: items.filter((item) => item.href || item.columns.length),
     cta: ctaLink ? {
       href: toNavHref(ctaLink.getAttribute('href')),
-      label: ctaLink.textContent.trim() || 'Subscribe',
+      label: ctaLink.textContent.trim() || CTA_LABEL,
     } : null,
   };
 }
@@ -390,15 +396,15 @@ function itemMarkup(item, index, chevronSvg) {
 }
 
 /**
- * Brand lockup markup: authored image when safe, otherwise inlined SVGs.
+ * Brand logo markup: authored image when safe, otherwise inlined SVGs.
  *
  * @param {HeaderBrand} brand Parsed brand
- * @param {string} lockupSvg Desktop lockup SVG
- * @param {string} markSvg Mobile mark SVG
+ * @param {string} logoDesktopSvg Desktop logo SVG
+ * @param {string} logoMobileSvg Mobile logo SVG
  * @returns {string}
  */
-function brandMediaMarkup(brand, lockupSvg, markSvg) {
-  const fallback = `${lockupSvg}${markSvg}`;
+function brandMediaMarkup(brand, logoDesktopSvg, logoMobileSvg) {
+  const fallback = `${logoDesktopSvg}${logoMobileSvg}`;
   const authoredImage = brand.image;
   if (!authoredImage) return fallback;
   const img = authoredImage.tagName === 'PICTURE'
@@ -407,8 +413,8 @@ function brandMediaMarkup(brand, lockupSvg, markSvg) {
   const src = toSafeHttpUrl(img?.getAttribute('src'));
   if (!src) return fallback;
   return `
-    <img class="header__lockup" src="${escapeAttr(src)}" alt="">
-    ${markSvg}
+    <img class="header__logo-desktop" src="${escapeAttr(src)}" alt="">
+    ${logoMobileSvg}
   `;
 }
 
@@ -422,7 +428,7 @@ function brandMediaMarkup(brand, lockupSvg, markSvg) {
 function buildHeaderBar(data, icons) {
   const brandName = escapeAttr(data.brand.label || 'Adobe Labs');
   const brandHref = escapeAttr(data.brand.href || '/');
-  const brandMedia = brandMediaMarkup(data.brand, icons.lockupSvg, icons.markSvg);
+  const brandMedia = brandMediaMarkup(data.brand, icons.logoDesktopSvg, icons.logoMobileSvg);
   const items = data.items.map((item, index) => itemMarkup(item, index, icons.chevronSvg)).join('');
   const cta = data.cta?.href
     ? `<a class="header__cta button" href="${escapeAttr(data.cta.href)}">${escapeAttr(data.cta.label)}</a>`
@@ -659,8 +665,8 @@ export default async function decorate(block) {
   ensureSkipLink(document);
 
   const iconsPromise = Promise.all([
-    loadHeaderIcon('img/lockup.svg', 'header__lockup'),
-    loadHeaderIcon('img/mark.svg', 'header__mark'),
+    loadHeaderIcon('img/logo-desktop.svg', 'header__logo-desktop'),
+    loadHeaderIcon('img/logo-mobile.svg', 'header__logo-mobile'),
     loadHeaderIcon('img/menu.svg', 'header__toggle-icon'),
     loadHeaderIcon('img/chevron-down.svg', 'header__chevron'),
   ]);
@@ -668,10 +674,10 @@ export default async function decorate(block) {
   const fragment = await loadFragment(getNavPath());
   if (!fragment) return;
 
-  const [lockupSvg, markSvg, menuSvg, chevronSvg] = await iconsPromise;
+  const [logoDesktopSvg, logoMobileSvg, menuSvg, chevronSvg] = await iconsPromise;
   block.replaceChildren(buildHeaderBar(parseNavFragment(fragment), {
-    lockupSvg,
-    markSvg,
+    logoDesktopSvg,
+    logoMobileSvg,
     menuSvg,
     chevronSvg,
   }));

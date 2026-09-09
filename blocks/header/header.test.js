@@ -139,10 +139,10 @@ describe('header block', () => {
     expect(loadFragment).toHaveBeenCalledWith('/fragments/custom-nav');
   });
 
-  it('renders lockup, links, and Subscribe', async () => {
+  it('renders the logo, links, and Subscribe', async () => {
     const block = await decorateHeader();
 
-    expect(block.querySelector('.header__lockup')).toHaveAttribute('alt', '');
+    expect(block.querySelector('.header__logo-desktop')).toHaveAttribute('alt', '');
     expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
     expect(within(document.body).getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main');
     expect(within(block).getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
@@ -253,8 +253,8 @@ describe('header block', () => {
 
     const block = await decorateHeader();
 
-    expect(block.querySelector('img.header__lockup')).toBeNull();
-    expect(block.querySelector('svg.header__lockup')).toHaveAttribute('aria-hidden', 'true');
+    expect(block.querySelector('img.header__logo-desktop')).toBeNull();
+    expect(block.querySelector('svg.header__logo-desktop')).toHaveAttribute('aria-hidden', 'true');
     expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
   });
 
