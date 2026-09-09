@@ -1,12 +1,3 @@
-import { getMetadata } from '../../scripts/aem.js';
-import {
-  ensureSkipLink,
-  escapeAttr,
-  fromHTML,
-  toSafeHttpUrl,
-} from '../../scripts/utils/utils.js';
-import { loadFragment } from '../fragment/fragment.js';
-
 /**
  * @file Header block. Loads the nav fragment and paints Labs global navigation:
  * brand logo, primary links, optional mega panels, and a Subscribe CTA.
@@ -16,6 +7,14 @@ import { loadFragment } from '../fragment/fragment.js';
  * under it, optional mega under an item) and a sibling Subscribe link; or a
  * brand paragraph, sibling list, and `.button` CTA.
  */
+import { getMetadata } from '../../scripts/aem.js';
+import {
+  ensureSkipLink,
+  escapeAttr,
+  fromHTML,
+  toSafeHttpUrl,
+} from '../../scripts/utils/utils.js';
+import { loadFragment } from '../fragment/fragment.js';
 
 /**
  * Viewport query for the desktop nav (`>= 48rem`).
@@ -81,9 +80,9 @@ let headerAbort;
  * Parsed nav fragment used to decorate the header.
  *
  * @typedef {object} HeaderNavData
- * @property {HeaderBrand} brand
- * @property {HeaderNavItem[]} items
- * @property {HeaderCta|null} cta
+ * @property {HeaderBrand} brand Brand / home logo
+ * @property {HeaderNavItem[]} items Primary nav items
+ * @property {HeaderCta|null} cta Subscribe CTA, if authored
  */
 
 /**
@@ -106,7 +105,7 @@ let headerAbort;
  * URL for an asset under this block.
  *
  * @param {string} path Path relative to `blocks/header/`
- * @returns {string}
+ * @returns {string} URL under this block, including `codeBasePath`
  */
 function getHeaderAsset(path) {
   const base = window.hlx?.codeBasePath || '';
@@ -202,7 +201,7 @@ function collectLinks(root) {
 /**
  * Fragment path from `nav` metadata, or the default nav fragment.
  *
- * @returns {string}
+ * @returns {string} Fragment pathname, default `/fragments/nav`
  */
 function getNavPath() {
   const navMeta = getMetadata('nav');
@@ -276,7 +275,7 @@ function setHeaderInverse(block, inverse) {
  * primary nav list, so a nav item with that name stays a nav item.
  *
  * @param {Element} link Anchor
- * @param {Element|undefined} primaryList Primary nav `ul`
+ * @param {Element} [primaryList] Primary nav `ul`
  * @returns {boolean}
  */
 function isCtaLink(link, primaryList) {
@@ -323,9 +322,9 @@ function nestedMegaColumn(itemEl) {
  * List of primary items: nested under the brand when DA nests the menu there,
  * otherwise the first top-level list.
  *
- * @param {Element|undefined} list First top-level `ul`
- * @param {Element|undefined} brandLink Brand anchor
- * @returns {Element|undefined}
+ * @param {Element} [list] First top-level `ul`
+ * @param {Element} [brandLink] Brand anchor
+ * @returns {Element|undefined} Primary nav list, or undefined if `list` is missing
  */
 function primaryNavList(list, brandLink) {
   if (!list) return undefined;
@@ -340,7 +339,7 @@ function primaryNavList(list, brandLink) {
 /**
  * Primary nav items from a list of `li`s.
  *
- * @param {Element|undefined} list `ul` element
+ * @param {Element} [list] `ul` element
  * @param {Set<Element>} skip Brand and CTA links
  * @returns {HeaderNavItem[]}
  */
@@ -470,7 +469,7 @@ function itemMarkup(item, index, chevronSvg) {
  * @param {HeaderBrand} brand Parsed brand
  * @param {string} logoDesktopSvg Desktop logo SVG
  * @param {string} logoMobileSvg Mobile logo SVG
- * @returns {string}
+ * @returns {string} Authored image and/or inlined SVG markup
  */
 function brandMediaMarkup(brand, logoDesktopSvg, logoMobileSvg) {
   const fallback = `${logoDesktopSvg}${logoMobileSvg}`;
@@ -492,7 +491,7 @@ function brandMediaMarkup(brand, logoDesktopSvg, logoMobileSvg) {
  *
  * @param {HeaderNavData} data Parsed fragment
  * @param {HeaderIcons} icons Inlined SVGs
- * @returns {Element}
+ * @returns {Element} `.header__bar` root
  */
 function buildHeaderBar(data, icons) {
   const brandName = escapeAttr(data.brand.label || 'Adobe Labs');
