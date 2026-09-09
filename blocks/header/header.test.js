@@ -1,60 +1,124 @@
+/**
+ * Header block tests. Fixtures follow the Milo gnav content shape.
+ */
 import { within } from '@testing-library/dom';
-import { getMetadata } from '../../scripts/aem.js';
-import { loadFragment } from '../fragment/fragment.js';
+import { getMetadata, loadCSS } from '../../scripts/aem.js';
 
 jest.mock('../../scripts/aem.js', () => ({
   getMetadata: jest.fn(() => ''),
+  loadCSS: jest.fn(() => Promise.resolve()),
+  loadBlock: jest.fn(() => Promise.resolve()),
+  loadScript: jest.fn(() => Promise.resolve()),
 }));
 
-jest.mock('../fragment/fragment.js', () => ({
-  loadFragment: jest.fn(),
-}));
-
-let desktopMatches = false;
+let desktopMatches = true;
 let decorate;
 
-function createFragment(html) {
-  const wrap = document.createElement('div');
-  wrap.innerHTML = html;
-  return wrap;
+/**
+ * Federal-shaped nav fragment used by most header tests.
+ * @type {string}
+ */
+const GNAV_HTML = `
+  <div class="adobe-logo">
+    <p><a href="/"><img src="/logo.svg" alt="Adobe, Inc."></a></p>
+  </div>
+  <div class="gnav-brand">
+    <p><a href="/">Adobe</a></p>
+  </div>
+  <div class="large-menu">
+    <div>
+      <h2><a href="/products">Products</a></h2>
+    </div>
+  </div>
+  <p><a href="https://www.adobe.com/creativecloud/plans.html">Plans</a></p>
+`;
+
+/**
+ * Nav fragment that includes a CMS-authored Subscribe CTA.
+ * @type {string}
+ */
+const GNAV_WITH_CTA_HTML = `
+  ${GNAV_HTML}
+  <div class="cta">
+    <div>
+      <div><p><a href="https://www.adobe.com/">Subscribe</a></p></div>
+    </div>
+  </div>
+`;
+
+/**
+ * Builds a fetch-like Response stub.
+ * @param {number} status HTTP status
+ * @param {string} [html=''] Response body
+ * @returns {{
+ *   status: number,
+ *   ok: boolean,
+ *   statusText: string,
+ *   url: string,
+ *   text: function(): Promise<string>,
+ *   clone: function(): object,
+ * }}
+ */
+function jsonResponse(status, html = '') {
+  return {
+    status,
+    ok: status === 200,
+    statusText: status === 200 ? 'OK' : 'Not Found',
+    url: '',
+    text: async () => html,
+    clone() {
+      return jsonResponse(status, html);
+    },
+  };
 }
 
-function createNavFragment() {
-  return createFragment(`
-    <div class="section">
-      <div class="default-content-wrapper">
-        <p class="button-container"><a class="button" href="/">Adobe Labs</a></p>
-      </div>
-    </div>
-    <div class="section">
-      <div class="default-content-wrapper">
-        <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/products">Products</a>
-            <ul><li><a href="/p1">One</a></li></ul>
-          </li>
-        </ul>
-      </div>
-    </div>
-    <div class="section">
-      <div class="default-content-wrapper"><p>Search</p></div>
-    </div>
-  `);
+/**
+ * Polls until `predicate` is true or `timeout` elapses.
+ * @param {function(): boolean} predicate Condition to wait for
+ * @param {number} [timeout=2000] Timeout in milliseconds
+ * @returns {Promise<void>}
+ */
+async function waitFor(predicate, timeout = 2000) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (predicate()) return;
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve) => {
+      setTimeout(resolve, 10);
+    });
+  }
+  throw new Error('Timed out waiting for header decoration');
 }
 
+/**
+ * Creates a header block, runs decorate, and waits for the Milo topnav.
+ * @param {{ append?: boolean }} [options]
+ * @param {boolean} [options.append] Unused; block is always appended to `document.body`
+ * @returns {Promise<HTMLElement>} Decorated header block
+ */
 async function decorateHeader({ append = false } = {}) {
   const block = document.createElement('div');
+  block.className = 'header';
   block.innerHTML = '<p>Placeholder</p>';
-  if (append) document.body.append(block);
+  const header = document.createElement('header');
+  header.append(block);
+  if (append) document.body.append(header);
+  else document.body.append(header);
   await decorate(block);
+  await waitFor(() => block.querySelector('.feds-topnav') || !block.querySelector('p'));
   return block;
 }
 
-function getNav(block) {
-  return block.querySelector('#nav');
-}
-
 beforeAll(() => {
+  window.hlx = { codeBasePath: '' };
+  window.performance = window.performance || {};
+  window.performance.mark = jest.fn();
+  window.performance.measure = jest.fn(() => ({
+    name: '',
+    startTime: 0,
+    duration: 0,
+  }));
+  window.performance.getEntriesByName = jest.fn(() => []);
   window.matchMedia = jest.fn(() => ({
     get matches() {
       return desktopMatches;
@@ -67,6 +131,18 @@ beforeAll(() => {
     dispatchEvent: jest.fn(),
   }));
 
+  global.ResizeObserver = jest.fn().mockImplementation(() => ({
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+    disconnect: jest.fn(),
+  }));
+
+  global.IntersectionObserver = jest.fn().mockImplementation(() => ({
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+    disconnect: jest.fn(),
+  }));
+
   // eslint-disable-next-line global-require
   decorate = require('./header.js').default;
 });
@@ -74,121 +150,112 @@ beforeAll(() => {
 describe('header block', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    desktopMatches = false;
+    desktopMatches = true;
     document.body.innerHTML = '';
-    document.body.style.overflowY = '';
-    getMetadata.mockReturnValue('');
-    loadFragment.mockResolvedValue(createNavFragment());
+    getMetadata.mockImplementation((name) => (name === 'nav' ? '' : ''));
+    global.fetch = jest.fn(async (url) => {
+      const href = String(url);
+      if (href.includes('/fragments/nav.plain.html') || href.includes('/fragments/custom-nav.plain.html')) {
+        return jsonResponse(200, GNAV_HTML);
+      }
+      return jsonResponse(404);
+    });
+    loadCSS.mockResolvedValue();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
   });
 
   it('loads the default nav fragment when nav metadata is empty', async () => {
     await decorateHeader();
 
-    expect(getMetadata).toHaveBeenCalledWith('nav');
-    expect(loadFragment).toHaveBeenCalledWith('/fragments/nav');
+    expect(getMetadata.mock.calls.some(([name]) => name === 'nav')).toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/fragments\/nav\.plain\.html$/),
+    );
+    // cssPromise is a module singleton — assert on the first decorate in this file.
+    expect(loadCSS).toHaveBeenCalledWith(
+      expect.stringMatching(/\/blocks\/header\/gnav\/base\.css$/),
+    );
+    expect(loadCSS).toHaveBeenCalledWith(
+      expect.stringMatching(/\/blocks\/header\/gnav\/global-navigation\.css$/),
+    );
   });
 
   it('loads a custom nav fragment from nav metadata', async () => {
-    getMetadata.mockReturnValue('/fragments/custom-nav');
+    getMetadata.mockImplementation((name) => (name === 'nav' ? '/fragments/custom-nav' : ''));
 
     await decorateHeader();
 
-    expect(loadFragment).toHaveBeenCalledWith('/fragments/custom-nav');
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/fragments\/custom-nav\.plain\.html$/),
+    );
   });
 
-  it('decorates nav structure from the loaded fragment', async () => {
+  it('renders logo, brand, and top-level items from gnav content', async () => {
     const block = await decorateHeader();
-    const nav = getNav(block);
+    const headerEl = block.closest('header');
 
-    expect(block.querySelector('p')).not.toHaveTextContent('Placeholder');
-    expect(block.querySelector('.nav-wrapper')).toBe(nav.parentElement);
-    expect(nav.querySelector('.nav-hamburger button')).toHaveAttribute('aria-controls', 'nav');
-    expect(nav.children[1]).toHaveClass('nav-brand');
-    expect(nav.children[2]).toHaveClass('nav-sections');
-    expect(nav.children[3]).toHaveClass('nav-tools');
+    expect(block).toHaveClass('global-navigation');
+    expect(headerEl).toHaveClass('global-navigation');
+    expect(headerEl).toHaveClass('ready');
+    expect(block.querySelector('.feds-logo, .feds-brand')).not.toBeNull();
+    expect(within(block).getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
+    expect(within(block).getByRole('button', { name: 'Products' })).toBeInTheDocument();
   });
 
-  it('strips button classes from the brand link', async () => {
-    const block = await decorateHeader();
-    const brandLink = getNav(block).querySelector('.nav-brand a');
-
-    expect(brandLink).not.toHaveClass('button');
-    expect(brandLink.closest('.button-container')).toBeNull();
-  });
-
-  it('adds nav-drop to sections with nested lists', async () => {
-    const block = await decorateHeader();
-    const sections = getNav(block).querySelectorAll('.nav-sections li');
-
-    expect(sections[0]).not.toHaveClass('nav-drop');
-    expect(sections[1]).toHaveClass('nav-drop');
-  });
-
-  it('toggles the mobile menu on hamburger click', async () => {
-    const block = await decorateHeader();
-    const scope = within(block);
-
-    scope.getByRole('button', { name: 'Open navigation' }).click();
-
-    expect(scope.getByRole('navigation')).toHaveAttribute('aria-expanded', 'true');
-    expect(scope.getByRole('button', { name: 'Close navigation' })).toHaveAttribute('aria-label', 'Close navigation');
-    expect(document.body.style.overflowY).toBe('hidden');
-
-    scope.getByRole('button', { name: 'Close navigation' }).click();
-
-    expect(scope.getByRole('navigation')).toHaveAttribute('aria-expanded', 'false');
-    expect(scope.getByRole('button', { name: 'Open navigation' })).toHaveAttribute('aria-label', 'Open navigation');
-    expect(document.body.style.overflowY).toBe('');
-  });
-
-  it('toggles nav-drop aria-expanded on desktop click', async () => {
-    desktopMatches = true;
-    const block = await decorateHeader();
-    const navDrop = getNav(block).querySelector('.nav-drop');
-
-    navDrop.click();
-
-    expect(navDrop).toHaveAttribute('aria-expanded', 'true');
-
-    navDrop.click();
-
-    expect(navDrop).toHaveAttribute('aria-expanded', 'false');
-  });
-
-  it('closes the mobile menu on Escape', async () => {
+  it('opens a desktop dropdown on trigger click and closes on outside click', async () => {
     const block = await decorateHeader({ append: true });
-    const scope = within(block);
+    const trigger = within(block).getByRole('button', { name: 'Products' });
 
-    scope.getByRole('button', { name: 'Open navigation' }).click();
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', bubbles: true }));
+    trigger.click();
+    await waitFor(() => trigger.getAttribute('aria-expanded') === 'true');
 
-    expect(scope.getByRole('navigation')).toHaveAttribute('aria-expanded', 'false');
-    expect(scope.getByRole('button', { name: 'Open navigation' })).toHaveAttribute('aria-label', 'Open navigation');
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+    document.body.click();
+    await waitFor(() => trigger.getAttribute('aria-expanded') === 'false');
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('closes expanded nav sections on desktop Escape', async () => {
-    desktopMatches = true;
-    const block = await decorateHeader({ append: true });
-    const navDrop = getNav(block).querySelector('.nav-drop');
+  it('does not throw when the nav fragment is missing', async () => {
+    global.fetch.mockResolvedValue(jsonResponse(404));
+    const block = document.createElement('div');
+    block.className = 'header';
+    document.body.append(block);
 
-    navDrop.click();
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', bubbles: true }));
-
-    expect(navDrop).toHaveAttribute('aria-expanded', 'false');
+    await expect(decorate(block)).resolves.toBeUndefined();
+    expect(block.querySelector('.feds-topnav')).toBeNull();
   });
 
-  it('closes the mobile menu on focus lost', async () => {
+  it('renders mobile logo and hamburger without an app switcher', async () => {
+    desktopMatches = false;
     const block = await decorateHeader();
-    const scope = within(block);
-    const nav = scope.getByRole('navigation');
+    const headerEl = block.closest('header');
 
-    scope.getByRole('button', { name: 'Open navigation' }).click();
+    expect(headerEl).toHaveClass('new-nav');
+    expect(block.querySelector('.feds-brand, .feds-logo')).not.toBeNull();
+    expect(within(block).getByRole('button', { name: 'Navigation menu' })).toBeInTheDocument();
+    expect(block.querySelector('.feds-signIn')).toBeNull();
+    expect(block.querySelector('#unav-app-switcher, .unav-comp-app-switcher, .feds-utilities')).toBeNull();
+  });
 
-    nav.dispatchEvent(new FocusEvent('focusout', {
-      bubbles: true,
-      relatedTarget: document.body,
-    }));
+  it('renders a CMS-authored Subscribe CTA from the cta block', async () => {
+    desktopMatches = false;
+    global.fetch = jest.fn(async (url) => {
+      const href = String(url);
+      if (href.includes('/fragments/nav.plain.html')) {
+        return jsonResponse(200, GNAV_WITH_CTA_HTML);
+      }
+      return jsonResponse(404);
+    });
 
-    expect(nav).toHaveAttribute('aria-expanded', 'false');
+    const block = await decorateHeader();
+    const cta = within(block).getByRole('link', { name: 'Subscribe' });
+
+    expect(cta).toHaveAttribute('href', 'https://www.adobe.com/');
+    expect(cta).toHaveClass('button');
   });
 });
