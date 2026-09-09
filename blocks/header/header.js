@@ -1,8 +1,3 @@
-/**
- * Header block. Loads the nav fragment and paints Labs global navigation:
- * brand lockup, primary links, optional mega panels, and a Subscribe CTA.
- * Content path: `nav` metadata, or `/fragments/nav` by default.
- */
 import { getMetadata } from '../../scripts/aem.js';
 import {
   ensureSkipLink,
@@ -12,12 +7,84 @@ import {
 } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
+/**
+ * @file Header block. Loads the nav fragment and paints Labs global navigation:
+ * brand lockup, primary links, optional mega panels, and a Subscribe CTA.
+ * Content path: `nav` metadata, or `/fragments/nav` by default.
+ */
+
+/**
+ * Viewport query for the mobile drawer (`< 48rem`).
+ * @type {string}
+ */
 const MOBILE_MQ = '(width < 48rem)';
+
+/**
+ * Fragment nodes skipped when collecting nav links (merch, promo, imagery).
+ * @type {string}
+ */
 const SKIP_MENU_SELECTOR = '.merch, .gnav-promo, .promo, .gnav-image, .cross-cloud-menu';
+
+/**
+ * Listener abort controllers keyed by header block, so re-decorate does not leak.
+ * @type {WeakMap<Element, AbortController>}
+ */
 const headerAborts = new WeakMap();
 
 /**
+ * Options for inlining a header SVG.
+ *
+ * @typedef {object} HeaderSvgOptions
+ * @property {string} [label] Accessible name; omits `aria-hidden` when set
+ */
+
+/**
+ * One mega-panel column parsed from a menu document or nested list.
+ *
+ * @typedef {object} HeaderNavColumn
+ * @property {string} heading Column heading, or empty
+ * @property {Element[]} links Safe column links
+ */
+
+/**
+ * One primary nav item.
+ *
+ * @typedef {object} HeaderNavItem
+ * @property {string} label Visible label
+ * @property {string} href Primary href, or empty for menu-only items
+ * @property {HeaderNavColumn[]} columns Mega-menu columns
+ * @property {string} menuSrc Same-origin menu document to fetch, or empty
+ */
+
+/**
+ * Brand lockup parsed from the nav fragment.
+ *
+ * @typedef {object} HeaderBrand
+ * @property {string} href Brand home href
+ * @property {Element|null} image Authored logo, if any
+ * @property {string} label Accessible brand name
+ */
+
+/**
+ * Subscribe / utility CTA parsed from the nav fragment.
+ *
+ * @typedef {object} HeaderCta
+ * @property {string} href CTA href
+ * @property {string} label CTA label
+ */
+
+/**
+ * Parsed nav fragment used to decorate the header.
+ *
+ * @typedef {object} HeaderNavData
+ * @property {HeaderBrand} brand
+ * @property {HeaderNavItem[]} items
+ * @property {HeaderCta|null} cta
+ */
+
+/**
  * URL for an asset under this block.
+ *
  * @param {string} path Path relative to `blocks/header/`
  * @returns {string}
  */
@@ -28,8 +95,9 @@ function getHeaderAsset(path) {
 
 /**
  * Fetches an SVG asset from this block.
+ *
  * @param {string} path Path relative to `blocks/header/`
- * @returns {Promise<string>}
+ * @returns {Promise<string>} SVG markup, or empty on failure
  */
 async function fetchHeaderSvg(path) {
   try {
@@ -43,10 +111,11 @@ async function fetchHeaderSvg(path) {
 
 /**
  * Turns fetched SVG markup into an inline icon that inherits `--header-link`.
+ *
  * @param {string} markup SVG document
  * @param {string} className Class to add
- * @param {{ label?: string }} [options]
- * @returns {string}
+ * @param {HeaderSvgOptions} [options]
+ * @returns {string} Inlined SVG markup, or empty if none was found
  */
 function inlineHeaderSvg(markup, className, options = {}) {
   const wrap = document.createElement('div');
@@ -66,8 +135,9 @@ function inlineHeaderSvg(markup, className, options = {}) {
 
 /**
  * Same-origin relative href, or an absolute http(s) URL. Rejects javascript:/data:.
+ *
  * @param {string} value Candidate URL
- * @returns {string}
+ * @returns {string} Safe href, or empty if rejected
  */
 function toNavHref(value) {
   const abs = toSafeHttpUrl(value);
@@ -85,8 +155,9 @@ function toNavHref(value) {
 
 /**
  * Same-origin pathname for a candidate href, or empty if it cannot be fetched.
+ *
  * @param {string} href Authored href
- * @returns {string}
+ * @returns {string} Pathname, or empty if cross-origin or invalid
  */
 function sameOriginPathname(href) {
   try {
@@ -100,6 +171,7 @@ function sameOriginPathname(href) {
 
 /**
  * Whether `href` is the current page (or an ancestor path).
+ *
  * @param {string} href Link href
  * @returns {boolean}
  */
@@ -118,6 +190,7 @@ function pathMatches(href) {
 
 /**
  * Safe http(s) links inside `root`, skipping merch/promo blocks.
+ *
  * @param {Element} root Tree to search
  * @returns {Element[]}
  */
@@ -130,8 +203,9 @@ function collectLinks(root) {
 
 /**
  * Flattens a menu document into heading + link columns.
+ *
  * @param {Element} root Fetched menu root
- * @returns {{ heading: string, links: Element[] }[]}
+ * @returns {HeaderNavColumn[]}
  */
 function columnsFromMenuRoot(root) {
   const nodes = [...root.querySelectorAll('h2, h3, h4, h5, h6, a[href]')]
@@ -159,8 +233,9 @@ function columnsFromMenuRoot(root) {
 
 /**
  * Fetches a same-origin menu document and flattens it into columns.
+ *
  * @param {string} href Menu document href
- * @returns {Promise<{ heading: string, links: Element[] }[]>}
+ * @returns {Promise<HeaderNavColumn[]>}
  */
 async function fetchMenuColumns(href) {
   const pathname = sameOriginPathname(href);
@@ -178,8 +253,9 @@ async function fetchMenuColumns(href) {
 
 /**
  * Nested list columns under a list item.
+ *
  * @param {Element} itemEl `li` element
- * @returns {{ heading: string, links: Element[] }[]}
+ * @returns {HeaderNavColumn[]}
  */
 function columnsFromNestedList(itemEl) {
   const nested = itemEl.querySelector(':scope > ul');
@@ -204,6 +280,7 @@ function columnsFromNestedList(itemEl) {
 
 /**
  * Whether a link is the Subscribe / utility CTA.
+ *
  * @param {Element} link Anchor
  * @returns {boolean}
  */
@@ -215,6 +292,7 @@ function isCtaLink(link) {
 
 /**
  * Whether a link is the brand / home lockup.
+ *
  * @param {Element} link Anchor
  * @returns {boolean}
  */
@@ -232,7 +310,8 @@ function isBrandLink(link) {
 
 /**
  * Whether an href points at a static asset rather than a page.
- * @param {string} href
+ *
+ * @param {string} href Candidate href
  * @returns {boolean}
  */
 function isAssetHref(href) {
@@ -241,10 +320,12 @@ function isAssetHref(href) {
 
 /**
  * Pushes a leftover `.large-menu` block as one nav item.
+ *
  * @param {Element} menu Menu root
- * @param {object[]} items Item list
+ * @param {HeaderNavItem[]} items Item list
  * @param {Set<Element>} used Consumed links
  * @param {Set<Element>} seenMenus Already-processed menus
+ * @returns {void}
  */
 function consumeLargeMenu(menu, items, used, seenMenus) {
   if (seenMenus.has(menu)) return;
@@ -268,10 +349,12 @@ function consumeLargeMenu(menu, items, used, seenMenus) {
 
 /**
  * Pushes top-level list items into the nav.
+ *
  * @param {Element} list `ul` element
- * @param {object[]} items Item list
+ * @param {HeaderNavItem[]} items Item list
  * @param {Set<Element>} used Consumed links
  * @param {Set<Element>} seenLists Already-processed lists
+ * @returns {void}
  */
 function consumeNavList(list, items, used, seenLists) {
   if (seenLists.has(list) || list.parentElement?.closest('ul') || list.closest('.large-menu')) return;
@@ -306,9 +389,11 @@ function consumeNavList(list, items, used, seenLists) {
 
 /**
  * Pushes a remaining heading/link as a plain nav item.
+ *
  * @param {Element} link Anchor
- * @param {object[]} items Item list
+ * @param {HeaderNavItem[]} items Item list
  * @param {Set<Element>} used Consumed links
+ * @returns {void}
  */
 function consumeLeftoverLink(link, items, used) {
   if (used.has(link) || isAssetHref(link.getAttribute('href'))) return;
@@ -324,17 +409,9 @@ function consumeLeftoverLink(link, items, used) {
 
 /**
  * Parses the nav fragment into brand, items, and CTA.
+ *
  * @param {Element} fragment Loaded fragment root
- * @returns {{
- *   brand: { href: string, image: Element|null, label: string }|null,
- *   items: Array<{
- *     label: string,
- *     href: string,
- *     columns: { heading: string, links: Element[] }[],
- *     menuSrc: string,
- *   }>,
- *   cta: { href: string, label: string }|null,
- * }}
+ * @returns {HeaderNavData}
  */
 function parseNavFragment(fragment) {
   const used = new Set();
@@ -394,7 +471,8 @@ function parseNavFragment(fragment) {
 
 /**
  * Fills empty mega items by fetching leftover `.large-menu` documents.
- * @param {{ label: string, href: string, columns: object[], menuSrc: string }[]} items
+ *
+ * @param {HeaderNavItem[]} items Primary nav items
  * @returns {Promise<void>}
  */
 async function hydrateMenuDocuments(items) {
@@ -407,10 +485,11 @@ async function hydrateMenuDocuments(items) {
 
 /**
  * Markup for a mega-panel column.
- * @param {{ heading: string, links: Element[] }} column
+ *
+ * @param {HeaderNavColumn} column Column data
  * @param {number} itemIndex Primary nav item index
  * @param {number} columnIndex Column index within the item
- * @returns {string}
+ * @returns {string} Column HTML
  */
 function columnMarkup(column, itemIndex, columnIndex) {
   const headingId = column.heading ? `header-col-${itemIndex}-${columnIndex}` : '';
@@ -434,10 +513,11 @@ function columnMarkup(column, itemIndex, columnIndex) {
 
 /**
  * Markup for one primary nav item.
- * @param {{ label: string, href: string, columns: object[] }} item
+ *
+ * @param {HeaderNavItem} item Item data
  * @param {number} index Item index
  * @param {string} chevronSvg Inlined decorative chevron, or empty
- * @returns {string}
+ * @returns {string} List-item HTML
  */
 function itemMarkup(item, index, chevronSvg) {
   const label = escapeAttr(item.label);
@@ -472,6 +552,7 @@ function itemMarkup(item, index, chevronSvg) {
 
 /**
  * Whether the viewport is the mobile nav breakpoint.
+ *
  * @returns {boolean}
  */
 function isMobile() {
@@ -480,8 +561,10 @@ function isMobile() {
 
 /**
  * Closes every open mega panel in the header.
+ *
  * @param {Element} block Header block
  * @param {Element} [exceptTrigger] Trigger to leave open
+ * @returns {void}
  */
 function closePanels(block, exceptTrigger) {
   block.querySelectorAll('.header__item--has-menu').forEach((item) => {
@@ -496,9 +579,11 @@ function closePanels(block, exceptTrigger) {
 
 /**
  * Opens or closes one mega panel.
+ *
  * @param {Element} block Header block
  * @param {Element} trigger Menu button
  * @param {boolean} [forceOpen] Explicit open/close
+ * @returns {void}
  */
 function setPanelOpen(block, trigger, forceOpen) {
   const item = trigger.closest('.header__item');
@@ -513,8 +598,10 @@ function setPanelOpen(block, trigger, forceOpen) {
 
 /**
  * Sets the mobile menu button expanded state and accessible name.
+ *
  * @param {Element} toggle Menu button
  * @param {boolean} open Whether the drawer is open
+ * @returns {void}
  */
 function setMenuToggle(toggle, open) {
   toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -524,8 +611,10 @@ function setMenuToggle(toggle, open) {
 
 /**
  * Closes the mobile drawer.
+ *
  * @param {Element} block Header block
  * @param {Element} [restoreTo] Element to focus
+ * @returns {void}
  */
 function closeDrawer(block, restoreTo) {
   const toggle = block.querySelector('.header__toggle');
@@ -537,8 +626,10 @@ function closeDrawer(block, restoreTo) {
 
 /**
  * Desktop: disclosure button. Mobile: static label, panel always shown.
+ *
  * @param {Element} item `.header__item--has-menu`
  * @param {boolean} mobile Whether the mobile breakpoint matches
+ * @returns {void}
  */
 function syncMenuItem(item, mobile) {
   const panel = item.querySelector('.header__panel');
@@ -574,7 +665,9 @@ function syncMenuItem(item, mobile) {
 
 /**
  * Aligns mega-menu triggers with the current viewport.
+ *
  * @param {Element} block Header block
+ * @returns {void}
  */
 function syncViewport(block) {
   const mobile = isMobile();
@@ -585,7 +678,9 @@ function syncViewport(block) {
 
 /**
  * Wires mega-panel and mobile-drawer behavior.
+ *
  * @param {Element} block Header block
+ * @returns {void}
  */
 function bindHeader(block) {
   const toggle = block.querySelector('.header__toggle');
@@ -649,6 +744,7 @@ function bindHeader(block) {
 
 /**
  * Decorates the header from the nav fragment.
+ *
  * @param {Element} block Header block
  * @returns {Promise<void>}
  */

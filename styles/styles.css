@@ -253,6 +253,20 @@ pre {
 /* TODO: these header and footer styles come from the boilerplate and need to be reevaluated. */
 header {
   height: var(--nav-height);
+  overflow: visible;
+
+  .header__skip:focus-visible {
+    position: absolute;
+    z-index: 4;
+    inset-block-start: var(--s2a-spacing-xs, 0.5rem);
+    inset-inline-start: var(--s2a-spacing-xs, 0.5rem);
+    padding: var(--s2a-spacing-xs, 0.5rem) var(--s2a-spacing-sm, 0.75rem);
+    background-color: var(--s2a-color-background-default, #fff);
+    color: var(--s2a-color-content-default, #000);
+    text-decoration: none;
+    outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
+    outline-offset: 2px;
+  }
 }
 
 header .header,
@@ -284,19 +298,6 @@ main > div {
   padding: 0 !important;
   border: 0 !important;
   white-space: nowrap !important;
-}
-
-.header__skip:focus-visible {
-  position: absolute;
-  z-index: 4;
-  inset-block-start: var(--s2a-spacing-xs, 0.5rem);
-  inset-inline-start: var(--s2a-spacing-xs, 0.5rem);
-  padding: var(--s2a-spacing-xs, 0.5rem) var(--s2a-spacing-sm, 0.75rem);
-  background-color: var(--s2a-color-background-default, #fff);
-  color: var(--s2a-color-content-default, #000);
-  text-decoration: none;
-  outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
-  outline-offset: 2px;
 }
 
 /* --- Play icon ---
