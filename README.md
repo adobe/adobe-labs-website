@@ -145,6 +145,33 @@ The page already loads the first image in the first section right away, and AEM 
 
 In Document Authoring, insert a section break after the hero table. Paste the hero image as a normal picture — you do not need to set `loading` or `fetchpriority`. Adding `fetchpriority="high"` or a preload usually makes Lighthouse scores worse on Edge Delivery; see Adobe’s [keeping-it-100](https://www.aem.live/developer/keeping-it-100) guidance.
 
+#### AEM editing
+
+1. Insert a **section break** after the previous section.
+2. Add a **Section Metadata** table in that section.
+3. Set **Style** to one surface (same pattern as [full-bleed](#full-bleed-images-in-articles)):
+   - `section-rounded-default` — default surface
+   - `section-rounded-blue` — blue surface
+   - `section-rounded-pink` — pink surface
+   - `section-rounded-orange` — orange surface
+
+**Article pages** (`template: article`): `decorateArticleSections` adds `section-rounded-default` to every section that is not a hero. Do not author that Style unless you want blue, pink, or orange instead.
+
+Keep the **hero in the first section**. Do not put a rounded Style on the hero section.
+
+On the **homepage**, keep Manifesto (`grid-line-content`) in its own last main section. The home override removes that section’s end padding so the block sits flush on smaller screens.
+#### Spacing rules
+
+- A section with a `section-rounded-*` class gets top corner radius, vertical padding, and `z-index: 1`.
+- Each later rounded section pulls up by `--section-margin-negative-offset` (`-(radius + gap)`). This stacks the rounded tops.
+- Two **adjacent default** sections: the second uses `margin-block-start: calc(-1 * var(--main-gap))`, `padding-block-start: 0`, and no top radius. They read as one surface. Removing the top radius stops the page background from showing through the seam in dark mode.
+- The **last** rounded section also gets bottom radius and the last-section end padding token. A page with only one rounded section gets all four corners.
+- **Full-screen hero**: the next rounded section overlaps the hero by `-(radius + gap)`.
+- **Footer**: the last section overlaps the footer by the radius. Footer inner padding grows by that amount so links stay clickable (`.footer` uses `z-index: 0`). Footer start padding steps up at 64rem+.
+- **Homepage Manifesto**: `body.home main .section.grid-line-content-container` sets `padding-block-end` to `0` so the block is flush below 64rem. At 64rem+, `.grid-line-content` sets its own `padding-block-end` to `--section-padding-block-end-last`.
+- **Research index** (`body.research` from `decorateIndexes`): larger `--main-gap`, with a further step at 48rem+.
+- Index pages get a body class from the first path segment (`home`, `research`, and so on).
+
 ## Testing
 
 To run tests:

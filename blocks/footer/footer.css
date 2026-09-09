@@ -41,7 +41,7 @@
 .footer__inner {
   --footer-inner-padding-block-start: calc(var(--footer-margin-offset) + var(--s2a-spacing-4xl));
 
-  @media (width >= 1024px) {
+  @media (width >= 64rem) {
     --footer-inner-padding-block-start: calc(var(--footer-margin-offset) + var(--s2a-layout-sm));
   }
 

@@ -16,7 +16,7 @@
     padding: 0;
     list-style: none;
 
-    @media (width >= 768px) {
+    @media (width >= 48rem) {
       row-gap: var(--s2a-section-spacing-lg);
     }
   }
@@ -27,7 +27,7 @@
     grid-template-columns: 1fr;
     gap: var(--s2a-spacing-lg) var(--s2a-spacing-xs);
 
-    @media (width >= 768px) {
+    @media (width >= 48rem) {
       row-gap: var(--s2a-section-spacing-lg);
     }
 

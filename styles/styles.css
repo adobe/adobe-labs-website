@@ -72,6 +72,7 @@
   --color-section-surface-default: var(--s2a-color-background-default);
   --color-section-surface-blue: #edf6ff;
   --color-section-surface-pink: #fff4f2;
+  --color-section-surface-orange: #faf4f0;
 
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, adobe-clean-fallback, "Trebuchet MS", sans-serif;
@@ -94,6 +95,7 @@
     --color-section-surface-default: #262626;
     --color-section-surface-blue: #111f2f;
     --color-section-surface-pink: #301517;
+    --color-section-surface-orange: #413b37;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
 }
@@ -327,22 +329,27 @@ footer .footer[data-block-status="loaded"] {
    These are scoped to main so various blocks and sections can use them. */
 main {
   --main-gap: var(--s2a-section-spacing-3xs);
-  --section-padding-block-start: var(--s2a-viewport-vertical-padding-xs);
-  --section-padding-block-end: var(--s2a-viewport-vertical-padding-xl);
+  --section-padding-block-start: var(--s2a-spacing-lg);
+  --section-padding-block-end: var(--s2a-section-spacing-5xl);
+  --section-padding-block-end-last: var(--s2a-spacing-4xl);
 
   display: flex;
   flex-flow: column nowrap;
   gap: var(--main-gap);
 
-  @media (width >= 1024px) {
+  @media (width >= 64rem) {
     --main-gap: var(--s2a-section-spacing-lg);
-    --section-padding-block-start: var(--s2a-spacing-lg);
+    --section-padding-block-end-last: var(--s2a-layout-lg);
+  }
+
+  @media (width >= 80rem) {
+    --section-padding-block-end-last: var(--s2a-layout-xl);
   }
 }
 
 main,
 footer {
-  --section-border-radius: 30px;
+  --section-border-radius: 1.875rem;
 }
 
 /* Hides content visually but keeps it in the accessibility tree.
@@ -487,7 +494,6 @@ main > .section {
   display: flex;
   flex-flow: column nowrap;
   gap: var(--s2a-spacing-xl);
-  margin-inline: 0;
 }
 
 main > .section > div {
@@ -498,38 +504,18 @@ main > .section > div {
 
 }
 
-main > .section:first-of-type {
-  margin-top: 0;
-}
-
-/* @media (width >= 900px) {
-  main > .section > div {
-    padding: 0 var(--s2a-spacing-lg, 1.5rem);
-  }
-} */
-
-/* section metadata
-   TODO: boilerplate - will these be used and can they be removed? */
-
-/* main .section.light,
-main .section.highlight {
-  background-color: var(--light-color);
-  margin: 0;
-  padding: 40px 0;
-} */
-
 main .section[class*="section-rounded-"] {
   --section-margin-negative-offset: calc(-1 * (var(--section-border-radius) + var(--main-gap)));
 
-  border-radius: var(--section-border-radius) var(--section-border-radius) 0 0;
+  border-top-left-radius: var(--section-border-radius);
+  border-top-right-radius: var(--section-border-radius);
   padding-block: var(--section-padding-block-start) var(--section-padding-block-end);
   z-index: 1;
 
-  /* Last section gets bottom border radius and negative end margin to overlap footer. */
+  /* Last section: bottom radius + last-section padding. */
   &:nth-last-child(1 of [class*="section-rounded-"]) {
-    --section-padding-block-end: var(--s2a-viewport-vertical-padding-lg);
+    --section-padding-block-end: var(--section-padding-block-end-last);
 
-    border-radius: 0;
     border-bottom-left-radius: var(--section-border-radius);
     border-bottom-right-radius: var(--section-border-radius);
   }
@@ -544,13 +530,11 @@ main .section {
     background: var(--color-section-surface-default);
 
     /* Adjust padding for default-color sibling sections to avoid double spacing. */
-    &:has(+ .section-rounded-default) {
-      padding-block-end: calc(var(--section-padding-block-end) - var(--main-gap));
-    }
-
     + .section-rounded-default {
-      margin-block-start: 0;
+      margin-block-start: calc(-1 * var(--main-gap));
       padding-block-start: 0;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
     }
   }
 
@@ -561,13 +545,21 @@ main .section {
   &.section-rounded-pink {
     background: var(--color-section-surface-pink);
   }
+
+  &.section-rounded-orange {
+    background: var(--color-section-surface-orange);
+  }
 }
 
 /* -- Page-specific section spacing overrides --- */
+body.home main .section.grid-line-content-container {
+  padding-block-end: 0;
+}
+
 body.research main {
   --main-gap: var(--s2a-spacing-xl);
 
-  @media (width >=768px) {
+  @media (width >= 48rem) {
     --main-gap: var(--s2a-spacing-4xl);
   }
 }

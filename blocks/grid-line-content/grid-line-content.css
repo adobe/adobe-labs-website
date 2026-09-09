@@ -4,10 +4,6 @@
   padding: 0;
 }
 
-.grid-line-content-container {
-  margin: 0;
-}
-
 .grid-line-content {
   --grid-line-color: light-dark(var(--s2a-color-border-subtle), var(--s2a-color-gray-700));
 
@@ -103,5 +99,11 @@
     .grid-line-content__text p {
       margin-block: var(--s2a-spacing-4xl);
     }
+  }
+}
+
+@media (width >= 64rem) {
+  .grid-line-content {
+    padding-block-end: var(--section-padding-block-end-last);
   }
 }

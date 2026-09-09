@@ -46,8 +46,6 @@
     --hero-padding-block: var(--s2a-spacing-sm);
     --hero-padding-inline: var(--s2a-spacing-sm);
 
-    /* TODO: add negative margins when header and first section are implemented. */
-
     @media (width >=48rem) {
       --hero-padding-block: var(--s2a-spacing-md);
       --hero-padding-inline: var(--s2a-spacing-md);
@@ -223,7 +221,6 @@
     Full-screen variant has custom vertical padding to account for overlapping content. */
     --hero-padding-block-start: 5.625rem;
     --hero-padding-block-end: 3.125rem;
-    --hero-padding-inline: var(--s2a-section-spacing-sm);
 
     @media (width >=48rem) {
       --hero-padding-block-start: 6.25rem;
@@ -235,7 +232,6 @@
       --hero-padding-block-end: 5.625rem;
     }
 
-    /* margin-block-end: var(--hero-margin-negative-offset); */
     border-radius: 0;
 
     /* Full-screen variant is slightly taller than default on smaller screens. */
@@ -246,6 +242,8 @@
     }
 
     .hero__content {
+      --hero-padding-inline: var(--s2a-section-spacing-sm);
+
       padding-block: var(--hero-padding-block-start) var(--hero-padding-block-end);
       padding-inline: var(--hero-padding-inline);
     }
