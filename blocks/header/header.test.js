@@ -58,6 +58,12 @@ function createFragment(html) {
 }
 
 const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path fill="currentColor" d="M0 0h10v10H0z"/></svg>';
+const MENU_SVG = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+    <path class="header__toggle-line header__toggle-line--top" d="M3 7h14v1.5H3z"/>
+    <path class="header__toggle-line header__toggle-line--bottom" d="M3 12h14v1.5H3z"/>
+  </svg>
+`;
 
 /**
  * Fetch mock that serves header SVGs.
@@ -65,7 +71,11 @@ const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><p
  */
 function mockHeaderFetch() {
   return jest.fn(async (url) => {
-    if (String(url).endsWith('.svg')) {
+    const href = String(url);
+    if (href.endsWith('menu.svg')) {
+      return { ok: true, text: async () => MENU_SVG };
+    }
+    if (href.endsWith('.svg')) {
       return { ok: true, text: async () => ICON_SVG };
     }
     return { ok: false, text: async () => '' };
@@ -246,6 +256,8 @@ describe('header block', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(within(block).getByRole('button', { name: 'Close menu' })).toBe(toggle);
     expect(block).toHaveClass('header--nav-open');
+    expect(toggle.querySelector('.header__toggle-line--top')).not.toBeNull();
+    expect(toggle.querySelector('.header__toggle-line--bottom')).not.toBeNull();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
