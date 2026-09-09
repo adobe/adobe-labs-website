@@ -224,7 +224,6 @@
     --hero-padding-block-start: 5.625rem;
     --hero-padding-block-end: 3.125rem;
     --hero-padding-inline: var(--s2a-section-spacing-sm);
-    --hero-margin-negative-offset: calc(-1 * calc(var(--hero-padding-block-end) - var(--section-padding-block-start) + var(--main-gap)));
 
     @media (width >=48rem) {
       --hero-padding-block-start: 6.25rem;
@@ -236,7 +235,7 @@
       --hero-padding-block-end: 5.625rem;
     }
 
-    margin-block-end: var(--hero-margin-negative-offset);
+    /* margin-block-end: var(--hero-margin-negative-offset); */
     border-radius: 0;
 
     /* Full-screen variant is slightly taller than default on smaller screens. */
