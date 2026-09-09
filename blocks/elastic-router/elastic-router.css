@@ -23,7 +23,7 @@
   --elastic-router-transition-easing: cubic-bezier(0.65, 0, 0.35, 1);
 
   @media (width >= 48rem) {
-    --elastic-router-gap: var(--s2a-spacing-sm);
+    --elastic-router-gap: 0.5rem;
   }
 
   @media (prefers-reduced-motion: reduce) {
