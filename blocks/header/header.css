@@ -67,6 +67,14 @@
     flex-shrink: 0;
     align-items: center;
     text-decoration: none;
+
+    @media (width < 48rem) {
+      box-sizing: border-box;
+      min-inline-size: 2.75rem;
+      min-block-size: 2.75rem;
+      padding-inline: calc(2.75rem - 1.125rem - var(--s2a-spacing-sm, 0.75rem)) var(--s2a-spacing-sm, 0.75rem);
+      margin-inline: calc(1.125rem + var(--s2a-spacing-sm, 0.75rem) - 2.75rem) calc(-1 * var(--s2a-spacing-sm, 0.75rem));
+    }
   }
 
   .header__logo-desktop {
