@@ -73,7 +73,7 @@
   flex-direction: column;
   gap: var(--s2a-spacing-xs);
   border-radius: var(--elastic-router-radius);
-  color: inherit;
+  color: var(--s2a-color-content-label);
   text-decoration: none;
 
   &:focus-visible {
@@ -133,7 +133,6 @@
      heading-5 alias (font-family/weight-900 already come from the site's
      global h1-h6 rule). */
   letter-spacing: var(--s2a-font-letter-spacing-4xl);
-  color: var(--s2a-color-content-label);
   text-decoration: underline;
   text-decoration-color: transparent;
   transition: text-decoration-color var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
@@ -202,6 +201,10 @@
 
 .elastic-router__description {
   margin: 0;
+
+  /* Not redundant with .elastic-router__link's cascaded color: this also
+     carries the shared .eyebrow class, whose own color declaration
+     (--s2a-color-content-eyebrow) would otherwise win over inheritance. */
   color: var(--s2a-color-content-label);
 }
 
