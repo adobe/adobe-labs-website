@@ -26,6 +26,7 @@ import {
 import {
   buildArticlePreFooter,
   debounce,
+  ensureSkipLink,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -157,6 +158,10 @@ function decorateButtons(main) {
  */
 // eslint-disable-next-line import/prefer-default-export
 export function decorateMain(main) {
+  if (main.parentElement === document.body && !main.id) {
+    main.id = 'main';
+    if (!main.hasAttribute('tabindex')) main.tabIndex = -1;
+  }
   decorateIcons(main);
   buildAutoBlocks(main);
   decorateSections(main);
@@ -208,6 +213,9 @@ async function loadEager(doc) {
   const main = doc.querySelector('main');
   if (main) {
     decorateMain(main);
+  }
+  ensureSkipLink(doc);
+  if (main) {
     document.body.classList.add('appear');
     await loadSection(main.querySelector('.section'), waitForFirstImage);
   }

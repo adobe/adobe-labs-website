@@ -1,166 +1,123 @@
 /**
- * Header block tests. Fixtures follow the Milo gnav content shape.
+ * Header block tests. Fixtures follow the Labs nav content shape.
  */
 import { within } from '@testing-library/dom';
-import { getMetadata, loadCSS } from '../../scripts/aem.js';
+import { getMetadata } from '../../scripts/aem.js';
+import { loadFragment } from '../fragment/fragment.js';
+import decorate from './header.js';
 
 jest.mock('../../scripts/aem.js', () => ({
   getMetadata: jest.fn(() => ''),
-  loadCSS: jest.fn(() => Promise.resolve()),
-  loadBlock: jest.fn(() => Promise.resolve()),
-  loadScript: jest.fn(() => Promise.resolve()),
 }));
 
+jest.mock('../fragment/fragment.js', () => ({
+  loadFragment: jest.fn(),
+}));
+
+/**
+ * Labs-shaped nav fragment: brand, links (one with nested menu), Subscribe.
+ * @type {string}
+ */
+const NAV_HTML = `
+  <div class="section">
+    <div class="default-content-wrapper">
+      <p><a href="/"><img src="/logo.svg" alt="Adobe Labs"></a></p>
+    </div>
+  </div>
+  <div class="section">
+    <div class="default-content-wrapper">
+      <ul>
+        <li><a href="/research">Research</a></li>
+        <li><a href="/workflows">Workflows</a></li>
+        <li>
+          <a href="/products">Products</a>
+          <ul>
+            <li><a href="/products/photoshop">Photoshop</a></li>
+            <li><a href="/products/illustrator">Illustrator</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="section">
+    <div class="default-content-wrapper">
+      <p><a class="button" href="https://www.adobe.com/">Subscribe</a></p>
+    </div>
+  </div>
+`;
+
+/**
+ * Builds a fragment root from HTML.
+ * @param {string} html Fragment markup
+ * @returns {HTMLElement}
+ */
+function createFragment(html) {
+  const wrap = document.createElement('main');
+  wrap.innerHTML = html;
+  return wrap;
+}
+
+const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path fill="currentColor" d="M0 0h10v10H0z"/></svg>';
+
+/**
+ * Fetch mock that serves header SVGs.
+ * @returns {Function}
+ */
+function mockHeaderFetch() {
+  return jest.fn(async (url) => {
+    if (String(url).endsWith('.svg')) {
+      return { ok: true, text: async () => ICON_SVG };
+    }
+    return { ok: false, text: async () => '' };
+  });
+}
+
 let desktopMatches = true;
-let decorate;
+let mediaChangeHandlers = [];
 
 /**
- * Federal-shaped nav fragment used by most header tests.
- * @type {string}
+ * Creates a header block, appends it, and runs decorate.
+ * @returns {Promise<HTMLElement>}
  */
-const GNAV_HTML = `
-  <div class="adobe-logo">
-    <p><a href="/"><img src="/logo.svg" alt="Adobe, Inc."></a></p>
-  </div>
-  <div class="gnav-brand">
-    <p><a href="/">Adobe</a></p>
-  </div>
-  <div class="large-menu">
-    <div>
-      <h2><a href="/products">Products</a></h2>
-    </div>
-  </div>
-  <p><a href="https://www.adobe.com/creativecloud/plans.html">Plans</a></p>
-`;
-
-/**
- * Nav fragment that includes a CMS-authored Subscribe CTA.
- * @type {string}
- */
-const GNAV_WITH_CTA_HTML = `
-  ${GNAV_HTML}
-  <div class="cta">
-    <div>
-      <div><p><a href="https://www.adobe.com/">Subscribe</a></p></div>
-    </div>
-  </div>
-`;
-
-/**
- * Builds a fetch-like Response stub.
- * @param {number} status HTTP status
- * @param {string} [html=''] Response body
- * @returns {{
- *   status: number,
- *   ok: boolean,
- *   statusText: string,
- *   url: string,
- *   text: function(): Promise<string>,
- *   clone: function(): object,
- * }}
- */
-function jsonResponse(status, html = '') {
-  return {
-    status,
-    ok: status === 200,
-    statusText: status === 200 ? 'OK' : 'Not Found',
-    url: '',
-    text: async () => html,
-    clone() {
-      return jsonResponse(status, html);
-    },
-  };
-}
-
-/**
- * Polls until `predicate` is true or `timeout` elapses.
- * @param {function(): boolean} predicate Condition to wait for
- * @param {number} [timeout=2000] Timeout in milliseconds
- * @returns {Promise<void>}
- */
-async function waitFor(predicate, timeout = 2000) {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    if (predicate()) return;
-    // eslint-disable-next-line no-await-in-loop
-    await new Promise((resolve) => {
-      setTimeout(resolve, 10);
-    });
-  }
-  throw new Error('Timed out waiting for header decoration');
-}
-
-/**
- * Creates a header block, runs decorate, and waits for the Milo topnav.
- * @param {{ append?: boolean }} [options]
- * @param {boolean} [options.append] Unused; block is always appended to `document.body`
- * @returns {Promise<HTMLElement>} Decorated header block
- */
-async function decorateHeader({ append = false } = {}) {
+async function decorateHeader() {
   const block = document.createElement('div');
   block.className = 'header';
-  block.innerHTML = '<p>Placeholder</p>';
   const header = document.createElement('header');
   header.append(block);
-  if (append) document.body.append(header);
-  else document.body.append(header);
+  document.body.append(header);
   await decorate(block);
-  await waitFor(() => block.querySelector('.feds-topnav') || !block.querySelector('p'));
   return block;
 }
 
 beforeAll(() => {
   window.hlx = { codeBasePath: '' };
-  window.performance = window.performance || {};
-  window.performance.mark = jest.fn();
-  window.performance.measure = jest.fn(() => ({
-    name: '',
-    startTime: 0,
-    duration: 0,
-  }));
-  window.performance.getEntriesByName = jest.fn(() => []);
-  window.matchMedia = jest.fn(() => ({
+  window.matchMedia = jest.fn((query) => ({
     get matches() {
-      return desktopMatches;
+      return query.includes('width >= 48rem') ? desktopMatches : !desktopMatches;
     },
-    media: '(min-width: 900px)',
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
+    media: query,
+    addEventListener: jest.fn((event, handler) => {
+      if (event === 'change') mediaChangeHandlers.push(handler);
+    }),
+    removeEventListener: jest.fn((event, handler) => {
+      mediaChangeHandlers = mediaChangeHandlers.filter((fn) => fn !== handler);
+    }),
     addListener: jest.fn(),
     removeListener: jest.fn(),
     dispatchEvent: jest.fn(),
   }));
-
-  global.ResizeObserver = jest.fn().mockImplementation(() => ({
-    observe: jest.fn(),
-    unobserve: jest.fn(),
-    disconnect: jest.fn(),
-  }));
-
-  global.IntersectionObserver = jest.fn().mockImplementation(() => ({
-    observe: jest.fn(),
-    unobserve: jest.fn(),
-    disconnect: jest.fn(),
-  }));
-
-  // eslint-disable-next-line global-require
-  decorate = require('./header.js').default;
 });
 
 describe('header block', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     desktopMatches = true;
+    mediaChangeHandlers = [];
     document.body.innerHTML = '';
-    getMetadata.mockImplementation((name) => (name === 'nav' ? '' : ''));
-    global.fetch = jest.fn(async (url) => {
-      const href = String(url);
-      if (href.includes('/fragments/nav.plain.html') || href.includes('/fragments/custom-nav.plain.html')) {
-        return jsonResponse(200, GNAV_HTML);
-      }
-      return jsonResponse(404);
-    });
-    loadCSS.mockResolvedValue();
+    getMetadata.mockReturnValue('');
+    loadFragment.mockResolvedValue(createFragment(NAV_HTML));
+    global.fetch = mockHeaderFetch();
+    window.history.pushState({}, '', '/');
   });
 
   afterEach(() => {
@@ -170,92 +127,151 @@ describe('header block', () => {
   it('loads the default nav fragment when nav metadata is empty', async () => {
     await decorateHeader();
 
-    expect(getMetadata.mock.calls.some(([name]) => name === 'nav')).toBe(true);
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/fragments\/nav\.plain\.html$/),
-    );
-    // cssPromise is a module singleton — assert on the first decorate in this file.
-    expect(loadCSS).toHaveBeenCalledWith(
-      expect.stringMatching(/\/blocks\/header\/gnav\/base\.css$/),
-    );
-    expect(loadCSS).toHaveBeenCalledWith(
-      expect.stringMatching(/\/blocks\/header\/gnav\/global-navigation\.css$/),
-    );
+    expect(getMetadata).toHaveBeenCalledWith('nav');
+    expect(loadFragment).toHaveBeenCalledWith('/fragments/nav');
   });
 
   it('loads a custom nav fragment from nav metadata', async () => {
-    getMetadata.mockImplementation((name) => (name === 'nav' ? '/fragments/custom-nav' : ''));
+    getMetadata.mockReturnValue('/fragments/custom-nav');
 
     await decorateHeader();
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/fragments\/custom-nav\.plain\.html$/),
-    );
+    expect(loadFragment).toHaveBeenCalledWith('/fragments/custom-nav');
   });
 
-  it('renders logo, brand, and top-level items from gnav content', async () => {
+  it('renders the logo, links, and Subscribe', async () => {
     const block = await decorateHeader();
-    const headerEl = block.closest('header');
 
-    expect(block).toHaveClass('global-navigation');
-    expect(headerEl).toHaveClass('global-navigation');
-    expect(headerEl).toHaveClass('ready');
-    expect(block.querySelector('.feds-logo, .feds-brand')).not.toBeNull();
+    expect(block.querySelector('.header__logo-desktop')).toHaveAttribute('alt', '');
+    expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
+    expect(within(document.body).getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main');
     expect(within(block).getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
-    expect(within(block).getByRole('button', { name: 'Products' })).toBeInTheDocument();
+    expect(within(block).getByRole('link', { name: 'Research' })).toHaveAttribute('href', '/research');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveAttribute('href', 'https://www.adobe.com/');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('header__cta', 'button');
+    expect(within(block).getByRole('button', { name: 'Products' })).not.toHaveAttribute('aria-haspopup');
+    expect(within(block).getByRole('button', { name: 'Products' }).querySelector('.header__chevron')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(block).getByRole('link', { name: 'Research' }).querySelector('.header__chevron')).toBeNull();
   });
 
-  it('opens a desktop dropdown on trigger click and closes on outside click', async () => {
-    const block = await decorateHeader({ append: true });
+  it('marks the matching path with aria-current', async () => {
+    window.history.pushState({}, '', '/research');
+
+    const block = await decorateHeader();
+
+    expect(within(block).getByRole('link', { name: 'Research' })).toHaveAttribute('aria-current', 'page');
+    expect(within(block).getByRole('link', { name: 'Workflows' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('opens a desktop mega panel and closes on Escape and outside click', async () => {
+    const block = await decorateHeader();
     const trigger = within(block).getByRole('button', { name: 'Products' });
+    const panel = block.querySelector('#header-panel-2');
 
     trigger.click();
-    await waitFor(() => trigger.getAttribute('aria-expanded') === 'true');
 
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(panel).not.toHaveAttribute('hidden');
+    expect(within(panel).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(panel).toHaveAttribute('hidden');
+    expect(document.activeElement).toBe(trigger);
+
+    trigger.click();
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
 
     document.body.click();
-    await waitFor(() => trigger.getAttribute('aria-expanded') === 'false');
 
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('does not throw when the nav fragment is missing', async () => {
-    global.fetch.mockResolvedValue(jsonResponse(404));
+    loadFragment.mockResolvedValue(null);
     const block = document.createElement('div');
     block.className = 'header';
     document.body.append(block);
 
     await expect(decorate(block)).resolves.toBeUndefined();
-    expect(block.querySelector('.feds-topnav')).toBeNull();
+    expect(block.querySelector('.header__bar')).toBeNull();
   });
 
-  it('renders mobile logo and hamburger without an app switcher', async () => {
+  it('opens and closes the mobile drawer and shows nested links', async () => {
     desktopMatches = false;
     const block = await decorateHeader();
-    const headerEl = block.closest('header');
+    const toggle = within(block).getByRole('button', { name: 'Menu' });
 
-    expect(headerEl).toHaveClass('new-nav');
-    expect(block.querySelector('.feds-brand, .feds-logo')).not.toBeNull();
-    expect(within(block).getByRole('button', { name: 'Navigation menu' })).toBeInTheDocument();
-    expect(block.querySelector('.feds-signIn')).toBeNull();
+    expect(block).not.toHaveClass('header--nav-open');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(block).queryByRole('button', { name: 'Products' })).toBeNull();
+    expect(block.querySelector('.header__item--has-menu > .header__link').tagName).toBe('SPAN');
+    expect(block.querySelector('.header__item--has-menu > .header__link .header__chevron')).not.toBeNull();
+    expect(block.querySelector('#header-panel-2')).not.toHaveAttribute('hidden');
+    expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
     expect(block.querySelector('#unav-app-switcher, .unav-comp-app-switcher, .feds-utilities')).toBeNull();
+    expect(block.querySelector('.feds-signIn')).toBeNull();
+
+    toggle.click();
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(within(block).getByRole('button', { name: 'Close menu' })).toBe(toggle);
+    expect(block).toHaveClass('header--nav-open');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(block).getByRole('button', { name: 'Menu' })).toBe(toggle);
+    expect(block).not.toHaveClass('header--nav-open');
   });
 
-  it('renders a CMS-authored Subscribe CTA from the cta block', async () => {
-    desktopMatches = false;
-    global.fetch = jest.fn(async (url) => {
-      const href = String(url);
-      if (href.includes('/fragments/nav.plain.html')) {
-        return jsonResponse(200, GNAV_WITH_CTA_HTML);
-      }
-      return jsonResponse(404);
-    });
+  it('drops javascript: hrefs and HTML tags from nav labels', async () => {
+    loadFragment.mockResolvedValue(createFragment(`
+      <div>
+        <p><a href="/">Adobe Labs</a></p>
+        <ul>
+          <li><a href="javascript:alert(1)">XSS</a></li>
+          <li><a href="/safe">A <em>nested</em> label</a></li>
+        </ul>
+      </div>
+    `));
 
     const block = await decorateHeader();
-    const cta = within(block).getByRole('link', { name: 'Subscribe' });
+    const safe = within(block).getByRole('link', { name: 'A nested label' });
 
-    expect(cta).toHaveAttribute('href', 'https://www.adobe.com/');
-    expect(cta).toHaveClass('button');
+    expect(within(block).queryByRole('link', { name: 'XSS' })).toBeNull();
+    expect(safe).toHaveAttribute('href', '/safe');
+    expect(safe.innerHTML).toBe('A nested label');
+  });
+
+  it('does not use javascript: brand image sources', async () => {
+    loadFragment.mockResolvedValue(createFragment(`
+      <p><a href="/"><img src="javascript:alert(1)" alt="Adobe Labs"></a></p>
+      <ul><li><a href="/research">Research</a></li></ul>
+    `));
+
+    const block = await decorateHeader();
+
+    expect(block.querySelector('img.header__logo-desktop')).toBeNull();
+    expect(block.querySelector('svg.header__logo-desktop')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
+  });
+
+  it('turns mega-menu buttons into static labels at the mobile breakpoint', async () => {
+    const block = await decorateHeader();
+    const panel = block.querySelector('#header-panel-2');
+
+    expect(within(block).getByRole('button', { name: 'Products' })).toBeInTheDocument();
+    expect(panel).toHaveAttribute('hidden');
+
+    desktopMatches = false;
+    mediaChangeHandlers.forEach((handler) => handler());
+
+    expect(within(block).queryByRole('button', { name: 'Products' })).toBeNull();
+    expect(block.querySelector('.header__item--has-menu > .header__link').tagName).toBe('SPAN');
+    expect(block.querySelector('.header__item--has-menu > .header__link .header__chevron')).not.toBeNull();
+    expect(panel).not.toHaveAttribute('hidden');
+    expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
   });
 });

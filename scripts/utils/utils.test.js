@@ -2,6 +2,7 @@ import { buildBlock, getMetadata } from '../aem.js';
 import {
   buildArticlePreFooter,
   buildPlayIcon,
+  ensureSkipLink,
   formatCardDate,
   getAuthoredCells,
   getSection,
@@ -229,5 +230,33 @@ describe('buildArticlePreFooter', () => {
     buildArticlePreFooter(main);
 
     expect(main.querySelector('a[href="/fragments/custom-pre-footer"]')).not.toBeNull();
+  });
+});
+
+describe('ensureSkipLink', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('prepends a skip link to the site header and names main', () => {
+    document.body.innerHTML = '<header></header><main></main>';
+
+    ensureSkipLink(document);
+
+    const skip = document.querySelector('.header__skip');
+    expect(skip).toHaveTextContent('Skip to main content');
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(document.querySelector('header').firstElementChild).toBe(skip);
+    expect(document.querySelector('main')).toHaveAttribute('id', 'main');
+    expect(document.querySelector('main')).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('does not add a second skip link', () => {
+    document.body.innerHTML = '<header></header><main id="main"></main>';
+
+    ensureSkipLink(document);
+    ensureSkipLink(document);
+
+    expect(document.querySelectorAll('.header__skip')).toHaveLength(1);
   });
 });

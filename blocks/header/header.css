@@ -1,125 +1,300 @@
 /**
- * Labs header glue. Block class is `.header` (BEM).
- * Descendant `.feds-*` selectors target Milo-generated markup in gnav/
- * and are not renamed.
+ * Labs header.
  */
 
-header {
-  --feds-height-nav: var(--nav-height, 64px);
+.header {
+  --header-bar-height: 4rem;
+  --header-inset: 0;
+  --header-radius: 0;
+  --header-link: var(--s2a-color-content-default, #000);
+  --header-link-muted: var(--s2a-color-content-subtle, rgb(0 0 0 / 64%));
+  --header-bg: var(--s2a-color-background-default, #fff);
+  --header-rule: color-mix(in srgb, var(--header-link) 8%, transparent);
 
   position: relative;
   z-index: 2;
-}
+  padding: var(--header-inset);
+  background: transparent;
 
-/* Boilerplate `header { height: var(--nav-height) }` clips mega-menu popups. */
-header.global-navigation {
-  height: auto;
-  overflow: visible;
-}
-
-.header {
-  background-color: var(--feds-background-nav, var(--s2a-color-gray-50, #f8f8f8));
-
-  /* Universal Nav / app switcher is out of scope. */
-  .feds-utilities,
-  #unav-app-switcher,
-  .unav-comp-app-switcher {
-    display: none;
+  @media (width >= 48rem) {
+    --header-inset: var(--s2a-spacing-xs, 0.5rem);
+    --header-radius: 1rem;
   }
 
-  .feds-profile {
-    margin-left: auto;
+  &.header--inverse {
+    --header-link: var(--s2a-color-content-knockout, #fff);
+    --header-link-muted: var(--s2a-color-transparent-white-64, rgb(255 255 255 / 64%));
+    --header-bg: var(--s2a-color-background-knockout, #000);
+  }
+
+  .header__bar {
     display: flex;
     align-items: center;
+    gap: var(--s2a-spacing-sm, 0.75rem);
+    box-sizing: border-box;
+    min-block-size: var(--header-bar-height);
+    padding-block: var(--s2a-spacing-sm, 0.75rem);
+    padding-inline: var(--s2a-spacing-lg, 1.5rem) var(--s2a-spacing-md, 1rem);
+    border-radius: var(--header-radius);
+    border-block-end: 1px solid var(--header-rule);
+    background-color: var(--header-bg);
+
+    @media (width >= 48rem) {
+      justify-content: flex-start;
+      gap: var(--s2a-spacing-lg, 1.5rem);
+      padding-inline: var(--s2a-spacing-md, 1rem);
+      padding-block: 0;
+      border-block-end: 0;
+      backdrop-filter: blur(4rem);
+    }
   }
 
-  /* Milo class is camelCase (`feds-signIn`); do not BEM-ify it. */
-  /* stylelint-disable selector-class-pattern */
-  .feds-signIn.button {
-    width: auto;
-    color: var(--color-button-text-primary);
-    text-align: center;
+  .header__brand {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    text-decoration: none;
   }
 
-  .feds-signIn.button:hover {
-    color: var(--color-button-text-primary);
+  .header__logo-desktop {
+    display: none;
+    block-size: 1.0625rem;
+    inline-size: 7.25rem;
+    color: var(--header-link);
+
+    @media (width >= 48rem) {
+      display: block;
+    }
   }
-  /* stylelint-enable selector-class-pattern */
 
-  /*
-   * Small-screen chrome: logo, two-line hamburger, utility CTA.
-   * Matches adobe.com mobile gnav without the app switcher.
-   */
-  @media (width < 900px) {
-    &.new-nav {
-      .feds-topnav {
-        align-items: center;
-        padding-inline: 8px 12px;
+  .header__logo-mobile {
+    display: block;
+    block-size: 1rem;
+    inline-size: 1.125rem;
+    color: var(--header-link);
+
+    @media (width >= 48rem) {
+      display: none;
+    }
+  }
+
+  .header__toggle {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    background: transparent;
+    color: var(--header-link);
+    cursor: pointer;
+
+    @media (width >= 48rem) {
+      display: none;
+    }
+  }
+
+  .header__toggle-icon {
+    display: block;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    color: var(--header-link);
+  }
+
+  .header__nav {
+    display: none;
+    flex: 1 1 auto;
+
+    @media (width >= 48rem) {
+      display: block;
+      position: static;
+      padding: 0;
+      background: transparent;
+      border-radius: 0;
+    }
+  }
+
+  &.header--nav-open {
+    .header__bar {
+      border-block-end: 0;
+    }
+
+    .header__nav {
+      display: block;
+      position: absolute;
+      inset-block-start: 100%;
+      inset-inline: 0;
+      padding: var(--s2a-spacing-md, 1rem);
+      background-color: var(--header-bg);
+
+      @media (width >= 48rem) {
+        position: static;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
       }
+    }
+  }
 
-      .feds-brand-container {
-        display: flex;
-        align-items: center;
-        gap: 0;
+  .header__list,
+  .header__column-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2a-spacing-sm, 0.75rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .header__list {
+    @media (width >= 48rem) {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--s2a-spacing-lg, 1.5rem);
+
+      /* Dim sibling labels when one is hovered, like adobe.com. */
+      &:has(> .header__item > .header__link:hover) > .header__item:not(:hover) > .header__link {
+        color: var(--header-link-muted);
       }
+    }
+  }
 
-      /* Adobe.com order: mark, then hamburger. */
-      .feds-brand {
-        order: 0;
-        padding-inline: 8px;
-      }
+  .header__item {
+    @media (width >= 48rem) {
+      position: static;
+    }
+  }
 
-      .feds-brand-label,
-      .feds-logo {
+  .header__item--has-menu {
+    .header__panel {
+      display: block;
+      position: static;
+      padding-block-start: var(--s2a-spacing-xs, 0.5rem);
+      padding-inline-start: var(--s2a-spacing-md, 1rem);
+
+      @media (width >= 48rem) {
         display: none;
       }
+    }
+  }
 
-      .feds-toggle {
-        order: 1;
-        position: relative;
-        width: 44px;
-        min-width: 44px;
-        height: 44px;
-        margin: 0;
-        padding: 0;
-        font-size: 0;
-        color: var(--feds-color-hamburger, var(--s2a-color-gray-800, #2d2d2d));
-      }
-
-      .feds-toggle::before,
-      .feds-toggle::after {
-        content: "";
+  .header__item--open {
+    @media (width >= 48rem) {
+      .header__panel {
+        display: flex;
         position: absolute;
-        left: 13px;
-        width: 18px;
-        height: 2px;
-        background: currentcolor;
-        border-radius: 1px;
+        z-index: 3;
+        inset-block-start: calc(100% - var(--header-inset));
+        inset-inline: var(--header-inset);
+        box-sizing: border-box;
+        padding: var(--s2a-spacing-lg, 1.5rem);
+        border-radius: var(--header-radius);
+        background-color: var(--header-bg);
+        box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 12%);
+        gap: var(--s2a-spacing-xl, 2rem);
       }
+    }
+  }
 
-      .feds-toggle::before {
-        top: 17px;
-      }
+  .header__link {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: var(--s2a-spacing-xs, 0.5rem) 0;
+    border: 0;
+    background: transparent;
+    color: var(--header-link);
+    font-family: var(--body-font-family);
+    font-size: var(--s2a-typography-font-size-label, 0.875rem);
+    font-weight: var(--s2a-font-weight-adobe-clean-bold, 700);
+    line-height: var(--s2a-typography-line-height-label, 1.125rem);
+    letter-spacing: var(--s2a-typography-letter-spacing-label, 0);
+    text-decoration: none;
+    white-space: nowrap;
 
-      .feds-toggle::after {
-        top: 25px;
-      }
+    &:hover {
+      text-decoration: none;
+    }
 
-      .feds-toggle[aria-expanded="true"]::before {
-        top: 21px;
-        transform: rotate(45deg);
-      }
+    @media (prefers-reduced-motion: no-preference) {
+      transition: color 0.15s ease;
+    }
+  }
 
-      .feds-toggle[aria-expanded="true"]::after {
-        top: 21px;
-        transform: rotate(-45deg);
-      }
+  & a.header__link,
+  & button.header__link {
+    cursor: pointer;
+  }
 
-      .feds-toggle:focus-visible,
-      .feds-brand:focus-visible {
-        outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
-        outline-offset: 2px;
-      }
+  .header__chevron {
+    display: none;
+    flex-shrink: 0;
+    margin-inline-start: var(--s2a-spacing-4, 0.25rem);
+    inline-size: 0.375rem;
+    block-size: 0.25rem;
+    color: var(--header-link);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition: transform 0.15s ease;
+    }
+
+    @media (width >= 48rem) {
+      display: block;
+    }
+  }
+
+  & button.header__link[aria-expanded="true"] .header__chevron {
+    transform: rotate(180deg);
+  }
+
+  .header__cta {
+    margin-inline-start: auto;
+    flex-shrink: 0;
+  }
+
+  .header__column-heading {
+    margin: 0 0 var(--s2a-spacing-xs, 0.5rem);
+    font-size: var(--s2a-typography-font-size-label, 0.875rem);
+    font-weight: var(--s2a-font-weight-adobe-clean-bold, 700);
+  }
+
+  .header__panel-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 1.5rem;
+    padding-block: var(--s2a-spacing-xs, 0.5rem);
+    color: var(--header-link);
+    font-size: var(--s2a-typography-font-size-label, 0.875rem);
+    text-decoration: none;
+  }
+
+  .header__link[aria-current="page"],
+  .header__panel-link[aria-current="page"] {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .header__brand,
+  .header__link,
+  .header__toggle,
+  .header__panel-link {
+    &:focus-visible {
+      outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
+      outline-offset: 2px;
+    }
+  }
+
+  .header__column {
+    @media (width >= 48rem) {
+      min-inline-size: 10rem;
     }
   }
 }
