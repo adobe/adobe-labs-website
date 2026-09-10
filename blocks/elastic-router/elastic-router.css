@@ -109,12 +109,6 @@
   }
 }
 
-.elastic-router__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s2a-spacing-3xs);
-}
-
 .elastic-router__title {
   margin: 0;
   font-size: var(--s2a-typography-font-size-heading-5);

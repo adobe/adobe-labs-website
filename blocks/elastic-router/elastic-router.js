@@ -78,28 +78,25 @@ function buildElasticRouterItem(data) {
   link.className = 'elastic-router__link';
   link.href = data.href;
 
-  const media = document.createElement('div');
-  media.className = 'elastic-router__media';
-  if (data.media) media.append(data.media);
-
-  const body = document.createElement('div');
-  body.className = 'elastic-router__body';
-
   if (data.heading) {
     data.heading.className = 'elastic-router__title';
     const innerLink = data.heading.querySelector('a');
     if (innerLink) innerLink.replaceWith(...innerLink.childNodes);
-    body.append(data.heading);
+    link.append(data.heading);
   }
+
+  const media = document.createElement('div');
+  media.className = 'elastic-router__media';
+  if (data.media) media.append(data.media);
+  link.append(media);
 
   if (data.description) {
     const description = document.createElement('p');
     description.className = 'elastic-router__description eyebrow';
     description.textContent = data.description;
-    body.append(description);
+    link.append(description);
   }
 
-  link.append(media, body);
   item.append(link);
   return item;
 }
