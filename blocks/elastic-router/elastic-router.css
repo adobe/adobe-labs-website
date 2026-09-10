@@ -86,8 +86,19 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--elastic-router-radius);
-  aspect-ratio: 3 / 2;
+
+  /* Shorter/wider than the desktop 3:2 — full-width stacked cards read too
+     tall at 3:2 on small screens. Approximate per design review; may need
+     further tuning. */
+  aspect-ratio: 3 / 1;
   background-color: var(--s2a-color-background-subtle);
+
+  /* Below 48rem the visual order is image, heading, description — reordered
+     here rather than in the DOM so the heading (the card's accessible name)
+     stays first for screen readers regardless of viewport. */
+  @media (width < 48rem) {
+    order: -1;
+  }
 
   /* From 48rem, height is fixed to the *row's* width (25% of it, at a 3:2
      ratio, matching the 4-card default) via container query units, not the
@@ -110,6 +121,9 @@
 }
 
 .elastic-router__title {
+  display: flex;
+  align-items: center;
+  gap: var(--s2a-spacing-2xs);
   margin: 0;
   font-size: var(--s2a-typography-font-size-heading-5);
   line-height: var(--s2a-typography-line-height-heading-5);
@@ -153,18 +167,36 @@
   --elastic-router-content-type-color: var(--color-content-type-playground);
 }
 
-.elastic-router__item[data-content-type] .elastic-router__title {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s2a-spacing-2xs);
+.elastic-router__item[data-content-type] .elastic-router__title::before {
+  content: "";
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: var(--s2a-border-radius-3xs);
+  background: var(--elastic-router-content-type-color);
+}
 
-  &::before {
-    content: "";
-    flex-shrink: 0;
-    width: 0.875rem;
-    height: 0.875rem;
-    border-radius: var(--s2a-border-radius-3xs);
-    background: var(--elastic-router-content-type-color);
+/* Mobile-only tap affordance (see buildArrowIcon in elastic-router.js).
+   Pushed to the row's far end regardless of the swatch/title's own gap. */
+.elastic-router__arrow {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background-color: var(--s2a-color-content-label);
+  color: var(--s2a-color-content-inverse);
+
+  @media (width < 48rem) {
+    display: flex;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
   }
 }
 

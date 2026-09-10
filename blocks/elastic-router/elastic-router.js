@@ -13,6 +13,37 @@ import { getSectionFromPath, toSafeHttpUrl } from '../../scripts/utils/utils.js'
  */
 
 /**
+ * Chevron-right glyph only — the circular badge behind it is CSS
+ * (`--s2a-color-content-label` background), not part of this icon, so its
+ * color (`currentColor`) can independently use `--s2a-color-content-inverse`
+ * for contrast against that badge in both themes. Extracted from the
+ * Figma-exported "Subtract.svg", which combined the circle and glyph into
+ * one fixed-color shape.
+ */
+const ARROW_ICON_SVG = `
+  <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+    <path fill="currentColor" d="M9.75586 6.07715C9.4304 5.75183 8.90255 5.75175 8.57715 6.07715C8.25174 6.40255 8.25182 6.93041 8.57715 7.25586L11.3213 10L8.57715 12.7441C8.25182 13.0696 8.25174 13.5974 8.57715 13.9229C8.90255 14.2483 9.4304 14.2482 9.75586 13.9229L13.0889 10.5889C13.4143 10.2634 13.4143 9.73657 13.0889 9.41113L9.75586 6.07715Z"/>
+  </svg>
+`.trim();
+
+/**
+ * Mobile-only tap affordance shown next to each card's title (CSS hides it
+ * at 48rem and up, where the hover-driven expand interaction takes over
+ * instead). Purely decorative — the whole card is already a link — so it's
+ * built unconditionally here and hidden by breakpoint in CSS, and hidden
+ * from assistive tech.
+ *
+ * @returns {HTMLSpanElement}
+ */
+function buildArrowIcon() {
+  const arrow = document.createElement('span');
+  arrow.className = 'elastic-router__arrow';
+  arrow.setAttribute('aria-hidden', 'true');
+  arrow.innerHTML = ARROW_ICON_SVG;
+  return arrow;
+}
+
+/**
  * Description text after an authored image. Authors can enter the copy either
  * as its own paragraph, or in the same paragraph as the image separated by a
  * line break (`<br>`) — both are common depending on how the row is typed.
@@ -82,6 +113,7 @@ function buildElasticRouterItem(data) {
     data.heading.className = 'elastic-router__title';
     const innerLink = data.heading.querySelector('a');
     if (innerLink) innerLink.replaceWith(...innerLink.childNodes);
+    data.heading.append(buildArrowIcon());
     link.append(data.heading);
   }
 

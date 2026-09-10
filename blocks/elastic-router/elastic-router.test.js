@@ -109,6 +109,20 @@ describe('elastic-router block', () => {
     expect(block.querySelectorAll('.elastic-router__item')).toHaveLength(0);
   });
 
+  it('appends a decorative, aria-hidden arrow icon to the title', () => {
+    const block = createBlock([
+      '<h3><a href="/research/">Research</a></h3>',
+    ]);
+
+    decorate(block);
+
+    const title = block.querySelector('.elastic-router__title');
+    const arrow = title.querySelector('.elastic-router__arrow');
+    expect(arrow).toHaveAttribute('aria-hidden', 'true');
+    expect(arrow.querySelector('svg')).toBeTruthy();
+    expect(within(block).getByRole('link', { name: 'Research' })).toBeTruthy();
+  });
+
   it('sets data-content-type from the href for a known section', () => {
     const block = createBlock([
       '<h3><a href="/workflows/">Workflows</a></h3>',
@@ -174,7 +188,8 @@ describe('elastic-router block', () => {
 
     decorate(block);
 
-    const titles = [...block.querySelectorAll('.elastic-router__title')].map((el) => el.textContent);
+    const titles = [...block.querySelectorAll('.elastic-router__title')]
+      .map((el) => el.textContent.trim());
     expect(titles).toEqual(['Research', 'Workflows', 'Sneaks', 'Playground']);
     expect(block.querySelector('ul.elastic-router__list')).toHaveAttribute('role', 'list');
   });
