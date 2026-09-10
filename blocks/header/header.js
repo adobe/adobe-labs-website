@@ -212,17 +212,6 @@ function getNavPath() {
  */
 
 /**
- * Whether a link is the Subscribe / utility CTA.
- *
- * @param {Element} link Anchor
- * @returns {boolean}
- */
-function isCtaLink(link) {
-  if (link.classList.contains('button')) return true;
-  return link.textContent.trim().toLowerCase() === CTA_LABEL.toLowerCase();
-}
-
-/**
  * Whether a link is the brand / home logo.
  *
  * @param {Element} link Anchor
@@ -303,7 +292,7 @@ function itemsFromList(list, skip) {
 function parseNavFragment(fragment) {
   const allLinks = collectLinks(fragment);
   const brandLink = allLinks.find(isBrandLink);
-  const ctaLink = [...allLinks].reverse().find((link) => link !== brandLink && isCtaLink(link));
+  const ctaLink = [...allLinks].reverse().find((link) => link !== brandLink && link.classList.contains('button'));
   const list = [...fragment.querySelectorAll('ul')].find((ul) => !ul.parentElement?.closest('ul'));
   const skip = new Set([brandLink, ctaLink].filter(Boolean));
   const items = itemsFromList(primaryNavList(list, brandLink), skip);
