@@ -172,7 +172,7 @@
   flex-shrink: 0;
   width: 0.875rem;
   height: 0.875rem;
-  border-radius: var(--s2a-border-radius-3xs);
+  border-radius: 0.25rem;
   background: var(--elastic-router-content-type-color);
 }
 
