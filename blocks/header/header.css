@@ -166,14 +166,6 @@
       background-color: var(--header-surface);
     }
 
-    @media (prefers-reduced-motion: no-preference) {
-      transition:
-        display 0.2s allow-discrete,
-        overlay 0.2s allow-discrete,
-        opacity 0.2s ease,
-        transform 0.2s ease;
-    }
-
     @media (width >= 48rem) {
       display: block;
       position: static;
@@ -195,7 +187,15 @@
       opacity: 1;
       transform: none;
 
+      /* Only while open: transitioning display on the closed nav flashes the
+         overlay when crossing desktop→mobile. */
       @media (prefers-reduced-motion: no-preference) {
+        transition:
+          display 0.2s allow-discrete,
+          overlay 0.2s allow-discrete,
+          opacity 0.2s ease,
+          transform 0.2s ease;
+
         @starting-style {
           opacity: 0;
           transform: translateY(-0.5rem);
