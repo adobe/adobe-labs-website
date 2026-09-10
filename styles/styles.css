@@ -325,20 +325,22 @@ footer .footer[data-block-status="loaded"] {
   visibility: visible;
 }
 
-/* Overall sitewide spacing for sections and blocks. 
-   These are scoped to main so various blocks and sections can use them. */
+/* Overall sitewide spacing for sections and blocks.
+   These are scoped to main so various blocks and sections can use them.
+   --section-space-between is the flex gap between sections. Overlap offsets subtract
+   the same value so later sections cover the rounded top. */
 main {
-  --main-gap: var(--s2a-section-spacing-3xs);
+  --section-space-between: var(--s2a-section-spacing-3xs);
   --section-padding-block-start: var(--s2a-spacing-lg);
   --section-padding-block-end: var(--s2a-section-spacing-5xl);
   --section-padding-block-end-last: var(--s2a-spacing-4xl);
 
   display: flex;
   flex-flow: column nowrap;
-  gap: var(--main-gap);
+  gap: var(--section-space-between);
 
   @media (width >= 64rem) {
-    --main-gap: var(--s2a-section-spacing-lg);
+    --section-space-between: var(--s2a-section-spacing-lg);
     --section-padding-block-end-last: var(--s2a-layout-lg);
   }
 
@@ -505,36 +507,49 @@ main > .section > div {
 }
 
 main .section[class*="section-rounded-"] {
-  --section-margin-negative-offset: calc(-1 * (var(--section-border-radius) + var(--main-gap)));
+  --section-margin-negative-offset: calc(-1 * (var(--section-border-radius) + var(--section-space-between)));
 
-  border-top-left-radius: var(--section-border-radius);
-  border-top-right-radius: var(--section-border-radius);
   padding-block: var(--section-padding-block-start) var(--section-padding-block-end);
   z-index: 1;
 
-  /* Last section: bottom radius + last-section padding. */
+  /* Last rounded section on the page: end radius + last-section padding. */
   &:nth-last-child(1 of [class*="section-rounded-"]) {
     --section-padding-block-end: var(--section-padding-block-end-last);
 
-    border-bottom-left-radius: var(--section-border-radius);
-    border-bottom-right-radius: var(--section-border-radius);
+    border-end-start-radius: var(--section-border-radius);
+    border-end-end-radius: var(--section-border-radius);
   }
+}
 
-  &:is([class*="section-rounded-"] ~ *) {
-    margin-block-start: var(--section-margin-negative-offset);
-  }
+/* Start radius on a section: every color section, and the first default-color section in a set. */
+main .section[class*="section-rounded-"]:not(.section-rounded-default),
+main .section.section-rounded-default:first-child,
+main .section:not(.section-rounded-default) + .section-rounded-default {
+  border-start-start-radius: var(--section-border-radius);
+  border-start-end-radius: var(--section-border-radius);
+}
+
+/* Overlap only when a new section follows another rounded section.
+   Full-screen hero overlap lives in hero.css. Do not pull up over a default hero. */
+main .section[class*="section-rounded-"]:not(.section-rounded-default) + [class*="section-rounded-"],
+main .section.section-rounded-default + [class*="section-rounded-"]:not(.section-rounded-default) {
+  margin-block-start: var(--section-margin-negative-offset);
 }
 
 main .section {
   &.section-rounded-default {
     background: var(--color-section-surface-default);
 
-    /* Adjust padding for default-color sibling sections to avoid double spacing. */
+    /* Adjacent default-color sections should appear as one continuous surface. */
     + .section-rounded-default {
-      margin-block-start: calc(-1 * var(--main-gap));
+      margin-block-start: calc(-1 * var(--section-space-between));
       padding-block-start: 0;
-      border-top-left-radius: 0;
-      border-top-right-radius: 0;
+    }
+
+    /* Last default-color section before a different surface keeps a rounded end. */
+    &:has(+ :not(.section-rounded-default)) {
+      border-end-start-radius: var(--section-border-radius);
+      border-end-end-radius: var(--section-border-radius);
     }
   }
 
@@ -552,23 +567,29 @@ main .section {
 }
 
 /* -- Page-specific section spacing overrides --- */
-body.home main .section.grid-line-content-container {
+main .section.grid-line-content-container {
   padding-block-end: 0;
 }
 
 body.research main {
-  --main-gap: var(--s2a-spacing-xl);
+  --section-space-between: var(--s2a-spacing-xl);
 
   @media (width >= 48rem) {
-    --main-gap: var(--s2a-spacing-4xl);
+    --section-space-between: var(--s2a-spacing-4xl);
   }
 }
 
 /* --- Articles --- */
 
 body.article main {
+  --section-padding-block-end: var(--s2a-spacing-2xl);
+
   /* Default article content width. No s2a token represents these widths. */
   --article-content-inline-size-narrow: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
+
+  @media (width >= 90rem) {
+    --section-padding-block-end: var(--s2a-spacing-4xl);
+  }
 
   .default-content-wrapper {
     max-inline-size: var(--article-content-inline-size-narrow);

@@ -251,7 +251,7 @@
 }
 
 .hero-container:has(.hero-full-screen) + [class*="section-rounded-"] {
-  --hero-margin-negative-offset: calc(-1 * var(--section-border-radius) - var(--main-gap));
+  --hero-margin-negative-offset: calc(-1 * var(--section-border-radius) - var(--section-space-between));
   
   margin-block-start: var(--hero-margin-negative-offset);
 }

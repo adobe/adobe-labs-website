@@ -2,6 +2,11 @@
   max-inline-size: unset;
   margin: 0;
   padding: 0;
+
+  /* Last-section space sits outside the drawn lines so text stays flush. */
+  @media (width >= 64rem) {
+    padding-block-end: var(--section-padding-block-end-last);
+  }
 }
 
 .grid-line-content {
@@ -99,11 +104,5 @@
     .grid-line-content__text p {
       margin-block: var(--s2a-spacing-4xl);
     }
-  }
-}
-
-@media (width >= 64rem) {
-  .grid-line-content {
-    padding-block-end: var(--section-padding-block-end-last);
   }
 }

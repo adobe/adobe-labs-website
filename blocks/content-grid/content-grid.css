@@ -16,6 +16,7 @@
     padding: 0;
     list-style: none;
 
+    /* Larger gap when cards wrap to a second row. */
     @media (width >= 48rem) {
       row-gap: var(--s2a-section-spacing-lg);
     }
@@ -27,6 +28,7 @@
     grid-template-columns: 1fr;
     gap: var(--s2a-spacing-lg) var(--s2a-spacing-xs);
 
+    /* Larger gap when the intro stacks above the card list. */
     @media (width >= 48rem) {
       row-gap: var(--s2a-section-spacing-lg);
     }

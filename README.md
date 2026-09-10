@@ -155,22 +155,22 @@ In Document Authoring, insert a section break after the hero table. Paste the he
    - `section-rounded-pink` — pink surface
    - `section-rounded-orange` — orange surface
 
-**Article pages** (`template: article`): `decorateArticleSections` adds `section-rounded-default` to every section that is not a hero. Do not author that Style unless you want blue, pink, or orange instead.
-
 Keep the **hero in the first section**. Do not put a rounded Style on the hero section.
 
-On the **homepage**, keep Manifesto (`grid-line-content`) in its own last main section. The home override removes that section’s end padding so the block sits flush on smaller screens.
+On the **homepage**, keep Manifesto (`grid-line-content`) in its own last main section.
+
 #### Spacing rules
 
-- A section with a `section-rounded-*` class gets top corner radius, vertical padding, and `z-index: 1`.
-- Each later rounded section pulls up by `--section-margin-negative-offset` (`-(radius + gap)`). This stacks the rounded tops.
-- Two **adjacent default** sections: the second uses `margin-block-start: calc(-1 * var(--main-gap))`, `padding-block-start: 0`, and no top radius. They read as one surface. Removing the top radius stops the page background from showing through the seam in dark mode.
-- The **last** rounded section also gets bottom radius and the last-section end padding token. A page with only one rounded section gets all four corners.
-- **Full-screen hero**: the next rounded section overlaps the hero by `-(radius + gap)`.
-- **Footer**: the last section overlaps the footer by the radius. Footer inner padding grows by that amount so links stay clickable (`.footer` uses `z-index: 0`). Footer start padding steps up at 64rem+.
-- **Homepage Manifesto**: `body.home main .section.grid-line-content-container` sets `padding-block-end` to `0` so the block is flush below 64rem. At 64rem+, `.grid-line-content` sets its own `padding-block-end` to `--section-padding-block-end-last`.
-- **Research index** (`body.research` from `decorateIndexes`): larger `--main-gap`, with a further step at 48rem+.
-- Index pages get a body class from the first path segment (`home`, `research`, and so on).
+A `section-rounded-*` section gets vertical padding and `z-index: 1`.
+
+- The first default section in a group, and every color section, get a start corner radius.
+- A color section that follows a rounded section, or a default section that follows a color section, overlaps the section before it. The offset is `--section-margin-negative-offset`: `-(radius + --section-space-between)`. A default hero is not overlapped.
+- Adjacent default sections appear as one continuous card. The next section cancels the flex gap and start padding. The last default section before a different surface keeps an end radius.
+- The last rounded section on the page gets an end radius and uses `--section-padding-block-end-last`. A page with one rounded section gets all four corners.
+- After a full-screen hero, the next rounded section overlaps the hero by `-(radius + --section-space-between)`.
+- The last rounded section overlaps the footer by the section radius. Footer inner padding grows by that amount so links stay clickable (`.footer` uses `z-index: 0`). Footer start padding increases at 64rem and above.
+- The research index (`template: research`, `body.research`) uses a larger `--section-space-between`, then a larger value at 48rem and above. Set that template on the research index only.
+- Article pages (`template: article`) use the default surface only. `--section-padding-block-end` is `--s2a-spacing-2xl`, then `--s2a-spacing-4xl` at 90rem (1440px). The last rounded section still uses `--section-padding-block-end-last`.
 
 ## Testing
 

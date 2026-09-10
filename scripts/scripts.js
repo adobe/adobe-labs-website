@@ -205,15 +205,6 @@ async function loadFonts() {
 }
 
 /**
- * Adds the top-level path segment as a body class on index pages.
- * The homepage `/` has no segment, so it gets `home`.
- */
-function decorateIndexes() {
-  const segments = window.location.pathname.split('/').filter(Boolean);
-  if (segments.length <= 1) document.body.classList.add(segments[0] || 'home');
-}
-
-/**
  * Loads everything needed to get to LCP.
  * @param {Element} doc The container element
  */
@@ -221,7 +212,6 @@ async function loadEager(doc) {
   document.documentElement.lang = 'en';
   decorateDarkMode();
   decorateTemplateAndTheme();
-  decorateIndexes();
   const main = doc.querySelector('main');
   if (main) {
     decorateMain(main);
