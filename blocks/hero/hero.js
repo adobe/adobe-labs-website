@@ -10,20 +10,56 @@ import {
 } from '../../scripts/utils/utils.js';
 
 const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
-const HERO_INTRO_CLASS = 'hero-intro';
-const HERO_INTRO_NAV_CLASS = 'hero-intro--nav';
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
-// TODO: ADBLABS-83 — confirm nav delay (storyboard step 3) against the Figma prototype.
-export const HERO_INTRO_NAV_DELAY_MS = 1000;
+export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 
-// TODO: ADBLABS-83 — confirm total intro length (steps 0–5) against the Figma prototype.
-// Keep this long enough for the second section to load during loadLazy and still slide.
-export const HERO_INTRO_DURATION_MS = 3000;
+// Overlapping source timings from `body.appear`. TODO: ADBLABS-83 — confirm against Figma.
+const INTRO_TIME_SCALE = 1.5; // 50% slower than the base choreography
+const BLACK_HOLD_MS = 100 * INTRO_TIME_SCALE;
+export const HERO_INTRO_NAV_DELAY_MS = 250 * INTRO_TIME_SCALE;
+export const HERO_INTRO_COPY_DELAY_MS = 550 * INTRO_TIME_SCALE;
+export const HERO_INTRO_COPY_DURATION_MS = 400 * INTRO_TIME_SCALE;
+export const HERO_INTRO_BODY_DELAY_MS = 900 * INTRO_TIME_SCALE;
+const NAV_FADE_MS = 300 * INTRO_TIME_SCALE;
+const SECTION_MS = 550 * INTRO_TIME_SCALE;
+const SETTLE_PAUSE_MS = 150 * INTRO_TIME_SCALE;
+const OPACITY_MS = 600 * INTRO_TIME_SCALE;
+const BLUR_MS = 500 * INTRO_TIME_SCALE;
+const SCALE_MS = 1200 * INTRO_TIME_SCALE;
+const FROST_DISPLACE = 18;
+const FROST_GRAIN_SIZE = 160; // higher = larger crystals
+const FROST_FREQ = 10 / FROST_GRAIN_SIZE;
 
+export const HERO_INTRO_FROST_DURATION_MS = 1400 * INTRO_TIME_SCALE;
+export const HERO_INTRO_DURATION_MS = Math.max(
+  HERO_INTRO_BODY_DELAY_MS + SECTION_MS + SETTLE_PAUSE_MS,
+  BLACK_HOLD_MS + HERO_INTRO_FROST_DURATION_MS + SETTLE_PAUSE_MS,
+);
+
+const INTRO_CSS_VARS = {
+  '--hero-intro-nav-duration': NAV_FADE_MS,
+  '--hero-intro-section-duration': SECTION_MS,
+  '--hero-intro-media-delay': BLACK_HOLD_MS,
+  '--hero-intro-opacity-duration': OPACITY_MS,
+  '--hero-intro-blur-duration': BLUR_MS,
+  '--hero-intro-scale-duration': SCALE_MS,
+  '--hero-intro-copy-delay': HERO_INTRO_COPY_DELAY_MS,
+  '--hero-intro-copy-duration': HERO_INTRO_COPY_DURATION_MS,
+};
+
+/** @type {number[]} */
+let introTimers = [];
 /** @type {number|undefined} */
-let introNavTimer;
+let frostRaf;
 /** @type {number|undefined} */
-let introDoneTimer;
+let frostStartTs;
+/** @type {SVGSVGElement|undefined} */
+let frostSvg;
+/** @type {SVGElement|undefined} */
+let frostDisplace;
+/** @type {MutationObserver|undefined} */
+let appearObserver;
 
 /**
  * Whether this hero sits in the first section of `main`.
@@ -186,55 +222,146 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   return root;
 }
 
-/**
- * Removes page-level intro classes and pending timers.
- * Safe to call when no intro is running.
- *
- * @returns {void}
- */
+function svgEl(name, attrs) {
+  const el = document.createElementNS(SVG_NS, name);
+  Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+  return el;
+}
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2;
+}
+
+function setIntroVars(root, on) {
+  Object.entries(INTRO_CSS_VARS).forEach(([name, ms]) => {
+    if (on) root.style.setProperty(name, `${ms}ms`);
+    else root.style.removeProperty(name);
+  });
+}
+
+/** Eases displacement after the black hold. CSS owns blur. */
+function tickFrost(now) {
+  if (!frostDisplace) return;
+  if (frostStartTs === undefined) frostStartTs = now;
+  const elapsed = now - frostStartTs - BLACK_HOLD_MS;
+  if (elapsed <= 0) {
+    frostDisplace.setAttribute('scale', String(FROST_DISPLACE));
+    frostRaf = window.requestAnimationFrame(tickFrost);
+    return;
+  }
+  const t = Math.min(1, elapsed / HERO_INTRO_FROST_DURATION_MS);
+  const k = t >= 1 ? 0 : 1 - easeInOutCubic(t);
+  frostDisplace.setAttribute('scale', String(FROST_DISPLACE * k));
+  if (t < 1) {
+    frostRaf = window.requestAnimationFrame(tickFrost);
+    return;
+  }
+  frostDisplace.setAttribute('scale', '0');
+  frostRaf = undefined;
+  document.documentElement.classList.add('hero-intro--frost-done');
+}
+
+function startFrost() {
+  if (frostRaf !== undefined) return;
+  frostStartTs = undefined;
+  const run = () => {
+    frostRaf = window.requestAnimationFrame(tickFrost);
+  };
+  if (document.body.classList.contains('appear')) {
+    run();
+    return;
+  }
+  appearObserver?.disconnect();
+  appearObserver = new MutationObserver(() => {
+    if (!document.body.classList.contains('appear')) return;
+    appearObserver.disconnect();
+    appearObserver = undefined;
+    run();
+  });
+  appearObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+}
+
+function injectFrost() {
+  if (document.getElementById(HERO_INTRO_FROST_ID)) return;
+  frostSvg = svgEl('svg', {
+    class: 'hero-intro-frost',
+    'aria-hidden': 'true',
+    focusable: 'false',
+    width: '0',
+    height: '0',
+  });
+  const filter = svgEl('filter', {
+    id: HERO_INTRO_FROST_ID,
+    'color-interpolation-filters': 'sRGB',
+    filterUnits: 'objectBoundingBox',
+    primitiveUnits: 'userSpaceOnUse',
+    x: '-0.2',
+    y: '-0.2',
+    width: '1.4',
+    height: '1.4',
+  });
+  frostDisplace = svgEl('feDisplacementMap', {
+    in: 'SourceGraphic',
+    in2: 'noise',
+    scale: String(FROST_DISPLACE),
+    xChannelSelector: 'R',
+    yChannelSelector: 'G',
+  });
+  filter.append(
+    svgEl('feTurbulence', {
+      type: 'fractalNoise',
+      baseFrequency: String(FROST_FREQ),
+      numOctaves: '2',
+      result: 'noise',
+      seed: '1',
+    }),
+    frostDisplace,
+  );
+  frostSvg.append(filter);
+  document.body.append(frostSvg);
+  startFrost();
+}
+
+/** Removes intro classes, the frost SVG, rAF, and timers. Safe if no intro is running. */
 export function clearHeroIntro() {
-  window.clearTimeout(introNavTimer);
-  window.clearTimeout(introDoneTimer);
-  document.documentElement.classList.remove(HERO_INTRO_CLASS, HERO_INTRO_NAV_CLASS);
+  introTimers.forEach((id) => window.clearTimeout(id));
+  introTimers = [];
+  if (frostRaf !== undefined) {
+    window.cancelAnimationFrame(frostRaf);
+    frostRaf = undefined;
+  }
+  appearObserver?.disconnect();
+  appearObserver = undefined;
+  frostStartTs = undefined;
+  frostDisplace = undefined;
+  const root = document.documentElement;
+  root.classList.remove('hero-intro', 'hero-intro--nav', 'hero-intro--body', 'hero-intro--frost-done');
+  setIntroVars(root, false);
+  frostSvg?.remove();
+  frostSvg = undefined;
+  document.getElementById(HERO_INTRO_FROST_ID)?.closest('svg')?.remove();
 }
 
-/**
- * Whether the user asked for reduced motion.
- *
- * @returns {boolean}
- */
-function prefersReducedMotion() {
-  return typeof window.matchMedia === 'function'
-    && window.matchMedia(REDUCED_MOTION_MQ).matches;
-}
-
-/**
- * Whether this block should start the page-load intro.
- *
- * @param {Element} block The hero block
- * @returns {boolean}
- */
 function shouldStartHeroIntro(block) {
+  const reduce = typeof window.matchMedia === 'function'
+    && window.matchMedia(REDUCED_MOTION_MQ).matches;
   return Boolean(firstSection(block))
     && block.classList.contains('hero-full-screen')
-    && !prefersReducedMotion()
-    && !document.documentElement.classList.contains(HERO_INTRO_CLASS);
+    && !reduce
+    && !document.documentElement.classList.contains('hero-intro');
 }
 
-/**
- * Adds `hero-intro` on `<html>` and schedules the nav step and cleanup.
- *
- * @returns {void}
- */
 function startHeroIntro() {
   const root = document.documentElement;
-  root.classList.add(HERO_INTRO_CLASS);
-  window.clearTimeout(introNavTimer);
-  window.clearTimeout(introDoneTimer);
-  introNavTimer = window.setTimeout(() => {
-    root.classList.add(HERO_INTRO_NAV_CLASS);
-  }, HERO_INTRO_NAV_DELAY_MS);
-  introDoneTimer = window.setTimeout(clearHeroIntro, HERO_INTRO_DURATION_MS);
+  root.classList.add('hero-intro');
+  setIntroVars(root, true);
+  injectFrost();
+  introTimers.forEach((id) => window.clearTimeout(id));
+  introTimers = [
+    window.setTimeout(() => root.classList.add('hero-intro--nav'), HERO_INTRO_NAV_DELAY_MS),
+    window.setTimeout(() => root.classList.add('hero-intro--body'), HERO_INTRO_BODY_DELAY_MS),
+    window.setTimeout(clearHeroIntro, HERO_INTRO_DURATION_MS),
+  ];
 }
 
 /**

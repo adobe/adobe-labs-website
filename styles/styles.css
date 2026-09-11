@@ -176,9 +176,7 @@ body.appear {
 
 /* ADBLABS-83 hero intro — page-level hooks. Media and copy motion live in hero.css. */
 html.hero-intro {
-  /* TODO: ADBLABS-83 — confirm section slide distance, duration, and easing against Figma. */
-  --hero-intro-nav-duration: 0.4s;
-  --hero-intro-section-duration: 0.6s;
+  /* TODO: ADBLABS-83 — confirm section slide distance and easing against Figma. */
   --hero-intro-section-offset: 40vh;
 }
 
@@ -595,8 +593,13 @@ body.research main {
   }
 }
 
-html.hero-intro body.appear main > .section:nth-of-type(2) {
-  animation: hero-intro-section-rise var(--hero-intro-section-duration) ease both;
+html.hero-intro--body main > .section:nth-of-type(2) {
+  animation: hero-intro-section-rise var(--hero-intro-section-duration)
+    cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
+  transform: translateY(var(--hero-intro-section-offset));
 }
 
 @keyframes hero-intro-section-rise {
@@ -610,8 +613,10 @@ html.hero-intro body.appear main > .section:nth-of-type(2) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.hero-intro body.appear main > .section:nth-of-type(2) {
+  html.hero-intro--body main > .section:nth-of-type(2),
+  html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
     animation: none;
+    transform: none;
   }
 }
 

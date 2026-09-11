@@ -1,7 +1,12 @@
 import { within } from '@testing-library/dom';
 import decorate, {
   clearHeroIntro,
+  HERO_INTRO_BODY_DELAY_MS,
+  HERO_INTRO_COPY_DELAY_MS,
+  HERO_INTRO_COPY_DURATION_MS,
   HERO_INTRO_DURATION_MS,
+  HERO_INTRO_FROST_DURATION_MS,
+  HERO_INTRO_FROST_ID,
   HERO_INTRO_NAV_DELAY_MS,
 } from './hero.js';
 
@@ -314,6 +319,7 @@ describe('hero block', () => {
       await decorate(block);
 
       expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
     });
 
     it('does not add hero-intro on a default hero in the first section', async () => {
@@ -325,6 +331,8 @@ describe('hero block', () => {
       await decorate(block);
 
       expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
     });
 
     it('does not add hero-intro on a full-screen hero outside the first section', async () => {
@@ -344,6 +352,8 @@ describe('hero block', () => {
       await decorate(block);
 
       expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
     });
 
     it('does not add hero-intro when reduced motion is preferred', async () => {
@@ -368,9 +378,22 @@ describe('hero block', () => {
         await decorate(block);
 
         expect(document.documentElement).not.toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
       } finally {
         window.matchMedia = originalMatchMedia;
       }
+    });
+
+    it('keeps derived intro steps in order', () => {
+      expect(HERO_INTRO_COPY_DELAY_MS).toBeGreaterThanOrEqual(HERO_INTRO_NAV_DELAY_MS);
+      expect(HERO_INTRO_BODY_DELAY_MS).toBeGreaterThanOrEqual(HERO_INTRO_NAV_DELAY_MS);
+      expect(HERO_INTRO_BODY_DELAY_MS).toBeGreaterThanOrEqual(HERO_INTRO_COPY_DELAY_MS);
+      expect(HERO_INTRO_BODY_DELAY_MS).toBeLessThan(
+        HERO_INTRO_COPY_DELAY_MS + HERO_INTRO_COPY_DURATION_MS,
+      );
+      expect(HERO_INTRO_DURATION_MS).toBeGreaterThanOrEqual(HERO_INTRO_BODY_DELAY_MS);
+      expect(HERO_INTRO_DURATION_MS).toBeGreaterThanOrEqual(HERO_INTRO_FROST_DURATION_MS);
     });
 
     it('adds hero-intro--nav after the nav delay and clears intro classes when done', async () => {
@@ -386,13 +409,27 @@ describe('hero block', () => {
 
         expect(document.documentElement).toHaveClass('hero-intro');
         expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
+        expect(document.documentElement.style.getPropertyValue('--hero-intro-copy-delay'))
+          .toBe(`${HERO_INTRO_COPY_DELAY_MS}ms`);
 
         jest.advanceTimersByTime(HERO_INTRO_NAV_DELAY_MS);
         expect(document.documentElement).toHaveClass('hero-intro--nav');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
 
-        jest.advanceTimersByTime(HERO_INTRO_DURATION_MS);
+        jest.advanceTimersByTime(HERO_INTRO_BODY_DELAY_MS - HERO_INTRO_NAV_DELAY_MS);
+        expect(document.documentElement).toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
+
+        jest.advanceTimersByTime(HERO_INTRO_DURATION_MS - HERO_INTRO_BODY_DELAY_MS);
         expect(document.documentElement).not.toHaveClass('hero-intro');
         expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+        expect(document.documentElement.style.getPropertyValue('--hero-intro-copy-delay'))
+          .toBe('');
       } finally {
         jest.useRealTimers();
       }

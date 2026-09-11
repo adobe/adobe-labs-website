@@ -456,18 +456,23 @@
    The header block may load after `hero-intro` is already on `<html>`. */
 html.hero-intro:not(.hero-intro--nav) .header {
   opacity: 0;
+  transform: translateY(6px);
 }
 
 html.hero-intro.hero-intro--nav .header {
   opacity: 1;
+  transform: translateY(0);
 
   /* TODO: ADBLABS-83 — confirm nav fade duration and easing against Figma. */
-  transition: opacity var(--hero-intro-nav-duration, 0.4s) ease;
+  transition:
+    opacity var(--hero-intro-nav-duration) cubic-bezier(0.25, 0.8, 0.25, 1),
+    transform var(--hero-intro-nav-duration) cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
   html.hero-intro .header {
     opacity: 1;
+    transform: none;
     transition: none;
   }
 }
