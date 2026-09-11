@@ -306,8 +306,8 @@ main > .section.hero-container--overlay {
    Starts when `html.hero-intro` is set and `body.appear` paints.
    JS owns when the class is added and removed. */
 html.hero-intro {
-  /* TODO: ADBLABS-83 — confirm scale, durations, and easing against Figma.
-     Media fade/zoom should last through storyboard steps 1–2 (still easing when nav appears). */
+  /* Durations are fallbacks. JS overwrites them from derived timings.
+     TODO: ADBLABS-83 — confirm scale and easing against Figma. */
   --hero-intro-scale-start: 1.12;
   --hero-intro-media-duration: 1.6s;
   --hero-intro-copy-delay: 1.4s;
@@ -322,19 +322,33 @@ html.hero-intro {
   overflow: hidden;
 }
 
+/* Clip the 1.12 media zoom to the hero frame. */
+html.hero-intro .hero-full-screen {
+  overflow: hidden;
+}
+
+/* Zoom the filtered image as one unit so frost is not re-rasterized from the top-left. */
+html.hero-intro .hero-full-screen .hero__media {
+  transform: scale(var(--hero-intro-scale-start));
+  will-change: transform;
+}
+
 html.hero-intro .hero-full-screen .hero__media img {
   opacity: 0;
-  transform: scale(var(--hero-intro-scale-start));
   filter: url("#hero-intro-frost");
-  will-change: transform, opacity;
+  will-change: opacity;
 }
 
 html.hero-intro .hero-full-screen .hero__content {
   opacity: 0;
 }
 
+html.hero-intro body.appear .hero-full-screen .hero__media {
+  animation: hero-intro-media-zoom var(--hero-intro-media-duration) var(--hero-intro-easing) both;
+}
+
 html.hero-intro body.appear .hero-full-screen .hero__media img {
-  animation: hero-intro-media var(--hero-intro-media-duration) var(--hero-intro-easing) both;
+  animation: hero-intro-media-fade var(--hero-intro-media-duration) var(--hero-intro-easing) both;
 }
 
 html.hero-intro body.appear .hero-full-screen .hero__content {
@@ -342,15 +356,23 @@ html.hero-intro body.appear .hero-full-screen .hero__content {
   animation-delay: var(--hero-intro-copy-delay);
 }
 
-@keyframes hero-intro-media {
+@keyframes hero-intro-media-zoom {
   from {
-    opacity: 0;
     transform: scale(var(--hero-intro-scale-start));
   }
 
   to {
-    opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes hero-intro-media-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 
@@ -365,6 +387,7 @@ html.hero-intro body.appear .hero-full-screen .hero__content {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html.hero-intro .hero-full-screen .hero__media,
   html.hero-intro .hero-full-screen .hero__media img,
   html.hero-intro .hero-full-screen .hero__content {
     animation: none;

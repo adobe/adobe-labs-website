@@ -15,26 +15,74 @@ const HERO_INTRO_CLASS = 'hero-intro';
 const HERO_INTRO_NAV_CLASS = 'hero-intro--nav';
 const HERO_INTRO_BODY_CLASS = 'hero-intro--body';
 
-// TODO: ADBLABS-83 — confirm nav delay (storyboard step 3) against the Figma prototype.
-export const HERO_INTRO_NAV_DELAY_MS = 1000;
-
 export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 
-// TODO: ADBLABS-83 — keep aligned with HERO_INTRO_NAV_DELAY_MS (hold until step 3).
-export const HERO_INTRO_FROST_DURATION_S = 2.2;
+// Source timings. Tune these; later steps are derived so the sequence stays valid.
+// TODO: ADBLABS-83 — confirm against the Figma prototype.
+export const HERO_INTRO_NAV_DELAY_MS = 1000; // step 3: nav on; frost starts to ease out
+const HERO_INTRO_FROST_EASE_MS = 1200; // frost ease-out after nav
+const HERO_INTRO_COPY_AFTER_NAV_MS = 400; // step 4: copy fade starts after nav
+const HERO_INTRO_COPY_DURATION_MS = 400; // copy fade length
+const HERO_INTRO_MEDIA_AFTER_NAV_MS = 600; // zoom/fade still running when nav appears
+const HERO_INTRO_NAV_DURATION_MS = 400; // header fade after --nav
+const HERO_INTRO_SECTION_DURATION_MS = 600; // step 5: second-section slide
 
-// TODO: ADBLABS-83 — confirm total intro length (steps 0–5) against the Figma prototype.
-// Must finish after frost ease-out (and the second-section slide that starts then).
-export const HERO_INTRO_DURATION_MS = 3000;
+export const HERO_INTRO_MEDIA_DURATION_MS = HERO_INTRO_NAV_DELAY_MS + HERO_INTRO_MEDIA_AFTER_NAV_MS;
+export const HERO_INTRO_COPY_DELAY_MS = HERO_INTRO_NAV_DELAY_MS + HERO_INTRO_COPY_AFTER_NAV_MS;
+export const HERO_INTRO_FROST_DURATION_MS = HERO_INTRO_NAV_DELAY_MS + HERO_INTRO_FROST_EASE_MS;
+
+// Body is last: after frost, copy, and media have all finished.
+export const HERO_INTRO_BODY_DELAY_MS = Math.max(
+  HERO_INTRO_FROST_DURATION_MS,
+  HERO_INTRO_COPY_DELAY_MS + HERO_INTRO_COPY_DURATION_MS,
+  HERO_INTRO_MEDIA_DURATION_MS,
+);
+
+export const HERO_INTRO_DURATION_MS = HERO_INTRO_BODY_DELAY_MS + HERO_INTRO_SECTION_DURATION_MS;
+
+/** CSS custom properties written from the derived timings. */
+const INTRO_TIMING_VARS = {
+  '--hero-intro-nav-duration': HERO_INTRO_NAV_DURATION_MS,
+  '--hero-intro-section-duration': HERO_INTRO_SECTION_DURATION_MS,
+  '--hero-intro-media-duration': HERO_INTRO_MEDIA_DURATION_MS,
+  '--hero-intro-copy-delay': HERO_INTRO_COPY_DELAY_MS,
+  '--hero-intro-copy-duration': HERO_INTRO_COPY_DURATION_MS,
+};
+
+/**
+ * Writes derived intro durations onto `root` so CSS stays in sequence.
+ *
+ * @param {HTMLElement} root Usually `<html>`
+ * @returns {void}
+ */
+function applyIntroTimingVars(root) {
+  Object.entries(INTRO_TIMING_VARS).forEach(([name, ms]) => {
+    root.style.setProperty(name, `${ms}ms`);
+  });
+}
+
+/**
+ * Removes derived intro duration custom properties from `root`.
+ *
+ * @param {HTMLElement} root Usually `<html>`
+ * @returns {void}
+ */
+function clearIntroTimingVars(root) {
+  Object.keys(INTRO_TIMING_VARS).forEach((name) => {
+    root.style.removeProperty(name);
+  });
+}
 
 // TODO: ADBLABS-83 — confirm stdDeviation, displacement scale, and baseFrequency against Figma.
-const FROST_BLUR_START = 28;
-const FROST_BLUR_HOLD = 24;
-const FROST_DISPLACE_START = 56;
-const FROST_DISPLACE_HOLD = 40;
-const FROST_FREQ_START = 0.03;
-const FROST_FREQ_HOLD = 0.018;
-const FROST_FREQ_END = 0.008;
+const FROST_BLUR_START = 28; // feGaussianBlur stdDeviation at t=0 (heavy frost)
+const FROST_BLUR_HOLD = 24; // stdDeviation at nav delay, then eases to 0
+const FROST_DISPLACE_START = 56; // feDisplacementMap scale at t=0 (strong warp)
+const FROST_DISPLACE_HOLD = 40; // displacement scale at nav delay, then eases to 0
+const FROST_FREQ_START = 0.03; // feTurbulence baseFrequency (grain size; stays locked to the image)
+const FROST_FREQ_HOLD = 0.03; // same as start so the pattern does not enlarge on its own
+const FROST_FREQ_END = 0.03; // same as start through ease-out
+const FROST_SEED_INTERVAL_HOLD_MS = 120; // ms between seed ticks while blur is held
+const FROST_SEED_INTERVAL_EASE_MS = 280; // slower seed ticks while frost eases out
 
 /** @type {number|undefined} */
 let introNavTimer;
@@ -277,6 +325,13 @@ function buildFrostSvg() {
   const filter = svgEl('filter', {
     id: HERO_INTRO_FROST_ID,
     'color-interpolation-filters': 'sRGB',
+    // Object box so the noise maps to the image, not the viewport origin.
+    filterUnits: 'objectBoundingBox',
+    primitiveUnits: 'userSpaceOnUse',
+    x: '-0.2',
+    y: '-0.2',
+    width: '1.4',
+    height: '1.4',
   });
   frostBlur = svgEl('feGaussianBlur', {
     in: 'SourceGraphic',
@@ -314,7 +369,7 @@ function tickFrost(timestamp) {
   if (frostStartTs === undefined) frostStartTs = timestamp;
   const elapsed = timestamp - frostStartTs;
   const holdMs = HERO_INTRO_NAV_DELAY_MS;
-  const totalMs = HERO_INTRO_FROST_DURATION_S * 1000;
+  const totalMs = HERO_INTRO_FROST_DURATION_MS;
   const holding = elapsed < holdMs;
 
   let blur;
@@ -334,7 +389,7 @@ function tickFrost(timestamp) {
     freq = lerp(FROST_FREQ_HOLD, FROST_FREQ_END, e);
   }
 
-  const seedInterval = holding ? 16 : 48;
+  const seedInterval = holding ? FROST_SEED_INTERVAL_HOLD_MS : FROST_SEED_INTERVAL_EASE_MS;
   frostSeed = 1 + Math.floor(elapsed / seedInterval);
   frostTurbulence.setAttribute('seed', String(frostSeed));
   frostTurbulence.setAttribute('baseFrequency', String(freq));
@@ -420,11 +475,13 @@ export function clearHeroIntro() {
   frostSvg?.remove();
   frostSvg = undefined;
   document.getElementById(HERO_INTRO_FROST_ID)?.closest('svg')?.remove();
-  document.documentElement.classList.remove(
+  const root = document.documentElement;
+  root.classList.remove(
     HERO_INTRO_CLASS,
     HERO_INTRO_NAV_CLASS,
     HERO_INTRO_BODY_CLASS,
   );
+  clearIntroTimingVars(root);
 }
 
 /**
@@ -458,6 +515,7 @@ function shouldStartHeroIntro(block) {
 function startHeroIntro() {
   const root = document.documentElement;
   root.classList.add(HERO_INTRO_CLASS);
+  applyIntroTimingVars(root);
   injectFrostFilter();
   window.clearTimeout(introNavTimer);
   window.clearTimeout(introBodyTimer);
@@ -467,7 +525,7 @@ function startHeroIntro() {
   }, HERO_INTRO_NAV_DELAY_MS);
   introBodyTimer = window.setTimeout(() => {
     root.classList.add(HERO_INTRO_BODY_CLASS);
-  }, Math.round(HERO_INTRO_FROST_DURATION_S * 1000));
+  }, HERO_INTRO_BODY_DELAY_MS);
   introDoneTimer = window.setTimeout(clearHeroIntro, HERO_INTRO_DURATION_MS);
 }
 
