@@ -1,3 +1,12 @@
+/**
+ * @file Header block. Loads the nav fragment and paints Labs global navigation:
+ * brand logo, primary links, optional mega panels, and a Subscribe CTA.
+ * Content path: `nav` metadata, or `/fragments/nav` by default.
+ *
+ * Authored fragment shape: a list whose first item is the brand (nav nested
+ * under it, optional mega under an item) and a sibling Subscribe link; or a
+ * brand paragraph, sibling list, and `.button` CTA.
+ */
 import { getMetadata } from '../../scripts/aem.js';
 import {
   ensureSkipLink,
@@ -8,20 +17,19 @@ import {
 import { loadFragment } from '../fragment/fragment.js';
 
 /**
- * @file Header block. Loads the nav fragment and paints Labs global navigation:
- * brand logo, primary links, optional mega panels, and a Subscribe CTA.
- * Content path: `nav` metadata, or `/fragments/nav` by default.
- *
- * Authored fragment shape: a list whose first item is the brand (nav nested
- * under it, optional mega under an item) and a sibling Subscribe link; or a
- * brand paragraph, sibling list, and `.button` CTA.
- */
-
-/**
  * Viewport query for the desktop nav (`>= 48rem`).
  * @type {string}
  */
 const DESKTOP_MQ = '(width >= 48rem)';
+
+/**
+ * Whether the viewport is the desktop nav breakpoint.
+ *
+ * @returns {boolean}
+ */
+function isDesktop() {
+  return window.matchMedia(DESKTOP_MQ).matches;
+}
 
 /**
  * Default CTA label, and the text used to detect an unstyled Subscribe link.
@@ -30,10 +38,10 @@ const DESKTOP_MQ = '(width >= 48rem)';
 const CTA_LABEL = 'Subscribe';
 
 /**
- * Listener abort controllers keyed by header block, so re-decorate does not leak.
- * @type {WeakMap<Element, AbortController>}
+ * Listener abort controller for the live header (one on the page).
+ * @type {AbortController|undefined}
  */
-const headerAborts = new WeakMap();
+let headerAbort;
 
 /**
  * One mega-panel column parsed from a nested list.
@@ -72,9 +80,9 @@ const headerAborts = new WeakMap();
  * Parsed nav fragment used to decorate the header.
  *
  * @typedef {object} HeaderNavData
- * @property {HeaderBrand} brand
- * @property {HeaderNavItem[]} items
- * @property {HeaderCta|null} cta
+ * @property {HeaderBrand} brand Brand / home logo
+ * @property {HeaderNavItem[]} items Primary nav items
+ * @property {HeaderCta|null} cta Subscribe CTA, if authored
  */
 
 /**
@@ -97,7 +105,7 @@ const headerAborts = new WeakMap();
  * URL for an asset under this block.
  *
  * @param {string} path Path relative to `blocks/header/`
- * @returns {string}
+ * @returns {string} URL under this block, including `codeBasePath`
  */
 function getHeaderAsset(path) {
   const base = window.hlx?.codeBasePath || '';
@@ -193,7 +201,7 @@ function collectLinks(root) {
 /**
  * Fragment path from `nav` metadata, or the default nav fragment.
  *
- * @returns {string}
+ * @returns {string} Fragment pathname, default `/fragments/nav`
  */
 function getNavPath() {
   const navMeta = getMetadata('nav');
@@ -206,10 +214,75 @@ function getNavPath() {
 }
 
 /**
+ * Reserved header height in CSS pixels (`--nav-height`).
+ *
+ * @returns {number}
+ */
+function getNavHeightPx() {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--nav-height')
+    .trim();
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : 64;
+}
+
+/**
+ * Full-screen hero in the first main section, if any.
+ *
+ * @returns {Element|null}
+ */
+function firstSectionFullScreenHero() {
+  return document.querySelector('main > .section:first-of-type .hero-full-screen');
+}
+
+/**
+ * Locks or unlocks document scroll while the mobile drawer is open.
+ *
+ * @param {boolean} lock Whether to lock
+ * @returns {void}
+ */
+function setScrollLock(lock) {
+  if (lock) {
+    document.documentElement.classList.add('header-scroll-lock');
+    return;
+  }
+  if (!document.querySelector('.header.header--nav-open')) {
+    document.documentElement.classList.remove('header-scroll-lock');
+  }
+}
+
+/**
+ * Applies or removes knockout chrome on the header bar.
+ *
+ * @param {Element} block Header block
+ * @param {boolean} inverse Whether the bar is inverse
+ * @returns {void}
+ */
+function setHeaderInverse(block, inverse) {
+  block.classList.toggle('header--inverse', inverse);
+  block.querySelector('.header__cta')?.classList.toggle('button--static-white', inverse);
+}
+
+/**
  * ==================================================================
  * PARSE
  * ==================================================================
  */
+
+/**
+ * Whether a link is the Subscribe / utility CTA.
+ * `.button` always counts. The "Subscribe" label only counts outside the
+ * primary nav list, so a nav item with that name stays a nav item.
+ *
+ * @param {Element} link Anchor
+ * @param {Element} [primaryList] Primary nav `ul`
+ * @returns {boolean}
+ */
+function isCtaLink(link, primaryList) {
+  if (link.classList.contains('button')) return true;
+  if (primaryList?.contains(link)) return false;
+  return link.textContent.trim().toLowerCase() === CTA_LABEL.toLowerCase();
+}
 
 /**
  * Whether a link is the brand / home logo.
@@ -249,9 +322,9 @@ function nestedMegaColumn(itemEl) {
  * List of primary items: nested under the brand when DA nests the menu there,
  * otherwise the first top-level list.
  *
- * @param {Element|undefined} list First top-level `ul`
- * @param {Element|undefined} brandLink Brand anchor
- * @returns {Element|undefined}
+ * @param {Element} [list] First top-level `ul`
+ * @param {Element} [brandLink] Brand anchor
+ * @returns {Element|undefined} Primary nav list, or undefined if `list` is missing
  */
 function primaryNavList(list, brandLink) {
   if (!list) return undefined;
@@ -266,7 +339,7 @@ function primaryNavList(list, brandLink) {
 /**
  * Primary nav items from a list of `li`s.
  *
- * @param {Element|undefined} list `ul` element
+ * @param {Element} [list] `ul` element
  * @param {Set<Element>} skip Brand and CTA links
  * @returns {HeaderNavItem[]}
  */
@@ -292,10 +365,13 @@ function itemsFromList(list, skip) {
 function parseNavFragment(fragment) {
   const allLinks = collectLinks(fragment);
   const brandLink = allLinks.find(isBrandLink);
-  const ctaLink = [...allLinks].reverse().find((link) => link !== brandLink && link.classList.contains('button'));
   const list = [...fragment.querySelectorAll('ul')].find((ul) => !ul.parentElement?.closest('ul'));
+  const primaryList = primaryNavList(list, brandLink);
+  const ctaLink = [...allLinks].reverse().find((link) => (
+    link !== brandLink && isCtaLink(link, primaryList)
+  ));
   const skip = new Set([brandLink, ctaLink].filter(Boolean));
-  const items = itemsFromList(primaryNavList(list, brandLink), skip);
+  const items = itemsFromList(primaryList, skip);
 
   const brandImage = brandLink?.querySelector('img, picture') || null;
   const brandLabel = brandLink?.textContent.trim()
@@ -360,24 +436,27 @@ function itemMarkup(item, index, chevronSvg) {
   const hasMenu = item.columns.length > 0;
   const current = item.href && pathMatches(item.href) ? ' aria-current="page"' : '';
   if (!hasMenu) {
-    const href = escapeAttr(item.href || '#');
+    const href = escapeAttr(item.href);
     return `
       <li class="header__item">
         <a class="header__link" href="${href}"${current}>${label}</a>
       </li>
     `;
   }
+  const mobile = !isDesktop();
   const panelId = `header-panel-${index}`;
   const columns = item.columns.map((column) => columnMarkup(column)).join('');
   return `
     <li class="header__item header__item--has-menu">
       <button
         type="button"
-        class="header__link"
+        class="header__link header__trigger"
         aria-expanded="false"
         aria-controls="${panelId}"
+        ${mobile ? 'hidden' : ''}
       >${label}${chevronSvg}</button>
-      <div class="header__panel" id="${panelId}" hidden>
+      <span class="header__link header__menu-label" aria-hidden="true"${mobile ? '' : ' hidden'}>${label}</span>
+      <div class="header__panel" id="${panelId}" role="group" aria-label="${label}"${mobile ? '' : ' hidden'}>
         ${columns}
       </div>
     </li>
@@ -390,7 +469,7 @@ function itemMarkup(item, index, chevronSvg) {
  * @param {HeaderBrand} brand Parsed brand
  * @param {string} logoDesktopSvg Desktop logo SVG
  * @param {string} logoMobileSvg Mobile logo SVG
- * @returns {string}
+ * @returns {string} Authored image and/or inlined SVG markup
  */
 function brandMediaMarkup(brand, logoDesktopSvg, logoMobileSvg) {
   const fallback = `${logoDesktopSvg}${logoMobileSvg}`;
@@ -412,7 +491,7 @@ function brandMediaMarkup(brand, logoDesktopSvg, logoMobileSvg) {
  *
  * @param {HeaderNavData} data Parsed fragment
  * @param {HeaderIcons} icons Inlined SVGs
- * @returns {Element}
+ * @returns {Element} `.header__bar` root
  */
 function buildHeaderBar(data, icons) {
   const brandName = escapeAttr(data.brand.label || 'Adobe Labs');
@@ -447,15 +526,6 @@ function buildHeaderBar(data, icons) {
  */
 
 /**
- * Whether the viewport is the desktop nav breakpoint.
- *
- * @returns {boolean}
- */
-function isDesktop() {
-  return window.matchMedia(DESKTOP_MQ).matches;
-}
-
-/**
  * Closes every open mega panel in the header.
  *
  * @param {Element} block Header block
@@ -463,6 +533,7 @@ function isDesktop() {
  * @returns {void}
  */
 function closePanels(block, exceptTrigger) {
+  if (!isDesktop()) return;
   block.querySelectorAll('.header__item--has-menu').forEach((item) => {
     const trigger = item.querySelector(':scope > button.header__link');
     const panel = item.querySelector('.header__panel');
@@ -482,6 +553,7 @@ function closePanels(block, exceptTrigger) {
  * @returns {void}
  */
 function setPanelOpen(block, trigger, forceOpen) {
+  if (!isDesktop()) return;
   const item = trigger.closest('.header__item');
   const panel = item?.querySelector('.header__panel');
   if (!item || !panel) return;
@@ -506,6 +578,44 @@ function setMenuToggle(toggle, open) {
 }
 
 /**
+ * Inerts page content outside the live header while the mobile drawer is open.
+ *
+ * @param {boolean} lock Whether to inert
+ * @param {Element} liveRoot Header element that stays interactive
+ * @returns {void}
+ */
+function setPageInert(lock, liveRoot) {
+  [...document.body.children].forEach((el) => {
+    if (el === liveRoot || liveRoot.contains(el)) {
+      el.inert = false;
+      return;
+    }
+    if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'LINK') return;
+    el.inert = lock;
+  });
+}
+
+/**
+ * Opens or closes the mobile drawer, scroll-lock, and page inert.
+ *
+ * @param {Element} block Header block
+ * @param {boolean} open Whether the drawer is open
+ * @param {Element} [restoreTo] Element to focus when closing
+ * @returns {void}
+ */
+function setDrawerOpen(block, open, restoreTo) {
+  const toggle = block.querySelector('.header__toggle');
+  if (!toggle) return;
+  const liveRoot = block.closest('header') || block;
+  const lock = open && !isDesktop();
+  setMenuToggle(toggle, open);
+  block.classList.toggle('header--nav-open', open);
+  setScrollLock(lock);
+  setPageInert(lock, liveRoot);
+  if (!open) restoreTo?.focus();
+}
+
+/**
  * Closes the mobile drawer.
  *
  * @param {Element} block Header block
@@ -513,11 +623,7 @@ function setMenuToggle(toggle, open) {
  * @returns {void}
  */
 function closeDrawer(block, restoreTo) {
-  const toggle = block.querySelector('.header__toggle');
-  if (!toggle) return;
-  setMenuToggle(toggle, false);
-  block.classList.remove('header--nav-open');
-  restoreTo?.focus();
+  setDrawerOpen(block, false, restoreTo);
 }
 
 /**
@@ -529,33 +635,14 @@ function closeDrawer(block, restoreTo) {
  */
 function syncMenuItem(item, mobile) {
   const panel = item.querySelector('.header__panel');
-  let trigger = item.querySelector(':scope > .header__link');
+  const trigger = item.querySelector(':scope > button.header__link');
+  const label = item.querySelector(':scope > .header__menu-label');
   if (!panel || !trigger) return;
 
-  if (mobile) {
-    if (trigger.tagName === 'BUTTON') {
-      const label = document.createElement('span');
-      label.className = 'header__link';
-      label.append(...trigger.childNodes);
-      trigger.replaceWith(label);
-    }
-    panel.hidden = false;
-    item.classList.remove('header__item--open');
-    return;
-  }
-
-  if (trigger.tagName !== 'BUTTON') {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'header__link';
-    button.append(...trigger.childNodes);
-    button.setAttribute('aria-expanded', 'false');
-    button.setAttribute('aria-controls', panel.id);
-    trigger.replaceWith(button);
-    trigger = button;
-  }
+  trigger.hidden = mobile;
+  if (label) label.hidden = !mobile;
   trigger.setAttribute('aria-expanded', 'false');
-  panel.hidden = true;
+  panel.hidden = !mobile;
   item.classList.remove('header__item--open');
 }
 
@@ -570,6 +657,56 @@ function syncViewport(block) {
   block.querySelectorAll('.header__item--has-menu').forEach((item) => {
     syncMenuItem(item, mobile);
   });
+  if (!mobile) closeDrawer(block);
+}
+
+/**
+ * Inverse while a top-of-page full-screen hero sits under the bar.
+ *
+ * @param {Element} block Header block
+ * @param {AbortSignal} signal Listener abort signal
+ * @returns {void}
+ */
+function bindHeroInverse(block, signal) {
+  const hero = firstSectionFullScreenHero();
+  if (!hero || typeof IntersectionObserver !== 'function') return;
+
+  const observer = new IntersectionObserver((entries) => {
+    const intersecting = entries.some((entry) => entry.isIntersecting);
+    setHeaderInverse(block, intersecting);
+  }, {
+    root: null,
+    rootMargin: `-${getNavHeightPx()}px 0px 0px 0px`,
+    threshold: 0,
+  });
+  observer.observe(hero);
+  signal.addEventListener('abort', () => observer.disconnect(), { once: true });
+}
+
+/**
+ * Frosted fill + blur after the page has scrolled off the top.
+ *
+ * @param {Element} block Header block
+ * @param {AbortSignal} signal Listener abort signal
+ * @returns {void}
+ */
+function bindScrollFrost(block, signal) {
+  if (!firstSectionFullScreenHero() || typeof IntersectionObserver !== 'function') return;
+
+  const sentinel = document.createElement('div');
+  sentinel.className = 'header-scroll-sentinel';
+  sentinel.setAttribute('aria-hidden', 'true');
+  document.body.append(sentinel);
+
+  const observer = new IntersectionObserver((entries) => {
+    const atTop = entries.some((entry) => entry.isIntersecting);
+    block.classList.toggle('header--scrolled', !atTop);
+  });
+  observer.observe(sentinel);
+  signal.addEventListener('abort', () => {
+    observer.disconnect();
+    sentinel.remove();
+  }, { once: true });
 }
 
 /**
@@ -582,10 +719,14 @@ function bindHeader(block) {
   const toggle = block.querySelector('.header__toggle');
   const nav = block.querySelector('.header__nav');
 
-  headerAborts.get(block)?.abort();
-  const abort = new AbortController();
-  headerAborts.set(block, abort);
-  const { signal } = abort;
+  headerAbort?.abort();
+  headerAbort = new AbortController();
+  const { signal } = headerAbort;
+  const liveRoot = block.closest('header') || block;
+  signal.addEventListener('abort', () => {
+    setScrollLock(false);
+    setPageInert(false, liveRoot);
+  }, { once: true });
 
   block.addEventListener('click', (event) => {
     const trigger = event.target.closest('.header__item--has-menu > button.header__link');
@@ -596,8 +737,7 @@ function bindHeader(block) {
 
   toggle?.addEventListener('click', () => {
     const open = toggle.getAttribute('aria-expanded') !== 'true';
-    setMenuToggle(toggle, open);
-    block.classList.toggle('header--nav-open', open);
+    setDrawerOpen(block, open);
     closePanels(block);
   }, { signal });
 
@@ -633,9 +773,15 @@ function bindHeader(block) {
     if (trigger) setPanelOpen(block, trigger, false);
   }, { signal });
 
+  document.querySelector('a.header__skip')?.addEventListener('click', () => {
+    closeDrawer(block);
+  }, { signal });
+
   const mq = window.matchMedia(DESKTOP_MQ);
   mq.addEventListener('change', () => syncViewport(block), { signal });
   syncViewport(block);
+  bindHeroInverse(block, signal);
+  bindScrollFrost(block, signal);
 }
 
 /**
@@ -653,6 +799,9 @@ function bindHeader(block) {
 export default async function decorate(block) {
   ensureSkipLink(document);
 
+  const overlayHero = Boolean(firstSectionFullScreenHero());
+  if (overlayHero) block.classList.add('header--inverse');
+
   const iconsPromise = Promise.all([
     loadHeaderIcon('img/logo-desktop.svg', 'header__logo-desktop'),
     loadHeaderIcon('img/logo-mobile.svg', 'header__logo-mobile'),
@@ -661,7 +810,10 @@ export default async function decorate(block) {
   ]);
 
   const fragment = await loadFragment(getNavPath());
-  if (!fragment) return;
+  if (!fragment) {
+    block.classList.remove('header--inverse');
+    return;
+  }
 
   const [logoDesktopSvg, logoMobileSvg, menuSvg, chevronSvg] = await iconsPromise;
   block.replaceChildren(buildHeaderBar(parseNavFragment(fragment), {
@@ -670,5 +822,6 @@ export default async function decorate(block) {
     menuSvg,
     chevronSvg,
   }));
+  if (overlayHero) setHeaderInverse(block, true);
   bindHeader(block);
 }

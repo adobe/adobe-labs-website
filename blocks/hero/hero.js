@@ -10,6 +10,20 @@ import {
 } from '../../scripts/utils/utils.js';
 
 /**
+ * Whether this hero sits in the first section of `main`.
+ *
+ * @param {Element} block Hero block
+ * @returns {Element|null} That section, or null
+ */
+function firstSection(block) {
+  const section = block.closest('main > .section');
+  if (!section || section.parentElement.querySelector(':scope > .section') !== section) {
+    return null;
+  }
+  return section;
+}
+
+/**
  * Data used to decorate a hero. Parsed from the positional AEM table:
  * row 1 is category, date, headline link, link label; row 2 is the image.
  * An optional key/value row (`Is Video` | `true`) adds a play icon.
@@ -80,9 +94,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   const headline = data.headline || '';
   const linkLabel = data.linkLabel || '';
   const isVideo = Boolean(data.isVideo);
-  const isHome = window.location.pathname === '/'
-    || window.location.pathname === '/index.html';
-  const showCategory = Boolean(category) && isHome;
+  const showCategory = Boolean(category) && Boolean(firstSection(root));
 
   const template = document.createElement('template');
   template.innerHTML = `
@@ -164,4 +176,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
  */
 export default async function decorate(block) {
   buildHero(getHeroData(block), block);
+  const section = firstSection(block);
+  if (!section || !block.classList.contains('hero-full-screen')) return;
+  section.classList.add('hero-container--overlay');
 }

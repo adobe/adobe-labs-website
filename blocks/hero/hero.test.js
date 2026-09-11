@@ -22,6 +22,29 @@ function createHeroBlock(rows) {
   return block;
 }
 
+/**
+ * Places a hero in `main > .section` for first-section checks.
+ *
+ * @param {HTMLElement} block Hero block
+ * @param {{ first?: boolean }} [options]
+ * @returns {HTMLElement} The `main` wrapper (remove after the test)
+ */
+function placeInMain(block, { first = true } = {}) {
+  const main = document.createElement('main');
+  const section = document.createElement('div');
+  section.className = 'section hero-container';
+  section.append(block);
+  if (first) {
+    main.append(section);
+  } else {
+    const prior = document.createElement('div');
+    prior.className = 'section';
+    main.append(prior, section);
+  }
+  document.body.append(main);
+  return main;
+}
+
 function expectPlayIcon(block) {
   const play = block.querySelector('.play-icon');
   expect(within(block).getByText('Video article')).toHaveClass('visually-hidden');
@@ -41,31 +64,36 @@ describe('hero block', () => {
       ],
       ['<picture><img src="hero.jpg" alt="hero"></picture>'],
     ]);
+    const main = placeInMain(block);
 
-    await decorate(block);
+    try {
+      await decorate(block);
 
-    const view = within(block);
-    const eyebrow = view.getByText('ResearchTest');
-    expect(eyebrow).toHaveClass('hero__eyebrow');
-    expect(eyebrow).toHaveAttribute('aria-hidden', 'true');
-    const mark = eyebrow.querySelector('svg');
-    expect(eyebrow.firstElementChild).toBe(mark);
-    expect(mark).toHaveAttribute('viewBox', '0 0 38 38');
-    expect(mark.querySelector('circle')).toHaveAttribute('fill', 'white');
-    const date = view.getByText('5.24.26');
-    expect(date).toHaveClass('hero__date');
-    expect(date).toHaveAttribute('aria-hidden', 'true');
-    expect(view.getByRole('heading', { level: 2 })).toHaveTextContent(
-      'How AI is Redistributing Creative Work.',
-    );
-    expect(view.getByRole('link', { name: 'How AI is Redistributing Creative Work. Read' }))
-      .toHaveAttribute('href', expect.stringMatching(/\/research\/example-article-1$/));
-    expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
-    expect(block.querySelector('.button')).toBeNull();
-    const media = block.querySelector('.hero__media');
-    expect(media).toHaveAttribute('aria-hidden', 'true');
-    expect(media.querySelector('picture img')).toHaveAttribute('src', expect.stringMatching(/hero\.jpg$/));
-    expect(block.querySelector('.play-icon')).toBeNull();
+      const view = within(block);
+      const eyebrow = view.getByText('ResearchTest');
+      expect(eyebrow).toHaveClass('hero__eyebrow');
+      expect(eyebrow).toHaveAttribute('aria-hidden', 'true');
+      const mark = eyebrow.querySelector('svg');
+      expect(eyebrow.firstElementChild).toBe(mark);
+      expect(mark).toHaveAttribute('viewBox', '0 0 38 38');
+      expect(mark.querySelector('circle')).toHaveAttribute('fill', 'white');
+      const date = view.getByText('5.24.26');
+      expect(date).toHaveClass('hero__date');
+      expect(date).toHaveAttribute('aria-hidden', 'true');
+      expect(view.getByRole('heading', { level: 2 })).toHaveTextContent(
+        'How AI is Redistributing Creative Work.',
+      );
+      expect(view.getByRole('link', { name: 'How AI is Redistributing Creative Work. Read' }))
+        .toHaveAttribute('href', expect.stringMatching(/\/research\/example-article-1$/));
+      expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
+      expect(block.querySelector('.button')).toBeNull();
+      const media = block.querySelector('.hero__media');
+      expect(media).toHaveAttribute('aria-hidden', 'true');
+      expect(media.querySelector('picture img')).toHaveAttribute('src', expect.stringMatching(/hero\.jpg$/));
+      expect(block.querySelector('.play-icon')).toBeNull();
+    } finally {
+      main.remove();
+    }
   });
 
   it.each([
@@ -107,28 +135,47 @@ describe('hero block', () => {
     expect(block.querySelector('.play-icon')).toBeNull();
   });
 
-  it('keeps the video icon on non-home pages', async () => {
-    const originalPath = window.location.pathname;
-    window.history.replaceState({}, '', '/sneaks/');
+  it('keeps the video icon when the hero is not in the first section', async () => {
+    const block = createHeroBlock([
+      [
+        'Sneaks',
+        'Oct 26',
+        '<a href="/sneaks/project-clean-take">Project Clean Take</a>',
+        'Read',
+      ],
+      ['Show Video Icon', 'true'],
+    ]);
+    const main = placeInMain(block, { first: false });
 
     try {
-      const block = createHeroBlock([
-        [
-          'Sneaks',
-          'Oct 26',
-          '<a href="/sneaks/project-clean-take">Project Clean Take</a>',
-          'Read',
-        ],
-        ['Show Video Icon', 'true'],
-      ]);
-
       await decorate(block);
 
       expectPlayIcon(block);
       expect(within(block).getByRole('link', { name: /video article/i })).toBeTruthy();
       expect(block.querySelector('.hero__eyebrow')).toBeNull();
     } finally {
-      window.history.replaceState({}, '', originalPath);
+      main.remove();
+    }
+  });
+
+  it('shows the category on a first-section hero off the homepage', async () => {
+    window.history.replaceState({}, '', '/sneaks/clip');
+    const block = createHeroBlock([
+      [
+        'Sneaks',
+        'Oct 26',
+        '<a href="/sneaks/project-clean-take">Project Clean Take</a>',
+        'Read',
+      ],
+    ]);
+    const main = placeInMain(block);
+
+    try {
+      await decorate(block);
+      expect(within(block).getByText('Sneaks')).toHaveClass('hero__eyebrow');
+    } finally {
+      main.remove();
+      window.history.replaceState({}, '', '/');
     }
   });
 
@@ -156,6 +203,67 @@ describe('hero block', () => {
     await decorate(block);
 
     expect(block).toHaveClass('hero', 'hero-full-screen');
+  });
+
+  it('overlays a full-screen hero in the first section', async () => {
+    const main = document.createElement('main');
+    const section = document.createElement('div');
+    section.className = 'section hero-container';
+    const block = createHeroBlock([
+      ['<a href="/article">Headline</a>'],
+    ]);
+    block.classList.add('hero-full-screen');
+    section.append(block);
+    main.append(section);
+    document.body.append(main);
+
+    try {
+      await decorate(block);
+      expect(section).toHaveClass('hero-container--overlay');
+    } finally {
+      main.remove();
+    }
+  });
+
+  it('does not overlay a full-screen hero that is not first', async () => {
+    const main = document.createElement('main');
+    const first = document.createElement('div');
+    first.className = 'section';
+    const section = document.createElement('div');
+    section.className = 'section hero-container';
+    const block = createHeroBlock([
+      ['<a href="/article">Headline</a>'],
+    ]);
+    block.classList.add('hero-full-screen');
+    section.append(block);
+    main.append(first, section);
+    document.body.append(main);
+
+    try {
+      await decorate(block);
+      expect(section).not.toHaveClass('hero-container--overlay');
+    } finally {
+      main.remove();
+    }
+  });
+
+  it('does not overlay a default hero in the first section', async () => {
+    const main = document.createElement('main');
+    const section = document.createElement('div');
+    section.className = 'section hero-container';
+    const block = createHeroBlock([
+      ['<a href="/article">Headline</a>'],
+    ]);
+    section.append(block);
+    main.append(section);
+    document.body.append(main);
+
+    try {
+      await decorate(block);
+      expect(section).not.toHaveClass('hero-container--overlay');
+    } finally {
+      main.remove();
+    }
   });
 
   it('does not link the headline or CTA when the URL is not http(s)', async () => {

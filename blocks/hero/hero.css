@@ -254,7 +254,7 @@
 
 .hero-container:has(.hero-full-screen) + [class*="section-rounded-"] {
   --hero-margin-negative-offset: calc(-1 * var(--section-border-radius) - var(--section-space-between));
-  
+
   margin-block-start: var(--hero-margin-negative-offset);
 }
 
@@ -262,6 +262,13 @@
 .hero-container:has(.hero-full-screen) .hero-wrapper {
   max-inline-size: unset;
   padding: 0;
+}
+
+/* Full-screen hero at the top of the page sits under the sticky header.
+   Must beat `main > .section:first-of-type { margin-top: 0 }` in styles.css. */
+main > .section.hero-container:first-of-type:has(.hero-full-screen),
+main > .section.hero-container--overlay {
+  margin-top: calc(-1 * var(--nav-height));
 }
 
 /* Dark mode */
