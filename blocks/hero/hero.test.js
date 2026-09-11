@@ -3,6 +3,7 @@ import decorate, {
   clearHeroIntro,
   HERO_INTRO_BODY_DELAY_MS,
   HERO_INTRO_COPY_DELAY_MS,
+  HERO_INTRO_COPY_DURATION_MS,
   HERO_INTRO_DURATION_MS,
   HERO_INTRO_FROST_DURATION_MS,
   HERO_INTRO_FROST_ID,
@@ -387,8 +388,12 @@ describe('hero block', () => {
     it('keeps derived intro steps in order', () => {
       expect(HERO_INTRO_COPY_DELAY_MS).toBeGreaterThanOrEqual(HERO_INTRO_NAV_DELAY_MS);
       expect(HERO_INTRO_BODY_DELAY_MS).toBeGreaterThanOrEqual(HERO_INTRO_NAV_DELAY_MS);
-      expect(HERO_INTRO_BODY_DELAY_MS).toBeGreaterThanOrEqual(HERO_INTRO_FROST_DURATION_MS);
+      expect(HERO_INTRO_BODY_DELAY_MS).toBeGreaterThanOrEqual(HERO_INTRO_COPY_DELAY_MS);
+      expect(HERO_INTRO_BODY_DELAY_MS).toBeLessThan(
+        HERO_INTRO_COPY_DELAY_MS + HERO_INTRO_COPY_DURATION_MS,
+      );
       expect(HERO_INTRO_DURATION_MS).toBeGreaterThanOrEqual(HERO_INTRO_BODY_DELAY_MS);
+      expect(HERO_INTRO_DURATION_MS).toBeGreaterThanOrEqual(HERO_INTRO_FROST_DURATION_MS);
     });
 
     it('adds hero-intro--nav after the nav delay and clears intro classes when done', async () => {

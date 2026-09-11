@@ -22,23 +22,28 @@ export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 export const HERO_INTRO_NAV_DELAY_MS = 1000; // step 3: nav on; frost starts to ease out
 const HERO_INTRO_FROST_EASE_MS = 1200; // frost ease-out after nav
 const HERO_INTRO_COPY_AFTER_NAV_MS = 400; // step 4: copy fade starts after nav
-const HERO_INTRO_COPY_DURATION_MS = 400; // copy fade length
+export const HERO_INTRO_COPY_DURATION_MS = 400; // copy fade length
 const HERO_INTRO_MEDIA_AFTER_NAV_MS = 600; // zoom/fade still running when nav appears
 const HERO_INTRO_NAV_DURATION_MS = 400; // header fade after --nav
 const HERO_INTRO_SECTION_DURATION_MS = 600; // step 5: second-section slide
+const HERO_INTRO_BODY_COPY_OVERLAP_MS = Math.round(HERO_INTRO_COPY_DURATION_MS / 2);
 
 export const HERO_INTRO_MEDIA_DURATION_MS = HERO_INTRO_NAV_DELAY_MS + HERO_INTRO_MEDIA_AFTER_NAV_MS;
 export const HERO_INTRO_COPY_DELAY_MS = HERO_INTRO_NAV_DELAY_MS + HERO_INTRO_COPY_AFTER_NAV_MS;
 export const HERO_INTRO_FROST_DURATION_MS = HERO_INTRO_NAV_DELAY_MS + HERO_INTRO_FROST_EASE_MS;
 
-// Body is last: after frost, copy, and media have all finished.
+// Body starts in the last half of the copy fade (does not wait for frost).
 export const HERO_INTRO_BODY_DELAY_MS = Math.max(
-  HERO_INTRO_FROST_DURATION_MS,
-  HERO_INTRO_COPY_DELAY_MS + HERO_INTRO_COPY_DURATION_MS,
-  HERO_INTRO_MEDIA_DURATION_MS,
+  HERO_INTRO_NAV_DELAY_MS,
+  HERO_INTRO_COPY_DELAY_MS
+    + HERO_INTRO_COPY_DURATION_MS
+    - HERO_INTRO_BODY_COPY_OVERLAP_MS,
 );
 
-export const HERO_INTRO_DURATION_MS = HERO_INTRO_BODY_DELAY_MS + HERO_INTRO_SECTION_DURATION_MS;
+export const HERO_INTRO_DURATION_MS = Math.max(
+  HERO_INTRO_BODY_DELAY_MS + HERO_INTRO_SECTION_DURATION_MS,
+  HERO_INTRO_FROST_DURATION_MS,
+);
 
 /** CSS custom properties written from the derived timings. */
 const INTRO_TIMING_VARS = {
