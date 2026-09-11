@@ -223,13 +223,14 @@
     Full-screen variant has custom vertical padding to account for overlapping content. */
     --hero-padding-block-start: 5.625rem;
     --hero-padding-block-end: 3.125rem;
-    --hero-full-screen-block-size: 86lvh;
+    --hero-full-screen-block-size: 60lvh;
     --hero-full-screen-max-block-size: 75rem;
     --hero-full-screen-content-min-gap: 6.25rem;
 
     @media (width >=48rem) {
       --hero-padding-block-start: 6.25rem;
       --hero-padding-block-end: 4.375rem;
+      --hero-full-screen-block-size: 86lvh;
     }
 
     @media (width >=64rem) {
@@ -239,16 +240,27 @@
 
     border-radius: 0;
     aspect-ratio: auto;
+    display: grid;
+    height: auto;
+    min-height: var(--hero-full-screen-block-size);
 
-    height: min(
-      var(--hero-full-screen-block-size),
-      var(--hero-full-screen-max-block-size)
-    );
-    max-height: var(--hero-full-screen-max-block-size);
+    @media (width >=48rem) {
+      min-height: min(
+        var(--hero-full-screen-block-size),
+        var(--hero-full-screen-max-block-size)
+      );
+      max-height: var(--hero-full-screen-max-block-size);
+    }
+
+    .hero__link-wrap {
+      display: grid;
+      height: auto;
+    }
 
     .hero__content {
       --hero-padding-inline: var(--s2a-section-spacing-sm);
 
+      height: auto;
       padding-block: var(--hero-padding-block-start) var(--hero-padding-block-end);
       padding-inline: var(--hero-padding-inline);
       row-gap: var(--hero-full-screen-content-min-gap);
