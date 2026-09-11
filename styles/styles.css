@@ -521,21 +521,6 @@ main .section[class*="section-rounded-"] {
   }
 }
 
-/* Start radius on a section: every color section, and the first default-color section in a set. */
-main .section[class*="section-rounded-"]:not(.section-rounded-default),
-main .section.section-rounded-default:first-child,
-main .section:not(.section-rounded-default) + .section-rounded-default {
-  border-start-start-radius: var(--section-border-radius);
-  border-start-end-radius: var(--section-border-radius);
-}
-
-/* Overlap only when a new section follows another rounded section.
-   Full-screen hero overlap lives in hero.css. Do not pull up over a default hero. */
-main .section[class*="section-rounded-"]:not(.section-rounded-default) + [class*="section-rounded-"],
-main .section.section-rounded-default + [class*="section-rounded-"]:not(.section-rounded-default) {
-  margin-block-start: var(--section-margin-negative-offset);
-}
-
 main .section {
   &.section-rounded-default {
     background: var(--color-section-surface-default);
@@ -564,6 +549,21 @@ main .section {
   &.section-rounded-orange {
     background: var(--color-section-surface-orange);
   }
+}
+
+/* Start radius on a section: every color section, and the first default-color section in a set. */
+main .section[class*="section-rounded-"]:not(.section-rounded-default),
+main .section.section-rounded-default:first-child,
+main .section:not(.section-rounded-default) + .section-rounded-default {
+  border-start-start-radius: var(--section-border-radius);
+  border-start-end-radius: var(--section-border-radius);
+}
+
+/* Overlap only when a new section follows another rounded section.
+   Full-screen hero overlap lives in hero.css. Do not pull up over a default hero. */
+main .section[class*="section-rounded-"]:not(.section-rounded-default) + [class*="section-rounded-"],
+main .section.section-rounded-default + [class*="section-rounded-"]:not(.section-rounded-default) {
+  margin-block-start: var(--section-margin-negative-offset);
 }
 
 /* -- Page-specific section spacing overrides --- */
