@@ -54,6 +54,8 @@
     position: relative;
     z-index: 1;
     width: 100%;
+    max-inline-size: var(--site-max-inline-size);
+    margin-inline: auto;
     height: 100%;
     display: grid;
     grid-template:
