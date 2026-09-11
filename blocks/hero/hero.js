@@ -14,6 +14,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const HERO_INTRO_CLASS = 'hero-intro';
 const HERO_INTRO_NAV_CLASS = 'hero-intro--nav';
 const HERO_INTRO_BODY_CLASS = 'hero-intro--body';
+const HERO_INTRO_FROST_DONE_CLASS = 'hero-intro--frost-done';
 
 export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 
@@ -82,7 +83,7 @@ function clearIntroTimingVars(root) {
 }
 
 // TODO: ADBLABS-83 — confirm stdDeviation, displacement scale, and baseFrequency against Figma.
-const FROST_BLUR_START = 1; // feGaussianBlur stdDeviation while frost is held
+const FROST_BLUR_START = 3; // feGaussianBlur stdDeviation while frost is held
 const FROST_DISPLACE_START = 22; // feDisplacementMap scale while frost is held
 // Higher = larger frost crystals. baseFrequency is 1 / this (stays locked to the image).
 const FROST_GRAIN_SIZE = 160;
@@ -362,7 +363,7 @@ function buildFrostSvg() {
 
 /**
  * Drives frost primitives each frame: holds the same noise field, then eases
- * blur and displacement to 0 once and keeps them there. Does not remove the SVG.
+ * blur and displacement to 0 and keeps them there. Does not remove the SVG.
  *
  * @param {DOMHighResTimeStamp} timestamp rAF time
  * @returns {void}
@@ -387,6 +388,7 @@ function tickFrost(timestamp) {
     blur = lerp(FROST_BLUR_START, 0, e);
     displace = lerp(FROST_DISPLACE_START, 0, e);
   }
+
   frostTurbulence.setAttribute('baseFrequency', String(FROST_FREQ));
   frostBlur.setAttribute('stdDeviation', String(blur));
   frostDisplace.setAttribute('scale', String(displace));
@@ -399,6 +401,7 @@ function tickFrost(timestamp) {
   frostBlur.setAttribute('stdDeviation', '0');
   frostDisplace.setAttribute('scale', '0');
   frostRaf = undefined;
+  document.documentElement.classList.add(HERO_INTRO_FROST_DONE_CLASS);
 }
 
 /**
@@ -463,19 +466,20 @@ export function clearHeroIntro() {
   appearObserver?.disconnect();
   appearObserver = undefined;
   frostStartTs = undefined;
+  const root = document.documentElement;
+  root.classList.remove(
+    HERO_INTRO_CLASS,
+    HERO_INTRO_NAV_CLASS,
+    HERO_INTRO_BODY_CLASS,
+    HERO_INTRO_FROST_DONE_CLASS,
+  );
+  clearIntroTimingVars(root);
   frostBlur = undefined;
   frostTurbulence = undefined;
   frostDisplace = undefined;
   frostSvg?.remove();
   frostSvg = undefined;
   document.getElementById(HERO_INTRO_FROST_ID)?.closest('svg')?.remove();
-  const root = document.documentElement;
-  root.classList.remove(
-    HERO_INTRO_CLASS,
-    HERO_INTRO_NAV_CLASS,
-    HERO_INTRO_BODY_CLASS,
-  );
-  clearIntroTimingVars(root);
 }
 
 /**
