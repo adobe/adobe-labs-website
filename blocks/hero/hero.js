@@ -19,8 +19,8 @@ export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 
 // Source timings. Tune these; later steps are derived so the sequence stays valid.
 // TODO: ADBLABS-83 — confirm against the Figma prototype.
-export const HERO_INTRO_NAV_DELAY_MS = 1000; // step 3: nav on; frost starts to ease out
-const HERO_INTRO_FROST_EASE_MS = 1200; // frost ease-out after nav
+export const HERO_INTRO_NAV_DELAY_MS = 1000; // step 3: nav on
+const HERO_INTRO_FROST_EASE_MS = 1200; // frost ease-out after the texture crawl starts
 const HERO_INTRO_COPY_AFTER_NAV_MS = 400; // step 4: copy fade starts after nav
 export const HERO_INTRO_COPY_DURATION_MS = 400; // copy fade length
 const HERO_INTRO_MEDIA_AFTER_NAV_MS = 600; // zoom/fade still running when nav appears
@@ -30,7 +30,10 @@ const HERO_INTRO_BODY_COPY_OVERLAP_MS = Math.round(HERO_INTRO_COPY_DURATION_MS /
 
 export const HERO_INTRO_MEDIA_DURATION_MS = HERO_INTRO_NAV_DELAY_MS + HERO_INTRO_MEDIA_AFTER_NAV_MS;
 export const HERO_INTRO_COPY_DELAY_MS = HERO_INTRO_NAV_DELAY_MS + HERO_INTRO_COPY_AFTER_NAV_MS;
-export const HERO_INTRO_FROST_DURATION_MS = HERO_INTRO_NAV_DELAY_MS + HERO_INTRO_FROST_EASE_MS;
+
+// Static frost holds until the zoom is mostly done; then the same field eases out.
+const FROST_TEXTURE_START_MS = Math.round(HERO_INTRO_MEDIA_DURATION_MS * 0.6);
+export const HERO_INTRO_FROST_DURATION_MS = FROST_TEXTURE_START_MS + HERO_INTRO_FROST_EASE_MS;
 
 // Body starts in the last half of the copy fade (does not wait for frost).
 export const HERO_INTRO_BODY_DELAY_MS = Math.max(
@@ -79,15 +82,11 @@ function clearIntroTimingVars(root) {
 }
 
 // TODO: ADBLABS-83 — confirm stdDeviation, displacement scale, and baseFrequency against Figma.
-const FROST_BLUR_START = 28; // feGaussianBlur stdDeviation at t=0 (heavy frost)
-const FROST_BLUR_HOLD = 24; // stdDeviation at nav delay, then eases to 0
-const FROST_DISPLACE_START = 56; // feDisplacementMap scale at t=0 (strong warp)
-const FROST_DISPLACE_HOLD = 40; // displacement scale at nav delay, then eases to 0
-const FROST_FREQ_START = 0.03; // feTurbulence baseFrequency (grain size; stays locked to the image)
-const FROST_FREQ_HOLD = 0.03; // same as start so the pattern does not enlarge on its own
-const FROST_FREQ_END = 0.03; // same as start through ease-out
-const FROST_SEED_INTERVAL_HOLD_MS = 120; // ms between seed ticks while blur is held
-const FROST_SEED_INTERVAL_EASE_MS = 280; // slower seed ticks while frost eases out
+const FROST_BLUR_START = 1; // feGaussianBlur stdDeviation while frost is held
+const FROST_DISPLACE_START = 22; // feDisplacementMap scale while frost is held
+// Higher = larger frost crystals. baseFrequency is 1 / this (stays locked to the image).
+const FROST_GRAIN_SIZE = 160;
+const FROST_FREQ = 10 / FROST_GRAIN_SIZE;
 
 /** @type {number|undefined} */
 let introNavTimer;
@@ -100,7 +99,6 @@ let introDoneTimer;
 let frostRaf;
 /** @type {number|undefined} */
 let frostStartTs;
-let frostSeed = 1;
 
 /** @type {SVGSVGElement|undefined} */
 let frostSvg;
@@ -303,13 +301,13 @@ function lerp(start, end, t) {
 }
 
 /**
- * Ease-out cubic. Used to fade frost blur and displacement to 0.
+ * Ease-in-out cubic. Leaves the hold and arrives at 0 without a snap.
  *
  * @param {number} t Progress from 0 to 1
  * @returns {number}
  */
-function easeOutCubic(t) {
-  return 1 - (1 - t) ** 3;
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2;
 }
 
 /**
@@ -345,7 +343,7 @@ function buildFrostSvg() {
   });
   frostTurbulence = svgEl('feTurbulence', {
     type: 'fractalNoise',
-    baseFrequency: String(FROST_FREQ_START),
+    baseFrequency: String(FROST_FREQ),
     numOctaves: '2',
     result: 'noise',
     seed: '1',
@@ -363,8 +361,8 @@ function buildFrostSvg() {
 }
 
 /**
- * Drives frost primitives each frame: seed ticks during the hold, then blur
- * and displacement ease to 0. Does not remove the SVG; `clearHeroIntro` does.
+ * Drives frost primitives each frame: holds the same noise field, then eases
+ * blur and displacement to 0 once and keeps them there. Does not remove the SVG.
  *
  * @param {DOMHighResTimeStamp} timestamp rAF time
  * @returns {void}
@@ -373,31 +371,23 @@ function tickFrost(timestamp) {
   if (!frostBlur || !frostTurbulence || !frostDisplace) return;
   if (frostStartTs === undefined) frostStartTs = timestamp;
   const elapsed = timestamp - frostStartTs;
-  const holdMs = HERO_INTRO_NAV_DELAY_MS;
+  const holdMs = FROST_TEXTURE_START_MS;
   const totalMs = HERO_INTRO_FROST_DURATION_MS;
   const holding = elapsed < holdMs;
 
   let blur;
   let displace;
-  let freq;
   if (holding) {
-    const t = holdMs === 0 ? 1 : elapsed / holdMs;
-    blur = lerp(FROST_BLUR_START, FROST_BLUR_HOLD, t);
-    displace = lerp(FROST_DISPLACE_START, FROST_DISPLACE_HOLD, t);
-    freq = lerp(FROST_FREQ_START, FROST_FREQ_HOLD, t);
+    blur = FROST_BLUR_START;
+    displace = FROST_DISPLACE_START;
   } else {
     const easeMs = totalMs - holdMs;
     const t = easeMs <= 0 ? 1 : Math.min(1, (elapsed - holdMs) / easeMs);
-    const e = easeOutCubic(t);
-    blur = lerp(FROST_BLUR_HOLD, 0, e);
-    displace = lerp(FROST_DISPLACE_HOLD, 0, e);
-    freq = lerp(FROST_FREQ_HOLD, FROST_FREQ_END, e);
+    const e = easeInOutCubic(t);
+    blur = lerp(FROST_BLUR_START, 0, e);
+    displace = lerp(FROST_DISPLACE_START, 0, e);
   }
-
-  const seedInterval = holding ? FROST_SEED_INTERVAL_HOLD_MS : FROST_SEED_INTERVAL_EASE_MS;
-  frostSeed = 1 + Math.floor(elapsed / seedInterval);
-  frostTurbulence.setAttribute('seed', String(frostSeed));
-  frostTurbulence.setAttribute('baseFrequency', String(freq));
+  frostTurbulence.setAttribute('baseFrequency', String(FROST_FREQ));
   frostBlur.setAttribute('stdDeviation', String(blur));
   frostDisplace.setAttribute('scale', String(displace));
 
@@ -473,7 +463,6 @@ export function clearHeroIntro() {
   appearObserver?.disconnect();
   appearObserver = undefined;
   frostStartTs = undefined;
-  frostSeed = 1;
   frostBlur = undefined;
   frostTurbulence = undefined;
   frostDisplace = undefined;
