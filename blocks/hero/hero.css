@@ -301,3 +301,101 @@ main > .section.hero-container--overlay {
 [data-theme="dark"] .hero__link-wrap:focus-visible {
   outline-color: var(--s2a-color-focus-ring-knockout);
 }
+
+/* --- Full-screen page-load intro (ADBLABS-83) ---
+   Starts when `html.hero-intro` is set and `body.appear` paints.
+   JS owns when the class is added and removed. */
+html.hero-intro {
+  /* TODO: ADBLABS-83 — confirm scale, blur, texture, durations, and easing against Figma. */
+  --hero-intro-scale-start: 1.12;
+  --hero-intro-blur-start: var(--s2a-blur-lg);
+  --hero-intro-texture-opacity-start: 0.45;
+  --hero-intro-media-duration: 1.6s;
+  --hero-intro-copy-delay: 1.4s;
+  --hero-intro-copy-duration: 0.4s;
+  --hero-intro-easing: ease-out;
+}
+
+html.hero-intro .hero-full-screen .hero__media img {
+  opacity: 0;
+  transform: scale(var(--hero-intro-scale-start));
+  filter: blur(var(--hero-intro-blur-start));
+  will-change: transform, opacity, filter;
+}
+
+html.hero-intro .hero-full-screen .hero__media::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--hero-intro-texture-opacity-start);
+  mix-blend-mode: overlay;
+
+  /* TODO: ADBLABS-83 — replace this generated grain with the Figma texture if design supplies one. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 8rem 8rem;
+}
+
+html.hero-intro .hero-full-screen .hero__content {
+  opacity: 0;
+}
+
+html.hero-intro body.appear .hero-full-screen .hero__media img {
+  animation: hero-intro-media var(--hero-intro-media-duration) var(--hero-intro-easing) both;
+}
+
+html.hero-intro body.appear .hero-full-screen .hero__media::before {
+  animation: hero-intro-texture var(--hero-intro-media-duration) var(--hero-intro-easing) both;
+}
+
+html.hero-intro body.appear .hero-full-screen .hero__content {
+  animation: hero-intro-copy var(--hero-intro-copy-duration) var(--hero-intro-easing) both;
+  animation-delay: var(--hero-intro-copy-delay);
+}
+
+@keyframes hero-intro-media {
+  from {
+    opacity: 0;
+    transform: scale(var(--hero-intro-scale-start));
+    filter: blur(var(--hero-intro-blur-start));
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes hero-intro-texture {
+  from {
+    opacity: var(--hero-intro-texture-opacity-start);
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes hero-intro-copy {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.hero-intro .hero-full-screen .hero__media img,
+  html.hero-intro .hero-full-screen .hero__media::before,
+  html.hero-intro .hero-full-screen .hero__content {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+    will-change: auto;
+  }
+}
