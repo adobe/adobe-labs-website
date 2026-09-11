@@ -145,6 +145,33 @@ The page already loads the first image in the first section right away, and AEM 
 
 In Document Authoring, insert a section break after the hero table. Paste the hero image as a normal picture — you do not need to set `loading` or `fetchpriority`. Adding `fetchpriority="high"` or a preload usually makes Lighthouse scores worse on Edge Delivery; see Adobe’s [keeping-it-100](https://www.aem.live/developer/keeping-it-100) guidance.
 
+#### AEM editing
+
+1. Insert a **section break** after the previous section.
+2. Add a **Section Metadata** table in that section.
+3. Set **Style** to one surface (same pattern as [full-bleed](#full-bleed-images-in-articles)):
+   - `section-rounded-default` — default surface
+   - `section-rounded-blue` — blue surface
+   - `section-rounded-pink` — pink surface
+   - `section-rounded-orange` — orange surface
+
+Keep the **hero in the first section**. Do not put a rounded Style on the hero section.
+
+On the **homepage**, keep Manifesto (`grid-line-content`) in its own last main section.
+
+#### Spacing rules
+
+A `section-rounded-*` section gets vertical padding and `z-index: 1`.
+
+- The first default section in a group, and every color section, get a start corner radius.
+- A color section that follows a rounded section, or a default section that follows a color section, overlaps the section before it. The offset is `--section-margin-negative-offset`: `-(radius + --section-space-between)`. A default hero is not overlapped.
+- Adjacent default sections appear as one continuous card. The next section cancels the flex gap and start padding. The last default section before a different surface keeps an end radius.
+- The last rounded section on the page gets an end radius and uses `--section-padding-block-end-last`. A page with one rounded section gets all four corners.
+- After a full-screen hero, the next rounded section overlaps the hero by `-(radius + --section-space-between)`.
+- The last rounded section overlaps the footer by the section radius. Footer inner padding grows by that amount so links stay clickable (`.footer` uses `z-index: 0`). Footer start padding increases at 64rem and above.
+- The research index (`template: research`, `body.research`) uses a larger `--section-space-between`, then a larger value at 48rem and above. Set that template on the research index only.
+- Article pages (`template: article`) use the default surface only. `--section-padding-block-end` is `--s2a-spacing-2xl`, then `--s2a-spacing-4xl` at 90rem (1440px). The last rounded section still uses `--section-padding-block-end-last`.
+
 ## Testing
 
 To run tests:

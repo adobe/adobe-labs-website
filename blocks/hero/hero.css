@@ -46,8 +46,6 @@
     --hero-padding-block: var(--s2a-spacing-sm);
     --hero-padding-inline: var(--s2a-spacing-sm);
 
-    /* TODO: add negative margins when header and first section are implemented. */
-
     @media (width >=48rem) {
       --hero-padding-block: var(--s2a-spacing-md);
       --hero-padding-inline: var(--s2a-spacing-md);
@@ -221,6 +219,21 @@
 
   /* --- Full-Screen variant --- */
   &.hero-full-screen {
+    /* Figma's spacing differs from s2a tokens.
+    Full-screen variant has custom vertical padding to account for overlapping content. */
+    --hero-padding-block-start: 5.625rem;
+    --hero-padding-block-end: 3.125rem;
+
+    @media (width >=48rem) {
+      --hero-padding-block-start: 6.25rem;
+      --hero-padding-block-end: 4.375rem;
+    }
+
+    @media (width >=64rem) {
+      --hero-padding-block-start: 5rem;
+      --hero-padding-block-end: 5.625rem;
+    }
+
     border-radius: 0;
 
     /* Full-screen variant is slightly taller than default on smaller screens. */
@@ -231,22 +244,18 @@
     }
 
     .hero__content {
-      /* Figma's spacing differs from s2a tokens.
-         Full-screen variant has custom vertical padding to account for overlapping content. */
-      --hero-padding-block: 5.625rem 3.125rem;
       --hero-padding-inline: var(--s2a-section-spacing-sm);
 
-      /* TODO: add negative margins when header and first section are implemented. */
-
-      @media (width >=48rem) {
-        --hero-padding-block: 6.25rem 4.375rem;
-      }
-
-      @media (width >=64rem) {
-        --hero-padding-block: 5rem 5.625rem;
-      }
+      padding-block: var(--hero-padding-block-start) var(--hero-padding-block-end);
+      padding-inline: var(--hero-padding-inline);
     }
   }
+}
+
+.hero-container:has(.hero-full-screen) + [class*="section-rounded-"] {
+  --hero-margin-negative-offset: calc(-1 * var(--section-border-radius) - var(--section-space-between));
+  
+  margin-block-start: var(--hero-margin-negative-offset);
 }
 
 /* Default hero keeps main > .section > div max-inline-size and padding. */

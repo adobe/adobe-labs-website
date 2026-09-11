@@ -27,6 +27,7 @@ import {
   buildArticlePreFooter,
   debounce,
   ensureSkipLink,
+  decorateArticleSections,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -165,6 +166,7 @@ export function decorateMain(main) {
   decorateIcons(main);
   buildAutoBlocks(main);
   decorateSections(main);
+  decorateArticleSections(main);
   decorateBlocks(main);
   decorateButtons(main);
 }

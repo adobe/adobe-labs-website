@@ -199,6 +199,23 @@ export function buildArticlePreFooter(main) {
 }
 
 /**
+ * Adds `section-rounded-default` to every article section that is not a hero.
+ * No-op when the page is not an article detail. Runs after `decorateSections`
+ * so each `main` child already has class `section`. Fragment mains also run
+ * this (via `loadFragment` → `decorateMain`) so replaced pre-footer sections
+ * keep the class.
+ *
+ * @param {Element} main The container element
+ */
+export function decorateArticleSections(main) {
+  if (!isArticleDetailPage()) return;
+  main.querySelectorAll(':scope > .section').forEach((section) => {
+    if (section.querySelector('.hero')) return;
+    section.classList.add('section-rounded-default');
+  });
+}
+
+/**
  * Authored cell that flags a video article.
  * Canonical authoring name is **Is Video**; **Show Video Icon** is an alias.
  *
