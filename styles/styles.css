@@ -595,8 +595,12 @@ body.research main {
   }
 }
 
-html.hero-intro body.appear main > .section:nth-of-type(2) {
+html.hero-intro--body main > .section:nth-of-type(2) {
   animation: hero-intro-section-rise var(--hero-intro-section-duration) ease both;
+}
+
+html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
+  transform: translateY(var(--hero-intro-section-offset));
 }
 
 @keyframes hero-intro-section-rise {
@@ -610,8 +614,10 @@ html.hero-intro body.appear main > .section:nth-of-type(2) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.hero-intro body.appear main > .section:nth-of-type(2) {
+  html.hero-intro--body main > .section:nth-of-type(2),
+  html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
     animation: none;
+    transform: none;
   }
 }
 

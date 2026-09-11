@@ -2,6 +2,8 @@ import { within } from '@testing-library/dom';
 import decorate, {
   clearHeroIntro,
   HERO_INTRO_DURATION_MS,
+  HERO_INTRO_FROST_DURATION_S,
+  HERO_INTRO_FROST_ID,
   HERO_INTRO_NAV_DELAY_MS,
 } from './hero.js';
 
@@ -314,6 +316,7 @@ describe('hero block', () => {
       await decorate(block);
 
       expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
     });
 
     it('does not add hero-intro on a default hero in the first section', async () => {
@@ -325,6 +328,8 @@ describe('hero block', () => {
       await decorate(block);
 
       expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
     });
 
     it('does not add hero-intro on a full-screen hero outside the first section', async () => {
@@ -344,6 +349,8 @@ describe('hero block', () => {
       await decorate(block);
 
       expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
     });
 
     it('does not add hero-intro when reduced motion is preferred', async () => {
@@ -368,6 +375,8 @@ describe('hero block', () => {
         await decorate(block);
 
         expect(document.documentElement).not.toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
       } finally {
         window.matchMedia = originalMatchMedia;
       }
@@ -386,13 +395,27 @@ describe('hero block', () => {
 
         expect(document.documentElement).toHaveClass('hero-intro');
         expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
 
         jest.advanceTimersByTime(HERO_INTRO_NAV_DELAY_MS);
         expect(document.documentElement).toHaveClass('hero-intro--nav');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
 
-        jest.advanceTimersByTime(HERO_INTRO_DURATION_MS);
+        jest.advanceTimersByTime(
+          (HERO_INTRO_FROST_DURATION_S * 1000) - HERO_INTRO_NAV_DELAY_MS,
+        );
+        expect(document.documentElement).toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
+
+        jest.advanceTimersByTime(
+          HERO_INTRO_DURATION_MS - (HERO_INTRO_FROST_DURATION_S * 1000),
+        );
         expect(document.documentElement).not.toHaveClass('hero-intro');
         expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
       } finally {
         jest.useRealTimers();
       }
