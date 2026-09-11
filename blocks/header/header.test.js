@@ -58,6 +58,12 @@ function createFragment(html) {
 }
 
 const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path fill="currentColor" d="M0 0h10v10H0z"/></svg>';
+const MENU_SVG = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+    <path class="header__toggle-line header__toggle-line--top" d="M3 7h14v1.5H3z"/>
+    <path class="header__toggle-line header__toggle-line--bottom" d="M3 12h14v1.5H3z"/>
+  </svg>
+`;
 
 /**
  * Fetch mock that serves header SVGs.
@@ -65,7 +71,11 @@ const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><p
  */
 function mockHeaderFetch() {
   return jest.fn(async (url) => {
-    if (String(url).endsWith('.svg')) {
+    const href = String(url);
+    if (href.endsWith('menu.svg')) {
+      return { ok: true, text: async () => MENU_SVG };
+    }
+    if (href.endsWith('.svg')) {
       return { ok: true, text: async () => ICON_SVG };
     }
     return { ok: false, text: async () => '' };
@@ -74,6 +84,7 @@ function mockHeaderFetch() {
 
 let desktopMatches = true;
 let mediaChangeHandlers = [];
+let observerInstances = [];
 
 /**
  * Creates a header block, appends it, and runs decorate.
@@ -87,6 +98,22 @@ async function decorateHeader() {
   document.body.append(header);
   await decorate(block);
   return block;
+}
+
+/**
+ * First-section full-screen hero used for overlay / inverse tests.
+ * @returns {HTMLElement}
+ */
+function addFirstSectionFullScreenHero() {
+  const main = document.createElement('main');
+  const section = document.createElement('div');
+  section.className = 'section hero-container';
+  const hero = document.createElement('div');
+  hero.className = 'hero hero-full-screen';
+  section.append(hero);
+  main.append(section);
+  document.body.append(main);
+  return hero;
 }
 
 beforeAll(() => {
@@ -106,6 +133,14 @@ beforeAll(() => {
     removeListener: jest.fn(),
     dispatchEvent: jest.fn(),
   }));
+  global.IntersectionObserver = jest.fn(function MockIntersectionObserver(callback, options) {
+    this.callback = callback;
+    this.options = options || {};
+    this.observe = jest.fn();
+    this.disconnect = jest.fn();
+    this.unobserve = jest.fn();
+    observerInstances.push(this);
+  });
 });
 
 describe('header block', () => {
@@ -113,7 +148,9 @@ describe('header block', () => {
     jest.clearAllMocks();
     desktopMatches = true;
     mediaChangeHandlers = [];
+    observerInstances = [];
     document.body.innerHTML = '';
+    document.documentElement.classList.remove('header-scroll-lock');
     getMetadata.mockReturnValue('');
     loadFragment.mockResolvedValue(createFragment(NAV_HTML));
     global.fetch = mockHeaderFetch();
@@ -122,6 +159,7 @@ describe('header block', () => {
 
   afterEach(() => {
     document.body.innerHTML = '';
+    document.documentElement.classList.remove('header-scroll-lock');
   });
 
   it('loads the default nav fragment when nav metadata is empty', async () => {
@@ -206,9 +244,12 @@ describe('header block', () => {
     expect(block).not.toHaveClass('header--nav-open');
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(within(block).queryByRole('button', { name: 'Products' })).toBeNull();
-    expect(block.querySelector('.header__item--has-menu > .header__link').tagName).toBe('SPAN');
-    expect(block.querySelector('.header__item--has-menu > .header__link .header__chevron')).not.toBeNull();
+    expect(block.querySelector('.header__trigger')).toHaveAttribute('hidden');
+    expect(block.querySelector('.header__menu-label')).not.toHaveAttribute('hidden');
+    expect(block.querySelector('.header__menu-label')).toHaveTextContent('Products');
     expect(block.querySelector('#header-panel-2')).not.toHaveAttribute('hidden');
+    expect(block.querySelector('#header-panel-2')).toHaveAttribute('role', 'group');
+    expect(block.querySelector('#header-panel-2')).toHaveAttribute('aria-label', 'Products');
     expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
     expect(block.querySelector('#unav-app-switcher, .unav-comp-app-switcher, .feds-utilities')).toBeNull();
     expect(block.querySelector('.feds-signIn')).toBeNull();
@@ -218,6 +259,9 @@ describe('header block', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(within(block).getByRole('button', { name: 'Close menu' })).toBe(toggle);
     expect(block).toHaveClass('header--nav-open');
+    expect(toggle.querySelector('.header__toggle-line--top')).not.toBeNull();
+    expect(toggle.querySelector('.header__toggle-line--bottom')).not.toBeNull();
+    expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
@@ -258,20 +302,184 @@ describe('header block', () => {
     expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
   });
 
-  it('turns mega-menu buttons into static labels at the mobile breakpoint', async () => {
+  it('hides mega-menu triggers and shows static labels at the mobile breakpoint', async () => {
     const block = await decorateHeader();
     const panel = block.querySelector('#header-panel-2');
+    const trigger = within(block).getByRole('button', { name: 'Products' });
 
-    expect(within(block).getByRole('button', { name: 'Products' })).toBeInTheDocument();
+    expect(trigger).toBeInTheDocument();
     expect(panel).toHaveAttribute('hidden');
 
     desktopMatches = false;
     mediaChangeHandlers.forEach((handler) => handler());
 
     expect(within(block).queryByRole('button', { name: 'Products' })).toBeNull();
-    expect(block.querySelector('.header__item--has-menu > .header__link').tagName).toBe('SPAN');
-    expect(block.querySelector('.header__item--has-menu > .header__link .header__chevron')).not.toBeNull();
+    expect(trigger).toHaveAttribute('hidden');
+    expect(block.querySelector('.header__menu-label')).not.toHaveAttribute('hidden');
+    expect(block.querySelector('.header__menu-label')).toHaveTextContent('Products');
     expect(panel).not.toHaveAttribute('hidden');
+    expect(panel).toHaveAttribute('role', 'group');
+    expect(panel).toHaveAttribute('aria-label', 'Products');
     expect(within(block).getByRole('link', { name: 'Photoshop' })).toBeInTheDocument();
+  });
+
+  it('applies inverse chrome over a first-section full-screen hero', async () => {
+    window.history.pushState({}, '', '/sneaks/clip');
+    addFirstSectionFullScreenHero();
+
+    const block = await decorateHeader();
+
+    expect(block).toHaveClass('header--inverse');
+    expect(block).not.toHaveClass('header--scrolled');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('button--static-white');
+  });
+
+  it('frosts the overlay bar once the page has scrolled', async () => {
+    addFirstSectionFullScreenHero();
+
+    const block = await decorateHeader();
+    const scrollObserver = observerInstances.find((obs) => !obs.options.rootMargin);
+
+    expect(block).toHaveClass('header--inverse');
+    expect(block).not.toHaveClass('header--scrolled');
+    expect(document.querySelector('.header-scroll-sentinel')).not.toBeNull();
+    expect(scrollObserver).toBeDefined();
+
+    scrollObserver.callback([{ isIntersecting: false }]);
+
+    expect(block).toHaveClass('header--scrolled');
+
+    scrollObserver.callback([{ isIntersecting: true }]);
+
+    expect(block).not.toHaveClass('header--scrolled');
+  });
+
+  it('does not invert without a first-section full-screen hero', async () => {
+    const block = await decorateHeader();
+
+    expect(block).not.toHaveClass('header--inverse');
+    expect(block).not.toHaveClass('header--scrolled');
+    expect(document.querySelector('.header-scroll-sentinel')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('button--static-white');
+  });
+
+  it('drops inverse when the full-screen hero scrolls away', async () => {
+    addFirstSectionFullScreenHero();
+
+    const block = await decorateHeader();
+
+    expect(block).toHaveClass('header--inverse');
+    const heroObserver = observerInstances.find((obs) => obs.options.rootMargin);
+    expect(heroObserver).toBeDefined();
+
+    heroObserver.callback([{ isIntersecting: false }]);
+
+    expect(block).not.toHaveClass('header--inverse');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('button--static-white');
+
+    heroObserver.callback([{ isIntersecting: true }]);
+
+    expect(block).toHaveClass('header--inverse');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('button--static-white');
+  });
+
+  it('locks document scroll while the mobile drawer is open', async () => {
+    desktopMatches = false;
+    const block = await decorateHeader();
+    const toggle = within(block).getByRole('button', { name: 'Menu' });
+
+    toggle.click();
+
+    expect(block).toHaveClass('header--nav-open');
+    expect(document.documentElement).toHaveClass('header-scroll-lock');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(block).not.toHaveClass('header--nav-open');
+    expect(document.documentElement).not.toHaveClass('header-scroll-lock');
+  });
+
+  it('inerts page content while the mobile drawer is open', async () => {
+    desktopMatches = false;
+    const main = document.createElement('main');
+    const pageLink = document.createElement('a');
+    pageLink.href = '/research';
+    pageLink.textContent = 'In page';
+    main.append(pageLink);
+    document.body.append(main);
+
+    const block = await decorateHeader();
+    const toggle = within(block).getByRole('button', { name: 'Menu' });
+
+    toggle.click();
+
+    expect(main.inert).toBe(true);
+    expect(block.closest('header').inert).toBe(false);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(main.inert).toBe(false);
+  });
+
+  it('closes the mobile drawer when the skip link is used', async () => {
+    desktopMatches = false;
+    const main = document.createElement('main');
+    document.body.append(main);
+
+    const block = await decorateHeader();
+    const toggle = within(block).getByRole('button', { name: 'Menu' });
+    toggle.click();
+
+    expect(block).toHaveClass('header--nav-open');
+    expect(main.inert).toBe(true);
+
+    within(document.body).getByRole('link', { name: 'Skip to main content' }).click();
+
+    expect(block).not.toHaveClass('header--nav-open');
+    expect(main.inert).toBe(false);
+  });
+
+  it('parses a nav nested under the brand list item', async () => {
+    loadFragment.mockResolvedValue(createFragment(`
+      <ul>
+        <li>
+          <a href="/"><img src="/logo.svg" alt="Adobe Labs"></a>
+          <ul>
+            <li><a href="/research">Research</a></li>
+            <li>
+              <a href="/products">Products</a>
+              <ul>
+                <li><a href="/products/photoshop">Photoshop</a></li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li><a class="button" href="https://www.adobe.com/">Subscribe</a></li>
+      </ul>
+    `));
+
+    const block = await decorateHeader();
+
+    expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toHaveAttribute('href', '/');
+    expect(within(block).getByRole('link', { name: 'Research' })).toHaveAttribute('href', '/research');
+    expect(within(block).getByRole('button', { name: 'Products' })).toBeInTheDocument();
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('header__cta');
+  });
+
+  it('keeps a Subscribe nav item when the CTA is a sibling button', async () => {
+    loadFragment.mockResolvedValue(createFragment(`
+      <p><a href="/">Adobe Labs</a></p>
+      <ul>
+        <li><a href="/research">Research</a></li>
+        <li><a href="/subscribe">Subscribe</a></li>
+      </ul>
+      <p><a class="button" href="https://www.adobe.com/">Join</a></p>
+    `));
+
+    const block = await decorateHeader();
+
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveAttribute('href', '/subscribe');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('header__cta');
+    expect(within(block).getByRole('link', { name: 'Join' })).toHaveClass('header__cta');
   });
 });
