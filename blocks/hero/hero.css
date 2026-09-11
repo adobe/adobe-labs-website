@@ -339,11 +339,6 @@ html.hero-intro .hero-full-screen .hero__media img {
   will-change: opacity;
 }
 
-html.hero-intro.hero-intro--frost-done .hero-full-screen .hero__media img {
-  filter: none;
-  will-change: auto;
-}
-
 html.hero-intro .hero-full-screen .hero__content {
   opacity: 0;
 }
