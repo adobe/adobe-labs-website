@@ -3,6 +3,7 @@ import {
   buildArticlePreFooter,
   buildPlayIcon,
   ensureSkipLink,
+  decorateArticleSections,
   formatCardDate,
   getAuthoredCells,
   getSection,
@@ -258,5 +259,76 @@ describe('ensureSkipLink', () => {
     ensureSkipLink(document);
 
     expect(document.querySelectorAll('.header__skip')).toHaveLength(1);
+  });
+});
+
+function createSection({ hero = false } = {}) {
+  const section = document.createElement('div');
+  section.className = 'section';
+  if (hero) {
+    const block = document.createElement('div');
+    block.className = 'hero';
+    section.append(block);
+  }
+  return section;
+}
+
+describe('decorateArticleSections', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getMetadata.mockReturnValue('');
+    document.body.innerHTML = '';
+  });
+
+  it('does not add the class on non-article pages', () => {
+    const main = document.createElement('main');
+    main.append(createSection(), createSection());
+
+    decorateArticleSections(main);
+
+    expect(main.querySelector('.section-rounded-default')).toBeNull();
+  });
+
+  it('skips the hero and adds the class to other article sections', () => {
+    mockTemplate('article');
+    const hero = createSection({ hero: true });
+    const body = createSection();
+    const preFooter = createSection();
+    const main = document.createElement('main');
+    main.append(hero, body, preFooter);
+    document.body.append(main);
+
+    decorateArticleSections(main);
+
+    expect(hero).not.toHaveClass('section-rounded-default');
+    expect(body).toHaveClass('section-rounded-default');
+    expect(preFooter).toHaveClass('section-rounded-default');
+  });
+
+  it('adds the class to every section when there is no hero', () => {
+    mockTemplate('article');
+    const first = createSection();
+    const second = createSection();
+    const main = document.createElement('main');
+    main.append(first, second);
+    document.body.append(main);
+
+    decorateArticleSections(main);
+
+    expect(first).toHaveClass('section-rounded-default');
+    expect(second).toHaveClass('section-rounded-default');
+  });
+
+  it('adds the class to all sections of a detached fragment main', () => {
+    mockTemplate('article');
+    const first = createSection();
+    const second = createSection();
+    const main = document.createElement('main');
+    main.append(first, second);
+
+    decorateArticleSections(main);
+
+    expect(first).toHaveClass('section-rounded-default');
+    expect(second).toHaveClass('section-rounded-default');
   });
 });

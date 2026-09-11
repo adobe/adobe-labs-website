@@ -2,10 +2,11 @@
   max-inline-size: unset;
   margin: 0;
   padding: 0;
-}
 
-.grid-line-content-container {
-  margin: 0;
+  /* Last-section space sits outside the drawn lines so text stays flush. */
+  @media (width >= 64rem) {
+    padding-block-end: var(--section-padding-block-end-last);
+  }
 }
 
 .grid-line-content {

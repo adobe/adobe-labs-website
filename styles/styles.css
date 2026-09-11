@@ -68,6 +68,12 @@
   --color-content-type-sneaks: #a179ec;
   --color-content-type-playground: #64b180;
 
+  /* section surface colors (most not in S2A) */
+  --color-section-surface-default: var(--s2a-color-background-default);
+  --color-section-surface-blue: #edf6ff;
+  --color-section-surface-pink: #fff4f2;
+  --color-section-surface-orange: #faf4f0;
+
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, adobe-clean-fallback, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, adobe-clean-display-fallback, sans-serif;
@@ -86,6 +92,10 @@
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
 
   &[data-theme="dark"] {
+    --color-section-surface-default: #262626;
+    --color-section-surface-blue: #111f2f;
+    --color-section-surface-pink: #301517;
+    --color-section-surface-orange: #413b37;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
 }
@@ -319,9 +329,33 @@ footer .footer[data-block-status="loaded"] {
   visibility: visible;
 }
 
-/* TODO: boilerplate - better handling of this for overall site spacing. And use tokens. */
-main > div {
-  margin: 40px 16px;
+/* Overall sitewide spacing for sections and blocks.
+   These are scoped to main so various blocks and sections can use them.
+   --section-space-between is the flex gap between sections. Overlap offsets subtract
+   the same value so later sections cover the rounded top. */
+main {
+  --section-space-between: var(--s2a-section-spacing-3xs);
+  --section-padding-block-start: var(--s2a-spacing-lg);
+  --section-padding-block-end: var(--s2a-section-spacing-5xl);
+  --section-padding-block-end-last: var(--s2a-spacing-4xl);
+
+  display: flex;
+  flex-flow: column nowrap;
+  gap: var(--section-space-between);
+
+  @media (width >= 64rem) {
+    --section-space-between: var(--s2a-section-spacing-lg);
+    --section-padding-block-end-last: var(--s2a-layout-lg);
+  }
+
+  @media (width >= 80rem) {
+    --section-padding-block-end-last: var(--s2a-layout-xl);
+  }
+}
+
+main,
+footer {
+  --section-border-radius: 1.875rem;
 }
 
 /* Hides content visually but keeps it in the accessibility tree.
@@ -463,44 +497,103 @@ main > div {
 
 /* TODO: boilerplate - Sections - better handling of this group of styles for overall site spacing. And use tokens. */
 main > .section {
-  margin: 40px 0;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: var(--s2a-spacing-xl);
 }
 
 main > .section > div {
+  inline-size: 100%;
   max-inline-size: var(--site-max-inline-size);
   margin: auto;
   padding: 0 var(--site-root-inline-padding);
+
 }
 
-main > .section:first-of-type {
-  margin-top: 0;
-}
+main .section[class*="section-rounded-"] {
+  --section-margin-negative-offset: calc(-1 * (var(--section-border-radius) + var(--section-space-between)));
 
-/* Full-screen hero in the first section sits under the sticky header. */
-main > .section.hero-container:first-of-type:has(.hero-full-screen) {
-  margin-top: calc(-1 * var(--nav-height));
-}
+  padding-block: var(--section-padding-block-start) var(--section-padding-block-end);
+  z-index: 1;
 
-@media (width >= 900px) {
-  main > .section > div {
-    padding: 0 var(--s2a-spacing-lg, 1.5rem);
+  /* Last rounded section on the page: end radius + last-section padding. */
+  &:nth-last-child(1 of [class*="section-rounded-"]) {
+    --section-padding-block-end: var(--section-padding-block-end-last);
+
+    border-end-start-radius: var(--section-border-radius);
+    border-end-end-radius: var(--section-border-radius);
   }
 }
 
-/* section metadata 
-   TODO: boilerplate - will these be used and can they be removed? */
-main .section.light,
-main .section.highlight {
-  background-color: var(--light-color);
-  margin: 0;
-  padding: 40px 0;
+main .section {
+  &.section-rounded-default {
+    background: var(--color-section-surface-default);
+
+    /* Adjacent default-color sections should appear as one continuous surface. */
+    + .section-rounded-default {
+      margin-block-start: calc(-1 * var(--section-space-between));
+      padding-block-start: 0;
+    }
+
+    /* Last default-color section before a different surface keeps a rounded end. */
+    &:has(+ :not(.section-rounded-default)) {
+      border-end-start-radius: var(--section-border-radius);
+      border-end-end-radius: var(--section-border-radius);
+    }
+  }
+
+  &.section-rounded-blue {
+    background: var(--color-section-surface-blue);
+  }
+
+  &.section-rounded-pink {
+    background: var(--color-section-surface-pink);
+  }
+
+  &.section-rounded-orange {
+    background: var(--color-section-surface-orange);
+  }
+}
+
+/* Start radius on a section: every color section, and the first default-color section in a set. */
+main .section[class*="section-rounded-"]:not(.section-rounded-default),
+main .section.section-rounded-default:first-child,
+main .section:not(.section-rounded-default) + .section-rounded-default {
+  border-start-start-radius: var(--section-border-radius);
+  border-start-end-radius: var(--section-border-radius);
+}
+
+/* Overlap only when a new section follows another rounded section.
+   Full-screen hero overlap lives in hero.css. Do not pull up over a default hero. */
+main .section[class*="section-rounded-"]:not(.section-rounded-default) + [class*="section-rounded-"],
+main .section.section-rounded-default + [class*="section-rounded-"]:not(.section-rounded-default) {
+  margin-block-start: var(--section-margin-negative-offset);
+}
+
+/* -- Page-specific section spacing overrides --- */
+main .section.grid-line-content-container {
+  padding-block-end: 0;
+}
+
+body.research main {
+  --section-space-between: var(--s2a-spacing-xl);
+
+  @media (width >= 48rem) {
+    --section-space-between: var(--s2a-spacing-4xl);
+  }
 }
 
 /* --- Articles --- */
 
 body.article main {
+  --section-padding-block-end: var(--s2a-spacing-2xl);
+
   /* Default article content width. No s2a token represents these widths. */
   --article-content-inline-size-narrow: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
+
+  @media (width >= 90rem) {
+    --section-padding-block-end: var(--s2a-spacing-4xl);
+  }
 
   .default-content-wrapper {
     max-inline-size: var(--article-content-inline-size-narrow);
