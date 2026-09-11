@@ -1,5 +1,9 @@
 import { within } from '@testing-library/dom';
-import decorate from './hero.js';
+import decorate, {
+  clearHeroIntro,
+  HERO_INTRO_DURATION_MS,
+  HERO_INTRO_NAV_DELAY_MS,
+} from './hero.js';
 
 /**
  * Builds a positional hero table (row 1 copy, row 2 image).
@@ -52,6 +56,27 @@ function expectPlayIcon(block) {
   expect(play.querySelector('svg')).toBeTruthy();
   return play;
 }
+
+/**
+ * Puts a hero in the first `main > .section`, which is required to start the intro.
+ *
+ * @param {HTMLElement} block Hero block
+ * @returns {HTMLElement} The same block
+ */
+function mountInFirstSection(block) {
+  const main = document.createElement('main');
+  const section = document.createElement('div');
+  section.className = 'section';
+  section.append(block);
+  main.append(section);
+  document.body.append(main);
+  return block;
+}
+
+afterEach(() => {
+  clearHeroIntro();
+  document.querySelectorAll('main').forEach((main) => main.remove());
+});
 
 describe('hero block', () => {
   it('renders category, date, linked headline, CTA, and image', async () => {
@@ -276,5 +301,101 @@ describe('hero block', () => {
     expect(block.querySelector('h2 a')).toBeNull();
     expect(block.querySelector('h2')).toHaveTextContent('Unsafe headline');
     expect(block.querySelector('.hero__cta-text')).toBeNull();
+  });
+
+  describe('full-screen loading intro', () => {
+    it('adds hero-intro on a first-section full-screen hero', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+
+      await decorate(block);
+
+      expect(document.documentElement).toHaveClass('hero-intro');
+    });
+
+    it('does not add hero-intro on a default hero in the first section', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      mountInFirstSection(block);
+
+      await decorate(block);
+
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+    });
+
+    it('does not add hero-intro on a full-screen hero outside the first section', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      const main = document.createElement('main');
+      const first = document.createElement('div');
+      first.className = 'section';
+      const second = document.createElement('div');
+      second.className = 'section';
+      second.append(block);
+      main.append(first, second);
+      document.body.append(main);
+
+      await decorate(block);
+
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+    });
+
+    it('does not add hero-intro when reduced motion is preferred', async () => {
+      const originalMatchMedia = window.matchMedia;
+      window.matchMedia = jest.fn((query) => ({
+        matches: String(query).includes('prefers-reduced-motion'),
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
+
+      try {
+        const block = createHeroBlock([
+          ['<a href="/article">Headline</a>'],
+        ]);
+        block.classList.add('hero-full-screen');
+        mountInFirstSection(block);
+
+        await decorate(block);
+
+        expect(document.documentElement).not.toHaveClass('hero-intro');
+      } finally {
+        window.matchMedia = originalMatchMedia;
+      }
+    });
+
+    it('adds hero-intro--nav after the nav delay and clears intro classes when done', async () => {
+      jest.useFakeTimers();
+      try {
+        const block = createHeroBlock([
+          ['<a href="/article">Headline</a>'],
+        ]);
+        block.classList.add('hero-full-screen');
+        mountInFirstSection(block);
+
+        await decorate(block);
+
+        expect(document.documentElement).toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+
+        jest.advanceTimersByTime(HERO_INTRO_NAV_DELAY_MS);
+        expect(document.documentElement).toHaveClass('hero-intro--nav');
+
+        jest.advanceTimersByTime(HERO_INTRO_DURATION_MS);
+        expect(document.documentElement).not.toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 });

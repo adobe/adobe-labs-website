@@ -9,6 +9,22 @@ import {
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
+const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
+const HERO_INTRO_CLASS = 'hero-intro';
+const HERO_INTRO_NAV_CLASS = 'hero-intro--nav';
+
+// TODO: ADBLABS-83 — confirm nav delay (storyboard step 3) against the Figma prototype.
+export const HERO_INTRO_NAV_DELAY_MS = 1000;
+
+// TODO: ADBLABS-83 — confirm total intro length (steps 0–5) against the Figma prototype.
+// Keep this long enough for the second section to load during loadLazy and still slide.
+export const HERO_INTRO_DURATION_MS = 3000;
+
+/** @type {number|undefined} */
+let introNavTimer;
+/** @type {number|undefined} */
+let introDoneTimer;
+
 /**
  * Whether this hero sits in the first section of `main`.
  *
@@ -171,6 +187,57 @@ export function buildHero(data = {}, root = document.createElement('div')) {
 }
 
 /**
+ * Removes page-level intro classes and pending timers.
+ * Safe to call when no intro is running.
+ *
+ * @returns {void}
+ */
+export function clearHeroIntro() {
+  window.clearTimeout(introNavTimer);
+  window.clearTimeout(introDoneTimer);
+  document.documentElement.classList.remove(HERO_INTRO_CLASS, HERO_INTRO_NAV_CLASS);
+}
+
+/**
+ * Whether the user asked for reduced motion.
+ *
+ * @returns {boolean}
+ */
+function prefersReducedMotion() {
+  return typeof window.matchMedia === 'function'
+    && window.matchMedia(REDUCED_MOTION_MQ).matches;
+}
+
+/**
+ * Whether this block should start the page-load intro.
+ *
+ * @param {Element} block The hero block
+ * @returns {boolean}
+ */
+function shouldStartHeroIntro(block) {
+  return Boolean(firstSection(block))
+    && block.classList.contains('hero-full-screen')
+    && !prefersReducedMotion()
+    && !document.documentElement.classList.contains(HERO_INTRO_CLASS);
+}
+
+/**
+ * Adds `hero-intro` on `<html>` and schedules the nav step and cleanup.
+ *
+ * @returns {void}
+ */
+function startHeroIntro() {
+  const root = document.documentElement;
+  root.classList.add(HERO_INTRO_CLASS);
+  window.clearTimeout(introNavTimer);
+  window.clearTimeout(introDoneTimer);
+  introNavTimer = window.setTimeout(() => {
+    root.classList.add(HERO_INTRO_NAV_CLASS);
+  }, HERO_INTRO_NAV_DELAY_MS);
+  introDoneTimer = window.setTimeout(clearHeroIntro, HERO_INTRO_DURATION_MS);
+}
+
+/**
  * loads and decorates the hero
  * @param {Element} block The hero block element
  */
@@ -179,4 +246,5 @@ export default async function decorate(block) {
   const section = firstSection(block);
   if (!section || !block.classList.contains('hero-full-screen')) return;
   section.classList.add('hero-container--overlay');
+  if (shouldStartHeroIntro(block)) startHeroIntro();
 }

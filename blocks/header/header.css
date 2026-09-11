@@ -451,3 +451,23 @@
   pointer-events: none;
   visibility: hidden;
 }
+
+/* ADBLABS-83: header stays hidden until the intro reaches the nav step.
+   The header block may load after `hero-intro` is already on `<html>`. */
+html.hero-intro:not(.hero-intro--nav) .header {
+  opacity: 0;
+}
+
+html.hero-intro.hero-intro--nav .header {
+  opacity: 1;
+
+  /* TODO: ADBLABS-83 — confirm nav fade duration and easing against Figma. */
+  transition: opacity var(--hero-intro-nav-duration, 0.4s) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.hero-intro .header {
+    opacity: 1;
+    transition: none;
+  }
+}
