@@ -1,15 +1,213 @@
+/**
+ * Card count: Figma specs 4 cards, unchanged (4-across) from the S/768px
+ * breakpoint through XL/1920px+ — only type scale changes between tiers,
+ * which the s2a typography tokens already handle. `min-width` below is a
+ * safety net for 5+ authored items: flex-basis: 0 sizes cards purely from
+ * the grow ratio, so extra cards would otherwise shrink indefinitely rather
+ * than wrapping. 2-3 items are sized the same way and simply take a larger
+ * (even) share of the row.
+ */
 .elastic-router {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--s2a-spacing-xs);
+  --elastic-router-radius: var(--s2a-border-radius-xs);
 
-  p {
-    color: var(--s2a-color-content-label);
+  /* Stacked mobile rows need more vertical breathing room than the desktop
+     row gutter. */
+  --elastic-router-gap: 2rem;
+  --elastic-router-card-min: 8rem;
+
+  /* Default: even split (25% each of 4). Hover: 40% hovered / 20% each
+     of the other 3 — i.e. flex-grow 2 vs the default 1. Figma: "Use this
+     formula for every breakpoint." */
+  --elastic-router-grow: 2;
+  --elastic-router-transition-duration: 0.5s;
+  --elastic-router-transition-easing: cubic-bezier(0.65, 0, 0.35, 1);
+
+  @media (width >= 48rem) {
+    --elastic-router-gap: 0.5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    --elastic-router-transition-duration: 0s;
+  }
+}
+
+.elastic-router__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--elastic-router-gap);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  container-type: inline-size;
+
+  @media (width >= 48rem) {
+    flex-flow: row wrap;
+  }
+}
+
+.elastic-router__item {
+  min-width: 0;
+
+  @media (width >= 48rem) {
+    flex: 1 1 0%;
+    min-width: var(--elastic-router-card-min);
+    transition: flex-grow var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
   }
 }
 
 @media (width >= 48rem) {
-  .elastic-router {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .elastic-router__item:focus-within {
+    flex-grow: var(--elastic-router-grow);
   }
+}
+
+@media (hover: hover) and (width >= 48rem) {
+  .elastic-router__item:hover {
+    flex-grow: var(--elastic-router-grow);
+  }
+}
+
+.elastic-router__link {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: var(--s2a-spacing-xs);
+  border-radius: var(--elastic-router-radius);
+  color: var(--s2a-color-content-label);
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+    outline-offset: var(--s2a-border-width-md);
+  }
+}
+
+.elastic-router__media {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--elastic-router-radius);
+
+  /* Shorter/wider than the desktop 3:2 — full-width stacked cards read too
+     tall at 3:2 on small screens. Approximate per design review; may need
+     further tuning. */
+  aspect-ratio: 3 / 1;
+  background-color: var(--s2a-color-background-subtle);
+
+  /* Below 48rem the visual order is image, heading, description — reordered
+     here rather than in the DOM so the heading (the card's accessible name)
+     stays first for screen readers regardless of viewport. */
+  @media (width < 48rem) {
+    order: -1;
+  }
+
+  /* From 48rem, height is fixed to the *row's* width (25% of it, at a 3:2
+     ratio, matching the 4-card default) via container query units, not the
+     card's own width. Figma: cards expand in width only on hover/focus —
+     height never changes — so aspect-ratio (which would tie height to the
+     card's current, growing width) can't drive this above that breakpoint. */
+  @media (width >= 48rem) {
+    aspect-ratio: auto;
+    height: calc(25cqi * 2 / 3);
+  }
+
+  picture,
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.elastic-router__title {
+  display: flex;
+  align-items: center;
+  gap: var(--s2a-spacing-2xs);
+  margin: 0;
+  font-size: var(--s2a-typography-font-size-heading-5);
+  line-height: var(--s2a-typography-line-height-heading-5);
+
+  /* Fixed per Figma, unlike the heading-5 utility class: letter-spacing
+     stays constant across breakpoints instead of following the responsive
+     heading-5 alias (font-family/weight-900 already come from the site's
+     global h1-h6 rule). */
+  letter-spacing: var(--s2a-font-letter-spacing-4xl);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
+}
+
+.elastic-router__item:focus-within .elastic-router__title {
+  text-decoration-color: currentcolor;
+}
+
+@media (hover: hover) {
+  .elastic-router__item:hover .elastic-router__title {
+    text-decoration-color: currentcolor;
+  }
+}
+
+/* Content-type swatch: reuses the same section colors as grid-item. Only
+   rendered when the card's href resolves to a known site section. */
+.elastic-router__item[data-content-type="research"] {
+  --elastic-router-content-type-color: var(--color-content-type-research);
+}
+
+.elastic-router__item[data-content-type="workflows"] {
+  --elastic-router-content-type-color: var(--color-content-type-workflows);
+}
+
+.elastic-router__item[data-content-type="sneaks"] {
+  --elastic-router-content-type-color: var(--color-content-type-sneaks);
+}
+
+.elastic-router__item[data-content-type="playground"] {
+  --elastic-router-content-type-color: var(--color-content-type-playground);
+}
+
+.elastic-router__item[data-content-type] .elastic-router__title::before {
+  content: "";
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 0.25rem;
+  background: var(--elastic-router-content-type-color);
+}
+
+/* Mobile-only tap affordance (see buildArrowIcon in elastic-router.js).
+   Pushed to the row's far end regardless of the swatch/title's own gap. */
+.elastic-router__arrow {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background-color: var(--s2a-color-content-label);
+  color: var(--s2a-color-content-inverse);
+
+  @media (width < 48rem) {
+    display: flex;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.elastic-router__description {
+  margin: 0;
+
+  /* Not redundant with .elastic-router__link's cascaded color: this also
+     carries the shared .eyebrow class, whose own color declaration
+     (--s2a-color-content-eyebrow) would otherwise win over inheritance. */
+  color: var(--s2a-color-content-label);
+}
+
+[data-theme="dark"] .elastic-router__link:focus-visible {
+  outline-color: var(--s2a-color-focus-ring-knockout);
 }
