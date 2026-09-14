@@ -348,7 +348,9 @@ html.hero-intro.hero-intro--frost-done .hero-full-screen .hero__media img {
   will-change: opacity;
 }
 
-html.hero-intro .hero-full-screen .hero__content {
+/* Fade each child. Opacity on `.hero__content` would isolate the play icon
+   and pop its backdrop-filter on at the end of the fade. */
+html.hero-intro .hero-full-screen .hero__content > * {
   opacity: 0;
 }
 
@@ -365,7 +367,7 @@ html.hero-intro body.appear .hero-full-screen .hero__media img {
   animation-delay: var(--hero-intro-media-delay), var(--hero-intro-media-delay);
 }
 
-html.hero-intro body.appear .hero-full-screen .hero__content {
+html.hero-intro body.appear .hero-full-screen .hero__content > * {
   animation: hero-intro-copy var(--hero-intro-copy-duration)
     var(--hero-intro-easing-text) both;
   animation-delay: var(--hero-intro-copy-delay);
@@ -418,7 +420,7 @@ html.hero-intro body.appear .hero-full-screen .hero__content {
 @media (prefers-reduced-motion: reduce) {
   html.hero-intro .hero-full-screen .hero__media,
   html.hero-intro .hero-full-screen .hero__media img,
-  html.hero-intro .hero-full-screen .hero__content {
+  html.hero-intro .hero-full-screen .hero__content > * {
     animation: none;
     opacity: 1;
     transform: none;
