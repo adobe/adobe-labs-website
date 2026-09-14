@@ -166,6 +166,7 @@ A `section-rounded-*` section gets vertical padding and `z-index: 1`.
 - The first default section in a group, and every color section, get a start corner radius.
 - A color section that follows a rounded section, or a default section that follows a color section, overlaps the section before it. The offset is `--section-margin-negative-offset`: `-(radius + --section-space-between)`. A default hero is not overlapped.
 - Adjacent default sections appear as one continuous card. The next section cancels the flex gap and start padding. The last default section before a different surface keeps an end radius.
+- When motion is opted in (`prefers-reduced-motion: no-preference`), a rounded section slows once the next rounded section reaches mid-viewport, then stays stacked while that section covers it. A subtle dark overlay fades in on the outgoing section until it is covered. Adjacent default sections do not slow.
 - The last rounded section on the page gets an end radius and uses `--section-padding-block-end-last`. A page with one rounded section gets all four corners.
 - After a full-screen hero, the next rounded section overlaps the hero by `-(radius + --section-space-between)`.
 - The last rounded section overlaps the footer by the section radius. Footer inner padding grows by that amount so links stay clickable (`.footer` uses `z-index: 0`). Footer start padding increases at 64rem and above.

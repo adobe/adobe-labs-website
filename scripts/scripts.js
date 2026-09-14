@@ -271,6 +271,12 @@ async function loadLazy(doc) {
   setCalculatedPerspective();
   const setCalcPerspectiveDebounced = debounce(setCalculatedPerspective);
   window.addEventListener('resize', setCalcPerspectiveDebounced);
+
+  const rounded = doc.querySelectorAll('main > .section[class*="section-rounded-"]');
+  if (rounded.length >= 2
+    && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+    import('./section-scroll.js').then((mod) => mod.initSectionScroll());
+  }
 }
 
 /**
