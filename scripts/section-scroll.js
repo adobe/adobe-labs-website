@@ -6,8 +6,8 @@
  * as the next card covers them. A page header or default hero does not pin:
  * its content keeps moving, just slower, while the first rounded section
  * overlaps it. Adjacent `section-rounded-default` siblings stay one card and
- * are skipped. A dark overlay fades in when that overlap starts and reaches
- * full strength as the incoming section covers it.
+ * are skipped. A dark overlay fades in and blurs when that overlap starts
+ * and reaches full strength as the incoming section covers it.
  */
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';

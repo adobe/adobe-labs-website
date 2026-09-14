@@ -5,7 +5,7 @@
  * Rounded cards pin once the next rounded section reaches COVER_START_VH.
  * Inner content eases into the slowed parallax before that pin.
  * Inner content eases upward so the outgoing card still moves, just slower,
- * and a dark overlay fades in. Page header / default hero sections stay in
+ * and a dark overlay fades in with a light blur. Page header / default hero sections stay in
  * flow: their content lags instead of pinning. Full-screen heroes pin in
  * place without the inner shift so they are not pulled under the nav.
  */
@@ -52,8 +52,10 @@
     inset: 0;
     z-index: 2;
     border-radius: inherit;
-    background: #000;
-    opacity: var(--section-scroll-dim, 0);
+
+    /* Alpha on the fill, not element opacity: opaque black would hide the blur. */
+    background: rgb(0 0 0 / var(--section-scroll-dim, 0));
+    backdrop-filter: blur(calc(var(--section-scroll-dim, 0) / 0.8 * var(--s2a-blur-sm, 16px)));
     pointer-events: none;
   }
 
