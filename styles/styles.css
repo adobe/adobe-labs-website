@@ -177,6 +177,14 @@ body.appear {
 /* Hero animation — page-level */
 html.hero-intro {
   --hero-intro-section-offset: 40vh;
+
+  overflow: hidden;
+
+  @media (width < 48rem) {
+    --hero-intro-section-offset: calc(
+      100svh - 60lvh + var(--nav-height) + 4rem
+    );
+  }
 }
 
 html.hero-intro body {
