@@ -13,5 +13,21 @@
 }
 
 .lead-in__headline {
+  /* s2a's heading-4 line-height (32px) undershoots Figma at the 1440/1920
+     frames (36px), so track it separately in sync with the token's own
+     1280px tier — font-size and letter-spacing already match Figma as-is. */
+  --lead-in-headline-line-height: var(--s2a-typography-line-height-heading-4);
+
   margin: 0;
+  color: var(--s2a-color-content-default);
+  font-family: var(--heading-font-family);
+  font-size: var(--s2a-typography-font-size-heading-4);
+  font-style: normal;
+  font-weight: var(--s2a-font-weight-heading);
+  line-height: var(--lead-in-headline-line-height);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-4);
+
+  @media (width >= 80rem) {
+    --lead-in-headline-line-height: 2.25rem; /* 36px */
+  }
 }
