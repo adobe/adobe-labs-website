@@ -1,8 +1,9 @@
 /**
- * Slows a rounded section once the next rounded section reaches mid-viewport.
+ * Slows the previous section once a rounded section reaches mid-viewport.
  *
  * Motion is opt-in: classes and CSS load only when
- * `prefers-reduced-motion: no-preference` matches. Adjacent
+ * `prefers-reduced-motion: no-preference` matches. The previous section can
+ * be a page header, hero, or another rounded card. Adjacent
  * `section-rounded-default` siblings stay one card and are skipped.
  * A dark overlay fades in on the outgoing section from mid-viewport
  * until the next section has covered it.
@@ -51,15 +52,28 @@ function isRounded(el) {
 }
 
 /**
- * Adjacent default sections are one continuous card — no slowdown.
+ * Full-screen hero in its own first section — already tucked under the nav.
+ *
+ * @param {Element | null} el
+ * @returns {boolean}
+ */
+function isFullScreenHero(el) {
+  return Boolean(el?.classList.contains('hero-container')
+    && el.querySelector('.hero-full-screen'));
+}
+
+/**
+ * Overlay whenever a rounded section follows another section. Adjacent
+ * default cards stay one surface and are skipped.
  *
  * @param {Element} previous
  * @param {Element} next
  * @returns {boolean}
  */
 function shouldSlow(previous, next) {
-  if (!isRounded(previous) || !isRounded(next)) return false;
-  return !(previous.classList.contains('section-rounded-default')
+  if (!isRounded(next)) return false;
+  return !(isRounded(previous)
+    && previous.classList.contains('section-rounded-default')
     && next.classList.contains('section-rounded-default'));
 }
 
@@ -71,7 +85,9 @@ function shouldSlow(previous, next) {
  * @returns {void}
  */
 function setSlowTop(el) {
-  const top = window.innerHeight * 0.5 - el.offsetHeight;
+  const top = isFullScreenHero(el)
+    ? 0
+    : window.innerHeight * 0.5 - el.offsetHeight;
   el.style.setProperty('--section-scroll-slow-top', `${top}px`);
 }
 
@@ -127,7 +143,11 @@ function overlayProgress(slow, next) {
 export function updateSectionScrollShift() {
   pairs.forEach(({ slow, next }) => {
     const t = coverProgress(next);
-    slow.style.setProperty('--section-scroll-shift', `${-SHIFT_VH * t * 100}vh`);
+    if (isFullScreenHero(slow)) {
+      slow.style.setProperty('--section-scroll-shift', '0');
+    } else {
+      slow.style.setProperty('--section-scroll-shift', `${-SHIFT_VH * t * 100}vh`);
+    }
     slow.style.setProperty('--section-scroll-dim', String(OVERLAY_DIM * overlayProgress(slow, next)));
   });
 }
