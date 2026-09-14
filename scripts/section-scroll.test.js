@@ -232,7 +232,7 @@ describe('classifySectionScroll', () => {
     expect(main.children[0].style.getPropertyValue('--section-scroll-dim')).toBe('0');
   });
 
-  it('dims the outgoing section until the next section has covered it', () => {
+  it('reaches peak dim once the next section is near the top of the viewport', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
       <div class="section section-rounded-blue"></div>
@@ -244,7 +244,23 @@ describe('classifySectionScroll', () => {
 
     updateSectionScrollShift();
 
-    expect(main.children[0].style.getPropertyValue('--section-scroll-dim')).toBe('0.4');
+    expect(main.children[0].style.getPropertyValue('--section-scroll-dim')).toBe('0.8');
+  });
+
+  it('reaches most of the dim before the next section has fully covered', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section section-rounded-blue"></div>
+      <div class="section section-rounded-default"></div>
+    `);
+    classifySectionScroll();
+    jest.spyOn(main.children[1], 'getBoundingClientRect').mockReturnValue({ top: 280 });
+
+    updateSectionScrollShift();
+
+    const dim = Number(main.children[0].style.getPropertyValue('--section-scroll-dim'));
+    expect(dim).toBeGreaterThan(0.5);
+    expect(dim).toBeLessThan(0.8);
   });
 });
 

@@ -6,7 +6,7 @@
  * be a page header, hero, or another rounded card. Adjacent
  * `section-rounded-default` siblings stay one card and are skipped.
  * A dark overlay fades in on the outgoing section from mid-viewport
- * until the next section has covered it.
+ * and reaches full strength once the next section is 20% from the top.
  */
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';
@@ -19,8 +19,11 @@ const SCROLL_CLASSES = [CLASS_SLOW, CLASS_NEXT];
 /** Inner travel once the next section is past mid-viewport, as a fraction of the viewport. */
 const SHIFT_VH = 0.2;
 
-/** Peak overlay opacity (subtle black) when the next section has covered the previous. */
-const OVERLAY_DIM = 0.4;
+/** Peak overlay opacity when the next section has covered the previous. */
+const OVERLAY_DIM = 0.8;
+
+/** Viewport fraction where dim finishes (starts at 0.5). Lower = darker sooner. */
+const OVERLAY_DIM_END_VH = 0.2;
 
 /** @type {MediaQueryList | null} */
 let motionMq = null;
@@ -118,21 +121,21 @@ function coverProgress(next) {
 
 /**
  * Overlay progress from 0 (next section at mid-viewport) to 1 (next
- * section has covered the previous one in the viewport).
+ * section has reached the dim-end line). Eased so it darkens quickly.
  *
- * @param {HTMLElement} slow
  * @param {HTMLElement} next
  * @returns {number}
  */
-function overlayProgress(slow, next) {
+function overlayProgress(next) {
   const vh = window.innerHeight;
   if (vh <= 0) return 0;
   const overlayStart = vh * 0.5;
-  const nextTop = next.getBoundingClientRect().top;
-  const overlayEnd = Math.max(0, slow.getBoundingClientRect().top);
+  const overlayEnd = vh * OVERLAY_DIM_END_VH;
   const span = overlayStart - overlayEnd;
-  if (span <= 0) return nextTop <= overlayStart ? 1 : 0;
-  return clampProgress((overlayStart - nextTop) / span);
+  if (span <= 0) return 0;
+  const { top } = next.getBoundingClientRect();
+  const t = clampProgress((overlayStart - top) / span);
+  return Math.sqrt(t);
 }
 
 /**
@@ -148,7 +151,7 @@ export function updateSectionScrollShift() {
     } else {
       slow.style.setProperty('--section-scroll-shift', `${-SHIFT_VH * t * 100}vh`);
     }
-    slow.style.setProperty('--section-scroll-dim', String(OVERLAY_DIM * overlayProgress(slow, next)));
+    slow.style.setProperty('--section-scroll-dim', String(OVERLAY_DIM * overlayProgress(next)));
   });
 }
 
