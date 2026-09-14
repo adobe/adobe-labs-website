@@ -1,14 +1,8 @@
 .hero {
-  --hero-font-size: var(--s2a-typography-font-size-heading-4);
-  --hero-line-height: var(--s2a-typography-line-height-heading-4);
-  --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-4);
+  --hero-font-size: var(--s2a-typography-font-size-heading-2);
+  --hero-line-height: var(--s2a-typography-line-height-heading-2);
+  --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
-
-  @media (width >=48rem) {
-    --hero-font-size: var(--s2a-typography-font-size-heading-2);
-    --hero-line-height: var(--s2a-typography-line-height-heading-2);
-    --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
-  }
 
   position: relative;
   isolation: isolate;
@@ -99,6 +93,7 @@
     align-self: last baseline;
     max-inline-size: var(--hero-headline-max-inline-size);
     color: var(--s2a-color-gray-25, #fff);
+    gap: var(--s2a-spacing-sm);
 
     @media (width >=31.25rem) {
       --hero-headline-max-inline-size: 20ch;
@@ -124,7 +119,7 @@
   .hero__category {
     margin-block: 0;
     font-size: var(--s2a-typography-font-size-heading-6);
-    line-height: var(--s2a-typography-line-height-title-6);
+    line-height: var(--s2a-typography-line-height-heading-6);
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
   }
 
