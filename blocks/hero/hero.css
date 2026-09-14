@@ -302,21 +302,12 @@ main > .section.hero-container--overlay {
   outline-color: var(--s2a-color-focus-ring-knockout);
 }
 
-/* --- Full-screen page-load intro (ADBLABS-83) ---
+/* --- Full-screen hero animation ---
    Starts when `html.hero-intro` is set and `body.appear` paints.
-   JS writes delays and durations. */
-@property --hero-intro-blur {
-  syntax: "<length>";
-  inherits: false;
-  /* stylelint-disable-next-line length-zero-no-unit -- @property <length> needs a unit */
-  initial-value: 0px;
-}
-
+   JS writes blur and frost on the image. CSS fades opacity and zooms. */
 html.hero-intro {
-  /* TODO: ADBLABS-83 — confirm scale, blur, and easing against Figma. */
+  /* TODO: ADBLABS-83 — confirm scale and easing against Figma. */
   --hero-intro-scale-start: 1.2;
-  --hero-intro-blur-start: 18px;
-  --hero-intro-blur: var(--hero-intro-blur-start);
   --hero-intro-easing-image: cubic-bezier(0.33, 0.1, 0.25, 1);
   --hero-intro-easing-text: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -339,12 +330,6 @@ html.hero-intro .hero-full-screen .hero__media {
 
 html.hero-intro .hero-full-screen .hero__media img {
   opacity: 0;
-  filter: blur(var(--hero-intro-blur)) url("#hero-intro-frost");
-  will-change: opacity, filter;
-}
-
-html.hero-intro.hero-intro--frost-done .hero-full-screen .hero__media img {
-  filter: none;
   will-change: opacity;
 }
 
@@ -355,22 +340,20 @@ html.hero-intro .hero-full-screen .hero__content > * {
 }
 
 html.hero-intro body.appear .hero-full-screen .hero__media {
-  animation: hero-intro-media-zoom var(--hero-intro-scale-duration)
+  animation: hero-intro-media-zoom 1800ms
     var(--hero-intro-easing-image) both;
-  animation-delay: var(--hero-intro-media-delay);
+  animation-delay: 150ms;
 }
 
 html.hero-intro body.appear .hero-full-screen .hero__media img {
-  animation:
-    hero-intro-media-fade var(--hero-intro-opacity-duration) ease-out both,
-    hero-intro-media-blur var(--hero-intro-blur-duration) ease-out both;
-  animation-delay: var(--hero-intro-media-delay), var(--hero-intro-media-delay);
+  animation: hero-intro-media-fade 900ms ease-out both;
+  animation-delay: 150ms;
 }
 
 html.hero-intro body.appear .hero-full-screen .hero__content > * {
-  animation: hero-intro-copy var(--hero-intro-copy-duration)
+  animation: hero-intro-copy 600ms
     var(--hero-intro-easing-text) both;
-  animation-delay: var(--hero-intro-copy-delay);
+  animation-delay: 825ms;
 }
 
 @keyframes hero-intro-media-zoom {
@@ -394,16 +377,6 @@ html.hero-intro body.appear .hero-full-screen .hero__content > * {
 
   100% {
     opacity: 1;
-  }
-}
-
-@keyframes hero-intro-media-blur {
-  from {
-    --hero-intro-blur: var(--hero-intro-blur-start);
-  }
-
-  to {
-    --hero-intro-blur: 0;
   }
 }
 

@@ -14,39 +14,17 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 
-// Overlapping source timings from `body.appear`. TODO: ADBLABS-83 — confirm against Figma.
-const INTRO_TIME_SCALE = 1.5; // 50% slower than the base choreography
-const BLACK_HOLD_MS = 100 * INTRO_TIME_SCALE;
-export const HERO_INTRO_NAV_DELAY_MS = 250 * INTRO_TIME_SCALE;
-export const HERO_INTRO_COPY_DELAY_MS = 550 * INTRO_TIME_SCALE;
-export const HERO_INTRO_COPY_DURATION_MS = 400 * INTRO_TIME_SCALE;
-export const HERO_INTRO_BODY_DELAY_MS = 900 * INTRO_TIME_SCALE;
-const NAV_FADE_MS = 300 * INTRO_TIME_SCALE;
-const SECTION_MS = 550 * INTRO_TIME_SCALE;
-const SETTLE_PAUSE_MS = 150 * INTRO_TIME_SCALE;
-const OPACITY_MS = 600 * INTRO_TIME_SCALE;
-const BLUR_MS = 500 * INTRO_TIME_SCALE;
-const SCALE_MS = 1200 * INTRO_TIME_SCALE;
+const BLACK_HOLD_MS = 150; // same as CSS media delay
+export const HERO_INTRO_NAV_DELAY_MS = 375;
+export const HERO_INTRO_BODY_DELAY_MS = 1350;
+const BLUR_DURATION_MS = 750;
+const FROST_DURATION_MS = 2100;
+export const HERO_INTRO_DURATION_MS = 2475;
+const BLUR_START_PX = 18;
 const FROST_DISPLACE = 18;
 const FROST_GRAIN_SIZE = 160; // higher = larger crystals
 const FROST_FREQ = 10 / FROST_GRAIN_SIZE;
-
-export const HERO_INTRO_FROST_DURATION_MS = 1400 * INTRO_TIME_SCALE;
-export const HERO_INTRO_DURATION_MS = Math.max(
-  HERO_INTRO_BODY_DELAY_MS + SECTION_MS + SETTLE_PAUSE_MS,
-  BLACK_HOLD_MS + HERO_INTRO_FROST_DURATION_MS + SETTLE_PAUSE_MS,
-);
-
-const INTRO_CSS_VARS = {
-  '--hero-intro-nav-duration': NAV_FADE_MS,
-  '--hero-intro-section-duration': SECTION_MS,
-  '--hero-intro-media-delay': BLACK_HOLD_MS,
-  '--hero-intro-opacity-duration': OPACITY_MS,
-  '--hero-intro-blur-duration': BLUR_MS,
-  '--hero-intro-scale-duration': SCALE_MS,
-  '--hero-intro-copy-delay': HERO_INTRO_COPY_DELAY_MS,
-  '--hero-intro-copy-duration': HERO_INTRO_COPY_DURATION_MS,
-};
+const FILTER_EPS = 0.01;
 
 /** @type {number[]} */
 let introTimers = [];
@@ -58,8 +36,8 @@ let frostStartTs;
 let frostSvg;
 /** @type {SVGElement|undefined} */
 let frostDisplace;
-/** @type {MutationObserver|undefined} */
-let appearObserver;
+/** @type {HTMLImageElement|undefined} */
+let mediaImg;
 
 /**
  * Whether this hero sits in the first section of `main`.
@@ -228,57 +206,48 @@ function svgEl(name, attrs) {
   return el;
 }
 
+function easeOutCubic(t) {
+  return 1 - (1 - t) ** 3;
+}
+
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2;
 }
 
-function setIntroVars(root, on) {
-  Object.entries(INTRO_CSS_VARS).forEach(([name, ms]) => {
-    if (on) root.style.setProperty(name, `${ms}ms`);
-    else root.style.removeProperty(name);
-  });
+function applyMediaFilter(blurPx, displace) {
+  frostDisplace?.setAttribute('scale', String(displace));
+  if (!mediaImg) return;
+  const parts = [];
+  if (blurPx > FILTER_EPS) parts.push(`blur(${blurPx}px)`);
+  if (displace > FILTER_EPS) parts.push(`url("#${HERO_INTRO_FROST_ID}")`);
+  mediaImg.style.filter = parts.length ? parts.join(' ') : 'none';
 }
 
-/** Eases displacement after the black hold. CSS owns blur. */
+/** Eases blur and displacement after the black hold. */
 function tickFrost(now) {
-  if (!frostDisplace) return;
+  if (!frostDisplace && !mediaImg) return;
+  if (!document.body.classList.contains('appear')) {
+    frostRaf = window.requestAnimationFrame(tickFrost);
+    return;
+  }
   if (frostStartTs === undefined) frostStartTs = now;
   const elapsed = now - frostStartTs - BLACK_HOLD_MS;
   if (elapsed <= 0) {
-    frostDisplace.setAttribute('scale', String(FROST_DISPLACE));
+    applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
     frostRaf = window.requestAnimationFrame(tickFrost);
     return;
   }
-  const t = Math.min(1, elapsed / HERO_INTRO_FROST_DURATION_MS);
-  const k = t >= 1 ? 0 : 1 - easeInOutCubic(t);
-  frostDisplace.setAttribute('scale', String(FROST_DISPLACE * k));
-  if (t < 1) {
+  const blurT = Math.min(1, elapsed / BLUR_DURATION_MS);
+  const frostT = Math.min(1, elapsed / FROST_DURATION_MS);
+  const blurPx = BLUR_START_PX * (1 - easeOutCubic(blurT));
+  const displace = FROST_DISPLACE * (frostT >= 1 ? 0 : 1 - easeInOutCubic(frostT));
+  applyMediaFilter(blurPx, displace);
+  if (blurT < 1 || frostT < 1) {
     frostRaf = window.requestAnimationFrame(tickFrost);
     return;
   }
-  frostDisplace.setAttribute('scale', '0');
+  applyMediaFilter(0, 0);
   frostRaf = undefined;
-  document.documentElement.classList.add('hero-intro--frost-done');
-}
-
-function startFrost() {
-  if (frostRaf !== undefined) return;
-  frostStartTs = undefined;
-  const run = () => {
-    frostRaf = window.requestAnimationFrame(tickFrost);
-  };
-  if (document.body.classList.contains('appear')) {
-    run();
-    return;
-  }
-  appearObserver?.disconnect();
-  appearObserver = new MutationObserver(() => {
-    if (!document.body.classList.contains('appear')) return;
-    appearObserver.disconnect();
-    appearObserver = undefined;
-    run();
-  });
-  appearObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 }
 
 function injectFrost() {
@@ -319,7 +288,8 @@ function injectFrost() {
   );
   frostSvg.append(filter);
   document.body.append(frostSvg);
-  startFrost();
+  frostStartTs = undefined;
+  frostRaf = window.requestAnimationFrame(tickFrost);
 }
 
 /** Removes intro classes, the frost SVG, rAF, and timers. Safe if no intro is running. */
@@ -330,32 +300,25 @@ export function clearHeroIntro() {
     window.cancelAnimationFrame(frostRaf);
     frostRaf = undefined;
   }
-  appearObserver?.disconnect();
-  appearObserver = undefined;
   frostStartTs = undefined;
   frostDisplace = undefined;
-  const root = document.documentElement;
-  root.classList.remove('hero-intro', 'hero-intro--nav', 'hero-intro--body', 'hero-intro--frost-done');
-  setIntroVars(root, false);
+  mediaImg?.style.removeProperty('filter');
+  mediaImg = undefined;
+  document.documentElement.classList.remove(
+    'hero-intro',
+    'hero-intro--nav',
+    'hero-intro--body',
+  );
   frostSvg?.remove();
   frostSvg = undefined;
-  document.getElementById(HERO_INTRO_FROST_ID)?.closest('svg')?.remove();
 }
 
-function shouldStartHeroIntro(block) {
-  const reduce = typeof window.matchMedia === 'function'
-    && window.matchMedia(REDUCED_MOTION_MQ).matches;
-  return Boolean(firstSection(block))
-    && block.classList.contains('hero-full-screen')
-    && !reduce
-    && !document.documentElement.classList.contains('hero-intro');
-}
-
-function startHeroIntro() {
+function startHeroIntro(block) {
   const root = document.documentElement;
   root.classList.add('hero-intro');
-  setIntroVars(root, true);
+  mediaImg = block.querySelector('.hero__media img') || undefined;
   injectFrost();
+  if (mediaImg) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
   introTimers.forEach((id) => window.clearTimeout(id));
   introTimers = [
     window.setTimeout(() => root.classList.add('hero-intro--nav'), HERO_INTRO_NAV_DELAY_MS),
@@ -373,5 +336,8 @@ export default async function decorate(block) {
   const section = firstSection(block);
   if (!section || !block.classList.contains('hero-full-screen')) return;
   section.classList.add('hero-container--overlay');
-  if (shouldStartHeroIntro(block)) startHeroIntro();
+  const reduce = typeof window.matchMedia === 'function'
+    && window.matchMedia(REDUCED_MOTION_MQ).matches;
+  if (reduce || document.documentElement.classList.contains('hero-intro')) return;
+  startHeroIntro(block);
 }
