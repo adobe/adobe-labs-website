@@ -1,0 +1,17 @@
+.lead-in {
+  --lead-in-columns: 12;
+
+  @media (width >= 64rem) {
+    --lead-in-columns: 6;
+  }
+
+  @media (width >= 120rem) {
+    --lead-in-columns: 4;
+  }
+
+  width: calc(var(--lead-in-columns) / 12 * 100%);
+}
+
+.lead-in__headline {
+  margin: 0;
+}
