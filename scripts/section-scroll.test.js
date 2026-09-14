@@ -77,7 +77,7 @@ describe('classifySectionScroll', () => {
     expect(main.children[1]).not.toHaveClass('section-scroll-next');
   });
 
-  it('does not slow a hero behind a rounded section', () => {
+  it('slows a full-screen hero behind a rounded section', () => {
     const main = mountMain(`
       <div class="section hero-container">
         <div class="hero hero-full-screen"></div>
@@ -87,11 +87,42 @@ describe('classifySectionScroll', () => {
 
     classifySectionScroll();
 
-    expect(main.children[0]).not.toHaveClass('section-scroll-slow');
-    expect(main.children[1]).not.toHaveClass('section-scroll-next');
+    expect(main.children[0]).toHaveClass('section-scroll-slow');
+    expect(main.children[1]).toHaveClass('section-scroll-next');
   });
 
-  it('does not slow a page-header behind the first rounded section', () => {
+  it('pins a full-screen hero overlay at the top even when taller than the viewport', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section hero-container">
+        <div class="hero hero-full-screen"></div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+    Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 1200 });
+
+    classifySectionScroll();
+
+    expect(main.children[0].style.getPropertyValue('--section-scroll-slow-top')).toBe('0px');
+  });
+
+  it('does not shift a full-screen hero as the next section covers it', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section hero-container">
+        <div class="hero hero-full-screen"></div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+    classifySectionScroll();
+    jest.spyOn(main.children[1], 'getBoundingClientRect').mockReturnValue({ top: 200 });
+
+    updateSectionScrollShift();
+
+    expect(main.children[0].style.getPropertyValue('--section-scroll-shift')).toBe('0');
+  });
+
+  it('slows a page-header behind the first rounded section', () => {
     const main = mountMain(`
       <div class="section page-header-container hero-container">
         <div class="page-header"></div>
@@ -103,8 +134,8 @@ describe('classifySectionScroll', () => {
     classifySectionScroll();
 
     const [header, blue, next] = main.children;
-    expect(header).not.toHaveClass('section-scroll-slow');
-    expect(blue).not.toHaveClass('section-scroll-next');
+    expect(header).toHaveClass('section-scroll-slow');
+    expect(blue).toHaveClass('section-scroll-next');
     expect(blue).toHaveClass('section-scroll-slow');
     expect(next).toHaveClass('section-scroll-next');
   });
