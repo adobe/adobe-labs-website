@@ -9,8 +9,15 @@
  */
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Beat `main .section[class*="section-rounded-"] { z-index: 1 }`.
-     `align-self: flex-start` is required for sticky flex items on `main`. */
+  /* Covers that are not also outgoing, plus trailing cards like Coming Soon.
+     `:not(.section-scroll-slow)` keeps mid-chain sticky cards at z-index 0 so
+     they do not paint above the footer and show through the last end-radius. */
+  main > .section.section-scroll-next:not(.section-scroll-slow),
+  main > .section.section-scroll-next:not(.section-scroll-slow) ~ .section:not(.section-scroll-slow) {
+    z-index: 1;
+  }
+
+  /* `align-self: flex-start` is required for sticky flex items on `main`. */
   main > .section.section-scroll-slow {
     position: sticky;
     top: var(--section-scroll-slow-top, 0);
@@ -18,10 +25,6 @@
     inline-size: 100%;
     z-index: 0;
     overflow: clip;
-  }
-
-  main > .section.section-scroll-next {
-    z-index: 1;
   }
 
   .section-scroll-slow > * {

@@ -170,11 +170,7 @@ export function classifySectionScroll(root = document) {
     if (!next || !shouldSlow(section, next)) return;
     section.classList.add(CLASS_SLOW);
     next.classList.add(CLASS_NEXT);
-    if (next instanceof HTMLElement) {
-      next.style.zIndex = String(index + 2);
-    }
-    if (section instanceof HTMLElement) {
-      section.style.zIndex = String(index + 1);
+    if (next instanceof HTMLElement && section instanceof HTMLElement) {
       setSlowTop(section);
       pairs.push({ slow: section, next });
     }
