@@ -40,14 +40,12 @@ describe('lead-in block', () => {
     expect(block.querySelectorAll('h2')).toHaveLength(1);
   });
 
-  it('renders an empty heading when no content is authored', () => {
+  it('renders no heading when no content is authored', () => {
     const block = document.createElement('div');
     block.className = 'lead-in';
 
     decorate(block);
 
-    const heading = block.querySelector('h2');
-    expect(heading).toHaveClass('lead-in__headline');
-    expect(heading).toHaveTextContent('');
+    expect(block.querySelector('h2')).toBeNull();
   });
 });

@@ -8,6 +8,10 @@ import { getCellText } from '../../scripts/utils/utils.js';
  */
 export default function decorate(block) {
   const text = getCellText(block.children[0]?.children[0]);
+  if (!text) {
+    block.replaceChildren();
+    return;
+  }
 
   const heading = document.createElement('h2');
   heading.className = 'lead-in__headline';
