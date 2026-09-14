@@ -1,3 +1,33 @@
+/* TEMPORARY: --article-content-inline-size-md/lg/xl/xxl belong in styles.css
+   as shared, reusable article-width tokens (ADBLABS-151), defined once at
+   `body.article main` and consumed by any article block. Defined locally
+   here instead so this PR doesn't touch styles.css ahead of that ticket.
+   Once ADBLABS-151 merges, delete the 4 custom-property declarations below
+   and keep the rest of this rule as-is — it'll pick up the global values
+   through inheritance since .lead-in-wrapper is a descendant of
+   `body.article main`. */
+body.article main .lead-in-wrapper {
+  --article-content-inline-size-md: calc(37.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 598px @ 48rem (768px) viewport */
+  --article-content-inline-size-lg: calc(50.75rem + (var(--site-root-inline-padding, 0px) * 2)); /* 812px @ 64rem (1024px) viewport */
+  --article-content-inline-size-xl: calc(72.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1158px @ 90rem (1440px) viewport */
+  --article-content-inline-size-xxl: calc(72.25rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1156px @ 120rem (1920px) viewport */
+
+  max-inline-size: var(--article-content-inline-size-md);
+  margin-inline: auto;
+
+  @media (width >= 64rem) {
+    max-inline-size: var(--article-content-inline-size-lg);
+  }
+
+  @media (width >= 90rem) {
+    max-inline-size: var(--article-content-inline-size-xl);
+  }
+
+  @media (width >= 120rem) {
+    max-inline-size: var(--article-content-inline-size-xxl);
+  }
+}
+
 .lead-in {
   --lead-in-columns: 12;
 
