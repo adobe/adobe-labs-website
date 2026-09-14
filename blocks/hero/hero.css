@@ -260,8 +260,23 @@
     }
 
     .hero__link-wrap {
+      position: relative;
       display: grid;
       height: auto;
+
+      /* Inner ring to override the default offset outline, which 
+         sits outside the full-bleed box and is hidden by the viewport. */
+      &:focus-visible {
+        outline: none;
+      }
+
+      &:focus-visible::after {
+        content: "";
+        position: absolute;
+        inset: var(--s2a-border-width-md);
+        border: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+        z-index: 2;
+      }
     }
 
     .hero__content {
