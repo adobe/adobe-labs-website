@@ -297,6 +297,11 @@
   padding: 0;
 }
 
+/* Article hero has a darker, continuous scrim. */
+.article .hero__media::after {
+  background: linear-gradient(0deg, var(--s2a-color-transparent-black-48) 0%, var(--s2a-color-transparent-black-48) 100%);
+}
+
 /* Full-screen hero at the top of the page sits under the sticky header.
    Must beat `main > .section:first-of-type { margin-top: 0 }` in styles.css. */
 main > .section.hero-container:first-of-type:has(.hero-full-screen),
