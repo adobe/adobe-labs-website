@@ -1,12 +1,13 @@
 /**
- * Slows the previous section once a rounded section reaches mid-viewport.
+ * Slows the previous section when a rounded section covers it.
  *
  * Motion is opt-in: classes and CSS load only when
- * `prefers-reduced-motion: no-preference` matches. The previous section can
- * be a page header, hero, or another rounded card. Adjacent
- * `section-rounded-default` siblings stay one card and are skipped.
- * A dark overlay fades in on the outgoing section from mid-viewport
- * and reaches full strength once the next section is 20% from the top.
+ * `prefers-reduced-motion: no-preference` matches. Rounded cards pin and lag
+ * as the next card covers them. A page header or default hero does not pin:
+ * its content keeps moving, just slower, while the first rounded section
+ * overlaps it. Adjacent `section-rounded-default` siblings stay one card and
+ * are skipped. A dark overlay fades in when that overlap starts and reaches
+ * full strength as the incoming section covers it.
  */
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';
@@ -14,16 +15,28 @@ import { debounce } from './utils/utils.js';
 const MOTION_MQ = '(prefers-reduced-motion: no-preference)';
 const CLASS_SLOW = 'section-scroll-slow';
 const CLASS_NEXT = 'section-scroll-next';
-const SCROLL_CLASSES = [CLASS_SLOW, CLASS_NEXT];
+const CLASS_INTRO = 'section-scroll-intro';
+const SCROLL_CLASSES = [CLASS_SLOW, CLASS_NEXT, CLASS_INTRO];
 
-/** Inner travel once the next section is past mid-viewport, as a fraction of the viewport. */
+/** Inner travel once the next section is past the cover line, as a fraction of the viewport. */
 const SHIFT_VH = 0.2;
+
+/**
+ * Viewport fraction where an incoming rounded section starts the pin, lag,
+ * and dim. Higher starts sooner (the card is still lower on screen).
+ */
+export const COVER_START_VH = 0.7;
+
+/**
+ * Viewport fraction before the pin used to ease into the slowed parallax.
+ */
+export const COVER_EASE_VH = 0.2;
 
 /** Peak overlay opacity when the next section has covered the previous. */
 const OVERLAY_DIM = 0.8;
 
-/** Viewport fraction where dim finishes (starts at 0.5). Lower = darker sooner. */
-const OVERLAY_DIM_END_VH = 0.2;
+/** Share of overlap scroll to hold back on intro sections (page header / default hero). */
+export const INTRO_LAG = 0.2;
 
 /** @type {MediaQueryList | null} */
 let motionMq = null;
@@ -37,7 +50,13 @@ let onResize = null;
 /** @type {(() => void) | null} */
 let detachScroll = null;
 
-/** @type {Array<{ slow: HTMLElement, next: HTMLElement }>} */
+/** @type {Array<{
+ *   slow: HTMLElement,
+ *   next: HTMLElement,
+ *   intro: boolean,
+ *   introHeight: number,
+ *   overlayStart: number,
+ * }>} */
 let pairs = [];
 
 /** @type {number} */
@@ -66,6 +85,16 @@ function isFullScreenHero(el) {
 }
 
 /**
+ * Page header or default hero — slow in flow, do not pin.
+ *
+ * @param {Element | null} el
+ * @returns {boolean}
+ */
+function isIntroSection(el) {
+  return Boolean(el && !isRounded(el) && !isFullScreenHero(el));
+}
+
+/**
  * Overlay whenever a rounded section follows another section. Adjacent
  * default cards stay one surface and are skipped.
  *
@@ -81,8 +110,17 @@ function shouldSlow(previous, next) {
 }
 
 /**
+ * Y position, in px, where an incoming rounded section starts the transition.
+ *
+ * @returns {number}
+ */
+function coverStartY() {
+  return window.innerHeight * COVER_START_VH;
+}
+
+/**
  * Sticky `top` so the section keeps scrolling until the next section's
- * top sits at mid-viewport, then pins while the next section covers it.
+ * top sits at COVER_START_VH, then pins while the next section covers it.
  *
  * @param {HTMLElement} el
  * @returns {void}
@@ -90,7 +128,7 @@ function shouldSlow(previous, next) {
 function setSlowTop(el) {
   const top = isFullScreenHero(el)
     ? 0
-    : window.innerHeight * 0.5 - el.offsetHeight;
+    : coverStartY() - el.offsetHeight;
   el.style.setProperty('--section-scroll-slow-top', `${top}px`);
 }
 
@@ -105,37 +143,60 @@ function clampProgress(value) {
 }
 
 /**
- * Cover progress from 0 (next section at or below mid-viewport) to 1
- * (next section at the top of the viewport).
+ * Inner parallax for a rounded card: ease in before the pin so scrolling
+ * does not snap from full speed to the slowed rate, then continue after pin.
  *
  * @param {HTMLElement} next
- * @returns {number}
+ * @returns {number} translateY in px
  */
-function coverProgress(next) {
+function roundedShift(next) {
   const vh = window.innerHeight;
   if (vh <= 0) return 0;
-  const mid = vh * 0.5;
+  const pinY = coverStartY();
+  const easeY = Math.min(vh, vh * (COVER_START_VH + COVER_EASE_VH));
   const { top } = next.getBoundingClientRect();
-  return clampProgress((mid - top) / mid);
+  const postPinSpeed = COVER_START_VH > 0 ? SHIFT_VH / COVER_START_VH : 0;
+  const easeSpan = easeY - pinY;
+  const prePinLag = easeSpan > 0 ? (1 - postPinSpeed) * easeSpan * 0.5 : 0;
+
+  if (top >= easeY) return 0;
+  if (top >= pinY) {
+    const u = clampProgress((easeY - top) / easeSpan);
+    return prePinLag * u * u;
+  }
+  const t = clampProgress((pinY - top) / pinY);
+  return prePinLag - SHIFT_VH * t * vh;
 }
 
 /**
- * Overlay progress from 0 (next section at mid-viewport) to 1 (next
- * section has reached the dim-end line). Eased so it darkens quickly.
+ * Overlay progress from 0 (incoming section starts overlapping) to 1
+ * (incoming section has reached the top of the viewport).
  *
  * @param {HTMLElement} next
+ * @param {number} overlayStart Incoming top, in px, where overlap begins
  * @returns {number}
  */
-function overlayProgress(next) {
-  const vh = window.innerHeight;
-  if (vh <= 0) return 0;
-  const overlayStart = vh * 0.5;
-  const overlayEnd = vh * OVERLAY_DIM_END_VH;
-  const span = overlayStart - overlayEnd;
+function overlayProgress(next, overlayStart) {
+  if (overlayStart <= 0) return 0;
+  const { top } = next.getBoundingClientRect();
+  return clampProgress((overlayStart - top) / overlayStart);
+}
+
+/**
+ * Pixel lag so intro content recedes slower while the first rounded
+ * section covers it. Span is the overlap in view (intro height, capped
+ * at the viewport).
+ *
+ * @param {HTMLElement} next
+ * @param {number} introHeight
+ * @returns {number}
+ */
+function introShift(next, introHeight) {
+  const span = Math.min(introHeight, window.innerHeight);
   if (span <= 0) return 0;
   const { top } = next.getBoundingClientRect();
-  const t = clampProgress((overlayStart - top) / span);
-  return Math.sqrt(t);
+  const t = clampProgress((span - top) / span);
+  return t * span * INTRO_LAG;
 }
 
 /**
@@ -144,14 +205,22 @@ function overlayProgress(next) {
  * @returns {void}
  */
 export function updateSectionScrollShift() {
-  pairs.forEach(({ slow, next }) => {
-    const t = coverProgress(next);
+  pairs.forEach((pair) => {
+    const {
+      slow,
+      next,
+      intro,
+      introHeight,
+      overlayStart,
+    } = pair;
     if (isFullScreenHero(slow)) {
       slow.style.setProperty('--section-scroll-shift', '0');
+    } else if (intro) {
+      slow.style.setProperty('--section-scroll-shift', `${introShift(next, introHeight)}px`);
     } else {
-      slow.style.setProperty('--section-scroll-shift', `${-SHIFT_VH * t * 100}vh`);
+      slow.style.setProperty('--section-scroll-shift', `${Number(roundedShift(next).toFixed(2))}px`);
     }
-    slow.style.setProperty('--section-scroll-dim', String(OVERLAY_DIM * overlayProgress(next)));
+    slow.style.setProperty('--section-scroll-dim', String(OVERLAY_DIM * overlayProgress(next, overlayStart)));
   });
 }
 
@@ -194,8 +263,19 @@ export function classifySectionScroll(root = document) {
     section.classList.add(CLASS_SLOW);
     next.classList.add(CLASS_NEXT);
     if (next instanceof HTMLElement && section instanceof HTMLElement) {
-      setSlowTop(section);
-      pairs.push({ slow: section, next });
+      const intro = isIntroSection(section);
+      if (intro) section.classList.add(CLASS_INTRO);
+      else setSlowTop(section);
+      const introHeight = intro ? section.offsetHeight : 0;
+      pairs.push({
+        slow: section,
+        next,
+        intro,
+        introHeight,
+        overlayStart: intro
+          ? Math.min(introHeight, window.innerHeight)
+          : coverStartY(),
+      });
     }
   });
 
