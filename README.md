@@ -166,7 +166,7 @@ A `section-rounded-*` section gets vertical padding and `z-index: 1`.
 - The first default section in a group, and every color section, get a start corner radius.
 - A color section that follows a rounded section, or a default section that follows a color section, overlaps the section before it. The offset is `--section-margin-negative-offset`: `-(radius + --section-space-between)`. A default hero is not overlapped.
 - Adjacent default sections appear as one continuous card. The next section cancels the flex gap and start padding. The last default section before a different surface keeps an end radius.
-- When motion is opted in (`prefers-reduced-motion: no-preference`), a rounded section overlays whatever section is immediately before it (page header, hero, or another rounded card). Rounded cards pin, lag, and dim once the incoming card reaches `COVER_START_VH` of the viewport (`0.7` by default). Parallax eases in over `COVER_EASE_VH` before that pin so scrolling does not snap to the slowed rate. A page header or default hero does not pin: its content keeps scrolling, just slower, while the first rounded section covers it. The overlay starts dimming when that overlap begins and eases to full strength as the incoming section covers it. Adjacent default sections do not slow. Full-screen heroes pin in place without shifting under the nav.
+- When motion is opted in (`prefers-reduced-motion: no-preference`), section overlays load Lenis for smooth scrolling. A rounded section overlays whatever section is immediately before it (page header, hero, or another rounded card). Rounded cards pin, lag, and dim once the incoming card reaches `COVER_START_VH` of the viewport (`0.7` by default). Parallax eases in over `COVER_EASE_VH` before that pin so scrolling does not snap to the slowed rate. A page header or default hero does not pin: its content keeps scrolling, just slower, while the first rounded section covers it. The overlay starts dimming when that overlap begins and eases to full strength as the incoming section covers it. Adjacent default sections do not slow. Full-screen heroes pin in place without shifting under the nav.
 - The last rounded section on the page gets an end radius and uses `--section-padding-block-end-last`. A page with one rounded section gets all four corners.
 - After a full-screen hero, the next rounded section overlaps the hero by `-(radius + --section-space-between)`.
 - The last rounded section overlaps the footer by the section radius. Footer inner padding grows by that amount so links stay clickable (`.footer` uses `z-index: 0`). Footer start padding increases at 64rem and above.
@@ -208,7 +208,7 @@ This project has no bundler on the request path, so npm packages cannot be impor
 
 ### Updating the vendored Lenis library
 
-[Lenis](https://lenis.dev/) (used by the forthcoming parallax work) is vendored this way. After bumping the version in `package.json`:
+[Lenis](https://lenis.dev/) (smooth scrolling used by section overlays) is vendored this way. After bumping the version in `package.json`:
 
 ```sh
 npm install
@@ -217,7 +217,7 @@ npm run build:lenis
 
 That writes `deps/lenis/dist/index.js` and `deps/lenis/dist/lenis.css`. Commit those files with the version change.
 
-When a feature needs Lenis, import the committed dist file and load the stylesheet at that point. Do not add Lenis to `scripts.js` or `head.html`.
+When a feature needs Lenis, import the committed dist file and load the stylesheet at that point. Do not add Lenis to `scripts.js` or `head.html`. Section overlays do this from `scripts/section-scroll.js` when motion is opted in.
 
 ```js
 import Lenis from '../../deps/lenis/dist/index.js';

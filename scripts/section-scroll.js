@@ -1,7 +1,7 @@
 /**
  * Slows the previous section when a rounded section covers it.
  *
- * Motion is opt-in: classes and CSS load only when
+ * Motion is opt-in: classes, Lenis, and CSS load only when
  * `prefers-reduced-motion: no-preference` matches. Rounded cards pin and lag
  * as the next card covers them. A page header or default hero does not pin:
  * its content keeps moving, just slower, while the first rounded section
@@ -47,8 +47,13 @@ let started = false;
 /** @type {(() => void) | null} */
 let onResize = null;
 
-/** @type {(() => void) | null} */
-let detachScroll = null;
+/** @type {{
+ *   on: (event: string, handler: () => void) => void,
+ *   off: (event: string, handler: () => void) => void,
+ *   resize: () => void,
+ *   destroy: () => void,
+ * } | null} */
+let lenis = null;
 
 /** @type {Array<{
  *   slow: HTMLElement,
@@ -58,9 +63,6 @@ let detachScroll = null;
  *   overlayStart: number,
  * }>} */
 let pairs = [];
-
-/** @type {number} */
-let raf = 0;
 
 /**
  * Whether a node is a rounded Labs section.
@@ -292,32 +294,30 @@ function prefersMotion() {
 }
 
 /**
- * Coalesces scroll updates onto animation frames.
+ * Starts Lenis and drives inner lag from its scroll loop.
  *
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function onScroll() {
-  if (raf) return;
-  raf = window.requestAnimationFrame(() => {
-    raf = 0;
-    updateSectionScrollShift();
-  });
+async function attachLenis() {
+  if (lenis) {
+    lenis.resize();
+    return;
+  }
+  const { default: Lenis } = await import('../deps/lenis/dist/index.js');
+  lenis = new Lenis({ autoRaf: true });
+  lenis.on('scroll', updateSectionScrollShift);
 }
 
 /**
- * Hooks native scroll to drive the inner lag.
+ * Stops Lenis if it is running.
  *
  * @returns {void}
  */
-function attachScroll() {
-  detachScroll?.();
-  if (!pairs.length) {
-    detachScroll = null;
-    return;
-  }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  detachScroll = () => window.removeEventListener('scroll', onScroll);
-  onScroll();
+function detachLenis() {
+  if (!lenis) return;
+  lenis.off('scroll', updateSectionScrollShift);
+  lenis.destroy();
+  lenis = null;
 }
 
 /**
@@ -328,12 +328,7 @@ function attachScroll() {
 function stop() {
   if (!started) return;
   started = false;
-  detachScroll?.();
-  detachScroll = null;
-  if (raf) {
-    window.cancelAnimationFrame(raf);
-    raf = 0;
-  }
+  detachLenis();
   if (onResize) {
     window.removeEventListener('resize', onResize);
     onResize = null;
@@ -343,7 +338,7 @@ function stop() {
 }
 
 /**
- * Enables slowdown classes and CSS when motion is opted in.
+ * Enables Lenis, slowdown classes, and CSS when motion is opted in.
  *
  * @returns {Promise<void>}
  */
@@ -352,13 +347,16 @@ async function start() {
   started = true;
 
   const base = window.hlx?.codeBasePath || '';
-  await loadCSS(`${base}/styles/section-scroll.css`);
+  await Promise.all([
+    loadCSS(`${base}/styles/section-scroll.css`),
+    loadCSS(`${base}/deps/lenis/dist/lenis.css`),
+    attachLenis(),
+  ]);
   classifySectionScroll();
-  attachScroll();
 
   onResize = debounce(() => {
     classifySectionScroll();
-    attachScroll();
+    lenis?.resize();
   });
   window.addEventListener('resize', onResize);
 }

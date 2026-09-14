@@ -2,6 +2,7 @@
  * Section scroll classification and motion opt-in.
  */
 import { loadCSS } from './aem.js';
+import Lenis from '../deps/lenis/dist/index.js';
 import {
   COVER_EASE_VH,
   COVER_START_VH,
@@ -15,6 +16,17 @@ import {
 jest.mock('./aem.js', () => ({
   loadCSS: jest.fn(() => Promise.resolve()),
 }));
+
+jest.mock('../deps/lenis/dist/index.js', () => {
+  const instance = {
+    on: jest.fn(),
+    off: jest.fn(),
+    resize: jest.fn(),
+    destroy: jest.fn(),
+  };
+  const MockLenis = jest.fn(() => instance);
+  return { __esModule: true, default: MockLenis };
+});
 
 /**
  * Builds a main fixture on document.body.
@@ -374,10 +386,11 @@ describe('initSectionScroll', () => {
     await initSectionScroll();
 
     expect(loadCSS).not.toHaveBeenCalled();
+    expect(Lenis).not.toHaveBeenCalled();
     expect(document.querySelector('.section-scroll-slow')).toBeNull();
   });
 
-  it('loads CSS and classifies when no-preference matches', async () => {
+  it('loads CSS, starts Lenis, and classifies when no-preference matches', async () => {
     mockMatchMedia(true);
     mountMain(`
       <div class="section section-rounded-blue"></div>
@@ -387,6 +400,24 @@ describe('initSectionScroll', () => {
     await initSectionScroll();
 
     expect(loadCSS).toHaveBeenCalledWith('/styles/section-scroll.css');
+    expect(loadCSS).toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
+    expect(Lenis).toHaveBeenCalledWith({ autoRaf: true });
+    expect(Lenis.mock.results[0].value.on).toHaveBeenCalledWith('scroll', updateSectionScrollShift);
     expect(document.querySelector('.section-rounded-blue')).toHaveClass('section-scroll-slow');
+  });
+
+  it('destroys Lenis on teardown', async () => {
+    mockMatchMedia(true);
+    mountMain(`
+      <div class="section section-rounded-blue"></div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+    const instance = Lenis.mock.results[0].value;
+    teardownSectionScroll();
+
+    expect(instance.off).toHaveBeenCalledWith('scroll', updateSectionScrollShift);
+    expect(instance.destroy).toHaveBeenCalled();
   });
 });
