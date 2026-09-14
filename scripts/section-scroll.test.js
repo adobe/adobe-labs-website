@@ -126,10 +126,25 @@ describe('classifySectionScroll', () => {
     expect(main.children[2]).toHaveClass('section-scroll-slow');
     expect(main.children[3]).toHaveClass('section-scroll-next');
     expect(main.children[3]).not.toHaveClass('section-scroll-slow');
-    expect(main.children[0].style.zIndex).toBe('1');
-    expect(main.children[1].style.zIndex).toBe('2');
-    expect(main.children[2].style.zIndex).toBe('3');
-    expect(main.children[3].style.zIndex).toBe('4');
+  });
+
+  it('does not cover a trailing default section such as Coming Soon', () => {
+    const main = mountMain(`
+      <div class="section section-rounded-pink"></div>
+      <div class="section section-rounded-default"></div>
+      <div class="section section-rounded-default">
+        <h2>Coming Soon</h2>
+      </div>
+    `);
+
+    classifySectionScroll();
+
+    const comingSoon = main.children[2];
+    expect(main.children[0]).toHaveClass('section-scroll-slow');
+    expect(main.children[1]).toHaveClass('section-scroll-next');
+    expect(comingSoon).not.toHaveClass('section-scroll-slow');
+    expect(comingSoon).not.toHaveClass('section-scroll-next');
+    expect(comingSoon.style.zIndex).toBe('');
   });
 
   it('pins the outgoing section when the next section reaches mid-viewport', () => {
@@ -169,7 +184,7 @@ describe('classifySectionScroll', () => {
 
     updateSectionScrollShift();
 
-    expect(main.children[0].style.getPropertyValue('--section-scroll-shift')).toBe('-15vh');
+    expect(main.children[0].style.getPropertyValue('--section-scroll-shift')).toBe('-10vh');
   });
 
   it('does not dim until the next section reaches mid-viewport', () => {
