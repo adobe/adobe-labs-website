@@ -1,3 +1,4 @@
+import { getMetadata } from '../../scripts/aem.js';
 import {
   buildPlayIcon,
   getAuthoredCells,
@@ -5,6 +6,7 @@ import {
   getCellLinkHref,
   getCellMedia,
   getCellText,
+  isArticleDetailPage,
   isAuthoredTrue,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
@@ -25,13 +27,14 @@ function firstSection(block) {
 
 /**
  * Data used to decorate a hero. Parsed from the positional AEM table:
- * row 1 is category, date, headline link, link label; row 2 is the image.
+ * row 1 is category, date, headline (link or heading), link label; row 2 is the image.
  * An optional key/value row (`Is Video` | `true`) adds a play icon.
  * `Show Video Icon` is an alias for that flag.
  *
  * @typedef {object} HeroData
  * @property {Element|null} image `<picture>` or `<img>` from AEM (source + alt)
  * @property {string} [category]
+ * @property {string} [pageCategory] Category metadata string (article detail only)
  * @property {string} date
  * @property {string} headline
  * @property {string} href Article URL from the headline link
@@ -60,7 +63,7 @@ export function getHeroData(block) {
   const cells = [...block.querySelectorAll(':scope > div > div')]
     .filter((cell) => !skip.has(cell));
   const imageCell = cells.find((cell) => getCellMedia(cell));
-  const headlineCell = cells.find((cell) => cell.querySelector('a[href]'));
+  const headlineCell = cells.find((cell) => cell.querySelector('a[href], h1, h2, h3'));
   const textCells = cells.filter((cell) => cell !== imageCell && cell !== headlineCell);
   const image = getCellMedia(imageCell);
   const category = getCellText(textCells[0]) || undefined;
@@ -90,6 +93,7 @@ export function getHeroData(block) {
 export function buildHero(data = {}, root = document.createElement('div')) {
   const href = toSafeHttpUrl(data.href);
   const category = data.category || '';
+  const pageCategory = data.pageCategory || '';
   const date = data.date || '';
   const headline = data.headline || '';
   const linkLabel = data.linkLabel || '';
@@ -106,7 +110,10 @@ export function buildHero(data = {}, root = document.createElement('div')) {
         </svg>
       </div>
       <div class="hero__date" aria-hidden="true"></div>
-      <h2 class="hero__headline"><span></span></h2>
+      <div class="hero__copy">
+        <p class="hero__category"></p>
+        <h2 class="hero__headline"><span></span></h2>
+      </div>
       <p class="hero__cta-text"></p>
     </div>
   `.trim();
@@ -128,7 +135,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (isVideo) {
     const { label, icon } = buildPlayIcon();
     const content = fragment.querySelector('.hero__content');
-    const insertBefore = content.querySelector('.hero__date, .hero__headline, .hero__cta-text');
+    const insertBefore = content.querySelector('.hero__copy, .hero__date, .hero__cta-text');
     content.insertBefore(label, insertBefore);
     content.insertBefore(icon, insertBefore);
   }
@@ -137,6 +144,10 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (date) dateEl.textContent = date;
   else dateEl.remove();
 
+  const pageCategoryEl = fragment.querySelector('.hero__category');
+  if (pageCategory) pageCategoryEl.textContent = pageCategory;
+  else pageCategoryEl.remove();
+
   const h2 = fragment.querySelector('.hero__headline');
   const headlineSpan = h2.querySelector('span');
   if (!headline) {
@@ -144,6 +155,9 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   } else {
     headlineSpan.textContent = headline;
   }
+
+  const copy = fragment.querySelector('.hero__copy');
+  if (!copy.querySelector('.hero__category, .hero__headline')) copy.remove();
 
   const ctaText = fragment.querySelector('.hero__cta-text');
   if (href && linkLabel) {
@@ -175,7 +189,11 @@ export function buildHero(data = {}, root = document.createElement('div')) {
  * @param {Element} block The hero block element
  */
 export default async function decorate(block) {
-  buildHero(getHeroData(block), block);
+  const data = getHeroData(block);
+  if (isArticleDetailPage()) {
+    data.pageCategory = getMetadata('category');
+  }
+  buildHero(data, block);
   const section = firstSection(block);
   if (!section || !block.classList.contains('hero-full-screen')) return;
   section.classList.add('hero-container--overlay');
