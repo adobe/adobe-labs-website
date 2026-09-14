@@ -201,6 +201,30 @@ Avoid an excessive amount of separate imported files, as each is an a network re
 
 See the [write-block-tests](.ai/skills/write-block-tests/SKILL.md) skill for instructions and guidelines on writing unit tests for blocks.
 
+## Vendoring third-party JS libraries
+
+This project has no bundler on the request path, so npm packages cannot be imported by name at runtime, and production code should not load libraries from a public CDN. Third-party libraries are vendored instead: a thin re-export under `deps/<library>/src` is bundled once at development time with `esbuild` into a self-contained ESM file at `deps/<library>/dist`, then committed and imported by relative path. This matches the pattern [aemsites/author-kit](https://github.com/aemsites/author-kit) uses to ship Lit without a build system.
+
+### Updating the vendored Lenis library
+
+[Lenis](https://lenis.dev/) (used by the forthcoming parallax work) is vendored this way. After bumping the version in `package.json`:
+
+```sh
+npm install
+npm run build:lenis
+```
+
+That writes `deps/lenis/dist/index.js` and `deps/lenis/dist/lenis.css`. Commit those files with the version change.
+
+When a feature needs Lenis, import the committed dist file and load the stylesheet at that point. Do not add Lenis to `scripts.js` or `head.html`.
+
+```js
+import Lenis from '../../deps/lenis/dist/index.js';
+import { loadCSS } from '../../scripts/aem.js';
+
+loadCSS(`${window.hlx.codeBasePath}/deps/lenis/dist/lenis.css`);
+```
+
 ## Query Indexes
 
 The following query indexes are configured for this site.

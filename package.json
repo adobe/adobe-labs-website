@@ -10,7 +10,8 @@
     "lint": "npm run lint:js && npm run lint:css",
     "lint:fix": "npm run lint:js -- --fix && npm run lint:css -- --fix",
     "test": "jest",
-    "prepare": "husky"
+    "prepare": "husky",
+    "build:lenis": "mkdir -p deps/lenis/dist && esbuild --format=esm --minify ./deps/lenis/src/index.js --bundle --outfile=./deps/lenis/dist/index.js && cp node_modules/lenis/dist/lenis.css deps/lenis/dist/lenis.css"
   },
   "repository": {
     "type": "git",
@@ -29,12 +30,14 @@
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "7.0.1",
     "babel-jest": "30.5.1",
+    "esbuild": "0.28.2",
     "eslint": "8.57.1",
     "eslint-config-airbnb-base": "15.0.0",
     "eslint-plugin-import": "2.32.0",
     "husky": "9.1.7",
     "jest": "30.5.1",
     "jest-environment-jsdom": "30.5.1",
+    "lenis": "1.3.26",
     "stylelint": "17.15.0",
     "stylelint-config-standard": "40.0.0"
   }
