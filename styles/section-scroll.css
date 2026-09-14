@@ -2,12 +2,12 @@
  * Opt-in section slowdown. Nothing in this file applies unless
  * prefers-reduced-motion: no-preference.
  *
- * When a rounded section follows another section (page header, hero, or
- * another rounded card), the previous pins once the rounded section reaches
- * mid-viewport. Inner content eases upward so the outgoing section still
- * moves, just slower, and a subtle dark overlay fades in until the next
- * section has covered it. Full-screen heroes pin in place without the inner
- * shift so they are not pulled under the nav.
+ * Rounded cards pin once the next rounded section reaches COVER_START_VH.
+ * Inner content eases into the slowed parallax before that pin.
+ * Inner content eases upward so the outgoing card still moves, just slower,
+ * and a dark overlay fades in. Page header / default hero sections stay in
+ * flow: their content lags instead of pinning. Full-screen heroes pin in
+ * place without the inner shift so they are not pulled under the nav.
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -19,14 +19,22 @@
     z-index: 1;
   }
 
-  /* `align-self: flex-start` is required for sticky flex items on `main`. */
   main > .section.section-scroll-slow {
+    z-index: 0;
+  }
+
+  /* `align-self: flex-start` is required for sticky flex items on `main`. */
+  main > .section.section-scroll-slow:not(.section-scroll-intro) {
     position: sticky;
     top: var(--section-scroll-slow-top, 0);
     align-self: flex-start;
     inline-size: 100%;
-    z-index: 0;
     overflow: clip;
+  }
+
+  main > .section.section-scroll-intro {
+    position: relative;
+    overflow: visible;
   }
 
   .section-scroll-slow > * {
@@ -47,5 +55,12 @@
     background: #000;
     opacity: var(--section-scroll-dim, 0);
     pointer-events: none;
+  }
+
+  /* Intro content lags; keep the dim on that content and fill the flex gap
+     plus the next card's start radius so white does not show through. */
+  main > .section.section-scroll-intro::after {
+    bottom: calc(-1 * (var(--section-space-between) + var(--section-border-radius)));
+    transform: translateY(var(--section-scroll-shift, 0));
   }
 }
