@@ -1,0 +1,41 @@
+/*
+ * Opt-in section slowdown. Nothing in this file applies unless
+ * prefers-reduced-motion: no-preference.
+ *
+ * When a rounded section follows another rounded section, the first pins
+ * once the second reaches mid-viewport. Inner content eases upward so the
+ * outgoing section still moves, just slower, and a subtle dark overlay
+ * fades in until the next section has covered it.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Beat `main .section[class*="section-rounded-"] { z-index: 1 }`.
+     `align-self: flex-start` is required for sticky flex items on `main`. */
+  main > .section.section-scroll-slow {
+    position: sticky;
+    top: var(--section-scroll-slow-top, 0);
+    align-self: flex-start;
+    inline-size: 100%;
+    z-index: 0;
+    overflow: clip;
+  }
+
+  main > .section.section-scroll-next {
+    z-index: 1;
+  }
+
+  .section-scroll-slow > * {
+    transform: translateY(var(--section-scroll-shift, 0));
+  }
+
+  .section-scroll-slow::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+    background: #000;
+    opacity: var(--section-scroll-dim, 0);
+    pointer-events: none;
+  }
+}
