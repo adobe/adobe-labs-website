@@ -304,9 +304,9 @@ main > .section.hero-container--overlay {
 
 /* --- Full-screen hero animation ---
    Starts when `html.hero-intro` is set and `body.appear` paints.
-   JS writes blur and frost on `.hero__media` so the frost zooms with
-   the image transform. Height settles with the section rise. Scale/fade
-   match the original zoom: 150ms delay, 1800ms, transform only.
+   JS writes blur and frost on `.hero__media img`. Parent transform zooms the image.
+   Height settles with the section rise. Scale/fade match the original zoom:
+   150ms delay, 1800ms, transform only.
    `.hero__content` is a sibling of `.hero__media`. Do not nest copy under media.
    JavaScript does not add the hero animation when prefers-reduced-motion: reduce.
    These rules do not need a reduced-motion override. */
@@ -342,7 +342,7 @@ html.hero-intro:not(.hero-intro--body) .hero-full-screen .hero__media {
   inset: 0 0 auto;
   bottom: calc(100% - var(--hero-intro-media-start-size));
   transform: scale(var(--hero-intro-scale-start)) translateY(0.5%);
-  will-change: bottom, transform, filter;
+  will-change: bottom, transform;
 }
 
 html.hero-intro .hero-full-screen .hero__media img {
@@ -355,7 +355,7 @@ html.hero-intro .hero-full-screen .hero__content > * {
   opacity: 0;
 }
 
-html.hero-intro.hero-intro--body .hero-full-screen .hero__media {
+html.hero-intro.hero-intro--body body.appear .hero-full-screen .hero__media {
   animation:
     hero-intro-media-height var(--hero-intro-settle-duration)
       var(--hero-intro-easing-settle) both,

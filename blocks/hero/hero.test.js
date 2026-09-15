@@ -74,8 +74,18 @@ function mountInFirstSection(block) {
   return block;
 }
 
+function flushPaintFrames() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
 afterEach(() => {
   clearHeroIntro();
+  document.body.classList.remove('appear');
+  document.querySelector('a.header__skip')?.remove();
   document.querySelectorAll('main').forEach((main) => main.remove());
 });
 
@@ -305,7 +315,11 @@ describe('hero block', () => {
   });
 
   describe('full-screen loading intro', () => {
-    it('adds hero-intro on a first-section full-screen hero', async () => {
+    beforeEach(() => {
+      document.body.classList.add('appear');
+    });
+
+    it('adds hero-intro immediately and hero-intro--body after paint', async () => {
       const block = createHeroBlock([
         ['<a href="/article">Headline</a>'],
       ]);
@@ -315,8 +329,58 @@ describe('hero block', () => {
       await decorate(block);
 
       expect(document.documentElement).toHaveClass('hero-intro');
-      expect(document.documentElement).toHaveClass('hero-intro--body');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
       expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
+
+      await flushPaintFrames();
+
+      expect(document.documentElement).toHaveClass('hero-intro--body');
+    });
+
+    it('shows a hidden second section so the rise can run with the image', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+      const second = document.createElement('div');
+      second.className = 'section';
+      second.style.display = 'none';
+      second.dataset.sectionStatus = 'initialized';
+      block.closest('main').append(second);
+
+      await decorate(block);
+
+      expect(second.style.display).toBe('');
+      expect(second.dataset.sectionStatus).toBe('initialized');
+    });
+
+    it('clears the intro when the skip link is clicked', async () => {
+      const skip = document.createElement('a');
+      skip.className = 'header__skip';
+      skip.href = '#main';
+      document.body.prepend(skip);
+
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+        ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+
+      await decorate(block);
+      await flushPaintFrames();
+
+      const img = block.querySelector('.hero__media img');
+      expect(document.documentElement).toHaveClass('hero-intro--body');
+      expect(img.style.filter).toContain('blur');
+
+      skip.click();
+
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+      expect(img.style.filter).toBe('');
     });
 
     it('does not add hero-intro on a default hero in the first section', async () => {
@@ -414,11 +478,18 @@ describe('hero block', () => {
         await decorate(block);
 
         const media = block.querySelector('.hero__media');
+        const img = media.querySelector('img');
         expect(document.documentElement).toHaveClass('hero-intro');
-        expect(document.documentElement).toHaveClass('hero-intro--body');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
         expect(document.documentElement).not.toHaveClass('hero-intro--nav');
         expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
-        expect(media.style.filter).toContain('blur');
+        expect(img.style.filter).toContain('blur');
+        expect(media.style.filter).toBe('');
+
+        await jest.advanceTimersByTimeAsync(32);
+
+        expect(document.documentElement).toHaveClass('hero-intro--body');
+        expect(document.documentElement).not.toHaveClass('hero-intro--nav');
 
         jest.advanceTimersByTime(HERO_INTRO_NAV_DELAY_MS);
         expect(document.documentElement).toHaveClass('hero-intro--nav');
@@ -430,7 +501,7 @@ describe('hero block', () => {
         expect(document.documentElement).not.toHaveClass('hero-intro--nav');
         expect(document.documentElement).not.toHaveClass('hero-intro--body');
         expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
-        expect(media.style.filter).toBe('');
+        expect(img.style.filter).toBe('');
       } finally {
         jest.useRealTimers();
       }

@@ -364,11 +364,13 @@ html.hero-intro header .header {
 
 html.hero-intro:not(.hero-intro--nav) header .header {
   opacity: 0;
+  visibility: hidden;
   transform: translateY(0.375rem);
 }
 
 html.hero-intro.hero-intro--nav header .header {
   opacity: 1;
+  visibility: visible;
   transform: translateY(0);
 }
 

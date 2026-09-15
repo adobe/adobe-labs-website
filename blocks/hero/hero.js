@@ -30,6 +30,8 @@ let introTimers = [];
 /** @type {number|undefined} */
 let frostRaf;
 /** @type {number|undefined} */
+let paintRaf;
+/** @type {number|undefined} */
 let frostStartTs;
 /** @type {SVGSVGElement|undefined} */
 let frostSvg;
@@ -37,6 +39,8 @@ let frostSvg;
 let frostDisplace;
 /** @type {HTMLElement|undefined} */
 let mediaEl;
+/** @type {((event: Event) => void)|undefined} */
+let skipIntroHandler;
 
 /**
  * Whether this hero sits in the first section of `main`.
@@ -222,6 +226,19 @@ function applyMediaFilter(blurPx, displace) {
   mediaEl.style.filter = parts.length ? parts.join(' ') : 'none';
 }
 
+function revealSecondSection() {
+  const second = document.querySelector('main > .section:nth-of-type(2)');
+  if (second instanceof HTMLElement && second.style.display === 'none') {
+    second.style.display = '';
+  }
+}
+
+function unbindSkipClear() {
+  if (!skipIntroHandler) return;
+  document.querySelector('a.header__skip')?.removeEventListener('click', skipIntroHandler);
+  skipIntroHandler = undefined;
+}
+
 /** Eases blur and displacement after the black hold. */
 function tickFrost(now) {
   if (!frostDisplace && !mediaEl) return;
@@ -301,10 +318,15 @@ export function clearHeroIntro() {
     window.cancelAnimationFrame(frostRaf);
     frostRaf = undefined;
   }
+  if (paintRaf !== undefined) {
+    window.cancelAnimationFrame(paintRaf);
+    paintRaf = undefined;
+  }
   frostStartTs = undefined;
   frostDisplace = undefined;
   mediaEl?.style.removeProperty('filter');
   mediaEl = undefined;
+  unbindSkipClear();
   document.documentElement.classList.remove(
     'hero-intro',
     'hero-intro--nav',
@@ -314,17 +336,49 @@ export function clearHeroIntro() {
   frostSvg = undefined;
 }
 
-function startHeroIntro(block) {
-  const root = document.documentElement;
-  root.classList.add('hero-intro', 'hero-intro--body');
-  mediaEl = block.querySelector('.hero__media') || undefined;
-  injectFrost();
-  if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
+function bindSkipClear() {
+  unbindSkipClear();
+  const skip = document.querySelector('a.header__skip');
+  if (!skip) return;
+  skipIntroHandler = () => clearHeroIntro();
+  skip.addEventListener('click', skipIntroHandler);
+}
+
+function beginBodyIntro(root) {
+  if (!root.classList.contains('hero-intro')) return;
+  root.classList.add('hero-intro--body');
   introTimers.forEach((id) => window.clearTimeout(id));
   introTimers = [
     window.setTimeout(() => root.classList.add('hero-intro--nav'), HERO_INTRO_NAV_DELAY_MS),
     window.setTimeout(clearHeroIntro, HERO_INTRO_DURATION_MS),
   ];
+}
+
+/** Waits for `body.appear`, then two frames so parked styles paint. */
+function waitForBodyIntro(root) {
+  if (!root.classList.contains('hero-intro')) return;
+  if (!document.body.classList.contains('appear')) {
+    paintRaf = window.requestAnimationFrame(() => waitForBodyIntro(root));
+    return;
+  }
+  paintRaf = window.requestAnimationFrame(() => {
+    if (!root.classList.contains('hero-intro')) return;
+    paintRaf = window.requestAnimationFrame(() => {
+      paintRaf = undefined;
+      beginBodyIntro(root);
+    });
+  });
+}
+
+function startHeroIntro(block) {
+  const root = document.documentElement;
+  root.classList.add('hero-intro');
+  revealSecondSection();
+  mediaEl = block.querySelector('.hero__media img') || undefined;
+  injectFrost();
+  if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
+  bindSkipClear();
+  waitForBodyIntro(root);
 }
 
 /**
