@@ -401,16 +401,17 @@ describe('hero block', () => {
         expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
         expect(img.style.filter).toContain('blur');
 
-        jest.advanceTimersByTime(HERO_INTRO_NAV_DELAY_MS);
-        expect(document.documentElement).toHaveClass('hero-intro--nav');
-        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        jest.advanceTimersByTime(HERO_INTRO_BODY_DELAY_MS);
+        expect(document.documentElement).toHaveClass('hero-intro--body');
+        expect(document.documentElement).not.toHaveClass('hero-intro--nav');
         expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
 
-        jest.advanceTimersByTime(HERO_INTRO_BODY_DELAY_MS - HERO_INTRO_NAV_DELAY_MS);
+        jest.advanceTimersByTime(HERO_INTRO_NAV_DELAY_MS - HERO_INTRO_BODY_DELAY_MS);
+        expect(document.documentElement).toHaveClass('hero-intro--nav');
         expect(document.documentElement).toHaveClass('hero-intro--body');
         expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
 
-        jest.advanceTimersByTime(HERO_INTRO_DURATION_MS - HERO_INTRO_BODY_DELAY_MS);
+        jest.advanceTimersByTime(HERO_INTRO_DURATION_MS - HERO_INTRO_NAV_DELAY_MS);
         expect(document.documentElement).not.toHaveClass('hero-intro');
         expect(document.documentElement).not.toHaveClass('hero-intro--nav');
         expect(document.documentElement).not.toHaveClass('hero-intro--body');

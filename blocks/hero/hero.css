@@ -322,12 +322,12 @@ main > .section.hero-container--overlay {
       opacity: 0;
       will-change: opacity;
     }
+  }
 
-    /* Fade each child. Opacity on `.hero__content` would isolate the play icon
+  /* Fade each child. Opacity on `.hero__content` would isolate the play icon
      and pop its backdrop-filter on at the end of the fade. */
-    .hero__content > * {
-      opacity: 0;
-    }
+  .hero-full-screen .hero__content > * {
+    opacity: 0;
   }
 
   body.appear .hero-full-screen .hero__media {
@@ -339,12 +339,12 @@ main > .section.hero-container--overlay {
       animation: hero-intro-media-fade 900ms ease-out both;
       animation-delay: 150ms;
     }
+  }
 
-    .hero__content > * {
-      animation: hero-intro-copy 600ms
-        var(--hero-intro-easing-text) both;
-      animation-delay: 825ms;
-    }
+  body.appear .hero-full-screen .hero__content > * {
+    animation: hero-intro-copy 600ms
+      var(--hero-intro-easing-text) both;
+    animation-delay: 825ms;
   }
 }
 

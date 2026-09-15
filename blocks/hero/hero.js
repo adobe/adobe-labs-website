@@ -16,7 +16,7 @@ export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 
 const BLACK_HOLD_MS = 150; // same as CSS media delay
 export const HERO_INTRO_NAV_DELAY_MS = 375;
-export const HERO_INTRO_BODY_DELAY_MS = 1350;
+export const HERO_INTRO_BODY_DELAY_MS = BLACK_HOLD_MS;
 const BLUR_DURATION_MS = 750;
 const FROST_DURATION_MS = 2100;
 export const HERO_INTRO_DURATION_MS = 2475;
