@@ -16,7 +16,6 @@ export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 
 const BLACK_HOLD_MS = 150; // same as CSS media delay
 export const HERO_INTRO_NAV_DELAY_MS = 375;
-export const HERO_INTRO_BODY_DELAY_MS = 1350;
 const BLUR_DURATION_MS = 750;
 const FROST_DURATION_MS = 2100;
 export const HERO_INTRO_DURATION_MS = 2475;
@@ -36,8 +35,8 @@ let frostStartTs;
 let frostSvg;
 /** @type {SVGElement|undefined} */
 let frostDisplace;
-/** @type {HTMLImageElement|undefined} */
-let mediaImg;
+/** @type {HTMLElement|undefined} */
+let mediaEl;
 
 /**
  * Whether this hero sits in the first section of `main`.
@@ -216,16 +215,16 @@ function easeInOutCubic(t) {
 
 function applyMediaFilter(blurPx, displace) {
   frostDisplace?.setAttribute('scale', String(displace));
-  if (!mediaImg) return;
+  if (!mediaEl) return;
   const parts = [];
   if (blurPx > FILTER_EPS) parts.push(`blur(${blurPx}px)`);
   if (displace > FILTER_EPS) parts.push(`url("#${HERO_INTRO_FROST_ID}")`);
-  mediaImg.style.filter = parts.length ? parts.join(' ') : 'none';
+  mediaEl.style.filter = parts.length ? parts.join(' ') : 'none';
 }
 
 /** Eases blur and displacement after the black hold. */
 function tickFrost(now) {
-  if (!frostDisplace && !mediaImg) return;
+  if (!frostDisplace && !mediaEl) return;
   if (!document.body.classList.contains('appear')) {
     frostRaf = window.requestAnimationFrame(tickFrost);
     return;
@@ -304,8 +303,8 @@ export function clearHeroIntro() {
   }
   frostStartTs = undefined;
   frostDisplace = undefined;
-  mediaImg?.style.removeProperty('filter');
-  mediaImg = undefined;
+  mediaEl?.style.removeProperty('filter');
+  mediaEl = undefined;
   document.documentElement.classList.remove(
     'hero-intro',
     'hero-intro--nav',
@@ -317,14 +316,13 @@ export function clearHeroIntro() {
 
 function startHeroIntro(block) {
   const root = document.documentElement;
-  root.classList.add('hero-intro');
-  mediaImg = block.querySelector('.hero__media img') || undefined;
+  root.classList.add('hero-intro', 'hero-intro--body');
+  mediaEl = block.querySelector('.hero__media') || undefined;
   injectFrost();
-  if (mediaImg) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
+  if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
   introTimers.forEach((id) => window.clearTimeout(id));
   introTimers = [
     window.setTimeout(() => root.classList.add('hero-intro--nav'), HERO_INTRO_NAV_DELAY_MS),
-    window.setTimeout(() => root.classList.add('hero-intro--body'), HERO_INTRO_BODY_DELAY_MS),
     window.setTimeout(clearHeroIntro, HERO_INTRO_DURATION_MS),
   ];
 }
