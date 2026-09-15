@@ -1,0 +1,98 @@
+.abstract {
+  --abstract-divider-color: var(--s2a-color-border-subtle);
+
+  display: grid;
+  gap: var(--s2a-spacing-md);
+  padding-block-start: var(--s2a-spacing-sm);
+
+  .abstract__title,
+  .abstract__body {
+    & > * {
+      margin: 0;
+    }
+
+    & > * + * {
+      margin-block-start: var(--s2a-spacing-3xs);
+    }
+  }
+
+  .abstract__title :is(h1, h2, h3, h4, h5, h6) {
+    font-family: var(--heading-font-family);
+    font-size: var(--s2a-typography-font-size-heading-5);
+    line-height: var(--s2a-typography-line-height-heading-5);
+    letter-spacing: var(--s2a-font-letter-spacing-4xl);
+  }
+
+  .abstract__number {
+    font-family: var(--heading-font-family);
+    font-size: var(--s2a-typography-font-size-heading-6);
+    line-height: var(--s2a-typography-line-height-title-6, 18px);
+    letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+    flex-basis: var(--abstract-item-inline-size);
+  }
+
+  .abstract__body {
+    min-inline-size: 0;
+    font-family: "adobe-clean-spectrum-serif";
+    font-size: var(--s2a-font-size-md);
+    font-weight: var(--s2a-font-weight-body);
+    line-height: var(--s2a-font-line-height-20);
+    flex-basis: fit-content;
+
+    @media (width >= 64rem) {
+      font-size: var(--s2a-font-size-xl);
+      line-height: 26px;
+    }
+  }
+
+  .abstract__items {
+    --abstract-item-inline-size: 3.75rem; /* 60px */
+
+    @media (width >= 1024px) {
+      --abstract-item-inline-size: 5.125rem; /* 82px */
+    }
+
+    @media (width >= 1440px) {
+      --abstract-item-inline-size: 7.25rem; /* 116px */
+    }
+
+    @media (width >= 1920px) {
+      --abstract-item-inline-size: 9.6875rem; /* 155px */
+    }
+
+    display: flex;
+    flex-direction: column;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .abstract__item {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--s2a-spacing-2xs);
+    padding-block: var(--s2a-spacing-lg);
+    border-block-start: 1px solid var(--abstract-divider-color);
+
+    @media (width >= 64rem) {
+      &:first-child {
+        border-block-start: none;
+      }
+    }
+  }
+
+  @media (width >= 64rem) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+    gap: var(--s2a-spacing-lg);
+
+    .abstract__title,
+    .abstract__items {
+      padding-block-start: var(--s2a-spacing-sm);
+      border-block-start: 1px solid var(--abstract-divider-color);
+    }
+  }
+}
+
+:root[data-theme="dark"] .abstract {
+  --abstract-divider-color: var(--s2a-color-gray-700);
+}
