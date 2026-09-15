@@ -52,10 +52,7 @@
     inset: 0;
     z-index: 2;
     border-radius: inherit;
-
-    /* Alpha on the fill, not element opacity: opaque black would hide the blur. */
     background: rgb(0 0 0 / var(--section-scroll-dim, 0));
-    backdrop-filter: blur(calc(var(--section-scroll-dim, 0) / 0.8 * var(--s2a-blur-sm, 16px)));
     pointer-events: none;
   }
 
