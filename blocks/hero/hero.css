@@ -264,8 +264,10 @@
       display: grid;
       height: auto;
 
-      /* Inner ring to override the default offset outline, which 
-         sits outside the full-bleed box and is hidden by the viewport. */
+      /* Inner ring to override the default offset outline, which
+         sits outside the full-bleed box and is hidden by the viewport.
+         inset-block-end matches .hero-container:has(.hero-full-screen) + [class*="section-rounded-"]
+         so the bottom edge stays above the overlapping section. */
       &:focus-visible {
         outline: none;
       }
@@ -274,7 +276,12 @@
         content: "";
         position: absolute;
         inset: var(--s2a-border-width-md);
-        border: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+        inset-block-end: calc(
+          var(--section-border-radius)
+          + var(--section-space-between)
+          + var(--s2a-border-width-md)
+        );
+        border: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-knockout);
         z-index: 2;
       }
     }
