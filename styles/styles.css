@@ -588,21 +588,11 @@ body.research main {
 body.article main {
   --section-padding-block-end: var(--s2a-spacing-2xl);
 
-  /* Standardized article content widths ("Global Wrapper" in the Article
-     spec for widths Figma page), named after the Layout spec's t-shirt
-     sizes. A few px wider than the general Layout spec, but these divide
-     more cleanly by 16. Padding is baked into each calc(), so the visible
-     content stays at the Figma width instead of losing
-     --site-root-inline-padding on each side to the wrapper's own
-     border-box padding. --sm is the default reading-column width (no s2a
-     token represents it); it's fixed regardless of breakpoint, unlike
-     md/lg/xl/xxl below, and has no dedicated XS tier — below 48rem the
-     wrapper just uses the available width. */
+  /* Article content max-widths. */
   --article-content-inline-size-sm: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
   --article-content-inline-size-md: calc(37.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 598px @ 48rem (768px) viewport */
   --article-content-inline-size-lg: calc(50.75rem + (var(--site-root-inline-padding, 0px) * 2)); /* 812px @ 64rem (1024px) viewport */
-  --article-content-inline-size-xl: calc(72.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1158px @ 90rem (1440px) viewport */
-  --article-content-inline-size-xxl: calc(72.25rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1156px @ 120rem (1920px) viewport */
+  --article-content-inline-size-xl: calc(72.25rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1156px @ 90rem (1440px) viewport and up */
 
   @media (width >= 90rem) {
     --section-padding-block-end: var(--s2a-spacing-4xl);
