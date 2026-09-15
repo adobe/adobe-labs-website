@@ -140,6 +140,41 @@ describe('classifySectionScroll', () => {
     expect(main.children[0].style.getPropertyValue('--section-scroll-shift')).toBe('0');
   });
 
+  it('does not dim a short full-screen hero while the next section is still at rest', () => {
+    const vh = 800;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: vh });
+    const main = mountMain(`
+      <div class="section hero-container">
+        <div class="hero hero-full-screen"></div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+    jest.spyOn(main.children[1], 'getBoundingClientRect').mockReturnValue({ top: 0.6 * vh });
+
+    classifySectionScroll();
+
+    expect(main.children[0].style.getPropertyValue('--section-scroll-dim')).toBe('0');
+  });
+
+  it('dims a short full-screen hero as the next section covers it', () => {
+    const vh = 800;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: vh });
+    const main = mountMain(`
+      <div class="section hero-container">
+        <div class="hero hero-full-screen"></div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+    const restTop = 0.6 * vh;
+    jest.spyOn(main.children[1], 'getBoundingClientRect').mockReturnValue({ top: restTop });
+    classifySectionScroll();
+    jest.spyOn(main.children[1], 'getBoundingClientRect').mockReturnValue({ top: restTop / 2 });
+
+    updateSectionScrollShift();
+
+    expect(main.children[0].style.getPropertyValue('--section-scroll-dim')).toBe('0.4');
+  });
+
   it('slows a page-header behind the first rounded section without pinning', () => {
     const main = mountMain(`
       <div class="section page-header-container hero-container">

@@ -185,6 +185,22 @@ function overlayProgress(next, overlayStart) {
 }
 
 /**
+ * Viewport Y where dim begins. Caps at the incoming section's rest top so a
+ * short full-screen hero (60lvh on small screens) is not already dimmed.
+ *
+ * @param {HTMLElement} next
+ * @param {boolean} intro
+ * @param {number} introHeight
+ * @returns {number}
+ */
+function overlayStartY(next, intro, introHeight) {
+  if (intro) return Math.min(introHeight, window.innerHeight);
+  const restTop = next.getBoundingClientRect().top + window.scrollY;
+  if (restTop > 0) return Math.min(coverStartY(), restTop);
+  return coverStartY();
+}
+
+/**
  * Pixel lag so intro content recedes slower while the first rounded
  * section covers it. Span is the overlap in view (intro height, capped
  * at the viewport).
@@ -274,9 +290,7 @@ export function classifySectionScroll(root = document) {
         next,
         intro,
         introHeight,
-        overlayStart: intro
-          ? Math.min(introHeight, window.innerHeight)
-          : coverStartY(),
+        overlayStart: overlayStartY(next, intro, introHeight),
       });
     }
   });
