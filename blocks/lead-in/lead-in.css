@@ -9,6 +9,10 @@ body.article main .lead-in-wrapper {
   @media (width >= 90rem) {
     max-inline-size: var(--article-content-inline-size-xl);
   }
+
+  @media (width >= 120rem) {
+    max-inline-size: var(--article-content-inline-size-xxl);
+  }
 }
 
 .lead-in {
@@ -19,7 +23,7 @@ body.article main .lead-in-wrapper {
   }
 
   @media (width >= 120rem) {
-    --lead-in-columns: 4;
+    --lead-in-columns: 5;
   }
 
   width: calc(var(--lead-in-columns) / 12 * 100%);
