@@ -9,6 +9,39 @@ import {
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
+const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
+
+const BLACK_HOLD_MS = 150; // same as CSS media delay
+export const HERO_INTRO_NAV_DELAY_MS = 375;
+const BLUR_DURATION_MS = 750;
+const FROST_DURATION_MS = 2100;
+export const HERO_INTRO_DURATION_MS = 2475;
+const BLUR_START_PX = 18;
+const FROST_DISPLACE = 18;
+const FROST_GRAIN_SIZE = 160; // higher = larger crystals
+const FROST_FREQ = 10 / FROST_GRAIN_SIZE;
+const FILTER_EPS = 0.01;
+
+/** @type {number[]} */
+let introTimers = [];
+/** @type {number|undefined} */
+let frostRaf;
+/** @type {number|undefined} */
+let paintRaf;
+/** @type {number|undefined} */
+let frostStartTs;
+/** @type {SVGSVGElement|undefined} */
+let frostSvg;
+/** @type {SVGElement|undefined} */
+let frostDisplace;
+/** @type {HTMLElement|undefined} */
+let mediaEl;
+/** @type {((event: Event) => void)|undefined} */
+let skipIntroHandler;
+
 /**
  * Whether this hero sits in the first section of `main`.
  *
@@ -170,6 +203,184 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   return root;
 }
 
+function svgEl(name, attrs) {
+  const el = document.createElementNS(SVG_NS, name);
+  Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+  return el;
+}
+
+function easeOutCubic(t) {
+  return 1 - (1 - t) ** 3;
+}
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2;
+}
+
+function applyMediaFilter(blurPx, displace) {
+  frostDisplace?.setAttribute('scale', String(displace));
+  if (!mediaEl) return;
+  const parts = [];
+  if (blurPx > FILTER_EPS) parts.push(`blur(${blurPx}px)`);
+  if (displace > FILTER_EPS) parts.push(`url("#${HERO_INTRO_FROST_ID}")`);
+  mediaEl.style.filter = parts.length ? parts.join(' ') : 'none';
+}
+
+function revealSecondSection() {
+  const second = document.querySelector('main > .section:nth-of-type(2)');
+  if (second instanceof HTMLElement && second.style.display === 'none') {
+    second.style.display = '';
+  }
+}
+
+function unbindSkipClear() {
+  if (!skipIntroHandler) return;
+  document.querySelector('a.header__skip')?.removeEventListener('click', skipIntroHandler);
+  skipIntroHandler = undefined;
+}
+
+/** Eases blur and displacement after the black hold. */
+function tickFrost(now) {
+  if (!frostDisplace && !mediaEl) return;
+  if (!document.body.classList.contains('appear')) {
+    frostRaf = window.requestAnimationFrame(tickFrost);
+    return;
+  }
+  if (frostStartTs === undefined) frostStartTs = now;
+  const elapsed = now - frostStartTs - BLACK_HOLD_MS;
+  if (elapsed <= 0) {
+    applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
+    frostRaf = window.requestAnimationFrame(tickFrost);
+    return;
+  }
+  const blurT = Math.min(1, elapsed / BLUR_DURATION_MS);
+  const frostT = Math.min(1, elapsed / FROST_DURATION_MS);
+  const blurPx = BLUR_START_PX * (1 - easeOutCubic(blurT));
+  const displace = FROST_DISPLACE * (frostT >= 1 ? 0 : 1 - easeInOutCubic(frostT));
+  applyMediaFilter(blurPx, displace);
+  if (blurT < 1 || frostT < 1) {
+    frostRaf = window.requestAnimationFrame(tickFrost);
+    return;
+  }
+  applyMediaFilter(0, 0);
+  frostRaf = undefined;
+}
+
+function injectFrost() {
+  if (document.getElementById(HERO_INTRO_FROST_ID)) return;
+  frostSvg = svgEl('svg', {
+    class: 'hero-intro-frost',
+    'aria-hidden': 'true',
+    focusable: 'false',
+    width: '0',
+    height: '0',
+  });
+  // Filter region is 20% larger than the image so displacement is not clipped
+  // at the edge. Ancestor overflow:hidden does not replace this bleed.
+  const filter = svgEl('filter', {
+    id: HERO_INTRO_FROST_ID,
+    'color-interpolation-filters': 'sRGB',
+    filterUnits: 'objectBoundingBox',
+    primitiveUnits: 'userSpaceOnUse',
+    x: '-0.2',
+    y: '-0.2',
+    width: '1.4',
+    height: '1.4',
+  });
+  frostDisplace = svgEl('feDisplacementMap', {
+    in: 'SourceGraphic',
+    in2: 'noise',
+    scale: String(FROST_DISPLACE),
+    xChannelSelector: 'R',
+    yChannelSelector: 'G',
+  });
+  filter.append(
+    svgEl('feTurbulence', {
+      type: 'fractalNoise',
+      baseFrequency: String(FROST_FREQ),
+      numOctaves: '2',
+      result: 'noise',
+      seed: '1',
+    }),
+    frostDisplace,
+  );
+  frostSvg.append(filter);
+  document.body.append(frostSvg);
+  frostStartTs = undefined;
+  frostRaf = window.requestAnimationFrame(tickFrost);
+}
+
+/** Removes intro classes, the frost SVG, rAF, and timers. Safe if no intro is running. */
+export function clearHeroIntro() {
+  introTimers.forEach((id) => window.clearTimeout(id));
+  introTimers = [];
+  if (frostRaf !== undefined) {
+    window.cancelAnimationFrame(frostRaf);
+    frostRaf = undefined;
+  }
+  if (paintRaf !== undefined) {
+    window.cancelAnimationFrame(paintRaf);
+    paintRaf = undefined;
+  }
+  frostStartTs = undefined;
+  frostDisplace = undefined;
+  mediaEl?.style.removeProperty('filter');
+  mediaEl = undefined;
+  unbindSkipClear();
+  document.documentElement.classList.remove(
+    'hero-intro',
+    'hero-intro--nav',
+    'hero-intro--body',
+  );
+  frostSvg?.remove();
+  frostSvg = undefined;
+}
+
+function bindSkipClear() {
+  unbindSkipClear();
+  const skip = document.querySelector('a.header__skip');
+  if (!skip) return;
+  skipIntroHandler = () => clearHeroIntro();
+  skip.addEventListener('click', skipIntroHandler);
+}
+
+function beginBodyIntro(root) {
+  if (!root.classList.contains('hero-intro')) return;
+  root.classList.add('hero-intro--body');
+  introTimers.forEach((id) => window.clearTimeout(id));
+  introTimers = [
+    window.setTimeout(() => root.classList.add('hero-intro--nav'), HERO_INTRO_NAV_DELAY_MS),
+    window.setTimeout(clearHeroIntro, HERO_INTRO_DURATION_MS),
+  ];
+}
+
+/** Waits for `body.appear`, then two frames so parked styles paint. */
+function waitForBodyIntro(root) {
+  if (!root.classList.contains('hero-intro')) return;
+  if (!document.body.classList.contains('appear')) {
+    paintRaf = window.requestAnimationFrame(() => waitForBodyIntro(root));
+    return;
+  }
+  paintRaf = window.requestAnimationFrame(() => {
+    if (!root.classList.contains('hero-intro')) return;
+    paintRaf = window.requestAnimationFrame(() => {
+      paintRaf = undefined;
+      beginBodyIntro(root);
+    });
+  });
+}
+
+function startHeroIntro(block) {
+  const root = document.documentElement;
+  root.classList.add('hero-intro');
+  revealSecondSection();
+  mediaEl = block.querySelector('.hero__media img') || undefined;
+  injectFrost();
+  if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
+  bindSkipClear();
+  waitForBodyIntro(root);
+}
+
 /**
  * loads and decorates the hero
  * @param {Element} block The hero block element
@@ -179,4 +390,12 @@ export default async function decorate(block) {
   const section = firstSection(block);
   if (!section || !block.classList.contains('hero-full-screen')) return;
   section.classList.add('hero-container--overlay');
+  const reduce = typeof window.matchMedia === 'function'
+    && window.matchMedia(REDUCED_MOTION_MQ).matches;
+  if (
+    reduce
+    || document.documentElement.classList.contains('hero-intro')
+    || window.location.hash
+  ) return;
+  startHeroIntro(block);
 }
