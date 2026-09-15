@@ -588,15 +588,18 @@ body.research main {
 body.article main {
   --section-padding-block-end: var(--s2a-spacing-2xl);
 
-  /* Default article content width. No s2a token represents these widths. */
-  --article-content-inline-size-narrow: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
+  /* Article content max-widths. */
+  --article-content-inline-size-sm: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
+  --article-content-inline-size-md: calc(37.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 598px @ 48rem (768px) viewport */
+  --article-content-inline-size-lg: calc(50.75rem + (var(--site-root-inline-padding, 0px) * 2)); /* 812px @ 64rem (1024px) viewport */
+  --article-content-inline-size-xl: calc(72.25rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1156px @ 90rem (1440px) viewport and up */
 
   @media (width >= 90rem) {
     --section-padding-block-end: var(--s2a-spacing-4xl);
   }
 
   .default-content-wrapper {
-    max-inline-size: var(--article-content-inline-size-narrow);
+    max-inline-size: var(--article-content-inline-size-sm);
   }
 
   .full-bleed .default-content-wrapper {
