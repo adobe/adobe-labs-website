@@ -19,7 +19,7 @@ body.article main .lead-in-wrapper {
   --lead-in-columns: 12;
 
   @media (width >= 64rem) {
-    --lead-in-columns: 6;
+    --lead-in-columns: 7;
   }
 
   @media (width >= 120rem) {
