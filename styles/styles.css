@@ -174,7 +174,9 @@ body.appear {
   display: block;
 }
 
-/* Hero animation — page-level */
+/* Hero animation — page-level.
+   JavaScript does not add the hero animation when prefers-reduced-motion: reduce.
+   These rules do not need a reduced-motion override. */
 html.hero-intro {
   --hero-intro-section-offset: 40vh;
 
@@ -602,6 +604,9 @@ body.research main {
   }
 }
 
+/* Second section rises after the intro body step.
+   JavaScript does not add the hero animation when prefers-reduced-motion: reduce.
+   These rules do not need a reduced-motion override. */
 html.hero-intro--body main > .section:nth-of-type(2) {
   animation: hero-intro-section-rise 825ms
     cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -618,14 +623,6 @@ html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
 
   to {
     transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html.hero-intro--body main > .section:nth-of-type(2),
-  html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
-    animation: none;
-    transform: none;
   }
 }
 

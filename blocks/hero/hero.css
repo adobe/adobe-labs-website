@@ -305,7 +305,9 @@ main > .section.hero-container--overlay {
 /* --- Full-screen hero animation ---
    Starts when `html.hero-intro` is set and `body.appear` paints.
    JS writes blur and frost on the image. CSS fades opacity and zooms.
-   `.hero__content` is a sibling of `.hero__media`. Do not nest copy under media. */
+   `.hero__content` is a sibling of `.hero__media`. Do not nest copy under media.
+   JavaScript does not add the hero animation when prefers-reduced-motion: reduce.
+   These rules do not need a reduced-motion override. */
 html.hero-intro {
   --hero-intro-scale-start: 1.2;
   --hero-intro-easing-image: cubic-bezier(0.33, 0.1, 0.25, 1);
@@ -323,7 +325,6 @@ html.hero-intro .hero-full-screen .hero__media {
 
 html.hero-intro .hero-full-screen .hero__media img {
   opacity: 0;
-  will-change: opacity;
 }
 
 /* Fade each child. Opacity on `.hero__content` would isolate the play icon
@@ -387,17 +388,5 @@ html.hero-intro body.appear .hero-full-screen .hero__content > * {
 
   to {
     opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html.hero-intro .hero-full-screen .hero__media,
-  html.hero-intro .hero-full-screen .hero__media img,
-  html.hero-intro .hero-full-screen .hero__content > * {
-    animation: none;
-    opacity: 1;
-    transform: none;
-    filter: none;
-    will-change: auto;
   }
 }

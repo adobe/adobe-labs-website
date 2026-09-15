@@ -353,6 +353,25 @@ describe('hero block', () => {
       expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
     });
 
+    it('does not add hero-intro when the URL has a hash', async () => {
+      window.history.replaceState({}, '', '/#section');
+      try {
+        const block = createHeroBlock([
+          ['<a href="/article">Headline</a>'],
+        ]);
+        block.classList.add('hero-full-screen');
+        mountInFirstSection(block);
+
+        await decorate(block);
+
+        expect(document.documentElement).not.toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+      } finally {
+        window.history.replaceState({}, '', '/');
+      }
+    });
+
     it('does not add hero-intro when reduced motion is preferred', async () => {
       const originalMatchMedia = window.matchMedia;
       window.matchMedia = jest.fn((query) => ({

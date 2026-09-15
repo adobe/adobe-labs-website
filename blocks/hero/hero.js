@@ -259,6 +259,8 @@ function injectFrost() {
     width: '0',
     height: '0',
   });
+  // Filter region is 20% larger than the image so displacement is not clipped
+  // at the edge. Ancestor overflow:hidden does not replace this bleed.
   const filter = svgEl('filter', {
     id: HERO_INTRO_FROST_ID,
     'color-interpolation-filters': 'sRGB',
@@ -338,6 +340,10 @@ export default async function decorate(block) {
   section.classList.add('hero-container--overlay');
   const reduce = typeof window.matchMedia === 'function'
     && window.matchMedia(REDUCED_MOTION_MQ).matches;
-  if (reduce || document.documentElement.classList.contains('hero-intro')) return;
+  if (
+    reduce
+    || document.documentElement.classList.contains('hero-intro')
+    || window.location.hash
+  ) return;
   startHeroIntro(block);
 }
