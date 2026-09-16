@@ -349,6 +349,7 @@ describe('initSectionScroll', () => {
 
     const overlay = main.querySelector('.section-scroll-overlay');
     expect(overlay).toBeTruthy();
+    expect(overlay.parentElement).toBe(main.children[0]);
     expect(overlay.tagName).toBe('SPAN');
     expect(overlay).toHaveAttribute('aria-hidden', 'true');
     expect(gsap.fromTo).toHaveBeenCalledWith(
@@ -396,6 +397,8 @@ describe('initSectionScroll', () => {
     const overlay = header.querySelector('.section-scroll-overlay');
     expect(headerWrap).toHaveClass('section-scroll-fade');
     expect(overlay).toBeTruthy();
+    expect(overlay.parentElement).toHaveClass('hero');
+    expect(header.querySelector(':scope > .section-scroll-overlay')).toBeNull();
     expect(gsap.fromTo).toHaveBeenCalledWith(
       headerWrap,
       { autoAlpha: 1 },
@@ -422,7 +425,7 @@ describe('initSectionScroll', () => {
     expect(innerTween[2].y()).toBe(400 * INTRO_LAG);
     expect(gsap.fromTo).toHaveBeenCalledWith(
       overlay,
-      { y: 0, opacity: 0 },
+      { opacity: 0 },
       expect.objectContaining({
         opacity: OVERLAY_DIM,
         ease: 'none',
@@ -482,7 +485,8 @@ describe('initSectionScroll', () => {
         }),
       }),
     );
-    expect(main.children[0].querySelector('.section-scroll-overlay')).toBeTruthy();
+    expect(main.children[0].querySelector('.hero > .section-scroll-overlay')).toBeTruthy();
+    expect(main.children[0].querySelector(':scope > .section-scroll-overlay')).toBeNull();
   });
 
   it('dims a short full-screen hero only after the next section leaves rest', async () => {
