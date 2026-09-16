@@ -278,7 +278,6 @@
         inset: var(--s2a-border-width-md);
         inset-block-end: calc(
           var(--section-border-radius)
-          + var(--section-space-between)
           + var(--s2a-border-width-md)
         );
         border: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-knockout);
