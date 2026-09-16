@@ -236,6 +236,21 @@ function firstSectionFullScreenHero() {
 }
 
 /**
+ * Section that follows the full-screen hero — the first new content that can
+ * pass under the nav.
+ *
+ * @param {Element} hero Full-screen hero block
+ * @returns {Element|null}
+ */
+function sectionAfterHero(hero) {
+  let node = hero.closest('.section')?.nextElementSibling;
+  while (node && !node.classList.contains('section')) {
+    node = node.nextElementSibling;
+  }
+  return node || null;
+}
+
+/**
  * Locks or unlocks document scroll while the mobile drawer is open.
  *
  * @param {boolean} lock Whether to lock
@@ -661,51 +676,63 @@ function syncViewport(block) {
 }
 
 /**
- * Inverse while a top-of-page full-screen hero sits under the bar.
+ * Inverse knockout only while the hero is what sits under the nav. Following
+ * content uses the default bar — a pinned hero stays intersecting, so inverse
+ * cannot follow the hero observer alone.
+ *
+ * The frost root extends far above the viewport so content that has already
+ * scrolled past the nav still counts as “under it”. Otherwise inverse returns
+ * on long pages and knockout type vanishes on a light surface.
  *
  * @param {Element} block Header block
  * @param {AbortSignal} signal Listener abort signal
  * @returns {void}
  */
-function bindHeroInverse(block, signal) {
+function bindOverlayChrome(block, signal) {
   const hero = firstSectionFullScreenHero();
   if (!hero || typeof IntersectionObserver !== 'function') return;
 
-  const observer = new IntersectionObserver((entries) => {
-    const intersecting = entries.some((entry) => entry.isIntersecting);
-    setHeaderInverse(block, intersecting);
+  const next = sectionAfterHero(hero);
+  let heroUnderNav = true;
+  let contentUnderNav = false;
+
+  const sync = () => {
+    setHeaderInverse(block, heroUnderNav && !contentUnderNav);
+    block.classList.toggle('header--scrolled', contentUnderNav);
+  };
+
+  const heroObserver = new IntersectionObserver((entries) => {
+    heroUnderNav = entries.some((entry) => entry.isIntersecting);
+    sync();
   }, {
     root: null,
     rootMargin: `-${getNavHeightPx()}px 0px 0px 0px`,
     threshold: 0,
   });
-  observer.observe(hero);
-  signal.addEventListener('abort', () => observer.disconnect(), { once: true });
-}
+  heroObserver.observe(hero);
 
-/**
- * Frosted fill + blur after the page has scrolled off the top.
- *
- * @param {Element} block Header block
- * @param {AbortSignal} signal Listener abort signal
- * @returns {void}
- */
-function bindScrollFrost(block, signal) {
-  if (!firstSectionFullScreenHero() || typeof IntersectionObserver !== 'function') return;
+  /** @type {IntersectionObserver | null} */
+  let frostObserver = null;
+  const connectFrost = () => {
+    if (!next) return;
+    frostObserver?.disconnect();
+    const belowNav = Math.max(window.innerHeight - getNavHeightPx(), 0);
+    frostObserver = new IntersectionObserver((entries) => {
+      contentUnderNav = entries.some((entry) => entry.isIntersecting);
+      sync();
+    }, {
+      root: null,
+      rootMargin: `100000px 0px -${belowNav}px 0px`,
+      threshold: 0,
+    });
+    frostObserver.observe(next);
+  };
 
-  const sentinel = document.createElement('div');
-  sentinel.className = 'header-scroll-sentinel';
-  sentinel.setAttribute('aria-hidden', 'true');
-  document.body.append(sentinel);
-
-  const observer = new IntersectionObserver((entries) => {
-    const atTop = entries.some((entry) => entry.isIntersecting);
-    block.classList.toggle('header--scrolled', !atTop);
-  });
-  observer.observe(sentinel);
+  connectFrost();
+  if (next) window.addEventListener('resize', connectFrost, { signal });
   signal.addEventListener('abort', () => {
-    observer.disconnect();
-    sentinel.remove();
+    heroObserver.disconnect();
+    frostObserver?.disconnect();
   }, { once: true });
 }
 
@@ -780,8 +807,7 @@ function bindHeader(block) {
   const mq = window.matchMedia(DESKTOP_MQ);
   mq.addEventListener('change', () => syncViewport(block), { signal });
   syncViewport(block);
-  bindHeroInverse(block, signal);
-  bindScrollFrost(block, signal);
+  bindOverlayChrome(block, signal);
 }
 
 /**

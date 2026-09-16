@@ -102,9 +102,11 @@ async function decorateHeader() {
 
 /**
  * First-section full-screen hero used for overlay / inverse tests.
- * @returns {HTMLElement}
+ *
+ * @param {{ next?: boolean }} [options]
+ * @returns {{ hero: HTMLElement, next: HTMLElement | null }}
  */
-function addFirstSectionFullScreenHero() {
+function addFirstSectionFullScreenHero({ next = false } = {}) {
   const main = document.createElement('main');
   const section = document.createElement('div');
   section.className = 'section hero-container';
@@ -112,8 +114,26 @@ function addFirstSectionFullScreenHero() {
   hero.className = 'hero hero-full-screen';
   section.append(hero);
   main.append(section);
+  let nextSection = null;
+  if (next) {
+    nextSection = document.createElement('div');
+    nextSection.className = 'section section-rounded-default';
+    main.append(nextSection);
+  }
   document.body.append(main);
-  return hero;
+  return { hero, next: nextSection };
+}
+
+/**
+ * Frost observer: nav band plus a tall lookbehind above the viewport so
+ * content that has scrolled past still counts. Inverse uses a leading
+ * negative rootMargin.
+ *
+ * @param {object} obs Mock IntersectionObserver
+ * @returns {boolean}
+ */
+function isFrostObserver(obs) {
+  return /^\d+px 0px -/.test(String(obs.options.rootMargin || ''));
 }
 
 beforeAll(() => {
@@ -334,24 +354,47 @@ describe('header block', () => {
     expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('button--static-white');
   });
 
-  it('frosts the overlay bar once the page has scrolled', async () => {
-    addFirstSectionFullScreenHero();
+  it('frosts the overlay bar when following content reaches the nav', async () => {
+    const { next } = addFirstSectionFullScreenHero({ next: true });
 
     const block = await decorateHeader();
-    const scrollObserver = observerInstances.find((obs) => !obs.options.rootMargin);
+    const scrollObserver = observerInstances.find(isFrostObserver);
 
     expect(block).toHaveClass('header--inverse');
     expect(block).not.toHaveClass('header--scrolled');
-    expect(document.querySelector('.header-scroll-sentinel')).not.toBeNull();
     expect(scrollObserver).toBeDefined();
-
-    scrollObserver.callback([{ isIntersecting: false }]);
-
-    expect(block).toHaveClass('header--scrolled');
+    expect(scrollObserver.observe).toHaveBeenCalledWith(next);
+    expect(scrollObserver.options.rootMargin).toMatch(/^100000px 0px -/);
 
     scrollObserver.callback([{ isIntersecting: true }]);
 
+    expect(block).toHaveClass('header--scrolled');
+    expect(block).not.toHaveClass('header--inverse');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('button--static-white');
+
+    const heroObserver = observerInstances.find(
+      (obs) => !isFrostObserver(obs) && obs.options.rootMargin,
+    );
+    heroObserver.callback([{ isIntersecting: true }]);
+
+    expect(block).not.toHaveClass('header--inverse');
+    expect(block).toHaveClass('header--scrolled');
+
+    scrollObserver.callback([{ isIntersecting: false }]);
+
     expect(block).not.toHaveClass('header--scrolled');
+    expect(block).toHaveClass('header--inverse');
+    expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('button--static-white');
+  });
+
+  it('does not frost while a full-screen hero has no following section', async () => {
+    addFirstSectionFullScreenHero();
+
+    const block = await decorateHeader();
+
+    expect(block).toHaveClass('header--inverse');
+    expect(block).not.toHaveClass('header--scrolled');
+    expect(observerInstances.find(isFrostObserver)).toBeUndefined();
   });
 
   it('does not invert without a first-section full-screen hero', async () => {
@@ -359,7 +402,7 @@ describe('header block', () => {
 
     expect(block).not.toHaveClass('header--inverse');
     expect(block).not.toHaveClass('header--scrolled');
-    expect(document.querySelector('.header-scroll-sentinel')).toBeNull();
+    expect(observerInstances.find(isFrostObserver)).toBeUndefined();
     expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('button--static-white');
   });
 
