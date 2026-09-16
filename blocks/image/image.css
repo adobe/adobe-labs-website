@@ -70,6 +70,7 @@
   width: var(--image-width);
   max-width: 100%;
   aspect-ratio: var(--image-aspect-ratio);
+  border-radius: var(--s2a-border-radius-xs);
 
   & :is(picture, img) {
     position: absolute;
