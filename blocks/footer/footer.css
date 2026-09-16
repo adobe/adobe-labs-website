@@ -264,7 +264,7 @@ body:has(main > .section:last-child[class*="section-rounded-"]) .footer {
   max-inline-size: none;
   block-size: auto;
   flex-shrink: 0;
-  transform: translateY(calc((1 - (var(--footer-logo-entry-progress, 0) / 100)) * 50%));
+  transform: translateY(calc((var(--footer-logo-entry-progress, -100) / 100) * 50%));
 }
 
 @media (width >= 120rem) {

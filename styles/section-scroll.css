@@ -12,7 +12,10 @@
  * scroll timeline instead of GSAP y, and rounded inner parallax is skipped.
  * A dark overlay fades in on the outgoing card, and hero copy fades to
  * transparent with that dim. Intro sections dim the hero card only; rounded
- * sections still dim the whole outgoing card.
+ * sections still dim the whole outgoing card. The last rounded card
+ * garage-doors the footer menu the same way the footer later reveals the
+ * Adobe logo: the menu sticks, clips, and rises behind the card until it is
+ * in, then the logo sticky takes over.
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -98,5 +101,37 @@
         animation-range: exit 0% exit 100%;
       }
     }
+  }
+
+  /*
+   * Footer garage-door. Same recipe as `.footer__logo`: the last card stays in
+   * flow on top; `.footer__inner` sticks to the bottom, clips, and rises with
+   * `--section-scroll-inner-progress`. After the menu is in,
+   * `.section-scroll-logo` restores the logo sticky. Do not raise all of
+   * `main` or mid-chain sticky cards paint through the last end-radius.
+   */
+  main.section-scroll-reveal-main > .section.section-scroll-reveal {
+    position: relative;
+    z-index: 1;
+  }
+
+  body > footer.section-scroll-under {
+    position: relative;
+    z-index: 0;
+  }
+
+  body > footer.section-scroll-under:not(.section-scroll-logo) .footer__inner {
+    position: sticky;
+    inset-block-end: 0;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  body > footer.section-scroll-under:not(.section-scroll-logo) .footer__content {
+    transform: translateY(calc((var(--section-scroll-inner-progress, -100) / 100) * 50%));
+  }
+
+  body > footer.section-scroll-under:not(.section-scroll-logo) .footer__logo {
+    position: relative;
   }
 }

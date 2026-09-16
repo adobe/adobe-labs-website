@@ -13,6 +13,8 @@ import {
   INTRO_LAG,
   OVERLAY_DIM,
   classifySectionScroll,
+  footerInnerProgress,
+  footerLogoReady,
   initSectionScroll,
   roundedParallax,
   teardownSectionScroll,
@@ -45,6 +47,7 @@ jest.mock('../deps/gsap/dist/index.js', () => {
     update: jest.fn(),
     refresh: jest.fn(),
     maxScroll: jest.fn(() => 1000),
+    create: jest.fn(),
   };
   return { __esModule: true, gsap: mockGsap, ScrollTrigger: mockScrollTrigger };
 });
@@ -70,6 +73,20 @@ jest.mock('../deps/lenis/dist/index.js', () => {
 function mountMain(mainHtml) {
   document.body.innerHTML = `<main>${mainHtml}</main>`;
   return document.querySelector('main');
+}
+
+/**
+ * Builds a main + footer fixture on document.body.
+ *
+ * @param {string} mainHtml Sections inside main
+ * @returns {{ main: HTMLElement, footer: HTMLElement }}
+ */
+function mountPage(mainHtml) {
+  document.body.innerHTML = `<main>${mainHtml}</main><footer><div class="footer"><div class="footer__inner"><div class="footer__content"></div></div></div></footer>`;
+  return {
+    main: document.querySelector('main'),
+    footer: document.querySelector('body > footer'),
+  };
 }
 
 /**
@@ -233,7 +250,7 @@ describe('classifySectionScroll', () => {
   });
 
   it('does not cover a trailing default section such as Coming Soon', () => {
-    const main = mountMain(`
+    const { main } = mountPage(`
       <div class="section section-rounded-pink"></div>
       <div class="section section-rounded-default"></div>
       <div class="section section-rounded-default">
@@ -248,6 +265,65 @@ describe('classifySectionScroll', () => {
     expect(main.children[1]).toHaveClass('section-scroll-next');
     expect(comingSoon).not.toHaveClass('section-scroll-slow');
     expect(comingSoon).not.toHaveClass('section-scroll-next');
+    expect(comingSoon).toHaveClass('section-scroll-reveal');
+    expect(main).toHaveClass('section-scroll-reveal-main');
+    expect(document.querySelector('body > footer')).toHaveClass('section-scroll-under');
+  });
+
+  it('garage-doors the footer behind the last rounded section', () => {
+    const { main, footer } = mountPage(`
+      <div class="section section-rounded-blue"></div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    classifySectionScroll();
+
+    expect(main).toHaveClass('section-scroll-reveal-main');
+    expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
+    expect(main.children[1]).toHaveClass('section-scroll-reveal');
+    expect(main.children[1]).not.toHaveClass('section-scroll-slow');
+    expect(footer).toHaveClass('section-scroll-under');
+  });
+
+  it('sets inner entry progress from the last card like the Adobe logo', () => {
+    const { main, footer } = mountPage(`
+      <div class="section section-rounded-default"></div>
+    `);
+    const last = main.children[0];
+    const inner = footer.querySelector('.footer__inner');
+    last.getBoundingClientRect = () => ({ bottom: 680 });
+    Object.defineProperty(inner, 'offsetHeight', { configurable: true, value: 240 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+
+    classifySectionScroll();
+
+    expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-50');
+    expect(footer).not.toHaveClass('section-scroll-logo');
+  });
+
+  it('garage-doors the footer on a page with one rounded section', () => {
+    const { main, footer } = mountPage(`
+      <div class="section section-rounded-default"></div>
+    `);
+
+    classifySectionScroll();
+
+    expect(main.children[0]).toHaveClass('section-scroll-reveal');
+    expect(footer).toHaveClass('section-scroll-under');
+    expect(ScrollTrigger.create).not.toHaveBeenCalled();
+  });
+
+  it('does not mark the footer when there is no rounded section', () => {
+    const { footer } = mountPage(`
+      <div class="section hero-container">
+        <div class="hero hero-full-screen"></div>
+      </div>
+    `);
+
+    classifySectionScroll();
+
+    expect(footer).not.toHaveClass('section-scroll-under');
+    expect(document.querySelector('.section-scroll-reveal')).toBeNull();
   });
 
   it('pins the outgoing section when the next section reaches COVER_START_VH', () => {
@@ -274,6 +350,63 @@ describe('classifySectionScroll', () => {
     classifySectionScroll();
 
     expect(gsap.context).not.toHaveBeenCalled();
+  });
+});
+
+describe('footerInnerProgress', () => {
+  it('matches the Adobe logo entry math against the last card, flipped negative', () => {
+    const last = document.createElement('div');
+    const inner = document.createElement('div');
+    last.getBoundingClientRect = () => ({ bottom: 800 });
+    Object.defineProperty(inner, 'offsetHeight', { configurable: true, value: 240 });
+    expect(footerInnerProgress(last, inner, 800)).toBe(-100);
+
+    last.getBoundingClientRect = () => ({ bottom: 680 });
+    expect(footerInnerProgress(last, inner, 800)).toBe(-50);
+
+    last.getBoundingClientRect = () => ({ bottom: 560 });
+    expect(footerInnerProgress(last, inner, 800)).toBe(0);
+  });
+
+  it('clamps progress to -100–0', () => {
+    const last = document.createElement('div');
+    const inner = document.createElement('div');
+    last.getBoundingClientRect = () => ({ bottom: 900 });
+    Object.defineProperty(inner, 'offsetHeight', { configurable: true, value: 240 });
+    expect(footerInnerProgress(last, inner, 800)).toBe(-100);
+
+    last.getBoundingClientRect = () => ({ bottom: 0 });
+    expect(footerInnerProgress(last, inner, 800)).toBe(0);
+  });
+});
+
+describe('footerLogoReady', () => {
+  it('keeps the logo unstuck while the last card still covers the menu', () => {
+    const last = document.createElement('div');
+    const footer = document.createElement('footer');
+    footer.innerHTML = '<div class="footer"><div class="footer__inner"></div></div>';
+    last.getBoundingClientRect = () => ({ bottom: 700 });
+    Object.defineProperty(footer.querySelector('.footer__inner'), 'offsetHeight', {
+      configurable: true,
+      value: 240,
+    });
+    expect(footerLogoReady(last, footer, 800)).toBe(false);
+  });
+
+  it('lets the logo stick once the last card has lifted past the menu', () => {
+    const last = document.createElement('div');
+    const footer = document.createElement('footer');
+    footer.innerHTML = '<div class="footer"><div class="footer__inner"></div></div>';
+    last.getBoundingClientRect = () => ({ bottom: 500 });
+    Object.defineProperty(footer.querySelector('.footer__inner'), 'offsetHeight', {
+      configurable: true,
+      value: 240,
+    });
+    expect(footerLogoReady(last, footer, 800)).toBe(true);
+  });
+
+  it('returns false when the footer menu is missing', () => {
+    expect(footerLogoReady(document.createElement('div'), document.createElement('footer'))).toBe(false);
   });
 });
 
@@ -653,5 +786,38 @@ describe('initSectionScroll', () => {
     expect(instance.off).toHaveBeenCalledWith('scroll', ScrollTrigger.update);
     expect(instance.destroy).toHaveBeenCalled();
     expect(document.querySelector('.section-scroll-overlay')).toBeNull();
+    expect(document.querySelector('.section-scroll-reveal')).toBeNull();
+    expect(document.querySelector('.section-scroll-under')).toBeNull();
+    expect(document.querySelector('.section-scroll-reveal-main')).toBeNull();
+  });
+
+  it('strips footer reveal classes on teardown', async () => {
+    mockMatchMedia(true);
+    const { main, footer } = mountPage(`
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+    expect(footer).toHaveClass('section-scroll-under');
+
+    teardownSectionScroll();
+
+    expect(footer).not.toHaveClass('section-scroll-under');
+    expect(footer).not.toHaveClass('section-scroll-logo');
+    expect(main).not.toHaveClass('section-scroll-reveal-main');
+    expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
+    expect(footer.querySelector('.footer__inner').style.getPropertyValue('--section-scroll-inner-progress')).toBe('');
+  });
+
+  it('does not pin or tween the footer', async () => {
+    mockMatchMedia(true);
+    mountPage(`
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+
+    expect(ScrollTrigger.create).not.toHaveBeenCalled();
+    expect(gsap.fromTo).not.toHaveBeenCalled();
   });
 });

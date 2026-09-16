@@ -4,16 +4,19 @@
  * Motion is opt-in: classes, Lenis, GSAP, and CSS load only when
  * `prefers-reduced-motion: no-preference` matches. Rounded cards pin and lag
  * as the next card covers them. A page header or default hero does not pin:
- * hero content keeps moving, just slower, while the first rounded section
- * overlaps it. The page-header wrapper sticks under the nav, sits behind the
- * hero and following cards, and quickly fades out as the page scrolls.
- * A full-screen hero pins in place; its headline and CTA recede at half
- * scroll speed. On touch (iOS), Lenis and GSAP y-lag/recede are skipped so
- * native scroll is not fighting a JS translate; intro lag uses a CSS scroll
- * timeline instead. Adjacent `section-rounded-default` siblings
- * stay one card and are skipped. A dark overlay fades in on the outgoing
- * rounded card, or on the hero only (not the rest of an intro section). Hero
- * copy fades to transparent with that dim.
+ * hero content keeps moving, just slower,
+ * while the first rounded section overlaps it. The page-header wrapper sticks
+ * under the nav, sits behind the hero and following cards, and quickly fades
+ * out as the page scrolls. A full-screen hero pins in place; its headline and
+ * CTA recede at half scroll speed. On touch (iOS), Lenis and GSAP y-lag/recede
+ * are skipped so native scroll is not fighting a JS translate; intro lag uses
+ * a CSS scroll timeline instead. Adjacent `section-rounded-default` siblings
+ * stay one card and are skipped. The last rounded card garage-doors the
+ * footer menu the same way the footer later reveals the Adobe logo: the menu
+ * sticks, clips, and rises behind the card until it is in, then the logo
+ * sticky takes over. A dark overlay fades in on the
+ * outgoing rounded card, or on the hero only (not the rest of an intro
+ * section). Hero copy fades to transparent with that dim.
  */
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';
@@ -24,6 +27,10 @@ const CLASS_NEXT = 'section-scroll-next';
 const CLASS_INTRO = 'section-scroll-intro';
 const CLASS_OVERLAY = 'section-scroll-overlay';
 const CLASS_FADE = 'section-scroll-fade';
+const CLASS_REVEAL = 'section-scroll-reveal';
+const CLASS_REVEAL_MAIN = 'section-scroll-reveal-main';
+const CLASS_UNDER = 'section-scroll-under';
+const CLASS_LOGO = 'section-scroll-logo';
 
 /** Inner travel after the pin, as a fraction of the viewport. */
 const SHIFT_VH = 0.2;
@@ -68,6 +75,10 @@ let gsap = null;
 let ScrollTrigger = null;
 /** @type {{ revert: () => void } | null} */
 let motionCtx = null;
+/** @type {(() => void) | null} */
+let onFooterRevealScroll = null;
+/** @type {number} */
+let footerRevealRaf = 0;
 
 /**
  * @param {Element | null} el
@@ -315,6 +326,14 @@ function bindPair(slow, next) {
 function clear(root = document) {
   motionCtx?.revert();
   motionCtx = null;
+  if (onFooterRevealScroll) {
+    window.removeEventListener('scroll', onFooterRevealScroll);
+    onFooterRevealScroll = null;
+  }
+  if (footerRevealRaf) {
+    cancelAnimationFrame(footerRevealRaf);
+    footerRevealRaf = 0;
+  }
   root.querySelectorAll(`.${CLASS_OVERLAY}`).forEach((el) => el.remove());
   root.querySelectorAll(`.${CLASS_SLOW}, .${CLASS_NEXT}, .${CLASS_INTRO}, .${CLASS_FADE}`).forEach((el) => {
     el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE);
@@ -323,6 +342,87 @@ function clear(root = document) {
       el.style.removeProperty('--section-scroll-intro-lag');
     }
   });
+  root.querySelectorAll(
+    `.${CLASS_REVEAL}, .${CLASS_UNDER}, .${CLASS_REVEAL_MAIN}, .${CLASS_LOGO}`,
+  ).forEach((el) => {
+    el.classList.remove(CLASS_REVEAL, CLASS_UNDER, CLASS_REVEAL_MAIN, CLASS_LOGO);
+  });
+  root.querySelectorAll('.footer__inner').forEach((el) => {
+    if (el instanceof HTMLElement) el.style.removeProperty('--section-scroll-inner-progress');
+  });
+}
+
+/**
+ * Footer-inner entry progress, -100–0. Same travel as the Adobe logo, flipped
+ * so it starts negative: `((viewport - previous bottom) / height) * 100 - 100`.
+ *
+ * @param {Element | null} lastRounded Last rounded section
+ * @param {Element | null} inner `.footer__inner`
+ * @param {number} [viewportHeight=window.innerHeight]
+ * @returns {number}
+ */
+export function footerInnerProgress(
+  lastRounded,
+  inner,
+  viewportHeight = window.innerHeight,
+) {
+  if (!(lastRounded instanceof HTMLElement) || !(inner instanceof HTMLElement)) return -100;
+  const height = inner.offsetHeight;
+  if (!height) return -100;
+  const bottom = lastRounded.getBoundingClientRect().bottom ?? 0;
+  const progress = ((viewportHeight - bottom) / height) * 100 - 100;
+  return Math.max(-100, Math.min(0, progress));
+}
+
+/**
+ * Whether the last card has lifted enough that the footer menu is fully
+ * visible and the Adobe logo may stick.
+ *
+ * @param {Element | null} lastRounded Last rounded section
+ * @param {Element | null} footer Footer landmark
+ * @param {number} [viewportHeight=window.innerHeight]
+ * @returns {boolean}
+ */
+export function footerLogoReady(lastRounded, footer, viewportHeight = window.innerHeight) {
+  const inner = footer?.querySelector('.footer__inner');
+  return footerInnerProgress(lastRounded, inner, viewportHeight) >= 0;
+}
+
+/**
+ * Last rounded card garage-doors the footer menu with the same sticky clip
+ * and rise as `.footer__logo`. After the menu is in, the logo sticky takes over.
+ *
+ * @param {HTMLElement} main
+ * @param {ParentNode} root
+ * @returns {void}
+ */
+function bindFooterReveal(main, root) {
+  const rounded = [...main.querySelectorAll(':scope > .section')].filter(isRounded);
+  const lastRounded = rounded.at(-1);
+  const doc = root.nodeType === Node.DOCUMENT_NODE ? root : root.ownerDocument;
+  const footer = doc?.querySelector('body > footer');
+  if (!(lastRounded instanceof HTMLElement) || !(footer instanceof HTMLElement)) return;
+  const inner = footer.querySelector('.footer__inner');
+  main.classList.add(CLASS_REVEAL_MAIN);
+  lastRounded.classList.add(CLASS_REVEAL);
+  footer.classList.add(CLASS_UNDER);
+  const sync = () => {
+    const progress = footerInnerProgress(lastRounded, inner);
+    if (inner instanceof HTMLElement) {
+      inner.style.setProperty('--section-scroll-inner-progress', String(progress));
+    }
+    footer.classList.toggle(CLASS_LOGO, progress >= 100);
+  };
+  const onScroll = () => {
+    if (footerRevealRaf) return;
+    footerRevealRaf = requestAnimationFrame(() => {
+      footerRevealRaf = 0;
+      sync();
+    });
+  };
+  onFooterRevealScroll = onScroll;
+  window.addEventListener('scroll', onScroll, { passive: true });
+  sync();
 }
 
 /**
@@ -357,6 +457,7 @@ export function classifySectionScroll(root = document) {
       }
       if (started && gsap) bindPair(section, next);
     });
+    bindFooterReveal(main, root);
   };
 
   if (started && gsap) motionCtx = gsap.context(decorate, main);
