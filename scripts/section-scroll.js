@@ -1,14 +1,13 @@
 /**
  * Slows the previous section when a rounded section covers it.
  *
- * Motion is opt-in: classes, Lenis, and CSS load only when
+ * Motion is opt-in: classes, Lenis, GSAP, and CSS load only when
  * `prefers-reduced-motion: no-preference` matches. Rounded cards pin and lag
  * as the next card covers them. A page header or default hero does not pin:
  * its content keeps moving, just slower, while the first rounded section
  * overlaps it. A full-screen hero pins; its headline and CTA recede at half
  * scroll speed. Adjacent `section-rounded-default` siblings stay one card and
- * are skipped. A dark overlay fades in and blurs when that overlap starts
- * and reaches full strength as the incoming section covers it.
+ * are skipped. A dark overlay fades in as the incoming section covers it.
  */
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';
@@ -17,306 +16,264 @@ const MOTION_MQ = '(prefers-reduced-motion: no-preference)';
 const CLASS_SLOW = 'section-scroll-slow';
 const CLASS_NEXT = 'section-scroll-next';
 const CLASS_INTRO = 'section-scroll-intro';
-const SCROLL_CLASSES = [CLASS_SLOW, CLASS_NEXT, CLASS_INTRO];
+const CLASS_OVERLAY = 'section-scroll-overlay';
 
-/** Inner travel once the next section is past the cover line, as a fraction of the viewport. */
+/** Inner travel after the pin, as a fraction of the viewport. */
 const SHIFT_VH = 0.2;
 
-/**
- * Viewport fraction where an incoming rounded section starts the pin, lag,
- * and dim. Higher starts sooner (the card is still lower on screen).
- */
+/** Viewport fraction where the incoming section starts the pin, lag, and dim. */
 export const COVER_START_VH = 0.7;
 
-/**
- * Viewport fraction before the pin used to ease into the slowed parallax.
- */
+/** Viewport fraction before the pin used to ease into the slowed parallax. */
 export const COVER_EASE_VH = 0.2;
 
 /** Peak overlay opacity when the next section has covered the previous. */
-const OVERLAY_DIM = 0.8;
+export const OVERLAY_DIM = 0.8;
 
-/** Share of overlap scroll to hold back on intro sections (page header / default hero). */
+/** Share of overlap scroll held back on intro sections (page header / default hero). */
 export const INTRO_LAG = 0.2;
 
-/** Share of page scroll applied to full-screen hero headline and CTA (half speed). */
+/** Share of page scroll applied to full-screen hero headline and CTA. */
 export const HERO_TEXT_SPEED = 0.5;
 
 /** @type {MediaQueryList | null} */
 let motionMq = null;
-
-/** @type {boolean} */
 let started = false;
-
 /** @type {(() => void) | null} */
 let onResize = null;
-
-/** @type {{
- *   on: (event: string, handler: () => void) => void,
- *   off: (event: string, handler: () => void) => void,
- *   resize: () => void,
- *   destroy: () => void,
- * } | null} */
+/** @type {object | null} */
 let lenis = null;
-
-/** @type {Array<{
- *   slow: HTMLElement,
- *   next: HTMLElement,
- *   intro: boolean,
- *   introHeight: number,
- *   overlayStart: number,
- * }>} */
-let pairs = [];
+/** @type {object | null} */
+let gsap = null;
+/** @type {object | null} */
+let ScrollTrigger = null;
+/** @type {{ revert: () => void } | null} */
+let motionCtx = null;
 
 /**
- * Whether a node is a rounded Labs section.
- *
  * @param {Element | null} el
  * @returns {boolean}
  */
 function isRounded(el) {
-  if (!el?.classList) return false;
-  return [...el.classList].some((name) => name.startsWith('section-rounded-'));
+  return Boolean(el?.classList)
+    && [...el.classList].some((name) => name.startsWith('section-rounded-'));
 }
 
 /**
- * Full-screen hero in its own first section — already tucked under the nav.
- *
  * @param {Element | null} el
  * @returns {boolean}
  */
 function isFullScreenHero(el) {
-  return Boolean(el?.classList.contains('hero-container')
-    && el.querySelector('.hero-full-screen'));
+  return Boolean(el?.classList.contains('hero-container') && el.querySelector('.hero-full-screen'));
 }
 
 /**
- * Page header or default hero — slow in flow, do not pin.
+ * Page header or default hero: slow in flow, do not pin.
  *
  * @param {Element | null} el
  * @returns {boolean}
  */
-function isIntroSection(el) {
+function isIntro(el) {
   return Boolean(el && !isRounded(el) && !isFullScreenHero(el));
 }
 
 /**
- * Overlay whenever a rounded section follows another section. Adjacent
- * default cards stay one surface and are skipped.
- *
  * @param {Element} previous
  * @param {Element} next
  * @returns {boolean}
  */
 function shouldSlow(previous, next) {
   if (!isRounded(next)) return false;
-  return !(isRounded(previous)
-    && previous.classList.contains('section-rounded-default')
+  return !(previous.classList.contains('section-rounded-default')
     && next.classList.contains('section-rounded-default'));
 }
 
 /**
- * Y position, in px, where an incoming rounded section starts the transition.
+ * Shared ScrollTrigger for cover-driven tweens.
  *
- * @returns {number}
+ * @param {HTMLElement} trigger
+ * @param {string | (() => string)} startAt
+ * @returns {object}
  */
-function coverStartY() {
-  return window.innerHeight * COVER_START_VH;
+function scrub(trigger, startAt) {
+  return {
+    trigger,
+    start: startAt,
+    end: 'top top',
+    scrub: true,
+    invalidateOnRefresh: true,
+  };
 }
 
 /**
- * Sticky `top` so the section keeps scrolling until the next section's
- * top sits at COVER_START_VH, then pins while the next section covers it.
+ * Inner-lag endpoints for a rounded card, in px.
  *
- * @param {HTMLElement} el
- * @returns {void}
+ * @param {number} vh
+ * @returns {{ prePinLag: number, postPinEnd: number }}
  */
-function setSlowTop(el) {
-  const top = isFullScreenHero(el)
-    ? 0
-    : coverStartY() - el.offsetHeight;
-  el.style.setProperty('--section-scroll-slow-top', `${top}px`);
-}
-
-/**
- * Clamps a 0–1 progress value.
- *
- * @param {number} value
- * @returns {number}
- */
-function clampProgress(value) {
-  return Math.max(0, Math.min(1, value));
-}
-
-/**
- * Inner parallax for a rounded card: ease in before the pin so scrolling
- * does not snap from full speed to the slowed rate, then continue after pin.
- *
- * @param {HTMLElement} next
- * @returns {number} translateY in px
- */
-function roundedShift(next) {
-  const vh = window.innerHeight;
-  if (vh <= 0) return 0;
-  const pinY = coverStartY();
-  const easeY = Math.min(vh, vh * (COVER_START_VH + COVER_EASE_VH));
-  const { top } = next.getBoundingClientRect();
-  const postPinSpeed = COVER_START_VH > 0 ? SHIFT_VH / COVER_START_VH : 0;
-  const easeSpan = easeY - pinY;
-  const prePinLag = easeSpan > 0 ? (1 - postPinSpeed) * easeSpan * 0.5 : 0;
-
-  if (top >= easeY) return 0;
-  if (top >= pinY) {
-    const u = clampProgress((easeY - top) / easeSpan);
-    return prePinLag * u * u;
-  }
-  const t = clampProgress((pinY - top) / pinY);
-  return prePinLag - SHIFT_VH * t * vh;
-}
-
-/**
- * Overlay progress from 0 (incoming section starts overlapping) to 1
- * (incoming section has reached the top of the viewport).
- *
- * @param {HTMLElement} next
- * @param {number} overlayStart Incoming top, in px, where overlap begins
- * @returns {number}
- */
-function overlayProgress(next, overlayStart) {
-  if (overlayStart <= 0) return 0;
-  const { top } = next.getBoundingClientRect();
-  return clampProgress((overlayStart - top) / overlayStart);
+export function roundedParallax(vh) {
+  if (vh <= 0) return { prePinLag: 0, postPinEnd: 0 };
+  const prePinLag = (1 - SHIFT_VH / COVER_START_VH) * vh * COVER_EASE_VH * 0.5;
+  return { prePinLag, postPinEnd: prePinLag - SHIFT_VH * vh };
 }
 
 /**
  * Viewport Y where dim begins. Caps at the incoming section's rest top so a
- * short full-screen hero (60lvh on small screens) is not already dimmed.
+ * short full-screen hero is not already dimmed.
  *
  * @param {HTMLElement} next
  * @param {boolean} intro
  * @param {number} introHeight
  * @returns {number}
  */
-function overlayStartY(next, intro, introHeight) {
+function overlayStart(next, intro, introHeight) {
   if (intro) return Math.min(introHeight, window.innerHeight);
   const restTop = next.getBoundingClientRect().top + window.scrollY;
-  if (restTop > 0) return Math.min(coverStartY(), restTop);
-  return coverStartY();
+  return restTop > 0
+    ? Math.min(window.innerHeight * COVER_START_VH, restTop)
+    : window.innerHeight * COVER_START_VH;
 }
 
 /**
- * Pixel lag so intro content recedes slower while the first rounded
- * section covers it. Span is the overlap in view (intro height, capped
- * at the viewport).
+ * Dim layer on the outgoing section. A span so it is not styled as a
+ * `main > .section > div` content column.
  *
+ * @param {HTMLElement} section
+ * @returns {HTMLElement}
+ */
+function overlayFor(section) {
+  let overlay = section.querySelector(`:scope > .${CLASS_OVERLAY}`);
+  if (!(overlay instanceof HTMLElement)) {
+    overlay = document.createElement('span');
+    overlay.className = CLASS_OVERLAY;
+    overlay.setAttribute('aria-hidden', 'true');
+    section.append(overlay);
+  }
+  return overlay;
+}
+
+/**
+ * Binds GSAP tweens for one outgoing/incoming pair.
+ *
+ * @param {HTMLElement} slow
  * @param {HTMLElement} next
- * @param {number} introHeight
- * @returns {number}
- */
-function introShift(next, introHeight) {
-  const span = Math.min(introHeight, window.innerHeight);
-  if (span <= 0) return 0;
-  const { top } = next.getBoundingClientRect();
-  const t = clampProgress((span - top) / span);
-  return t * span * INTRO_LAG;
-}
-
-/**
- * Pixel offset so full-screen hero headline and CTA recede at half
- * the page scroll speed while the pinned hero stays put.
- *
- * @returns {number} translateY in px (negative = up)
- */
-function heroTextShift() {
-  return -window.scrollY * HERO_TEXT_SPEED;
-}
-
-/**
- * Applies inner lag and dim from each pair's cover progress.
- *
  * @returns {void}
  */
-export function updateSectionScrollShift() {
-  pairs.forEach((pair) => {
-    const {
-      slow,
-      next,
-      intro,
-      introHeight,
-      overlayStart,
-    } = pair;
-    if (isFullScreenHero(slow)) {
-      slow.style.setProperty('--section-scroll-shift', '0');
-      slow.style.setProperty('--section-scroll-hero-text', `${Number(heroTextShift().toFixed(2))}px`);
-    } else if (intro) {
-      slow.style.setProperty('--section-scroll-shift', `${introShift(next, introHeight)}px`);
-    } else {
-      slow.style.setProperty('--section-scroll-shift', `${Number(roundedShift(next).toFixed(2))}px`);
+function bindPair(slow, next) {
+  const intro = isIntro(slow);
+  const overlay = overlayFor(slow);
+  const inner = [...slow.children].filter((el) => el !== overlay);
+
+  if (isFullScreenHero(slow)) {
+    const text = slow.querySelectorAll('.hero__headline, .hero__cta-text');
+    if (text.length) {
+      gsap.fromTo(text, { y: 0 }, {
+        y: () => -ScrollTrigger.maxScroll(window) * HERO_TEXT_SPEED,
+        ease: 'none',
+        scrollTrigger: {
+          start: 0,
+          end: 'max',
+          scrub: true,
+          invalidateOnRefresh: true,
+        },
+      });
     }
-    slow.style.setProperty('--section-scroll-dim', String(OVERLAY_DIM * overlayProgress(next, overlayStart)));
-  });
+  } else if (intro) {
+    const coverStart = () => `top ${Math.min(slow.offsetHeight, window.innerHeight)}px`;
+    const lag = () => Math.min(slow.offsetHeight, window.innerHeight) * INTRO_LAG;
+    if (inner.length) {
+      gsap.fromTo(inner, { y: 0 }, {
+        y: lag,
+        ease: 'none',
+        scrollTrigger: scrub(next, coverStart),
+      });
+    }
+    gsap.fromTo(overlay, { y: 0, opacity: 0 }, {
+      y: lag,
+      opacity: OVERLAY_DIM,
+      ease: 'none',
+      scrollTrigger: scrub(next, coverStart),
+    });
+    return;
+  } else if (inner.length) {
+    const tl = gsap.timeline({
+      defaults: { ease: 'none' },
+      scrollTrigger: scrub(
+        next,
+        () => `top ${window.innerHeight * (COVER_START_VH + COVER_EASE_VH)}px`,
+      ),
+    });
+    tl.fromTo(inner, { y: 0 }, {
+      y: () => roundedParallax(window.innerHeight).prePinLag,
+      ease: 'power2.in',
+      duration: COVER_EASE_VH,
+    });
+    tl.to(inner, {
+      y: () => roundedParallax(window.innerHeight).postPinEnd,
+      duration: COVER_START_VH,
+    });
+  }
+
+  const from = overlayStart(next, intro, slow.offsetHeight);
+  if (from > 0) {
+    gsap.fromTo(overlay, { opacity: 0 }, {
+      opacity: OVERLAY_DIM,
+      ease: 'none',
+      scrollTrigger: scrub(next, () => `top ${from}px`),
+    });
+  }
 }
 
 /**
- * Removes classification classes and inline animation hooks from a tree.
+ * Reverts tweens and strips classification from a tree.
  *
  * @param {ParentNode} [root=document]
  * @returns {void}
  */
-function clearClasses(root = document) {
-  root.querySelectorAll(SCROLL_CLASSES.map((c) => `.${c}`).join(', ')).forEach((el) => {
-    el.classList.remove(...SCROLL_CLASSES);
-    if (el instanceof HTMLElement) {
-      el.style.removeProperty('--section-scroll-slow-top');
-      el.style.removeProperty('--section-scroll-shift');
-      el.style.removeProperty('--section-scroll-hero-text');
-      el.style.removeProperty('--section-scroll-dim');
-      el.style.removeProperty('z-index');
-    }
+function clear(root = document) {
+  motionCtx?.revert();
+  motionCtx = null;
+  root.querySelectorAll(`.${CLASS_OVERLAY}`).forEach((el) => el.remove());
+  root.querySelectorAll(`.${CLASS_SLOW}, .${CLASS_NEXT}, .${CLASS_INTRO}`).forEach((el) => {
+    el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO);
+    if (el instanceof HTMLElement) el.style.removeProperty('--section-scroll-slow-top');
   });
 }
 
 /**
- * Marks rounded pairs: the outgoing section slows, the incoming one covers.
+ * Marks cover pairs and binds motion when GSAP is running.
  *
  * @param {ParentNode} [root=document]
  * @returns {void}
  */
 export function classifySectionScroll(root = document) {
-  clearClasses(root);
-  pairs = [];
-
+  clear(root);
   const main = root.querySelector('main');
   if (!main) return;
 
-  const sections = [...main.querySelectorAll(':scope > .section')];
+  const decorate = () => {
+    [...main.querySelectorAll(':scope > .section')].forEach((section, index, sections) => {
+      const next = sections[index + 1];
+      if (!next || !shouldSlow(section, next)) return;
+      section.classList.add(CLASS_SLOW);
+      next.classList.add(CLASS_NEXT);
+      if (isIntro(section)) {
+        section.classList.add(CLASS_INTRO);
+      } else {
+        const top = isFullScreenHero(section)
+          ? 0
+          : window.innerHeight * COVER_START_VH - section.offsetHeight;
+        section.style.setProperty('--section-scroll-slow-top', `${top}px`);
+      }
+      if (started && gsap) bindPair(section, next);
+    });
+  };
 
-  sections.forEach((section, index) => {
-    const next = sections[index + 1];
-    if (!next || !shouldSlow(section, next)) return;
-    section.classList.add(CLASS_SLOW);
-    next.classList.add(CLASS_NEXT);
-    if (next instanceof HTMLElement && section instanceof HTMLElement) {
-      const intro = isIntroSection(section);
-      if (intro) section.classList.add(CLASS_INTRO);
-      else setSlowTop(section);
-      const introHeight = intro ? section.offsetHeight : 0;
-      pairs.push({
-        slow: section,
-        next,
-        intro,
-        introHeight,
-        overlayStart: overlayStartY(next, intro, introHeight),
-      });
-    }
-  });
-
-  updateSectionScrollShift();
+  if (started && gsap) motionCtx = gsap.context(decorate, main);
+  else decorate();
 }
 
 /**
- * Whether the visitor has opted into motion.
- *
  * @returns {boolean}
  */
 function prefersMotion() {
@@ -324,89 +281,78 @@ function prefersMotion() {
 }
 
 /**
- * Starts Lenis and drives inner lag from its scroll loop.
- *
- * @returns {Promise<void>}
- */
-async function attachLenis() {
-  if (lenis) {
-    lenis.resize();
-    return;
-  }
-  const { default: Lenis } = await import('../deps/lenis/dist/index.js');
-  lenis = new Lenis({ autoRaf: true });
-  lenis.on('scroll', updateSectionScrollShift);
-}
-
-/**
- * Stops Lenis if it is running.
- *
+ * @param {number} time Seconds from the GSAP ticker
  * @returns {void}
  */
-function detachLenis() {
-  if (!lenis) return;
-  lenis.off('scroll', updateSectionScrollShift);
-  lenis.destroy();
-  lenis = null;
+function tickLenis(time) {
+  lenis?.raf(time * 1000);
 }
 
 /**
- * Stops transitions but keeps the motion-query listener.
- *
+ * @returns {Promise<void>}
+ */
+async function attach() {
+  if (!gsap) {
+    const mod = await import('../deps/gsap/dist/index.js');
+    gsap = mod.gsap;
+    ScrollTrigger = mod.ScrollTrigger;
+  }
+  if (lenis) return;
+  const { default: Lenis } = await import('../deps/lenis/dist/index.js');
+  lenis = new Lenis({ autoRaf: false });
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add(tickLenis);
+  gsap.ticker.lagSmoothing(0);
+}
+
+/**
  * @returns {void}
  */
 function stop() {
   if (!started) return;
   started = false;
-  detachLenis();
+  if (gsap) gsap.ticker.remove(tickLenis);
+  if (lenis) {
+    if (ScrollTrigger) lenis.off('scroll', ScrollTrigger.update);
+    lenis.destroy();
+    lenis = null;
+  }
   if (onResize) {
     window.removeEventListener('resize', onResize);
     onResize = null;
   }
-  clearClasses();
-  pairs = [];
+  clear();
 }
 
 /**
- * Enables Lenis, slowdown classes, and CSS when motion is opted in.
- *
  * @returns {Promise<void>}
  */
 async function start() {
   if (started || !prefersMotion()) return;
   started = true;
-
   const base = window.hlx?.codeBasePath || '';
   await Promise.all([
     loadCSS(`${base}/styles/section-scroll.css`),
     loadCSS(`${base}/deps/lenis/dist/lenis.css`),
-    attachLenis(),
+    attach(),
   ]);
   classifySectionScroll();
-
   onResize = debounce(() => {
-    classifySectionScroll();
     lenis?.resize();
+    classifySectionScroll();
   });
   window.addEventListener('resize', onResize);
 }
 
 /**
- * Reacts to a mid-session change of the motion media query.
- *
  * @returns {void}
  */
 function onMotionChange() {
-  if (prefersMotion()) {
-    start();
-    return;
-  }
-  stop();
+  if (prefersMotion()) start();
+  else stop();
 }
 
 /**
- * Tears down classes and listeners (reduced-motion toggle or tests).
- *
  * @returns {void}
  */
 export function teardownSectionScroll() {
@@ -418,8 +364,6 @@ export function teardownSectionScroll() {
 }
 
 /**
- * Page entry: subscribe to the motion query and start when opted in.
- *
  * @returns {Promise<void>}
  */
 export async function initSectionScroll() {
