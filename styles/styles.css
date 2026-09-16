@@ -55,28 +55,56 @@
 
 /* --- Page transitions --- */
 
-/* Enable native multi-page transitions */
-@view-transition {
-  navigation: auto;
+/* Enable native multi-page transitions if the user does not prefer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+
+  /* Turn off the default full-page cross-fade, and target only the changing body content to fade.
+     This keeps the nav always visible during the transition. */
+  :root {
+    view-transition-name: none;
+  }
+
+  main {
+    view-transition-name: main-content;
+  }
 }
 
 /* Outgoing page: Fades out immediately. */
-::view-transition-old(root) {
-  animation: fade-out 0.3s ease-out forwards;
+::view-transition-old(main-content) {
+  animation: blur-fade-out 0.35s ease-out forwards;
 }
 
-/* Incoming page: Starts completely hidden, waits for length of outgoing transition, then fades in. */
-::view-transition-new(root) {
+/* 2. Incoming page: Starts completely hidden, waits for at least the length of outgoing transition, then fades in. */
+::view-transition-new(main-content) {
   opacity: 0; /* Keeps it hidden during the delay */
-  animation: fade-in 0.3s ease-in 0.3s forwards;
+  animation: blur-fade-in 0.45s ease-out 0.55s forwards;
 }
 
-@keyframes fade-out {
-  to { opacity: 0; }
+@keyframes blur-fade-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    filter: blur(0.75rem);
+  }
 }
 
-@keyframes fade-in {
-  to { opacity: 1; }
+@keyframes blur-fade-in {
+  from {
+    opacity: 0;
+    filter: blur(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
 }
 
 /* --- Project specific CSS variables --- */
