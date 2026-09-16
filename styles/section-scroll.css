@@ -7,7 +7,8 @@
  * Inner content eases upward so the outgoing card still moves, just slower,
  * and a dark overlay fades in with a light blur. Page header / default hero sections stay in
  * flow: their content lags instead of pinning. Full-screen heroes pin in
- * place without the inner shift so they are not pulled under the nav.
+ * place without the inner shift so they are not pulled under the nav; the
+ * headline and CTA recede at half scroll speed.
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -41,9 +42,15 @@
     transform: translateY(var(--section-scroll-shift, 0));
   }
 
-  /* Full-screen hero already sits under the sticky header. Do not shift it. */
+  /* Full-screen hero already sits under the sticky header. Do not shift it.
+     Headline and CTA recede at half the page scroll speed. */
   main > .section.section-scroll-slow.hero-container:has(.hero-full-screen) > * {
     transform: none;
+  }
+
+  main > .section.section-scroll-slow.hero-container:has(.hero-full-screen) .hero__headline,
+  main > .section.section-scroll-slow.hero-container:has(.hero-full-screen) .hero__cta-text {
+    transform: translateY(var(--section-scroll-hero-text, 0));
   }
 
   .section-scroll-slow::after {
