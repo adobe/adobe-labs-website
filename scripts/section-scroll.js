@@ -9,8 +9,9 @@
  * hero and following cards, and quickly fades out as the page scrolls.
  * A full-screen hero pins; its headline and CTA recede at half scroll speed.
  * Adjacent `section-rounded-default` siblings stay one card and are skipped.
- * A dark overlay fades in as the incoming section covers it, and hero copy
- * fades to transparent with that dim.
+ * A dark overlay fades in on the outgoing rounded card, or on the hero only
+ * (not the rest of an intro section). Hero copy fades to transparent with that
+ * dim.
  */
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';
@@ -142,19 +143,35 @@ function overlayStart(next, intro, introHeight) {
 }
 
 /**
- * Dim layer on the outgoing section. A span so it is not styled as a
+ * Host for the dim layer: the hero card when this section has one, otherwise
+ * the section (rounded cards).
+ *
+ * @param {HTMLElement} section Outgoing section
+ * @returns {HTMLElement}
+ */
+function overlayHost(section) {
+  if (!isRounded(section)) {
+    const hero = section.querySelector('.hero');
+    if (hero instanceof HTMLElement) return hero;
+  }
+  return section;
+}
+
+/**
+ * Dim layer on the outgoing card. A span so it is not styled as a
  * `main > .section > div` content column.
  *
- * @param {HTMLElement} section
+ * @param {HTMLElement} section Outgoing section
  * @returns {HTMLElement}
  */
 function overlayFor(section) {
-  let overlay = section.querySelector(`:scope > .${CLASS_OVERLAY}`);
+  const host = overlayHost(section);
+  let overlay = host.querySelector(`:scope > .${CLASS_OVERLAY}`);
   if (!(overlay instanceof HTMLElement)) {
     overlay = document.createElement('span');
     overlay.className = CLASS_OVERLAY;
     overlay.setAttribute('aria-hidden', 'true');
-    section.append(overlay);
+    host.append(overlay);
   }
   return overlay;
 }
@@ -226,8 +243,7 @@ function bindPair(slow, next) {
         scrollTrigger: scrub(next, coverStart),
       });
     }
-    gsap.fromTo(overlay, { y: 0, opacity: 0 }, {
-      y: lag,
+    gsap.fromTo(overlay, { opacity: 0 }, {
       opacity: OVERLAY_DIM,
       ease: 'none',
       scrollTrigger: scrub(next, coverStart),

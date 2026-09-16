@@ -10,7 +10,8 @@
  * out as the page scrolls. Full-screen heroes pin in place without the inner
  * shift so they are not pulled under the nav; the headline and CTA recede at
  * half scroll speed. A dark overlay fades in on the outgoing card, and hero
- * copy fades to transparent with that dim.
+ * copy fades to transparent with that dim. Intro sections dim the hero card
+ * only; rounded sections still dim the whole outgoing card.
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -66,7 +67,8 @@
     pointer-events: none;
   }
 
-  /* Intro overlay sits above hero content so the headline dims with the card. */
+  /* Intro overlay that is still a section child (no hero) fills the flex gap
+     plus the next card's start radius so white does not show through. */
   main > .section.section-scroll-intro > .section-scroll-overlay {
     z-index: 3;
     bottom: calc(-1 * (var(--section-space-between) + var(--section-border-radius)));
