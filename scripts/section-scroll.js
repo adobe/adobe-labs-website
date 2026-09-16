@@ -8,10 +8,12 @@
  * overlaps it. The page-header wrapper sticks under the nav, sits behind the
  * hero and following cards, and quickly fades out as the page scrolls.
  * A full-screen hero pins; its headline and CTA recede at half scroll speed.
- * Adjacent `section-rounded-default` siblings stay one card and are skipped.
- * A dark overlay fades in on the outgoing rounded card, or on the hero only
- * (not the rest of an intro section). Hero copy fades to transparent with that
- * dim.
+ * On touch (iOS), Lenis and GSAP y-lag/recede are skipped so native scroll is
+ * not fighting a JS translate. Intro heroes still lag via a CSS scroll
+ * timeline (compositor) so the first rounded card can cover them. Adjacent
+ * `section-rounded-default` siblings stay one card and are skipped. A dark
+ * overlay fades in on the outgoing rounded card, or on the hero only (not the
+ * rest of an intro section). Hero copy fades to transparent with that dim.
  */
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';
@@ -40,6 +42,15 @@ export const INTRO_LAG = 0.2;
 
 /** Viewport fraction over which the page-header wrapper fades out. */
 export const HEADER_FADE_VH = 0.17;
+
+/** Longer fade on small screens, where the stacked page header is taller. */
+export const HEADER_FADE_VH_SMALL = 0.4;
+
+/** Viewport query for a stacked page header (`< 48rem`). */
+const SMALL_MQ = '(width < 48rem)';
+
+/** Touch phones/tablets: skip Lenis/GSAP y-lag; intro lag is CSS on the compositor. */
+const TOUCH_MQ = '(hover: none) and (pointer: coarse)';
 
 /** Share of page scroll applied to full-screen hero headline and CTA. */
 export const HERO_TEXT_SPEED = 0.5;
@@ -83,6 +94,25 @@ function isFullScreenHero(el) {
  */
 function isIntro(el) {
   return Boolean(el && !isRounded(el) && !isFullScreenHero(el));
+}
+
+/**
+ * Page-header fade distance as a fraction of the viewport.
+ *
+ * @returns {number}
+ */
+export function headerFadeVh() {
+  return window.matchMedia(SMALL_MQ).matches ? HEADER_FADE_VH_SMALL : HEADER_FADE_VH;
+}
+
+/**
+ * True on phones and most tablets, where native scroll and a JS translate
+ * on the same hero fight each other (visible jitter on iOS).
+ *
+ * @returns {boolean}
+ */
+function usesTouchScroll() {
+  return window.matchMedia?.(TOUCH_MQ)?.matches === true;
 }
 
 /**
@@ -204,10 +234,11 @@ function bindPair(slow, next) {
   const intro = isIntro(slow);
   const overlay = overlayFor(slow);
   const inner = [...slow.children].filter((el) => el !== overlay);
+  const touch = usesTouchScroll();
 
   if (isFullScreenHero(slow)) {
     const text = slow.querySelectorAll('.hero__headline, .hero__cta-text');
-    if (text.length) {
+    if (text.length && !touch) {
       gsap.fromTo(text, { y: 0 }, {
         y: () => -ScrollTrigger.maxScroll(window) * HERO_TEXT_SPEED,
         ease: 'none',
@@ -230,13 +261,13 @@ function bindPair(slow, next) {
         ease: 'none',
         scrollTrigger: {
           start: 0,
-          end: () => window.innerHeight * HEADER_FADE_VH,
+          end: () => window.innerHeight * headerFadeVh(),
           scrub: true,
           invalidateOnRefresh: true,
         },
       });
     }
-    if (lagInner.length) {
+    if (lagInner.length && !touch) {
       gsap.fromTo(lagInner, { y: 0 }, {
         y: lag,
         ease: 'none',
@@ -250,7 +281,7 @@ function bindPair(slow, next) {
     });
     fadeHeroText(slow, scrub(next, coverStart));
     return;
-  } else if (inner.length) {
+  } else if (inner.length && !touch) {
     const tl = gsap.timeline({
       defaults: { ease: 'none' },
       scrollTrigger: scrub(
@@ -293,7 +324,10 @@ function clear(root = document) {
   root.querySelectorAll(`.${CLASS_OVERLAY}`).forEach((el) => el.remove());
   root.querySelectorAll(`.${CLASS_SLOW}, .${CLASS_NEXT}, .${CLASS_INTRO}, .${CLASS_FADE}`).forEach((el) => {
     el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE);
-    if (el instanceof HTMLElement) el.style.removeProperty('--section-scroll-slow-top');
+    if (el instanceof HTMLElement) {
+      el.style.removeProperty('--section-scroll-slow-top');
+      el.style.removeProperty('--section-scroll-intro-lag');
+    }
   });
 }
 
@@ -317,6 +351,10 @@ export function classifySectionScroll(root = document) {
       if (isIntro(section)) {
         section.classList.add(CLASS_INTRO);
         section.querySelector(':scope > .page-header-wrapper')?.classList.add(CLASS_FADE);
+        if (usesTouchScroll()) {
+          const lag = Math.min(section.offsetHeight, window.innerHeight) * INTRO_LAG;
+          section.style.setProperty('--section-scroll-intro-lag', `${lag}px`);
+        }
       } else {
         const top = isFullScreenHero(section)
           ? 0
@@ -355,7 +393,7 @@ async function attach() {
     gsap = mod.gsap;
     ScrollTrigger = mod.ScrollTrigger;
   }
-  if (lenis) return;
+  if (usesTouchScroll() || lenis) return;
   const { default: Lenis } = await import('../deps/lenis/dist/index.js');
   lenis = new Lenis({ autoRaf: false });
   lenis.on('scroll', ScrollTrigger.update);
@@ -389,11 +427,14 @@ async function start() {
   if (started || !prefersMotion()) return;
   started = true;
   const base = window.hlx?.codeBasePath || '';
-  await Promise.all([
+  const assets = [
     loadCSS(`${base}/styles/section-scroll.css`),
-    loadCSS(`${base}/deps/lenis/dist/lenis.css`),
     attach(),
-  ]);
+  ];
+  if (!usesTouchScroll()) {
+    assets.push(loadCSS(`${base}/deps/lenis/dist/lenis.css`));
+  }
+  await Promise.all(assets);
   classifySectionScroll();
   onResize = debounce(() => {
     lenis?.resize();
