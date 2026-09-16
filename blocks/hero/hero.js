@@ -247,6 +247,10 @@ function revealSecondSection() {
   }
 }
 
+function sectionIsHidden(section) {
+  return section instanceof HTMLElement && section.style.display === 'none';
+}
+
 function unbindSkipClear() {
   if (!skipIntroHandler) return;
   document.querySelector('a.header__skip')?.removeEventListener('click', skipIntroHandler);
@@ -368,13 +372,19 @@ function beginBodyIntro(root) {
   ];
 }
 
-/** Waits for `body.appear`, then two frames so parked styles paint. */
-function waitForBodyIntro(root) {
+/**
+ * Waits for `body.appear` and a visible first section, then two frames so
+ * parked styles paint. Do not show the second section while the hero is
+ * still `display: none` (`waitForFirstImage`): the parked offset is only
+ * enough after the hero is in the layout.
+ */
+function waitForBodyIntro(root, section) {
   if (!root.classList.contains('hero-intro')) return;
-  if (!document.body.classList.contains('appear')) {
-    paintRaf = window.requestAnimationFrame(() => waitForBodyIntro(root));
+  if (!document.body.classList.contains('appear') || sectionIsHidden(section)) {
+    paintRaf = window.requestAnimationFrame(() => waitForBodyIntro(root, section));
     return;
   }
+  revealSecondSection();
   paintRaf = window.requestAnimationFrame(() => {
     if (!root.classList.contains('hero-intro')) return;
     paintRaf = window.requestAnimationFrame(() => {
@@ -384,15 +394,14 @@ function waitForBodyIntro(root) {
   });
 }
 
-function startHeroIntro(block) {
+function startHeroIntro(block, section) {
   const root = document.documentElement;
   root.classList.add('hero-intro');
-  revealSecondSection();
   mediaEl = block.querySelector('.hero__media img') || undefined;
   injectFrost();
   if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
   bindSkipClear();
-  waitForBodyIntro(root);
+  waitForBodyIntro(root, section);
 }
 
 /**
@@ -415,5 +424,5 @@ export default async function decorate(block) {
     || document.documentElement.classList.contains('hero-intro')
     || window.location.hash
   ) return;
-  startHeroIntro(block);
+  startHeroIntro(block, section);
 }

@@ -387,6 +387,37 @@ describe('hero block', () => {
       expect(second.dataset.sectionStatus).toBe('initialized');
     });
 
+    it('does not show the second section while the hero section is hidden', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+      const first = block.closest('.section');
+      first.style.display = 'none';
+      const second = document.createElement('div');
+      second.className = 'section';
+      second.style.display = 'none';
+      second.dataset.sectionStatus = 'initialized';
+      block.closest('main').append(second);
+
+      await decorate(block);
+      await flushPaintFrames();
+
+      expect(second.style.display).toBe('none');
+      expect(second.dataset.sectionStatus).toBe('initialized');
+      expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+
+      first.style.display = '';
+      await flushPaintFrames();
+      await flushPaintFrames();
+
+      expect(second.style.display).toBe('');
+      expect(second.dataset.sectionStatus).toBe('initialized');
+      expect(document.documentElement).toHaveClass('hero-intro--body');
+    });
+
     it('clears the intro when the skip link is clicked', async () => {
       const skip = document.createElement('a');
       skip.className = 'header__skip';

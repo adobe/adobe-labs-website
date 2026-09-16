@@ -638,6 +638,7 @@ html.hero-intro--body main > .section:nth-of-type(2) {
 
 html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
   transform: translateY(var(--hero-intro-section-offset));
+  visibility: hidden;
 }
 
 @keyframes hero-intro-section-rise {
