@@ -178,7 +178,7 @@ describe('footer block', () => {
     privacyLinks.forEach((link) => expect(link).not.toHaveAttribute('title'));
   });
 
-  it('assembles the footer wrapper with parallax logo', async () => {
+  it('assembles the footer wrapper with the Adobe logo', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
 
@@ -190,54 +190,23 @@ describe('footer block', () => {
     expect(block.querySelector('.footer__logo')).toBeTruthy();
   });
 
-  it('registers scroll listeners for the parallax logo', async () => {
+  it('drives the logo from sticky positioning alone, with no scroll work', async () => {
     const addSpy = jest.spyOn(window, 'addEventListener');
-    const block = document.createElement('div');
-    block.className = 'footer';
-
-    await decorate(block);
-
-    expect(addSpy).toHaveBeenCalledWith('scroll', expect.any(Function), { passive: true });
-    addSpy.mockRestore();
-  });
-
-  it('measures the parallax logo once per resize, not once per scroll frame', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
     document.body.append(block);
 
     await decorate(block);
 
-    const logo = block.querySelector('.footer__logo');
-    let reads = 0;
-    Object.defineProperty(logo, 'offsetHeight', {
-      configurable: true,
-      get() {
-        reads += 1;
-        return 400;
-      },
-    });
-    // Run the throttled work inline so each event lands as one frame.
-    const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
-      cb();
-      return 1;
-    });
+    // The reveal is `.footer__logo` sticking to the viewport bottom while the
+    // footer content scrolls past it. A scroll or resize listener here would mean
+    // the logo is being moved again, which is the thing it should not do.
+    const events = addSpy.mock.calls.map(([type]) => type);
 
-    try {
-      for (let i = 0; i < 5; i += 1) window.dispatchEvent(new Event('scroll'));
-
-      // Reading `offsetHeight` forces layout, so the height is cached across
-      // frames instead of measured on each one.
-      expect(reads).toBe(1);
-
-      window.dispatchEvent(new Event('resize'));
-
-      // A resize can change it, so that is where the cache is dropped.
-      expect(reads).toBe(2);
-    } finally {
-      raf.mockRestore();
-      delete logo.offsetHeight;
-    }
+    expect(events).not.toContain('scroll');
+    expect(events).not.toContain('resize');
+    expect(block.querySelector('.footer__logo')).not.toHaveAttribute('style');
+    addSpy.mockRestore();
   });
 
   it('toggles mobile accordion sections on toggle button click', async () => {

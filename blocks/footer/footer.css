@@ -323,13 +323,13 @@
   pointer-events: none;
 }
 
+/* Wider than its box on purpose; `.footer__logo` clips the bleed. */
 .footer__logo-image {
   display: block;
   inline-size: calc(100% + 3.5rem);
   max-inline-size: none;
   block-size: auto;
   flex-shrink: 0;
-  transform: translateY(calc((var(--footer-logo-entry-progress, -100) / 100) * 50%));
 }
 
 @media (width >= 120rem) {
