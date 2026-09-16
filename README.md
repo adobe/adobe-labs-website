@@ -226,6 +226,23 @@ import { loadCSS } from '../../scripts/aem.js';
 loadCSS(`${window.hlx.codeBasePath}/deps/lenis/dist/lenis.css`);
 ```
 
+### Updating the vendored GSAP library
+
+[GSAP](https://gsap.com/) plus [ScrollTrigger](https://gsap.com/docs/v3/Plugins/ScrollTrigger/) (scroll-driven section parallax) are vendored the same way. After bumping the version in `package.json`:
+
+```sh
+npm install
+npm run build:gsap
+```
+
+That writes `deps/gsap/dist/index.js`. Commit that file with the version change.
+
+When a feature needs GSAP, import the committed dist file at the point of use. Do not add GSAP to `scripts.js` or `head.html`. Section overlays do this from `scripts/section-scroll.js` when motion is opted in.
+
+```js
+import { gsap, ScrollTrigger } from '../../deps/gsap/dist/index.js';
+```
+
 ## Query Indexes
 
 The following query indexes are configured for this site.

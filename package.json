@@ -11,7 +11,8 @@
     "lint:fix": "npm run lint:js -- --fix && npm run lint:css -- --fix",
     "test": "jest",
     "prepare": "husky",
-    "build:lenis": "mkdir -p deps/lenis/dist && esbuild --format=esm --minify ./deps/lenis/src/index.js --bundle --outfile=./deps/lenis/dist/index.js && cp node_modules/lenis/dist/lenis.css deps/lenis/dist/lenis.css"
+    "build:lenis": "mkdir -p deps/lenis/dist && esbuild --format=esm --minify ./deps/lenis/src/index.js --bundle --outfile=./deps/lenis/dist/index.js && cp node_modules/lenis/dist/lenis.css deps/lenis/dist/lenis.css",
+    "build:gsap": "mkdir -p deps/gsap/dist && esbuild --format=esm --minify ./deps/gsap/src/index.js --bundle --outfile=./deps/gsap/dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -34,6 +35,7 @@
     "eslint": "8.57.1",
     "eslint-config-airbnb-base": "15.0.0",
     "eslint-plugin-import": "2.32.0",
+    "gsap": "3.15.0",
     "husky": "9.1.7",
     "jest": "30.5.1",
     "jest-environment-jsdom": "30.5.1",

@@ -3,12 +3,12 @@
  * prefers-reduced-motion: no-preference.
  *
  * Rounded cards pin once the next rounded section reaches COVER_START_VH.
- * Inner content eases into the slowed parallax before that pin.
- * Inner content eases upward so the outgoing card still moves, just slower,
- * and a dark overlay fades in with a light blur. Page header / default hero sections stay in
- * flow: their content lags instead of pinning. Full-screen heroes pin in
- * place without the inner shift so they are not pulled under the nav; the
- * headline and CTA recede at half scroll speed.
+ * GSAP eases inner content into the slowed parallax before that pin, then
+ * recedes it as the next card covers. Page header / default hero sections
+ * stay in flow: their content lags instead of pinning. Full-screen heroes pin
+ * in place without the inner shift so they are not pulled under the nav; the
+ * headline and CTA recede at half scroll speed. A dark overlay fades in on
+ * the outgoing card.
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -38,35 +38,20 @@
     overflow: visible;
   }
 
-  .section-scroll-slow > * {
-    transform: translateY(var(--section-scroll-shift, 0));
-  }
-
-  /* Full-screen hero already sits under the sticky header. Do not shift it.
-     Headline and CTA recede at half the page scroll speed. */
-  main > .section.section-scroll-slow.hero-container:has(.hero-full-screen) > * {
-    transform: none;
-  }
-
-  main > .section.section-scroll-slow.hero-container:has(.hero-full-screen) .hero__headline,
-  main > .section.section-scroll-slow.hero-container:has(.hero-full-screen) .hero__cta-text {
-    transform: translateY(var(--section-scroll-hero-text, 0));
-  }
-
-  .section-scroll-slow::after {
-    content: "";
+  .section-scroll-overlay {
     position: absolute;
     inset: 0;
     z-index: 2;
+    display: block;
     border-radius: inherit;
-    background: rgb(0 0 0 / var(--section-scroll-dim, 0));
+    background: #000;
+    opacity: 0;
     pointer-events: none;
   }
 
   /* Intro content lags; keep the dim on that content and fill the flex gap
      plus the next card's start radius so white does not show through. */
-  main > .section.section-scroll-intro::after {
+  main > .section.section-scroll-intro > .section-scroll-overlay {
     bottom: calc(-1 * (var(--section-space-between) + var(--section-border-radius)));
-    transform: translateY(var(--section-scroll-shift, 0));
   }
 }
