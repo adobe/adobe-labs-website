@@ -73,11 +73,20 @@
   }
 
   .abstract__body {
+    --abstract-body-font-size: var(--s2a-font-size-md);
+    --abstract-body-line-height: var(--s2a-font-line-height-20);
+
     min-inline-size: 0;
     font-family: adobe-clean-spectrum-serif, serif;
-    font-size: var(--s2a-font-size-md);
-    line-height: var(--s2a-font-line-height-20);
+    font-size: var(--abstract-body-font-size);
+    line-height: var(--abstract-body-line-height);
     flex-basis: fit-content;
+
+    @media (width >= 64rem) {
+      /* No s2a token matches these values responsively. */
+      --abstract-body-font-size: 1.25rem; /* 20px */
+      --abstract-body-line-height: 1.625rem; /* 26px */
+    }
   }
 
   .abstract__items {
