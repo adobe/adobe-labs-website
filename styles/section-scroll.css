@@ -9,9 +9,12 @@
  * sticks under the nav, sits behind the hero and next card, and quickly fades
  * out as the page scrolls. Full-screen heroes pin in place without the inner
  * shift so they are not pulled under the nav; the headline and CTA recede at
- * half scroll speed. A dark overlay fades in on the outgoing card, and hero
- * copy fades to transparent with that dim. Intro sections dim the hero card
- * only; rounded sections still dim the whole outgoing card.
+ * half scroll speed. On touch, Lenis and GSAP y-lag/recede are skipped so
+ * native scroll is not fighting a JS translate. Intro heroes still lag via a
+ * CSS scroll timeline so the first rounded card can cover them. A dark overlay
+ * fades in on the outgoing card, and hero copy fades to transparent with that
+ * dim. Intro sections dim the hero card only; rounded sections still dim the
+ * whole outgoing card.
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -51,7 +54,7 @@
   }
 
   /* Hero (and other intro blocks) slide over the page header. */
-  main > .section.section-scroll-intro > :not(.section-scroll-fade):not(.section-scroll-overlay) {
+  main > .section.section-scroll-intro > :not(.section-scroll-fade, .section-scroll-overlay) {
     position: relative;
     z-index: 2;
   }
@@ -72,5 +75,30 @@
   main > .section.section-scroll-intro > .section-scroll-overlay {
     z-index: 3;
     bottom: calc(-1 * (var(--section-space-between) + var(--section-border-radius)));
+  }
+
+  /*
+   * Touch lag on the compositor. GSAP y on the same node as native iOS scroll
+   * jitters; a view timeline does not. `--section-scroll-intro-lag` is set in JS.
+   */
+  @supports (animation-timeline: view()) and (animation-range: entry) {
+    @media (hover: none) and (pointer: coarse) {
+      @keyframes section-scroll-intro-lag {
+        to {
+          transform: translateY(var(--section-scroll-intro-lag, 0));
+        }
+      }
+
+      main > .section.section-scroll-intro {
+        view-timeline-name: --section-scroll-intro;
+        view-timeline-axis: block;
+      }
+
+      main > .section.section-scroll-intro > :not(.section-scroll-fade, .section-scroll-overlay) {
+        animation: section-scroll-intro-lag linear both;
+        animation-timeline: --section-scroll-intro;
+        animation-range: exit 0% exit 100%;
+      }
+    }
   }
 }

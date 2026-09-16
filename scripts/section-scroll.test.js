@@ -8,6 +8,7 @@ import {
   COVER_EASE_VH,
   COVER_START_VH,
   HEADER_FADE_VH,
+  HEADER_FADE_VH_SMALL,
   HERO_TEXT_SPEED,
   INTRO_LAG,
   OVERLAY_DIM,
@@ -72,22 +73,28 @@ function mountMain(mainHtml) {
 }
 
 /**
- * @param {boolean} matches
- * @returns {MediaQueryList}
+ * @param {boolean} motionMatches
+ * @param {{ small?: boolean, touch?: boolean }} [options]
+ * @returns {void}
  */
-function mockMatchMedia(matches) {
-  const mq = {
-    matches,
-    media: '(prefers-reduced-motion: no-preference)',
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-  };
-  window.matchMedia = jest.fn(() => mq);
-  return mq;
+function mockMatchMedia(motionMatches, { small = false, touch = false } = {}) {
+  window.matchMedia = jest.fn((query) => {
+    let matches = false;
+    if (query.includes('prefers-reduced-motion')) matches = motionMatches;
+    else if (query.includes('width < 48rem')) matches = small;
+    else if (query.includes('pointer: coarse')) matches = touch;
+    return {
+      matches,
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    };
+  });
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockMatchMedia(false);
   window.hlx = { codeBasePath: '' };
   document.body.innerHTML = '';
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
@@ -174,11 +181,36 @@ describe('classifySectionScroll', () => {
     expect(header).toHaveClass('section-scroll-slow');
     expect(header).toHaveClass('section-scroll-intro');
     expect(header.style.getPropertyValue('--section-scroll-slow-top')).toBe('');
+    expect(header.style.getPropertyValue('--section-scroll-intro-lag')).toBe('');
     expect(header.querySelector('.page-header-wrapper')).toHaveClass('section-scroll-fade');
     expect(blue).toHaveClass('section-scroll-next');
     expect(blue).toHaveClass('section-scroll-slow');
     expect(blue).not.toHaveClass('section-scroll-intro');
     expect(next).toHaveClass('section-scroll-next');
+  });
+
+  it('lags an intro hero with a CSS var on a coarse pointer instead of pinning', () => {
+    mockMatchMedia(true, { touch: true });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section page-header-container hero-container">
+        <div class="page-header-wrapper">
+          <div class="page-header"></div>
+        </div>
+        <div class="hero-wrapper">
+          <div class="hero"></div>
+        </div>
+      </div>
+      <div class="section section-rounded-blue"></div>
+    `);
+    Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 400 });
+
+    classifySectionScroll();
+
+    const header = main.children[0];
+    expect(header).toHaveClass('section-scroll-intro');
+    expect(header.style.getPropertyValue('--section-scroll-slow-top')).toBe('');
+    expect(header.style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
   });
 
   it('stacks slow/next through a color/default chain', () => {
@@ -439,6 +471,105 @@ describe('initSectionScroll', () => {
         ease: 'none',
       }),
     );
+  });
+
+  it('uses a CSS intro lag instead of GSAP y on a coarse pointer', async () => {
+    mockMatchMedia(true, { touch: true });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section page-header-container hero-container">
+        <div class="page-header-wrapper">
+          <div class="page-header"></div>
+        </div>
+        <div class="hero-wrapper">
+          <div class="hero">
+            <div class="hero__content">
+              <h2 class="hero__headline">Headline</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section section-rounded-blue"></div>
+    `);
+
+    Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 400 });
+
+    await initSectionScroll();
+
+    const heroWrap = main.querySelector('.hero-wrapper');
+    const overlay = main.querySelector('.section-scroll-overlay');
+    const innerTween = gsap.fromTo.mock.calls.find((call) => (
+      Array.isArray(call[0]) && call[0].includes(heroWrap)
+    ));
+    expect(innerTween).toBeUndefined();
+    expect(Lenis).not.toHaveBeenCalled();
+    expect(gsap.ticker.add).not.toHaveBeenCalled();
+    expect(loadCSS).toHaveBeenCalledWith('/styles/section-scroll.css');
+    expect(loadCSS).not.toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
+    expect(main.children[0].style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
+    expect(gsap.fromTo).toHaveBeenCalledWith(
+      overlay,
+      { opacity: 0 },
+      expect.objectContaining({ opacity: OVERLAY_DIM }),
+    );
+    expect(gsap.fromTo).toHaveBeenCalledWith(
+      main.querySelector('.hero__content'),
+      { autoAlpha: 1 },
+      expect.objectContaining({ autoAlpha: 0 }),
+    );
+  });
+
+  it('does not recede full-screen hero text or lag rounded cards on a coarse pointer', async () => {
+    mockMatchMedia(true, { touch: true });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section hero-container">
+        <div class="hero hero-full-screen">
+          <div class="hero__content">
+            <h2 class="hero__headline">Headline</h2>
+            <p class="hero__cta-text">Read</p>
+          </div>
+        </div>
+      </div>
+      <div class="section section-rounded-blue">
+        <div class="inner">Card</div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+
+    const heroY = gsap.fromTo.mock.calls.find((call) => (
+      call[1]?.y === 0 && call[2]?.scrollTrigger?.end === 'max'
+    ));
+    expect(heroY).toBeUndefined();
+    expect(gsap.timeline).not.toHaveBeenCalled();
+    expect(Lenis).not.toHaveBeenCalled();
+    expect(gsap.fromTo).toHaveBeenCalledWith(
+      main.children[0].querySelector('.hero__content'),
+      { autoAlpha: 1 },
+      expect.objectContaining({ autoAlpha: 0 }),
+    );
+    expect(main.querySelector('.section-rounded-blue > .section-scroll-overlay')).toBeTruthy();
+  });
+
+  it('fades the page-header wrapper over a longer scroll on small screens', async () => {
+    mockMatchMedia(true, { small: true });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    mountMain(`
+      <div class="section page-header-container">
+        <div class="page-header-wrapper">
+          <div class="page-header"></div>
+        </div>
+      </div>
+      <div class="section section-rounded-blue"></div>
+    `);
+
+    await initSectionScroll();
+
+    const headerWrap = document.querySelector('.page-header-wrapper');
+    const fadeTween = gsap.fromTo.mock.calls.find((call) => call[0] === headerWrap);
+    expect(fadeTween[2].scrollTrigger.end()).toBe(800 * HEADER_FADE_VH_SMALL);
   });
 
   it('recedes full-screen hero headline and CTA at half scroll speed', async () => {
