@@ -8,13 +8,11 @@
  * stay in flow: the hero lags instead of pinning, and the page-header wrapper
  * sticks under the nav, sits behind the hero and next card, and quickly fades
  * out as the page scrolls. Full-screen heroes pin in place without the inner
- * shift so they are not pulled under the nav; the headline and CTA recede at
- * half scroll speed. On touch, Lenis and GSAP y-lag/recede are skipped so
- * native scroll is not fighting a JS translate. Intro heroes still lag via a
- * CSS scroll timeline so the first rounded card can cover them. A dark overlay
- * fades in on the outgoing card, and hero copy fades to transparent with that
- * dim. Intro sections dim the hero card only; rounded sections still dim the
- * whole outgoing card.
+ * shift so they are not pulled under the nav. On touch, intro lag uses a CSS
+ * scroll timeline instead of GSAP y, and rounded inner parallax is skipped.
+ * A dark overlay fades in on the outgoing card, and hero copy fades to
+ * transparent with that dim. Intro sections dim the hero card only; rounded
+ * sections still dim the whole outgoing card.
  */
 
 @media (prefers-reduced-motion: no-preference) {

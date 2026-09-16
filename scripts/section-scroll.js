@@ -7,13 +7,13 @@
  * hero content keeps moving, just slower, while the first rounded section
  * overlaps it. The page-header wrapper sticks under the nav, sits behind the
  * hero and following cards, and quickly fades out as the page scrolls.
- * A full-screen hero pins; its headline and CTA recede at half scroll speed.
- * On touch (iOS), Lenis and GSAP y-lag/recede are skipped so native scroll is
- * not fighting a JS translate. Intro heroes still lag via a CSS scroll
- * timeline (compositor) so the first rounded card can cover them. Adjacent
- * `section-rounded-default` siblings stay one card and are skipped. A dark
- * overlay fades in on the outgoing rounded card, or on the hero only (not the
- * rest of an intro section). Hero copy fades to transparent with that dim.
+ * A full-screen hero pins in place; its headline and CTA recede at half
+ * scroll speed. On touch (iOS), Lenis and GSAP y-lag/recede are skipped so
+ * native scroll is not fighting a JS translate; intro lag uses a CSS scroll
+ * timeline instead. Adjacent `section-rounded-default` siblings
+ * stay one card and are skipped. A dark overlay fades in on the outgoing
+ * rounded card, or on the hero only (not the rest of an intro section). Hero
+ * copy fades to transparent with that dim.
  */
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';
@@ -49,7 +49,7 @@ export const HEADER_FADE_VH_SMALL = 0.4;
 /** Viewport query for a stacked page header (`< 48rem`). */
 const SMALL_MQ = '(width < 48rem)';
 
-/** Touch phones/tablets: skip Lenis/GSAP y-lag; intro lag is CSS on the compositor. */
+/** Touch phones/tablets: skip Lenis; intro lag is CSS on the compositor. */
 const TOUCH_MQ = '(hover: none) and (pointer: coarse)';
 
 /** Share of page scroll applied to full-screen hero headline and CTA. */
@@ -127,16 +127,19 @@ function shouldSlow(previous, next) {
 }
 
 /**
- * Shared ScrollTrigger for cover-driven tweens.
+ * Shared ScrollTrigger for cover-driven tweens. `clamp()` keeps the start at
+ * scroll 0 or later: a hero shorter than the cover line puts the incoming
+ * section above that line at rest, which would otherwise leave the tween
+ * part-way through before the page has scrolled.
  *
  * @param {HTMLElement} trigger
- * @param {string | (() => string)} startAt
+ * @param {() => string} startAt
  * @returns {object}
  */
 function scrub(trigger, startAt) {
   return {
     trigger,
-    start: startAt,
+    start: () => `clamp(${startAt()})`,
     end: 'top top',
     scrub: true,
     invalidateOnRefresh: true,
@@ -153,23 +156,6 @@ export function roundedParallax(vh) {
   if (vh <= 0) return { prePinLag: 0, postPinEnd: 0 };
   const prePinLag = (1 - SHIFT_VH / COVER_START_VH) * vh * COVER_EASE_VH * 0.5;
   return { prePinLag, postPinEnd: prePinLag - SHIFT_VH * vh };
-}
-
-/**
- * Viewport Y where dim begins. Caps at the incoming section's rest top so a
- * short full-screen hero is not already dimmed.
- *
- * @param {HTMLElement} next
- * @param {boolean} intro
- * @param {number} introHeight
- * @returns {number}
- */
-function overlayStart(next, intro, introHeight) {
-  if (intro) return Math.min(introHeight, window.innerHeight);
-  const restTop = next.getBoundingClientRect().top + window.scrollY;
-  return restTop > 0
-    ? Math.min(window.innerHeight * COVER_START_VH, restTop)
-    : window.innerHeight * COVER_START_VH;
 }
 
 /**
@@ -224,6 +210,28 @@ function fadeHeroText(section, scrollTrigger) {
 }
 
 /**
+ * Pushes full-screen hero headline and CTA up at half scroll speed. Only the
+ * copy moves: the pinned hero card and its art stay in place.
+ *
+ * @param {HTMLElement} section Outgoing full-screen hero
+ * @returns {void}
+ */
+function recedeHeroText(section) {
+  const text = section.querySelectorAll('.hero__headline, .hero__cta-text');
+  if (!text.length) return;
+  gsap.fromTo(text, { y: 0 }, {
+    y: () => -ScrollTrigger.maxScroll(window) * HERO_TEXT_SPEED,
+    ease: 'none',
+    scrollTrigger: {
+      start: 0,
+      end: 'max',
+      scrub: true,
+      invalidateOnRefresh: true,
+    },
+  });
+}
+
+/**
  * Binds GSAP tweens for one outgoing/incoming pair.
  *
  * @param {HTMLElement} slow
@@ -234,27 +242,12 @@ function bindPair(slow, next) {
   const intro = isIntro(slow);
   const overlay = overlayFor(slow);
   const inner = [...slow.children].filter((el) => el !== overlay);
-  const touch = usesTouchScroll();
 
-  if (isFullScreenHero(slow)) {
-    const text = slow.querySelectorAll('.hero__headline, .hero__cta-text');
-    if (text.length && !touch) {
-      gsap.fromTo(text, { y: 0 }, {
-        y: () => -ScrollTrigger.maxScroll(window) * HERO_TEXT_SPEED,
-        ease: 'none',
-        scrollTrigger: {
-          start: 0,
-          end: 'max',
-          scrub: true,
-          invalidateOnRefresh: true,
-        },
-      });
-    }
-  } else if (intro) {
+  if (intro) {
     const coverStart = () => `top ${Math.min(slow.offsetHeight, window.innerHeight)}px`;
     const lag = () => Math.min(slow.offsetHeight, window.innerHeight) * INTRO_LAG;
-    const headerWrap = inner.find((el) => el.classList.contains(CLASS_FADE));
-    const lagInner = inner.filter((el) => el !== headerWrap);
+    const headerWrap = slow.querySelector(`:scope > .${CLASS_FADE}`);
+    const lagInner = [...slow.children].filter((el) => el !== overlay && el !== headerWrap);
     if (headerWrap) {
       gsap.fromTo(headerWrap, { autoAlpha: 1 }, {
         autoAlpha: 0,
@@ -267,7 +260,7 @@ function bindPair(slow, next) {
         },
       });
     }
-    if (lagInner.length && !touch) {
+    if (lagInner.length && !usesTouchScroll()) {
       gsap.fromTo(lagInner, { y: 0 }, {
         y: lag,
         ease: 'none',
@@ -281,7 +274,11 @@ function bindPair(slow, next) {
     });
     fadeHeroText(slow, scrub(next, coverStart));
     return;
-  } else if (inner.length && !touch) {
+  }
+
+  if (isFullScreenHero(slow)) {
+    if (!usesTouchScroll()) recedeHeroText(slow);
+  } else if (inner.length && !usesTouchScroll()) {
     const tl = gsap.timeline({
       defaults: { ease: 'none' },
       scrollTrigger: scrub(
@@ -300,16 +297,13 @@ function bindPair(slow, next) {
     });
   }
 
-  const from = overlayStart(next, intro, slow.offsetHeight);
-  if (from > 0) {
-    const startAt = () => `top ${from}px`;
-    gsap.fromTo(overlay, { opacity: 0 }, {
-      opacity: OVERLAY_DIM,
-      ease: 'none',
-      scrollTrigger: scrub(next, startAt),
-    });
-    fadeHeroText(slow, scrub(next, startAt));
-  }
+  const startAt = () => `top ${window.innerHeight * COVER_START_VH}px`;
+  gsap.fromTo(overlay, { opacity: 0 }, {
+    opacity: OVERLAY_DIM,
+    ease: 'none',
+    scrollTrigger: scrub(next, startAt),
+  });
+  fadeHeroText(slow, scrub(next, startAt));
 }
 
 /**
