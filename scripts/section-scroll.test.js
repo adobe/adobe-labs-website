@@ -7,6 +7,7 @@ import Lenis from '../deps/lenis/dist/index.js';
 import {
   COVER_EASE_VH,
   COVER_START_VH,
+  HEADER_FADE_VH,
   HERO_TEXT_SPEED,
   INTRO_LAG,
   OVERLAY_DIM,
@@ -159,7 +160,9 @@ describe('classifySectionScroll', () => {
   it('slows a page-header behind the first rounded section without pinning', () => {
     const main = mountMain(`
       <div class="section page-header-container hero-container">
-        <div class="page-header"></div>
+        <div class="page-header-wrapper">
+          <div class="page-header"></div>
+        </div>
       </div>
       <div class="section section-rounded-blue"></div>
       <div class="section section-rounded-default"></div>
@@ -171,6 +174,7 @@ describe('classifySectionScroll', () => {
     expect(header).toHaveClass('section-scroll-slow');
     expect(header).toHaveClass('section-scroll-intro');
     expect(header.style.getPropertyValue('--section-scroll-slow-top')).toBe('');
+    expect(header.querySelector('.page-header-wrapper')).toHaveClass('section-scroll-fade');
     expect(blue).toHaveClass('section-scroll-next');
     expect(blue).toHaveClass('section-scroll-slow');
     expect(blue).not.toHaveClass('section-scroll-intro');
@@ -364,12 +368,17 @@ describe('initSectionScroll', () => {
     expect(overlayStart).toBe(`top ${800 * COVER_START_VH}px`);
   });
 
-  it('lags page-header content and overlay together', async () => {
+  it('quickly fades the page-header wrapper and lags remaining intro content', async () => {
     mockMatchMedia(true);
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
-      <div class="section page-header-container">
-        <div class="page-header"></div>
+      <div class="section page-header-container hero-container">
+        <div class="page-header-wrapper">
+          <div class="page-header"></div>
+        </div>
+        <div class="hero-wrapper">
+          <div class="hero"></div>
+        </div>
       </div>
       <div class="section section-rounded-blue"></div>
     `);
@@ -378,14 +387,34 @@ describe('initSectionScroll', () => {
     await initSectionScroll();
 
     const header = main.children[0];
+    const headerWrap = header.querySelector('.page-header-wrapper');
+    const heroWrap = header.querySelector('.hero-wrapper');
     const overlay = header.querySelector('.section-scroll-overlay');
+    expect(headerWrap).toHaveClass('section-scroll-fade');
     expect(overlay).toBeTruthy();
     expect(gsap.fromTo).toHaveBeenCalledWith(
-      expect.arrayContaining([header.querySelector('.page-header')]),
+      headerWrap,
+      { autoAlpha: 1 },
+      expect.objectContaining({
+        autoAlpha: 0,
+        ease: 'none',
+        scrollTrigger: expect.objectContaining({
+          start: 0,
+          scrub: true,
+        }),
+      }),
+    );
+    const fadeTween = gsap.fromTo.mock.calls.find((call) => call[0] === headerWrap);
+    expect(fadeTween[2].scrollTrigger.end()).toBe(800 * HEADER_FADE_VH);
+    expect(gsap.fromTo).toHaveBeenCalledWith(
+      expect.arrayContaining([heroWrap]),
       { y: 0 },
       expect.objectContaining({ ease: 'none' }),
     );
-    const innerTween = gsap.fromTo.mock.calls.find((call) => Array.isArray(call[0]));
+    const innerTween = gsap.fromTo.mock.calls.find((call) => (
+      Array.isArray(call[0]) && call[0].includes(heroWrap)
+    ));
+    expect(innerTween[0]).not.toContain(headerWrap);
     expect(innerTween[2].y()).toBe(400 * INTRO_LAG);
     expect(gsap.fromTo).toHaveBeenCalledWith(
       overlay,
