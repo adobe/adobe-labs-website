@@ -346,7 +346,7 @@ describe('initSectionScroll', () => {
       }),
     }));
     const start = gsap.timeline.mock.calls[0][0].scrollTrigger.start();
-    expect(start).toBe(`top ${800 * (COVER_START_VH + COVER_EASE_VH)}px`);
+    expect(start).toBe(`clamp(top ${800 * (COVER_START_VH + COVER_EASE_VH)}px)`);
 
     const tl = gsap.timeline.mock.results[0].value;
     expect(tl.fromTo).toHaveBeenCalledWith(
@@ -375,7 +375,6 @@ describe('initSectionScroll', () => {
       </div>
       <div class="section section-rounded-default"></div>
     `);
-    jest.spyOn(main.children[1], 'getBoundingClientRect').mockReturnValue({ top: 2000 });
 
     await initSectionScroll();
 
@@ -398,7 +397,7 @@ describe('initSectionScroll', () => {
       }),
     );
     const overlayStart = gsap.fromTo.mock.calls[0][2].scrollTrigger.start();
-    expect(overlayStart).toBe(`top ${800 * COVER_START_VH}px`);
+    expect(overlayStart).toBe(`clamp(top ${800 * COVER_START_VH}px)`);
   });
 
   it('quickly fades the page-header wrapper and lags remaining intro content', async () => {
@@ -572,15 +571,17 @@ describe('initSectionScroll', () => {
     expect(fadeTween[2].scrollTrigger.end()).toBe(800 * HEADER_FADE_VH_SMALL);
   });
 
-  it('recedes full-screen hero headline and CTA at half scroll speed', async () => {
+  it('dims a full-screen hero and recedes its copy without shifting the card', async () => {
     mockMatchMedia(true);
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
       <div class="section hero-container">
-        <div class="hero hero-full-screen">
-          <div class="hero__content">
-            <h2 class="hero__headline">Headline</h2>
-            <p class="hero__cta-text">Read</p>
+        <div class="hero-wrapper">
+          <div class="hero hero-full-screen">
+            <div class="hero__content">
+              <h2 class="hero__headline">Headline</h2>
+              <p class="hero__cta-text">Read</p>
+            </div>
           </div>
         </div>
       </div>
@@ -589,20 +590,15 @@ describe('initSectionScroll', () => {
 
     await initSectionScroll();
 
-    expect(gsap.fromTo).toHaveBeenCalledWith(
-      expect.any(NodeList),
-      { y: 0 },
-      expect.objectContaining({
-        ease: 'none',
-        scrollTrigger: expect.objectContaining({
-          start: 0,
-          end: 'max',
-          scrub: true,
-        }),
-      }),
-    );
-    const heroTween = gsap.fromTo.mock.calls.find((call) => call[1].y === 0 && call[2].scrollTrigger?.end === 'max');
-    expect(heroTween[2].y()).toBe(-1000 * HERO_TEXT_SPEED);
+    expect(gsap.timeline).not.toHaveBeenCalled();
+    const heroY = gsap.fromTo.mock.calls.find((call) => (
+      call[1]?.y === 0 && call[2]?.scrollTrigger?.end === 'max'
+    ));
+    expect([...heroY[0]]).toEqual([
+      main.querySelector('.hero__headline'),
+      main.querySelector('.hero__cta-text'),
+    ]);
+    expect(heroY[2].y()).toBe(-1000 * HERO_TEXT_SPEED);
     expect(gsap.fromTo).toHaveBeenCalledWith(
       main.children[0].querySelector('.hero__content'),
       { autoAlpha: 1 },
@@ -620,23 +616,23 @@ describe('initSectionScroll', () => {
     expect(main.children[0].querySelector(':scope > .section-scroll-overlay')).toBeNull();
   });
 
-  it('dims a short full-screen hero only after the next section leaves rest', async () => {
+  it('clamps the cover start so a short hero rests undimmed and unshifted', async () => {
     mockMatchMedia(true);
     const vh = 800;
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: vh });
-    const main = mountMain(`
+    mountMain(`
       <div class="section hero-container">
-        <div class="hero hero-full-screen"></div>
+        <div class="hero-wrapper">
+          <div class="hero hero-full-screen"></div>
+        </div>
       </div>
       <div class="section section-rounded-default"></div>
     `);
-    const restTop = 0.6 * vh;
-    jest.spyOn(main.children[1], 'getBoundingClientRect').mockReturnValue({ top: restTop });
 
     await initSectionScroll();
 
     const overlayTween = gsap.fromTo.mock.calls.find((call) => call[2]?.opacity === OVERLAY_DIM);
-    expect(overlayTween[2].scrollTrigger.start()).toBe(`top ${restTop}px`);
+    expect(overlayTween[2].scrollTrigger.start()).toBe(`clamp(top ${vh * COVER_START_VH}px)`);
   });
 
   it('destroys Lenis and reverts GSAP on teardown', async () => {
