@@ -9,7 +9,8 @@
  * hero and following cards, and quickly fades out as the page scrolls.
  * A full-screen hero pins; its headline and CTA recede at half scroll speed.
  * Adjacent `section-rounded-default` siblings stay one card and are skipped.
- * A dark overlay fades in as the incoming section covers it.
+ * A dark overlay fades in as the incoming section covers it, and hero copy
+ * fades to transparent with that dim.
  */
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';
@@ -159,6 +160,23 @@ function overlayFor(section) {
 }
 
 /**
+ * Fades hero copy with the dim overlay.
+ *
+ * @param {HTMLElement} section Outgoing section
+ * @param {object} scrollTrigger Shared cover trigger
+ * @returns {void}
+ */
+function fadeHeroText(section, scrollTrigger) {
+  const text = section.querySelector('.hero__content');
+  if (!text) return;
+  gsap.fromTo(text, { autoAlpha: 1 }, {
+    autoAlpha: 0,
+    ease: 'none',
+    scrollTrigger,
+  });
+}
+
+/**
  * Binds GSAP tweens for one outgoing/incoming pair.
  *
  * @param {HTMLElement} slow
@@ -214,6 +232,7 @@ function bindPair(slow, next) {
       ease: 'none',
       scrollTrigger: scrub(next, coverStart),
     });
+    fadeHeroText(slow, scrub(next, coverStart));
     return;
   } else if (inner.length) {
     const tl = gsap.timeline({
@@ -236,11 +255,13 @@ function bindPair(slow, next) {
 
   const from = overlayStart(next, intro, slow.offsetHeight);
   if (from > 0) {
+    const startAt = () => `top ${from}px`;
     gsap.fromTo(overlay, { opacity: 0 }, {
       opacity: OVERLAY_DIM,
       ease: 'none',
-      scrollTrigger: scrub(next, () => `top ${from}px`),
+      scrollTrigger: scrub(next, startAt),
     });
+    fadeHeroText(slow, scrub(next, startAt));
   }
 }
 

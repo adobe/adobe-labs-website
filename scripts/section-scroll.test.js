@@ -377,7 +377,11 @@ describe('initSectionScroll', () => {
           <div class="page-header"></div>
         </div>
         <div class="hero-wrapper">
-          <div class="hero"></div>
+          <div class="hero">
+            <div class="hero__content">
+              <h2 class="hero__headline">Headline</h2>
+            </div>
+          </div>
         </div>
       </div>
       <div class="section section-rounded-blue"></div>
@@ -424,6 +428,14 @@ describe('initSectionScroll', () => {
         ease: 'none',
       }),
     );
+    expect(gsap.fromTo).toHaveBeenCalledWith(
+      header.querySelector('.hero__content'),
+      { autoAlpha: 1 },
+      expect.objectContaining({
+        autoAlpha: 0,
+        ease: 'none',
+      }),
+    );
   });
 
   it('recedes full-screen hero headline and CTA at half scroll speed', async () => {
@@ -432,8 +444,10 @@ describe('initSectionScroll', () => {
     const main = mountMain(`
       <div class="section hero-container">
         <div class="hero hero-full-screen">
-          <h2 class="hero__headline">Headline</h2>
-          <p class="hero__cta-text">Read</p>
+          <div class="hero__content">
+            <h2 class="hero__headline">Headline</h2>
+            <p class="hero__cta-text">Read</p>
+          </div>
         </div>
       </div>
       <div class="section section-rounded-default"></div>
@@ -455,6 +469,19 @@ describe('initSectionScroll', () => {
     );
     const heroTween = gsap.fromTo.mock.calls.find((call) => call[1].y === 0 && call[2].scrollTrigger?.end === 'max');
     expect(heroTween[2].y()).toBe(-1000 * HERO_TEXT_SPEED);
+    expect(gsap.fromTo).toHaveBeenCalledWith(
+      main.children[0].querySelector('.hero__content'),
+      { autoAlpha: 1 },
+      expect.objectContaining({
+        autoAlpha: 0,
+        ease: 'none',
+        scrollTrigger: expect.objectContaining({
+          trigger: main.children[1],
+          end: 'top top',
+          scrub: true,
+        }),
+      }),
+    );
     expect(main.children[0].querySelector('.section-scroll-overlay')).toBeTruthy();
   });
 

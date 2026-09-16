@@ -9,7 +9,8 @@
  * sticks under the nav, sits behind the hero and next card, and quickly fades
  * out as the page scrolls. Full-screen heroes pin in place without the inner
  * shift so they are not pulled under the nav; the headline and CTA recede at
- * half scroll speed. A dark overlay fades in on the outgoing card.
+ * half scroll speed. A dark overlay fades in on the outgoing card, and hero
+ * copy fades to transparent with that dim.
  */
 
 @media (prefers-reduced-motion: no-preference) {
