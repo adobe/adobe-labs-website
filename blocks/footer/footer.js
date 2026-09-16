@@ -1,4 +1,5 @@
 import { getMetadata } from '../../scripts/aem.js';
+import { entryProgress } from '../../scripts/utils/entry-progress.js';
 import { escapeAttr, fromHTML } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
@@ -465,14 +466,18 @@ function animateLogo(logo) {
 
   let scrollPending = false;
   let resizeRaf = null;
+  // The logo's height only changes on resize, so cache it rather than forcing
+  // layout on every scroll frame.
+  let logoHeight = 0;
 
   const updateLogoProgress = () => {
     const prevElement = logo.previousElementSibling;
     if (!prevElement) return;
-    const bottom = prevElement.getBoundingClientRect().bottom ?? 0;
-    let progress = ((window.innerHeight - bottom) / logo.offsetHeight) * 100 - 100;
-    progress = Math.max(-100, Math.min(0, progress));
-    logo.style.setProperty('--footer-logo-entry-progress', progress);
+    if (!logoHeight) logoHeight = logo.offsetHeight;
+    logo.style.setProperty(
+      '--footer-logo-entry-progress',
+      entryProgress(prevElement, logo, { height: logoHeight }),
+    );
   };
 
   const onScroll = () => {
@@ -488,6 +493,7 @@ function animateLogo(logo) {
     if (resizeRaf) return;
     resizeRaf = requestAnimationFrame(() => {
       resizeRaf = null;
+      logoHeight = 0;
       updateLogoProgress();
     });
   };

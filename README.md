@@ -166,7 +166,7 @@ A `section-rounded-*` section gets vertical padding and `z-index: 1`.
 - The first default section in a group, and every color section, get a start corner radius.
 - A color section that follows a rounded section, or a default section that follows a color section, overlaps the section before it. The offset is `--section-margin-negative-offset`: `-(radius + --section-space-between)`. A default hero is not overlapped.
 - Adjacent default sections appear as one continuous card. The next section cancels the flex gap and start padding. The last default section before a different surface keeps an end radius.
-- When motion is opted in (`prefers-reduced-motion: no-preference`), section overlays load Lenis for smooth scrolling. A rounded section overlays whatever section is immediately before it (page header, hero, or another rounded card). Rounded cards pin, lag, and dim once the incoming card reaches `COVER_START_VH` of the viewport (`0.7` by default). Parallax eases in over `COVER_EASE_VH` before that pin so scrolling does not snap to the slowed rate. A page header or default hero does not pin: its content keeps scrolling, just slower, while the first rounded section covers it. The overlay starts dimming when that overlap begins and eases to full strength as the incoming section covers it. Adjacent default sections do not slow. Full-screen heroes pin in place without shifting under the nav.
+- When motion is opted in (`prefers-reduced-motion: no-preference`), section overlays load Lenis for smooth scrolling. A rounded section overlays whatever section is immediately before it (page header, hero, or another rounded card). Rounded cards pin, lag, and dim once the incoming card reaches `COVER_START_VH` of the viewport (`0.7` by default). Parallax eases in over `COVER_EASE_VH` before that pin so scrolling does not snap to the slowed rate. A page header or default hero does not pin: its content keeps scrolling, just slower, while the first rounded section covers it. The overlay starts dimming when that overlap begins and eases to full strength as the incoming section covers it. Adjacent default sections do not slow. Full-screen heroes pin in place without shifting under the nav. A pinned card stays parked in the viewport for the rest of the page, and the page-header wrapper stays stuck under the nav after it fades, so once either is no longer visible its controls get `tabindex="-1"` — otherwise a keyboard user tabs into links they cannot see (WCAG 2.2 SC 2.4.11). The original `tabindex` is restored on the way back up. Nothing is made `inert` and nothing is hidden with `visibility`, so every card stays readable and reachable by heading and landmark navigation; fades use `opacity` rather than GSAP's `autoAlpha` for the same reason. Lenis additionally forces `scroll-behavior: auto` while it runs, since native smooth scrolling fights it on the skip link, in-page anchors, and hash deep links.
 - The last rounded section on the page gets an end radius and uses `--section-padding-block-end-last`. A page with one rounded section gets all four corners.
 - After a full-screen hero, the next rounded section overlaps the hero by `-(radius + --section-space-between)`.
 - The last rounded section overlaps the footer by the section radius. Footer inner padding grows by that amount so links stay clickable (`.footer` uses `z-index: 0`). Footer start padding increases at 64rem and above. When motion is opted in, `.footer__inner` is revealed the same way `.footer__logo` is: it sticks to the bottom behind the last rounded card, clips, and rises with scroll. After the menu is in, the logo sticky takes over. Reduced motion keeps the radius peek.
@@ -217,7 +217,9 @@ npm run build:lenis
 
 That writes `deps/lenis/dist/index.js` and `deps/lenis/dist/lenis.css`. Commit those files with the version change.
 
-When a feature needs Lenis, import the committed dist file and load the stylesheet at that point. Do not add Lenis to `scripts.js` or `head.html`. Section overlays do this from `scripts/section-scroll.js` when motion is opted in.
+When a feature needs Lenis, import the committed dist file and load the stylesheet at that point. Do not add Lenis to `scripts.js` or `head.html`. Section overlays do this from `scripts/section-scroll.js` when motion is opted in, and skip it entirely on touch.
+
+Lenis sets `scrollTop` from its own loop, so it fights anything else that animates the scroll position. `styles/section-scroll.css` turns off the native `scroll-behavior: smooth` while Lenis is active, and programmatic scrolls that run before Lenis attaches — the hash deep link in `loadLazy` — jump instantly so Lenis cannot take over mid-flight and strand them short of the target.
 
 ```js
 import Lenis from '../../deps/lenis/dist/index.js';
@@ -237,11 +239,15 @@ npm run build:gsap
 
 That writes `deps/gsap/dist/index.js`. Commit that file with the version change.
 
-When a feature needs GSAP, import the committed dist file at the point of use. Do not add GSAP to `scripts.js` or `head.html`. Section overlays do this from `scripts/section-scroll.js` when motion is opted in.
+When a feature needs GSAP, import the committed dist file at the point of use. Do not add GSAP to `head.html`, and do not import it from `scripts.js`. Section overlays keep every GSAP import inside `scripts/section-scroll/motion.js`, which `scripts/section-scroll.js` dynamic-imports only once motion is opted in — so the bundle is never reachable from a static import chain.
 
 ```js
 import { gsap, ScrollTrigger } from '../../deps/gsap/dist/index.js';
 ```
+
+Anything driven from `gsap.ticker` — Lenis is, in `scripts/section-scroll.js` — needs `gsap.ticker.lagSmoothing(0)`, or a slow frame lets the ticker jump time forward and desyncs it from the real scroll position. That setting is global to GSAP, so restore the stock `lagSmoothing(500, 33)` on teardown instead of leaving every later animation on the page without it.
+
+`scripts.js` may still emit a guarded `<link rel="modulepreload">` for the bundle, as `loadLazy` does for section overlays. A dynamic `import()` inside a module cannot be requested until that module's own imports have resolved, so a vendored bundle behind one starts downloading several round trips late. The hint starts the download early without placing the bundle in any import graph, and it must carry the same guard as the import it warms — otherwise it becomes an eager load for requests that never use it.
 
 ## Query Indexes
 

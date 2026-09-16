@@ -201,6 +201,45 @@ describe('footer block', () => {
     addSpy.mockRestore();
   });
 
+  it('measures the parallax logo once per resize, not once per scroll frame', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+    document.body.append(block);
+
+    await decorate(block);
+
+    const logo = block.querySelector('.footer__logo');
+    let reads = 0;
+    Object.defineProperty(logo, 'offsetHeight', {
+      configurable: true,
+      get() {
+        reads += 1;
+        return 400;
+      },
+    });
+    // Run the throttled work inline so each event lands as one frame.
+    const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb();
+      return 1;
+    });
+
+    try {
+      for (let i = 0; i < 5; i += 1) window.dispatchEvent(new Event('scroll'));
+
+      // Reading `offsetHeight` forces layout, so the height is cached across
+      // frames instead of measured on each one.
+      expect(reads).toBe(1);
+
+      window.dispatchEvent(new Event('resize'));
+
+      // A resize can change it, so that is where the cache is dropped.
+      expect(reads).toBe(2);
+    } finally {
+      raf.mockRestore();
+      delete logo.offsetHeight;
+    }
+  });
+
   it('toggles mobile accordion sections on toggle button click', async () => {
     window.matchMedia = jest.fn().mockImplementation(() => ({
       matches: false,

@@ -1,5 +1,10 @@
 /**
- * Section scroll classification and GSAP motion opt-in.
+ * Section cover classification and the motion opt-in lifecycle.
+ *
+ * Predicates and geometry are covered in `section-scroll/sections.test.js`, the
+ * garage door in `section-scroll/footer-reveal.test.js`, and the shared entry
+ * math in `utils/entry-progress.test.js`. What is left here is which sections
+ * get paired, and what GSAP is asked to do once motion starts.
  */
 import { loadCSS } from './aem.js';
 import { gsap, ScrollTrigger } from '../deps/gsap/dist/index.js';
@@ -12,11 +17,11 @@ import {
   HERO_TEXT_SPEED,
   INTRO_LAG,
   OVERLAY_DIM,
-  classifySectionScroll,
-  footerInnerProgress,
-  footerLogoReady,
-  initSectionScroll,
   roundedParallax,
+} from './section-scroll/sections.js';
+import {
+  classifySectionScroll,
+  initSectionScroll,
   teardownSectionScroll,
 } from './section-scroll.js';
 
@@ -25,17 +30,17 @@ jest.mock('./aem.js', () => ({
 }));
 
 jest.mock('../deps/gsap/dist/index.js', () => {
-  const timeline = {
-    fromTo: jest.fn().mockReturnThis(),
-    to: jest.fn().mockReturnThis(),
-  };
   const motionCtx = { revert: jest.fn() };
   const mockGsap = {
     context: jest.fn((fn) => {
       fn();
       return motionCtx;
     }),
-    timeline: jest.fn(() => timeline),
+    // A fresh timeline per call, so a test can tell one cover group from another.
+    timeline: jest.fn(() => ({
+      fromTo: jest.fn().mockReturnThis(),
+      to: jest.fn().mockReturnThis(),
+    })),
     fromTo: jest.fn(),
     ticker: {
       add: jest.fn(),
@@ -107,6 +112,50 @@ function mockMatchMedia(motionMatches, { small = false, touch = false } = {}) {
       removeEventListener: jest.fn(),
     };
   });
+}
+
+/**
+ * Every timeline created, paired with the config it was created from.
+ *
+ * @returns {Array<{ config: object, timeline: object }>}
+ */
+function timelines() {
+  return gsap.timeline.mock.calls.map((call, index) => ({
+    config: call[0],
+    timeline: gsap.timeline.mock.results[index].value,
+  }));
+}
+
+/**
+ * The timeline that tweened `target`. Tweens sharing a scroll range share one
+ * timeline, so this is how a test asserts they were grouped.
+ *
+ * @param {Element} target
+ * @returns {{ config: object, timeline: object } | undefined}
+ */
+function timelineTweening(target) {
+  /**
+   * @param {Array<Array>} calls
+   * @returns {boolean}
+   */
+  const hits = (calls) => calls.some(([subject]) => subject === target
+    || (Array.isArray(subject) && subject.includes(target)));
+  return timelines().find(({ timeline }) => (
+    hits(timeline.fromTo.mock.calls) || hits(timeline.to.mock.calls)
+  ));
+}
+
+/**
+ * The `to` vars a timeline tweened a target with.
+ *
+ * @param {object} timeline
+ * @param {Element} target
+ * @returns {object | undefined}
+ */
+function tweenVars(timeline, target) {
+  const call = timeline.fromTo.mock.calls.find(([subject]) => subject === target
+    || (Array.isArray(subject) && subject.includes(target)));
+  return call?.[2];
 }
 
 beforeEach(() => {
@@ -266,8 +315,6 @@ describe('classifySectionScroll', () => {
     expect(comingSoon).not.toHaveClass('section-scroll-slow');
     expect(comingSoon).not.toHaveClass('section-scroll-next');
     expect(comingSoon).toHaveClass('section-scroll-reveal');
-    expect(main).toHaveClass('section-scroll-reveal-main');
-    expect(document.querySelector('body > footer')).toHaveClass('section-scroll-under');
   });
 
   it('garage-doors the footer behind the last rounded section', () => {
@@ -279,51 +326,8 @@ describe('classifySectionScroll', () => {
     classifySectionScroll();
 
     expect(main).toHaveClass('section-scroll-reveal-main');
-    expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
     expect(main.children[1]).toHaveClass('section-scroll-reveal');
-    expect(main.children[1]).not.toHaveClass('section-scroll-slow');
     expect(footer).toHaveClass('section-scroll-under');
-  });
-
-  it('sets inner entry progress from the last card like the Adobe logo', () => {
-    const { main, footer } = mountPage(`
-      <div class="section section-rounded-default"></div>
-    `);
-    const last = main.children[0];
-    const inner = footer.querySelector('.footer__inner');
-    last.getBoundingClientRect = () => ({ bottom: 680 });
-    Object.defineProperty(inner, 'offsetHeight', { configurable: true, value: 240 });
-    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
-
-    classifySectionScroll();
-
-    expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-50');
-    expect(footer).not.toHaveClass('section-scroll-logo');
-  });
-
-  it('garage-doors the footer on a page with one rounded section', () => {
-    const { main, footer } = mountPage(`
-      <div class="section section-rounded-default"></div>
-    `);
-
-    classifySectionScroll();
-
-    expect(main.children[0]).toHaveClass('section-scroll-reveal');
-    expect(footer).toHaveClass('section-scroll-under');
-    expect(ScrollTrigger.create).not.toHaveBeenCalled();
-  });
-
-  it('does not mark the footer when there is no rounded section', () => {
-    const { footer } = mountPage(`
-      <div class="section hero-container">
-        <div class="hero hero-full-screen"></div>
-      </div>
-    `);
-
-    classifySectionScroll();
-
-    expect(footer).not.toHaveClass('section-scroll-under');
-    expect(document.querySelector('.section-scroll-reveal')).toBeNull();
   });
 
   it('pins the outgoing section when the next section reaches COVER_START_VH', () => {
@@ -350,74 +354,7 @@ describe('classifySectionScroll', () => {
     classifySectionScroll();
 
     expect(gsap.context).not.toHaveBeenCalled();
-  });
-});
-
-describe('footerInnerProgress', () => {
-  it('matches the Adobe logo entry math against the last card, flipped negative', () => {
-    const last = document.createElement('div');
-    const inner = document.createElement('div');
-    last.getBoundingClientRect = () => ({ bottom: 800 });
-    Object.defineProperty(inner, 'offsetHeight', { configurable: true, value: 240 });
-    expect(footerInnerProgress(last, inner, 800)).toBe(-100);
-
-    last.getBoundingClientRect = () => ({ bottom: 680 });
-    expect(footerInnerProgress(last, inner, 800)).toBe(-50);
-
-    last.getBoundingClientRect = () => ({ bottom: 560 });
-    expect(footerInnerProgress(last, inner, 800)).toBe(0);
-  });
-
-  it('clamps progress to -100–0', () => {
-    const last = document.createElement('div');
-    const inner = document.createElement('div');
-    last.getBoundingClientRect = () => ({ bottom: 900 });
-    Object.defineProperty(inner, 'offsetHeight', { configurable: true, value: 240 });
-    expect(footerInnerProgress(last, inner, 800)).toBe(-100);
-
-    last.getBoundingClientRect = () => ({ bottom: 0 });
-    expect(footerInnerProgress(last, inner, 800)).toBe(0);
-  });
-});
-
-describe('footerLogoReady', () => {
-  it('keeps the logo unstuck while the last card still covers the menu', () => {
-    const last = document.createElement('div');
-    const footer = document.createElement('footer');
-    footer.innerHTML = '<div class="footer"><div class="footer__inner"></div></div>';
-    last.getBoundingClientRect = () => ({ bottom: 700 });
-    Object.defineProperty(footer.querySelector('.footer__inner'), 'offsetHeight', {
-      configurable: true,
-      value: 240,
-    });
-    expect(footerLogoReady(last, footer, 800)).toBe(false);
-  });
-
-  it('lets the logo stick once the last card has lifted past the menu', () => {
-    const last = document.createElement('div');
-    const footer = document.createElement('footer');
-    footer.innerHTML = '<div class="footer"><div class="footer__inner"></div></div>';
-    last.getBoundingClientRect = () => ({ bottom: 500 });
-    Object.defineProperty(footer.querySelector('.footer__inner'), 'offsetHeight', {
-      configurable: true,
-      value: 240,
-    });
-    expect(footerLogoReady(last, footer, 800)).toBe(true);
-  });
-
-  it('returns false when the footer menu is missing', () => {
-    expect(footerLogoReady(document.createElement('div'), document.createElement('footer'))).toBe(false);
-  });
-});
-
-describe('roundedParallax', () => {
-  it('eases in a downward lag before the pin, then recedes after', () => {
-    const vh = 800;
-    const { prePinLag, postPinEnd } = roundedParallax(vh);
-
-    expect(prePinLag).toBeGreaterThan(0);
-    expect(postPinEnd).toBeLessThan(prePinLag);
-    expect(postPinEnd).toBe(prePinLag - 0.2 * vh);
+    expect(document.querySelector('.section-scroll-overlay')).toBeNull();
   });
 });
 
@@ -461,7 +398,7 @@ describe('initSectionScroll', () => {
   it('binds a rounded parallax timeline that eases in then recedes', async () => {
     mockMatchMedia(true);
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
-    mountMain(`
+    const main = mountMain(`
       <div class="section section-rounded-blue">
         <div class="inner">Card</div>
       </div>
@@ -470,36 +407,35 @@ describe('initSectionScroll', () => {
 
     await initSectionScroll();
 
-    expect(gsap.timeline).toHaveBeenCalledWith(expect.objectContaining({
+    const inner = main.querySelector('.inner');
+    const { config, timeline } = timelineTweening(inner);
+    expect(config).toMatchObject({
       defaults: { ease: 'none' },
       scrollTrigger: expect.objectContaining({
+        trigger: main.children[1],
         scrub: true,
         end: 'top top',
         invalidateOnRefresh: true,
       }),
-    }));
-    const start = gsap.timeline.mock.calls[0][0].scrollTrigger.start();
-    expect(start).toBe(`clamp(top ${800 * (COVER_START_VH + COVER_EASE_VH)}px)`);
+    });
+    // Starts COVER_EASE_VH earlier than the dim, so it keeps its own trigger.
+    expect(config.scrollTrigger.start())
+      .toBe(`clamp(top ${800 * (COVER_START_VH + COVER_EASE_VH)}px)`);
 
-    const tl = gsap.timeline.mock.results[0].value;
-    expect(tl.fromTo).toHaveBeenCalledWith(
-      expect.any(Array),
+    expect(timeline.fromTo).toHaveBeenCalledWith(
+      expect.arrayContaining([inner]),
       { y: 0 },
-      expect.objectContaining({
-        ease: 'power2.in',
-        duration: COVER_EASE_VH,
-      }),
+      expect.objectContaining({ ease: 'power2.in', duration: COVER_EASE_VH }),
     );
-    expect(tl.fromTo.mock.calls[0][2].y()).toBe(roundedParallax(800).prePinLag);
-
-    expect(tl.to).toHaveBeenCalledWith(
-      expect.any(Array),
+    expect(timeline.fromTo.mock.calls[0][2].y()).toBe(roundedParallax(800).prePinLag);
+    expect(timeline.to).toHaveBeenCalledWith(
+      expect.arrayContaining([inner]),
       expect.objectContaining({ duration: COVER_START_VH }),
     );
-    expect(tl.to.mock.calls[0][1].y()).toBe(roundedParallax(800).postPinEnd);
+    expect(timeline.to.mock.calls[0][1].y()).toBe(roundedParallax(800).postPinEnd);
   });
 
-  it('fades a rounded-card overlay from the cover line', async () => {
+  it('dims the outgoing card from the cover line, on the parallax timeline', async () => {
     mockMatchMedia(true);
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
@@ -512,25 +448,75 @@ describe('initSectionScroll', () => {
     await initSectionScroll();
 
     const overlay = main.querySelector('.section-scroll-overlay');
-    expect(overlay).toBeTruthy();
     expect(overlay.parentElement).toBe(main.children[0]);
     expect(overlay.tagName).toBe('SPAN');
     expect(overlay).toHaveAttribute('aria-hidden', 'true');
-    expect(gsap.fromTo).toHaveBeenCalledWith(
+
+    // One trigger for the pair: the dim rides the inner-lag timeline, offset to
+    // the cover line rather than to the earlier ease-in.
+    expect(timelineTweening(overlay).timeline)
+      .toBe(timelineTweening(main.querySelector('.inner')).timeline);
+    expect(gsap.timeline).toHaveBeenCalledTimes(1);
+    expect(timelineTweening(overlay).timeline.fromTo).toHaveBeenCalledWith(
       overlay,
       { opacity: 0 },
-      expect.objectContaining({
-        opacity: OVERLAY_DIM,
-        ease: 'none',
-        scrollTrigger: expect.objectContaining({
-          trigger: main.children[1],
-          end: 'top top',
-          scrub: true,
-        }),
-      }),
+      { opacity: OVERLAY_DIM, duration: COVER_START_VH },
+      COVER_EASE_VH,
     );
-    const overlayStart = gsap.fromTo.mock.calls[0][2].scrollTrigger.start();
-    expect(overlayStart).toBe(`clamp(top ${800 * COVER_START_VH}px)`);
+  });
+
+  it('gives the dim its own trigger when there is no inner content to lag', async () => {
+    mockMatchMedia(true);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section section-rounded-blue"></div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+
+    const overlay = main.querySelector('.section-scroll-overlay');
+    const { config, timeline } = timelineTweening(overlay);
+    expect(config.scrollTrigger).toMatchObject({
+      trigger: main.children[1],
+      end: 'top top',
+      scrub: true,
+    });
+    expect(config.scrollTrigger.start()).toBe(`clamp(top ${800 * COVER_START_VH}px)`);
+    expect(timeline.fromTo).toHaveBeenCalledWith(
+      overlay,
+      { opacity: 0 },
+      { opacity: OVERLAY_DIM, duration: 1 },
+      0,
+    );
+  });
+
+  it('fades hero copy on the same timeline as the dim', async () => {
+    mockMatchMedia(true);
+    const main = mountMain(`
+      <div class="section hero-container">
+        <div class="hero hero-full-screen">
+          <div class="hero__content"><h2 class="hero__headline">Headline</h2></div>
+        </div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+
+    const overlay = main.querySelector('.section-scroll-overlay');
+    const heroText = main.querySelector('.hero__content');
+    const { timeline } = timelineTweening(heroText);
+    expect(timeline).toBe(timelineTweening(overlay).timeline);
+    expect(timeline.fromTo).toHaveBeenCalledWith(
+      heroText,
+      { opacity: 1 },
+      { opacity: 0, duration: 1 },
+      0,
+    );
+    // Not autoAlpha: that adds visibility: hidden and would drop the hero's
+    // heading out of the accessibility tree once the page scrolls past it.
+    expect(timeline.fromTo.mock.calls.some(([, from]) => 'autoAlpha' in from)).toBe(false);
   });
 
   it('quickly fades the page-header wrapper and lags remaining intro content', async () => {
@@ -560,49 +546,29 @@ describe('initSectionScroll', () => {
     const heroWrap = header.querySelector('.hero-wrapper');
     const overlay = header.querySelector('.section-scroll-overlay');
     expect(headerWrap).toHaveClass('section-scroll-fade');
-    expect(overlay).toBeTruthy();
     expect(overlay.parentElement).toHaveClass('hero');
     expect(header.querySelector(':scope > .section-scroll-overlay')).toBeNull();
+
+    // The wrapper fade runs from the top of the page, so it is not on the cover
+    // timeline.
     expect(gsap.fromTo).toHaveBeenCalledWith(
       headerWrap,
-      { autoAlpha: 1 },
+      { opacity: 1 },
       expect.objectContaining({
-        autoAlpha: 0,
+        opacity: 0,
         ease: 'none',
-        scrollTrigger: expect.objectContaining({
-          start: 0,
-          scrub: true,
-        }),
+        scrollTrigger: expect.objectContaining({ start: 0, scrub: true }),
       }),
     );
-    const fadeTween = gsap.fromTo.mock.calls.find((call) => call[0] === headerWrap);
+    const fadeTween = gsap.fromTo.mock.calls.find(([subject]) => subject === headerWrap);
     expect(fadeTween[2].scrollTrigger.end()).toBe(800 * HEADER_FADE_VH);
-    expect(gsap.fromTo).toHaveBeenCalledWith(
-      expect.arrayContaining([heroWrap]),
-      { y: 0 },
-      expect.objectContaining({ ease: 'none' }),
-    );
-    const innerTween = gsap.fromTo.mock.calls.find((call) => (
-      Array.isArray(call[0]) && call[0].includes(heroWrap)
-    ));
-    expect(innerTween[0]).not.toContain(headerWrap);
-    expect(innerTween[2].y()).toBe(400 * INTRO_LAG);
-    expect(gsap.fromTo).toHaveBeenCalledWith(
-      overlay,
-      { opacity: 0 },
-      expect.objectContaining({
-        opacity: OVERLAY_DIM,
-        ease: 'none',
-      }),
-    );
-    expect(gsap.fromTo).toHaveBeenCalledWith(
-      header.querySelector('.hero__content'),
-      { autoAlpha: 1 },
-      expect.objectContaining({
-        autoAlpha: 0,
-        ease: 'none',
-      }),
-    );
+
+    // Everything else in the section lags and dims together.
+    const cover = timelineTweening(heroWrap);
+    expect(cover.timeline).toBe(timelineTweening(overlay).timeline);
+    expect(cover.config.scrollTrigger.start()).toBe('clamp(top 400px)');
+    expect(tweenVars(cover.timeline, heroWrap).y()).toBe(400 * INTRO_LAG);
+    expect(timelineTweening(headerWrap)).toBeUndefined();
   });
 
   it('uses a CSS intro lag instead of GSAP y on a coarse pointer', async () => {
@@ -623,32 +589,22 @@ describe('initSectionScroll', () => {
       </div>
       <div class="section section-rounded-blue"></div>
     `);
-
     Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 400 });
 
     await initSectionScroll();
 
     const heroWrap = main.querySelector('.hero-wrapper');
     const overlay = main.querySelector('.section-scroll-overlay');
-    const innerTween = gsap.fromTo.mock.calls.find((call) => (
-      Array.isArray(call[0]) && call[0].includes(heroWrap)
-    ));
-    expect(innerTween).toBeUndefined();
+    expect(timelineTweening(heroWrap)).toBeUndefined();
     expect(Lenis).not.toHaveBeenCalled();
     expect(gsap.ticker.add).not.toHaveBeenCalled();
     expect(loadCSS).toHaveBeenCalledWith('/styles/section-scroll.css');
     expect(loadCSS).not.toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
     expect(main.children[0].style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
-    expect(gsap.fromTo).toHaveBeenCalledWith(
-      overlay,
-      { opacity: 0 },
-      expect.objectContaining({ opacity: OVERLAY_DIM }),
-    );
-    expect(gsap.fromTo).toHaveBeenCalledWith(
-      main.querySelector('.hero__content'),
-      { autoAlpha: 1 },
-      expect.objectContaining({ autoAlpha: 0 }),
-    );
+
+    // The dim still runs: it is opacity, not a translate fighting native scroll.
+    expect(timelineTweening(overlay)).toBeDefined();
+    expect(timelineTweening(main.querySelector('.hero__content'))).toBeDefined();
   });
 
   it('does not recede full-screen hero text or lag rounded cards on a coarse pointer', async () => {
@@ -671,17 +627,10 @@ describe('initSectionScroll', () => {
 
     await initSectionScroll();
 
-    const heroY = gsap.fromTo.mock.calls.find((call) => (
-      call[1]?.y === 0 && call[2]?.scrollTrigger?.end === 'max'
-    ));
-    expect(heroY).toBeUndefined();
-    expect(gsap.timeline).not.toHaveBeenCalled();
+    expect(gsap.fromTo).not.toHaveBeenCalled();
+    expect(timelineTweening(main.querySelector('.inner'))).toBeUndefined();
     expect(Lenis).not.toHaveBeenCalled();
-    expect(gsap.fromTo).toHaveBeenCalledWith(
-      main.children[0].querySelector('.hero__content'),
-      { autoAlpha: 1 },
-      expect.objectContaining({ autoAlpha: 0 }),
-    );
+    expect(timelineTweening(main.children[0].querySelector('.hero__content'))).toBeDefined();
     expect(main.querySelector('.section-rounded-blue > .section-scroll-overlay')).toBeTruthy();
   });
 
@@ -700,7 +649,7 @@ describe('initSectionScroll', () => {
     await initSectionScroll();
 
     const headerWrap = document.querySelector('.page-header-wrapper');
-    const fadeTween = gsap.fromTo.mock.calls.find((call) => call[0] === headerWrap);
+    const fadeTween = gsap.fromTo.mock.calls.find(([subject]) => subject === headerWrap);
     expect(fadeTween[2].scrollTrigger.end()).toBe(800 * HEADER_FADE_VH_SMALL);
   });
 
@@ -723,37 +672,29 @@ describe('initSectionScroll', () => {
 
     await initSectionScroll();
 
-    expect(gsap.timeline).not.toHaveBeenCalled();
-    const heroY = gsap.fromTo.mock.calls.find((call) => (
-      call[1]?.y === 0 && call[2]?.scrollTrigger?.end === 'max'
+    // No inner shift: the card itself stays put, only the copy recedes.
+    expect(timelineTweening(main.querySelector('.hero-wrapper'))).toBeUndefined();
+    const heroY = gsap.fromTo.mock.calls.find(([, from, to]) => (
+      from?.y === 0 && to?.scrollTrigger?.end === 'max'
     ));
     expect([...heroY[0]]).toEqual([
       main.querySelector('.hero__headline'),
       main.querySelector('.hero__cta-text'),
     ]);
     expect(heroY[2].y()).toBe(-1000 * HERO_TEXT_SPEED);
-    expect(gsap.fromTo).toHaveBeenCalledWith(
-      main.children[0].querySelector('.hero__content'),
-      { autoAlpha: 1 },
-      expect.objectContaining({
-        autoAlpha: 0,
-        ease: 'none',
-        scrollTrigger: expect.objectContaining({
-          trigger: main.children[1],
-          end: 'top top',
-          scrub: true,
-        }),
-      }),
-    );
-    expect(main.children[0].querySelector('.hero > .section-scroll-overlay')).toBeTruthy();
+
+    const overlay = main.querySelector('.section-scroll-overlay');
+    expect(overlay.parentElement).toHaveClass('hero');
     expect(main.children[0].querySelector(':scope > .section-scroll-overlay')).toBeNull();
+    expect(timelineTweening(overlay).config.scrollTrigger)
+      .toMatchObject({ trigger: main.children[1], end: 'top top', scrub: true });
   });
 
   it('clamps the cover start so a short hero rests undimmed and unshifted', async () => {
     mockMatchMedia(true);
     const vh = 800;
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: vh });
-    mountMain(`
+    const main = mountMain(`
       <div class="section hero-container">
         <div class="hero-wrapper">
           <div class="hero hero-full-screen"></div>
@@ -764,13 +705,25 @@ describe('initSectionScroll', () => {
 
     await initSectionScroll();
 
-    const overlayTween = gsap.fromTo.mock.calls.find((call) => call[2]?.opacity === OVERLAY_DIM);
-    expect(overlayTween[2].scrollTrigger.start()).toBe(`clamp(top ${vh * COVER_START_VH}px)`);
+    const overlay = main.querySelector('.section-scroll-overlay');
+    expect(timelineTweening(overlay).config.scrollTrigger.start())
+      .toBe(`clamp(top ${vh * COVER_START_VH}px)`);
+  });
+
+  it('does not pin or tween the footer', async () => {
+    mockMatchMedia(true);
+    mountPage('<div class="section section-rounded-default"></div>');
+
+    await initSectionScroll();
+
+    expect(ScrollTrigger.create).not.toHaveBeenCalled();
+    expect(gsap.fromTo).not.toHaveBeenCalled();
+    expect(gsap.timeline).not.toHaveBeenCalled();
   });
 
   it('destroys Lenis and reverts GSAP on teardown', async () => {
     mockMatchMedia(true);
-    mountMain(`
+    mountPage(`
       <div class="section section-rounded-blue">
         <div class="inner">Card</div>
       </div>
@@ -785,17 +738,149 @@ describe('initSectionScroll', () => {
     expect(gsap.ticker.remove).toHaveBeenCalled();
     expect(instance.off).toHaveBeenCalledWith('scroll', ScrollTrigger.update);
     expect(instance.destroy).toHaveBeenCalled();
+    // Lag smoothing is global to GSAP's ticker, so a teardown that left it off
+    // would follow the visitor into every other animation on the page.
+    expect(gsap.ticker.lagSmoothing).toHaveBeenLastCalledWith(500, 33);
     expect(document.querySelector('.section-scroll-overlay')).toBeNull();
-    expect(document.querySelector('.section-scroll-reveal')).toBeNull();
-    expect(document.querySelector('.section-scroll-under')).toBeNull();
-    expect(document.querySelector('.section-scroll-reveal-main')).toBeNull();
+    expect(document.querySelector('.section-scroll-slow')).toBeNull();
+  });
+
+  it('takes a fully covered card out of the tab order without hiding it', async () => {
+    mockMatchMedia(true);
+    const main = mountMain(`
+      <div class="section section-rounded-blue">
+        <h2>Covered heading</h2>
+        <a href="/x">Buried link</a>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+
+    const slow = main.children[0];
+    const link = main.querySelector('a');
+    const { scrollTrigger } = timelineTweening(link).config;
+
+    // Partly covered: still visible, so it stays reachable.
+    scrollTrigger.onRefresh({ progress: 0.9 });
+    expect(link).not.toHaveAttribute('tabindex');
+
+    // Fully covered, and a pinned card stays parked in the viewport from here on.
+    scrollTrigger.onLeave({ progress: 1 });
+    expect(link).toHaveAttribute('tabindex', '-1');
+    // Still readable by assistive technology: nothing is inert or visibility-hidden.
+    expect(slow).not.toHaveAttribute('inert');
+    expect(main.querySelector('h2')).toBeInTheDocument();
+
+    // Scrolling back up restores it.
+    scrollTrigger.onEnterBack({ progress: 0.5 });
+    expect(link).not.toHaveAttribute('tabindex');
+  });
+
+  it('restores a control that had its own tabindex', async () => {
+    mockMatchMedia(true);
+    const main = mountMain(`
+      <div class="section section-rounded-blue"><div tabindex="0">Widget</div></div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+
+    const widget = main.querySelector('[tabindex]');
+    const { scrollTrigger } = timelineTweening(widget).config;
+
+    scrollTrigger.onLeave({ progress: 1 });
+    expect(widget).toHaveAttribute('tabindex', '-1');
+
+    scrollTrigger.onEnterBack({ progress: 0 });
+    expect(widget).toHaveAttribute('tabindex', '0');
+  });
+
+  it('suppresses the page-header wrapper tab order once it has faded out', async () => {
+    mockMatchMedia(true);
+    mountMain(`
+      <div class="section page-header-container">
+        <div class="page-header-wrapper">
+          <h1>Page title</h1>
+          <a href="/y">Header link</a>
+        </div>
+      </div>
+      <div class="section section-rounded-blue"></div>
+    `);
+
+    await initSectionScroll();
+
+    const headerWrap = document.querySelector('.page-header-wrapper');
+    const link = headerWrap.querySelector('a');
+    const fade = gsap.fromTo.mock.calls.find(([subject]) => subject === headerWrap);
+    expect(fade[1]).toEqual({ opacity: 1 });
+
+    // The wrapper is sticky, so it stays on screen invisible rather than leaving.
+    fade[2].scrollTrigger.onLeave({ progress: 1 });
+    expect(link).toHaveAttribute('tabindex', '-1');
+    expect(headerWrap.querySelector('h1')).toBeInTheDocument();
+
+    fade[2].scrollTrigger.onEnterBack({ progress: 0.2 });
+    expect(link).not.toHaveAttribute('tabindex');
+  });
+
+  it('restores tab order on teardown', async () => {
+    mockMatchMedia(true);
+    const main = mountMain(`
+      <div class="section section-rounded-blue"><a href="/x">Buried link</a></div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+    const link = main.querySelector('a');
+    timelineTweening(link).config.scrollTrigger.onLeave({ progress: 1 });
+    expect(link).toHaveAttribute('tabindex', '-1');
+
+    teardownSectionScroll();
+
+    expect(link).not.toHaveAttribute('tabindex');
+    expect(document.querySelector('[data-section-scroll-unfocusable]')).toBeNull();
+  });
+
+  it('rewires Lenis when motion is opted back in after a teardown', async () => {
+    mockMatchMedia(true);
+    mountMain(`
+      <div class="section section-rounded-blue"><div class="inner">Card</div></div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+    teardownSectionScroll();
+    await initSectionScroll();
+
+    // GSAP and the tweens are already in the module cache; Lenis was destroyed,
+    // so a fresh instance has to be built and rewired to the ticker.
+    expect(Lenis).toHaveBeenCalledTimes(2);
+    expect(Lenis.mock.results[1].value.on).toHaveBeenCalledWith('scroll', ScrollTrigger.update);
+    expect(gsap.ticker.add).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('.section-rounded-blue')).toHaveClass('section-scroll-slow');
+  });
+
+  it('does not build Lenis on touch even once GSAP is cached', async () => {
+    mockMatchMedia(true);
+    mountMain(`
+      <div class="section section-rounded-blue"><div class="inner">Card</div></div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+    expect(Lenis).toHaveBeenCalledTimes(1);
+    teardownSectionScroll();
+
+    mockMatchMedia(true, { touch: true });
+    await initSectionScroll();
+
+    expect(Lenis).toHaveBeenCalledTimes(1);
   });
 
   it('strips footer reveal classes on teardown', async () => {
     mockMatchMedia(true);
-    const { main, footer } = mountPage(`
-      <div class="section section-rounded-default"></div>
-    `);
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
 
     await initSectionScroll();
     expect(footer).toHaveClass('section-scroll-under');
@@ -808,16 +893,61 @@ describe('initSectionScroll', () => {
     expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
     expect(footer.querySelector('.footer__inner').style.getPropertyValue('--section-scroll-inner-progress')).toBe('');
   });
+});
 
-  it('does not pin or tween the footer', async () => {
+describe('resize', () => {
+  /**
+   * @returns {void}
+   */
+  function resize() {
+    jest.useFakeTimers();
+    window.dispatchEvent(new Event('resize'));
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  }
+
+  it('refreshes triggers and re-measures instead of rebuilding them', async () => {
     mockMatchMedia(true);
-    mountPage(`
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section section-rounded-blue"></div>
       <div class="section section-rounded-default"></div>
+    `);
+    Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 1200 });
+
+    await initSectionScroll();
+    const timelinesBefore = gsap.timeline.mock.calls.length;
+    const overlay = main.querySelector('.section-scroll-overlay');
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 1000 });
+    resize();
+
+    expect(ScrollTrigger.refresh).toHaveBeenCalled();
+    expect(Lenis.mock.results[0].value.resize).toHaveBeenCalled();
+    // Tweens are untouched, and the overlay node survives.
+    expect(gsap.timeline.mock.calls).toHaveLength(timelinesBefore);
+    expect(gsap.context).toHaveBeenCalledTimes(1);
+    expect(main.querySelector('.section-scroll-overlay')).toBe(overlay);
+    // Geometry CSS reads is recomputed for the new viewport.
+    expect(main.children[0].style.getPropertyValue('--section-scroll-slow-top'))
+      .toBe(`${1000 * COVER_START_VH - 1200}px`);
+  });
+
+  it('rebuilds when touch scrolling changes, because work moves to CSS', async () => {
+    mockMatchMedia(true);
+    mountMain(`
+      <div class="section page-header-container">
+        <div class="page-header-wrapper"><div class="page-header"></div></div>
+      </div>
+      <div class="section section-rounded-blue"></div>
     `);
 
     await initSectionScroll();
+    expect(gsap.context).toHaveBeenCalledTimes(1);
 
-    expect(ScrollTrigger.create).not.toHaveBeenCalled();
-    expect(gsap.fromTo).not.toHaveBeenCalled();
+    mockMatchMedia(true, { touch: true });
+    resize();
+
+    expect(gsap.context).toHaveBeenCalledTimes(2);
+    expect(ScrollTrigger.refresh).not.toHaveBeenCalled();
   });
 });
