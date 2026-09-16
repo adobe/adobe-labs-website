@@ -87,7 +87,7 @@
   max-width: var(--image-width);
   color: var(--s2a-color-content-subtle);
   text-align: center;
-  font-family: var(--s2a-font-family-caption);
+  font-family: var(--body-font-family);
   font-size: var(--s2a-typography-font-size-caption);
   font-style: normal;
   font-weight: 700;
