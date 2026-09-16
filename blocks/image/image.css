@@ -1,12 +1,17 @@
-/* Image widths per size variant, from Figma. Default (no modifier) is MD.
-   All variants share one width below 48rem. XL reuses the shared article
-   content-width tokens (ADBLABS-151) at 48/64/90rem, stripping out the
-   padding those tokens bake in for their own (padded) wrapper use case
-   -- see body.article main in styles.css. No shared token covers 120rem
-   (the scale was consolidated to cap at -xl), so XL keeps its own value
-   there to keep growing per Figma. */
+/* Image widths per size variant, from Figma. Default (no modifier) is MD;
+   authoring "Image (LG)" / "Image (XL)" adds a bare `lg` / `xl` class
+   (DA emits the parenthetical as-is, not prefixed with the block name).
+   All variants share one width below 48rem. XL only breaks out past the
+   others at 90rem/120rem -- below that it falls through to the base (MD)
+   width, same as everything else. 90rem reuses the shared article
+   content-width token (ADBLABS-151), stripping out the padding that token
+   bakes in for its own (padded) wrapper use case -- see body.article main
+   in styles.css. No shared token covers 120rem (the scale was consolidated
+   to cap at -xl), so XL keeps its own value there to keep growing per
+   Figma. */
 .image {
   --image-width: 21.375rem; /* 342px */
+  --image-aspect-ratio: 8 / 5;
 
   @media (width >= 48rem) {
     --image-width: 29.875rem; /* 478px */
@@ -24,7 +29,9 @@
     --image-width: 46.875rem; /* 750px */
   }
 
-  &.image-lg {
+  &.lg {
+    --image-aspect-ratio: 3 / 2;
+
     @media (width >= 64rem) {
       --image-width: 40.5rem; /* 648px */
     }
@@ -38,15 +45,7 @@
     }
   }
 
-  &.image-xl {
-    @media (width >= 48rem) {
-      --image-width: calc(var(--article-content-inline-size-md, 37.375rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 598px */
-    }
-
-    @media (width >= 64rem) {
-      --image-width: calc(var(--article-content-inline-size-lg, 50.75rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 812px */
-    }
-
+  &.xl {
     @media (width >= 90rem) {
       --image-width: calc(var(--article-content-inline-size-xl, 72.25rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 1156px */
     }
@@ -65,12 +64,23 @@
   gap: var(--s2a-spacing-2xs);
 }
 
-.image__figure picture,
-.image__figure img {
-  display: block;
+.image__media {
+  position: relative;
+  overflow: hidden;
   width: var(--image-width);
   max-width: 100%;
-  height: auto;
+  aspect-ratio: var(--image-aspect-ratio);
+
+  & :is(picture, img) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  & img {
+    object-fit: cover;
+  }
 }
 
 .image__caption {
