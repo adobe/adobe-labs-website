@@ -5,10 +5,11 @@
  * Rounded cards pin once the next rounded section reaches COVER_START_VH.
  * GSAP eases inner content into the slowed parallax before that pin, then
  * recedes it as the next card covers. Page header / default hero sections
- * stay in flow: their content lags instead of pinning. Full-screen heroes pin
- * in place without the inner shift so they are not pulled under the nav; the
- * headline and CTA recede at half scroll speed. A dark overlay fades in on
- * the outgoing card.
+ * stay in flow: the hero lags instead of pinning, and the page-header wrapper
+ * sticks under the nav, sits behind the hero and next card, and quickly fades
+ * out as the page scrolls. Full-screen heroes pin in place without the inner
+ * shift so they are not pulled under the nav; the headline and CTA recede at
+ * half scroll speed. A dark overlay fades in on the outgoing card.
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -38,6 +39,21 @@
     overflow: visible;
   }
 
+  /* Stick under the site header, behind the hero and the dim overlay. */
+  main > .section.section-scroll-intro > .section-scroll-fade {
+    position: sticky;
+    top: var(--nav-height);
+    z-index: 1;
+    align-self: flex-start;
+    inline-size: 100%;
+  }
+
+  /* Hero (and other intro blocks) slide over the page header. */
+  main > .section.section-scroll-intro > :not(.section-scroll-fade):not(.section-scroll-overlay) {
+    position: relative;
+    z-index: 2;
+  }
+
   .section-scroll-overlay {
     position: absolute;
     inset: 0;
@@ -49,9 +65,9 @@
     pointer-events: none;
   }
 
-  /* Intro content lags; keep the dim on that content and fill the flex gap
-     plus the next card's start radius so white does not show through. */
+  /* Intro overlay sits above hero content so the headline dims with the card. */
   main > .section.section-scroll-intro > .section-scroll-overlay {
+    z-index: 3;
     bottom: calc(-1 * (var(--section-space-between) + var(--section-border-radius)));
   }
 }
