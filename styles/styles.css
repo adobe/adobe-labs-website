@@ -60,27 +60,17 @@
   @view-transition {
     navigation: auto;
   }
-
-  /* Turn off the default full-page cross-fade, and target only the changing body content to fade.
-     This keeps the nav always visible during the transition. */
-  :root {
-    view-transition-name: none;
-  }
-
-  main {
-    view-transition-name: main-content;
-  }
 }
 
 /* Outgoing page: Fades out immediately. */
-::view-transition-old(main-content) {
+::view-transition-old(root) {
   animation: blur-fade-out 0.35s ease-out forwards;
 }
 
-/* 2. Incoming page: Starts completely hidden, waits for at least the length of outgoing transition, then fades in. */
-::view-transition-new(main-content) {
+/* Incoming page: Starts completely hidden, waits for at least the length of outgoing transition, then fades in. */
+::view-transition-new(root) {
   opacity: 0; /* Keeps it hidden during the delay */
-  animation: blur-fade-in 0.45s ease-out 0.55s forwards;
+  animation: blur-fade-in 0.45s ease-out 0.35s forwards;
 }
 
 @keyframes blur-fade-out {

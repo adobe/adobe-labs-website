@@ -14,7 +14,7 @@
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta property="og:title" content="Page not found">
-  <script nonce="aem" src="/scripts/scripts.js" type="module" blocking="render"></script>
+  <script nonce="aem" src="/scripts/scripts.js" type="module"></script>
   <script nonce="aem" type="module">
     window.addEventListener('load', () => {
       if (document.referrer) {
@@ -31,12 +31,12 @@
       }
     });
   </script>
-  <script nonce="aem" type="module" blocking="render">
+  <script nonce="aem" type="module">
     import { sampleRUM } from '/scripts/aem.js';
     sampleRUM('404', { source: document.referrer });
   </script>
-  <link rel="stylesheet" href="/styles/lib/s2a-tokens-0.0.21/min/tokens.min.css" blocking="render">
-  <link rel="stylesheet" href="/styles/styles.css" blocking="render">
+  <link rel="stylesheet" href="/styles/lib/s2a-tokens-0.0.21/min/tokens.min.css">
+  <link rel="stylesheet" href="/styles/styles.css">
   <style>
     main.error {
       min-height: calc(100vh - var(--nav-height));
