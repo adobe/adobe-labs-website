@@ -6,6 +6,7 @@ import Lenis from '../deps/lenis/dist/index.js';
 import {
   COVER_EASE_VH,
   COVER_START_VH,
+  HERO_TEXT_SPEED,
   INTRO_LAG,
   classifySectionScroll,
   initSectionScroll,
@@ -58,6 +59,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   window.hlx = { codeBasePath: '' };
   document.body.innerHTML = '';
+  Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
 });
 
 afterEach(() => {
@@ -138,6 +140,44 @@ describe('classifySectionScroll', () => {
     updateSectionScrollShift();
 
     expect(main.children[0].style.getPropertyValue('--section-scroll-shift')).toBe('0');
+  });
+
+  it('does not recede full-screen hero text until the page scrolls', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+    const main = mountMain(`
+      <div class="section hero-container">
+        <div class="hero hero-full-screen">
+          <h2 class="hero__headline">Headline</h2>
+          <p class="hero__cta-text">Read</p>
+        </div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    classifySectionScroll();
+
+    expect(main.children[0].style.getPropertyValue('--section-scroll-hero-text')).toBe('0px');
+  });
+
+  it('recedes full-screen hero headline and CTA at half scroll speed', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 200 });
+    const main = mountMain(`
+      <div class="section hero-container">
+        <div class="hero hero-full-screen">
+          <h2 class="hero__headline">Headline</h2>
+          <p class="hero__cta-text">Read</p>
+        </div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+    classifySectionScroll();
+
+    updateSectionScrollShift();
+
+    expect(main.children[0].style.getPropertyValue('--section-scroll-hero-text'))
+      .toBe(`${-200 * HERO_TEXT_SPEED}px`);
   });
 
   it('does not dim a short full-screen hero while the next section is still at rest', () => {

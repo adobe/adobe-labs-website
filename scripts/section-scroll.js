@@ -5,7 +5,8 @@
  * `prefers-reduced-motion: no-preference` matches. Rounded cards pin and lag
  * as the next card covers them. A page header or default hero does not pin:
  * its content keeps moving, just slower, while the first rounded section
- * overlaps it. Adjacent `section-rounded-default` siblings stay one card and
+ * overlaps it. A full-screen hero pins; its headline and CTA recede at half
+ * scroll speed. Adjacent `section-rounded-default` siblings stay one card and
  * are skipped. A dark overlay fades in and blurs when that overlap starts
  * and reaches full strength as the incoming section covers it.
  */
@@ -37,6 +38,9 @@ const OVERLAY_DIM = 0.8;
 
 /** Share of overlap scroll to hold back on intro sections (page header / default hero). */
 export const INTRO_LAG = 0.2;
+
+/** Share of page scroll applied to full-screen hero headline and CTA (half speed). */
+export const HERO_TEXT_SPEED = 0.5;
 
 /** @type {MediaQueryList | null} */
 let motionMq = null;
@@ -218,6 +222,16 @@ function introShift(next, introHeight) {
 }
 
 /**
+ * Pixel offset so full-screen hero headline and CTA recede at half
+ * the page scroll speed while the pinned hero stays put.
+ *
+ * @returns {number} translateY in px (negative = up)
+ */
+function heroTextShift() {
+  return -window.scrollY * HERO_TEXT_SPEED;
+}
+
+/**
  * Applies inner lag and dim from each pair's cover progress.
  *
  * @returns {void}
@@ -233,6 +247,7 @@ export function updateSectionScrollShift() {
     } = pair;
     if (isFullScreenHero(slow)) {
       slow.style.setProperty('--section-scroll-shift', '0');
+      slow.style.setProperty('--section-scroll-hero-text', `${Number(heroTextShift().toFixed(2))}px`);
     } else if (intro) {
       slow.style.setProperty('--section-scroll-shift', `${introShift(next, introHeight)}px`);
     } else {
@@ -254,6 +269,7 @@ function clearClasses(root = document) {
     if (el instanceof HTMLElement) {
       el.style.removeProperty('--section-scroll-slow-top');
       el.style.removeProperty('--section-scroll-shift');
+      el.style.removeProperty('--section-scroll-hero-text');
       el.style.removeProperty('--section-scroll-dim');
       el.style.removeProperty('z-index');
     }
