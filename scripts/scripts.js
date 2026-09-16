@@ -273,8 +273,7 @@ async function loadLazy(doc) {
   window.addEventListener('resize', setCalcPerspectiveDebounced);
 
   const rounded = doc.querySelectorAll('main > .section[class*="section-rounded-"]');
-  const sections = doc.querySelectorAll('main > .section');
-  if (rounded.length >= 1 && sections.length >= 2
+  if (rounded.length >= 1
     && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
     import('./section-scroll.js').then((mod) => mod.initSectionScroll());
   }

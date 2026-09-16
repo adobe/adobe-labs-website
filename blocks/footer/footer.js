@@ -470,8 +470,8 @@ function animateLogo(logo) {
     const prevElement = logo.previousElementSibling;
     if (!prevElement) return;
     const bottom = prevElement.getBoundingClientRect().bottom ?? 0;
-    let progress = ((window.innerHeight - bottom) / logo.offsetHeight) * 100;
-    progress = Math.max(0, Math.min(100, progress));
+    let progress = ((window.innerHeight - bottom) / logo.offsetHeight) * 100 - 100;
+    progress = Math.max(-100, Math.min(0, progress));
     logo.style.setProperty('--footer-logo-entry-progress', progress);
   };
 
