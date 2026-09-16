@@ -11,6 +11,7 @@
  * pair.
  */
 import { gsap, ScrollTrigger } from '../../deps/gsap/dist/index.js';
+import { clearTabOrderSuppression, setTabOrderSuppressed } from '../utils/tab-order.js';
 import {
   CLASS_FADE,
   COVER_EASE_VH,
@@ -83,67 +84,6 @@ function overlayFor(section) {
   return overlay;
 }
 
-/** Marks an element whose tab order is currently suppressed. */
-const ATTR_SUPPRESSED = 'data-section-scroll-unfocusable';
-
-/** Stores the tabindex a control had before it was hidden. */
-const ATTR_TABINDEX = 'data-section-scroll-tabindex';
-
-const FOCUSABLE = [
-  'a[href]',
-  'area[href]',
-  'button',
-  'input',
-  'select',
-  'textarea',
-  'summary',
-  'iframe',
-  'audio[controls]',
-  'video[controls]',
-  '[contenteditable]',
-  '[tabindex]',
-].join(',');
-
-/**
- * Takes the controls inside a visually hidden element out of the tab order, and
- * puts them back.
- *
- * Two things this file hides stay in the viewport rather than scrolling away: a
- * pinned card, which the cards above it cover for the rest of the page, and the
- * sticky page-header wrapper, which fades out under the nav. A keyboard user
- * would otherwise tab into links in either that they cannot see — WCAG 2.2
- * SC 2.4.11, Focus Not Obscured.
- *
- * Deliberately not `inert`, and not GSAP's `autoAlpha` (which adds
- * `visibility: hidden`): both of those also drop the content from the
- * accessibility tree, so a screen reader user could no longer reach the card by
- * heading or landmark navigation, and the page header's own heading would vanish
- * a fifth of a viewport into the page. That trades a keyboard defect for a worse
- * content-loss defect. Suppressing only the tab order keeps everything readable
- * and navigable by assistive technology, and scrolling back up restores it.
- *
- * @param {HTMLElement} host Element whose controls should be skipped
- * @param {boolean} hidden
- * @returns {void}
- */
-function setTabOrderSuppressed(host, hidden) {
-  if (hidden === host.hasAttribute(ATTR_SUPPRESSED)) return;
-  host.toggleAttribute(ATTR_SUPPRESSED, hidden);
-  host.querySelectorAll(FOCUSABLE).forEach((el) => {
-    if (hidden) {
-      // An empty stored value means the control had no tabindex of its own.
-      el.setAttribute(ATTR_TABINDEX, el.getAttribute('tabindex') ?? '');
-      el.setAttribute('tabindex', '-1');
-      return;
-    }
-    const original = el.getAttribute(ATTR_TABINDEX);
-    if (original === null) return;
-    if (original === '') el.removeAttribute('tabindex');
-    else el.setAttribute('tabindex', original);
-    el.removeAttribute(ATTR_TABINDEX);
-  });
-}
-
 /**
  * Removes what the tweens leave behind. Reverting the GSAP context restores
  * inline styles, but not appended nodes or attributes.
@@ -153,7 +93,7 @@ function setTabOrderSuppressed(host, hidden) {
  */
 export function clearMotionState(root) {
   root.querySelectorAll(`.${CLASS_OVERLAY}`).forEach((el) => el.remove());
-  root.querySelectorAll(`[${ATTR_SUPPRESSED}]`).forEach((el) => setTabOrderSuppressed(el, false));
+  clearTabOrderSuppression(root);
 }
 
 /**
@@ -220,8 +160,9 @@ function dim(timeline, overlay, heroText, span) {
   timeline.fromTo(overlay, { opacity: 0 }, { opacity: OVERLAY_DIM, duration }, at);
   // `opacity`, not GSAP's `autoAlpha`: autoAlpha adds `visibility: hidden` at 0,
   // which would drop the hero's heading out of the accessibility tree once the
-  // page has scrolled past it. Focus is handled by the tab-order suppression
-  // above, which does not hide anything from assistive technology.
+  // page has scrolled past it. Keyboard focus is handled by the cover
+  // timeline's `suppressTabOrderWhenHidden`, which hides nothing from
+  // assistive technology.
   if (heroText) timeline.fromTo(heroText, { opacity: 1 }, { opacity: 0, duration }, at);
 }
 

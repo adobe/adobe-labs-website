@@ -8,7 +8,8 @@
  * entry math in `utils/entry-progress.js` is the same math `footer.js` uses for
  * the logo.
  */
-import { ENTRY_END, entryProgress } from '../utils/entry-progress.js';
+import { ENTRY_END, ENTRY_START, entryProgress } from '../utils/entry-progress.js';
+import { setTabOrderSuppressed } from '../utils/tab-order.js';
 import { isRounded } from './sections.js';
 
 /** Last rounded card, raised above the footer. */
@@ -53,7 +54,9 @@ export function clearFooterReveal(root) {
     el.classList.remove(CLASS_REVEAL, CLASS_UNDER, CLASS_REVEAL_MAIN, CLASS_LOGO);
   });
   root.querySelectorAll('.footer__inner').forEach((el) => {
-    if (el instanceof HTMLElement) el.style.removeProperty(VAR_PROGRESS);
+    if (!(el instanceof HTMLElement)) return;
+    el.style.removeProperty(VAR_PROGRESS);
+    setTabOrderSuppressed(el, false);
   });
 }
 
@@ -107,6 +110,15 @@ export function bindFooterReveal(main, root) {
     const progress = entryProgress(lastRounded, el, { height: innerHeight });
     el.style.setProperty(VAR_PROGRESS, String(progress));
     footer.classList.toggle(CLASS_LOGO, progress >= ENTRY_END);
+    /*
+     * The card covers the menu outright at ENTRY_START, so its links and the
+     * newsletter field would take keyboard focus from behind it. Only when it is
+     * fully covered: a menu that is partly up is visible enough to focus, and
+     * WCAG 2.4.11 asks about components that are entirely hidden. A zero height
+     * means the measurement failed rather than that the menu is hidden, and
+     * suppressing on that would leave the footer unreachable.
+     */
+    setTabOrderSuppressed(el, innerHeight > 0 && progress <= ENTRY_START);
   };
 
   syncNow = () => {
