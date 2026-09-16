@@ -1,14 +1,8 @@
 .hero {
-  --hero-font-size: var(--s2a-typography-font-size-heading-4);
-  --hero-line-height: var(--s2a-typography-line-height-heading-4);
-  --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-4);
+  --hero-font-size: var(--s2a-typography-font-size-heading-2);
+  --hero-line-height: var(--s2a-typography-line-height-heading-2);
+  --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
-
-  @media (width >=48rem) {
-    --hero-font-size: var(--s2a-typography-font-size-heading-2);
-    --hero-line-height: var(--s2a-typography-line-height-heading-2);
-    --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
-  }
 
   position: relative;
   isolation: isolate;
@@ -89,33 +83,46 @@
     }
   }
 
-  /* Headline */
-  .hero__headline {
-    --hero-headline-max-width: 15ch;
+  /* Headline and article category */
+  .hero__copy {
+    --hero-headline-max-inline-size: 15ch;
 
-    display: inline-block;
+    display: flex;
+    flex-direction: column;
     grid-area: bottom-left / bottom-left / bottom-right / bottom-right;
     align-self: last baseline;
-    font-size: var(--hero-font-size);
-    line-height: var(--hero-line-height);
-    letter-spacing: var(--hero-letter-spacing);
-    font-weight: var(--hero-font-weight);
-    max-width: var(--hero-headline-max-width);
+    max-inline-size: var(--hero-headline-max-inline-size);
+    color: var(--s2a-color-gray-25, #fff);
+    gap: var(--s2a-spacing-sm);
 
     @media (width >=31.25rem) {
-      --hero-headline-max-width: 20ch;
+      --hero-headline-max-inline-size: 20ch;
 
       grid-area: bottom-left;
     }
 
     @media (width >=48rem) {
-      --hero-headline-max-width: 25ch;
+      --hero-headline-max-inline-size: 25ch;
 
       grid-area: bottom-left;
     }
   }
 
-  /* Category */
+  .hero__headline {
+    display: inline-block;
+    font-size: var(--hero-font-size);
+    line-height: var(--hero-line-height);
+    letter-spacing: var(--hero-letter-spacing);
+    font-weight: var(--hero-font-weight);
+  }
+
+  .hero__category {
+    margin-block: 0;
+    font-size: var(--s2a-typography-font-size-heading-6);
+    line-height: var(--s2a-typography-line-height-heading-6);
+    letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+  }
+
   .hero__eyebrow {
     --hero-category-circle-gap: var(--s2a-spacing-xs);
 
@@ -253,8 +260,29 @@
     }
 
     .hero__link-wrap {
+      position: relative;
       display: grid;
       height: auto;
+
+      /* Inner ring to override the default offset outline, which
+         sits outside the full-bleed box and is hidden by the viewport.
+         inset-block-end matches .hero-container:has(.hero-full-screen) + [class*="section-rounded-"]
+         so the bottom edge stays above the overlapping section. */
+      &:focus-visible {
+        outline: none;
+      }
+
+      &:focus-visible::after {
+        content: "";
+        position: absolute;
+        inset: var(--s2a-border-width-md);
+        inset-block-end: calc(
+          var(--section-border-radius)
+          + var(--s2a-border-width-md)
+        );
+        border: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-knockout);
+        z-index: 2;
+      }
     }
 
     .hero__content {
@@ -288,6 +316,11 @@
 .hero-container:has(.hero-full-screen) .hero-wrapper {
   max-inline-size: unset;
   padding: 0;
+}
+
+/* Article hero has a darker, continuous scrim. */
+.article .hero__media::after {
+  background: linear-gradient(0deg, var(--s2a-color-transparent-black-48) 0%, var(--s2a-color-transparent-black-48) 100%);
 }
 
 /* Full-screen hero at the top of the page sits under the sticky header.

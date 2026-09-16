@@ -215,6 +215,38 @@ describe('hero block', () => {
     }
   });
 
+  it('prints article category metadata above the headline as-is', async () => {
+    const template = document.createElement('meta');
+    template.setAttribute('name', 'template');
+    template.content = 'article';
+    const category = document.createElement('meta');
+    category.setAttribute('name', 'category');
+    category.content = 'Future of Creative Work, Standards & Practices';
+    document.head.append(template, category);
+
+    const block = createHeroBlock([
+      [
+        'Research',
+        'Oct 26',
+        '<h1>How Creatives are thinking about AI</h1>',
+        '',
+      ],
+    ]);
+    const main = placeInMain(block);
+
+    try {
+      await decorate(block);
+
+      const kicker = within(block).getByText('Future of Creative Work, Standards & Practices');
+      expect(kicker).toHaveClass('hero__category');
+      expect(kicker.nextElementSibling).toHaveClass('hero__headline');
+      expect(kicker.nextElementSibling).toHaveTextContent('How Creatives are thinking about AI');
+    } finally {
+      main.remove();
+      document.head.querySelectorAll('meta[name="template"], meta[name="category"]').forEach((el) => el.remove());
+    }
+  });
+
   it('omits empty optional fields', async () => {
     const block = createHeroBlock([
       ['<a href="/article">Headline only</a>'],
