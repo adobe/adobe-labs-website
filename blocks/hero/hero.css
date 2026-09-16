@@ -301,3 +301,127 @@ main > .section.hero-container--overlay {
 [data-theme="dark"] .hero__link-wrap:focus-visible {
   outline-color: var(--s2a-color-focus-ring-knockout);
 }
+
+/* --- Full-screen hero animation ---
+   Starts when `html.hero-intro` is set and `body.appear` paints.
+   JS writes blur and frost on `.hero__media img`. Parent transform zooms the image.
+   Height settles with the section rise. Scale/fade match the original zoom:
+   150ms delay, 1800ms, transform only.
+   `.hero__content` is a sibling of `.hero__media`. Do not nest copy under media.
+   JavaScript does not add the hero animation when prefers-reduced-motion: reduce.
+   These rules do not need a reduced-motion override. */
+html.hero-intro {
+  --hero-intro-media-start-size: 100lvh;
+  --hero-intro-scale-start: 1.3;
+  --hero-intro-easing-image: cubic-bezier(0.33, 0.1, 0.25, 1);
+  --hero-intro-easing-text: cubic-bezier(0.22, 1, 0.36, 1);
+  --hero-intro-easing-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --hero-intro-settle-duration: 2300ms;
+  --hero-intro-zoom-duration: 2300ms;
+
+  /* Zoom around the center of the full-bleed frame. */
+  --hero-intro-focal-y: calc(var(--hero-intro-media-start-size) / 2);
+
+  /* Image zoom waits so the section rise stays ahead and covers the gap. */
+  --hero-intro-zoom-delay: 150ms;
+
+  @media (width < 48rem) {
+    --hero-intro-media-start-size: 100svh;
+  }
+}
+
+html.hero-intro .hero-full-screen {
+  overflow: visible;
+}
+
+html.hero-intro .hero-full-screen .hero__media {
+  transform-origin: 50% var(--hero-intro-focal-y);
+}
+
+html.hero-intro:not(.hero-intro--body) .hero-full-screen .hero__media {
+  inset: 0 0 auto;
+  bottom: calc(100% - var(--hero-intro-media-start-size));
+  transform: scale(var(--hero-intro-scale-start)) translateY(0.5%);
+  will-change: bottom, transform;
+}
+
+html.hero-intro .hero-full-screen .hero__media img {
+  opacity: 0;
+}
+
+/* Fade each child. Opacity on `.hero__content` would isolate the play icon
+   and pop its backdrop-filter on at the end of the fade. */
+html.hero-intro .hero-full-screen .hero__content > * {
+  opacity: 0;
+}
+
+html.hero-intro.hero-intro--body body.appear .hero-full-screen .hero__media {
+  animation:
+    hero-intro-media-height var(--hero-intro-settle-duration)
+      var(--hero-intro-easing-settle) both,
+    hero-intro-media-zoom var(--hero-intro-zoom-duration)
+      var(--hero-intro-easing-image) var(--hero-intro-zoom-delay) both;
+}
+
+html.hero-intro body.appear .hero-full-screen .hero__media img {
+  animation: hero-intro-media-fade 900ms ease-out both;
+  animation-delay: 150ms;
+}
+
+html.hero-intro body.appear .hero-full-screen .hero__content > * {
+  animation: hero-intro-copy 600ms
+    var(--hero-intro-easing-text) both;
+  animation-delay: 825ms;
+}
+
+.hero-intro-frost {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+@keyframes hero-intro-media-height {
+  from {
+    inset: 0 0 auto;
+    bottom: calc(100% - var(--hero-intro-media-start-size));
+  }
+
+  to {
+    inset: 0;
+  }
+}
+
+@keyframes hero-intro-media-zoom {
+  from {
+    transform: scale(var(--hero-intro-scale-start)) translateY(0.5%);
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes hero-intro-media-fade {
+  0% {
+    opacity: 0;
+  }
+
+  33% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes hero-intro-copy {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
