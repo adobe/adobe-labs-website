@@ -1,14 +1,4 @@
-/* Image widths per size variant, from Figma. Default (no modifier) is MD;
-   authoring "Image (LG)" / "Image (XL)" adds a bare `lg` / `xl` class
-   (DA emits the parenthetical as-is, not prefixed with the block name).
-   All variants share one width below 48rem. XL only breaks out past the
-   others at 90rem/120rem -- below that it falls through to the base (MD)
-   width, same as everything else. 90rem reuses the shared article
-   content-width token (ADBLABS-151), stripping out the padding that token
-   bakes in for its own (padded) wrapper use case -- see body.article main
-   in styles.css. No shared token covers 120rem (the scale was consolidated
-   to cap at -xl), so XL keeps its own value there to keep growing per
-   Figma. */
+
 .image {
   --image-width: 21.375rem; /* 342px */
   --image-aspect-ratio: 8 / 5;
@@ -46,6 +36,10 @@
   }
 
   &.xl {
+    @media (width >= 48rem) {
+      --image-width: 37.125rem; /* 594px; shared article-content-inline-size-md resolves to 598px, 4px off Figma, so this stays block-specific */
+    }
+
     @media (width >= 64rem) {
       --image-width: calc(var(--article-content-inline-size-lg, 50.75rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 812px */
     }
