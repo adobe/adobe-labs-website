@@ -588,7 +588,10 @@ body.research main {
 body.article main {
   --section-padding-block-end: var(--s2a-spacing-2xl);
 
-  /* Article content max-widths. */
+  /* Article content max-widths. 
+     Use them on the block wrapper to set max-inline-size and site default padding. 
+     For example, for the Abstract block, use on .abstract-wrapper only. 
+     Avoid using them on the block content itself, or on the section.block-container. */
   --article-content-inline-size-sm: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
   --article-content-inline-size-md: calc(37.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 598px @ 48rem (768px) viewport */
   --article-content-inline-size-lg: calc(50.75rem + (var(--site-root-inline-padding, 0px) * 2)); /* 812px @ 64rem (1024px) viewport */
