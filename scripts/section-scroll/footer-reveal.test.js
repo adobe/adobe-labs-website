@@ -8,6 +8,16 @@ import {
   refreshFooterReveal,
 } from './footer-reveal.js';
 
+/** Footer menu with the controls the card covers: links and the newsletter field. */
+const MENU_HTML = `
+  <div class="footer__inner">
+    <div class="footer__content">
+      <nav><a href="/privacy">Privacy</a></nav>
+      <form><input type="email" id="footer-email"><button type="submit">Subscribe</button></form>
+    </div>
+  </div>
+`;
+
 /** @type {Array<FrameRequestCallback>} */
 let frames = [];
 
@@ -172,6 +182,40 @@ describe('bindFooterReveal', () => {
     expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-50');
   });
 
+  it('takes the covered menu out of the tab order', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    const card = main.children[0];
+    const inner = footer.querySelector('.footer__inner');
+    menuHeight(inner, 240);
+    // Card bottom on the viewport floor: the menu is entirely behind it.
+    cardBottom(card, 800);
+
+    bindFooterReveal(main, document);
+
+    const controls = [...inner.querySelectorAll('a, input, button')];
+
+    expect(controls.map((el) => el.getAttribute('tabindex'))).toEqual(['-1', '-1', '-1']);
+    // Skipped when tabbing, but not hidden from assistive technology.
+    expect(inner).not.toHaveAttribute('inert');
+    expect(inner).not.toHaveAttribute('aria-hidden');
+
+    cardBottom(card, 680);
+    scroll();
+
+    expect(controls.map((el) => el.getAttribute('tabindex'))).toEqual([null, null, null]);
+  });
+
+  it('leaves the menu tabbable when it has not been measured yet', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    cardBottom(main.children[0], 680);
+
+    // An unmeasurable menu reads as fully covered, which must not be enough to
+    // strip the tab order, or a footer that never measures stays unreachable.
+    bindFooterReveal(main, document);
+
+    expect(footer.querySelector('.footer__inner a')).not.toHaveAttribute('tabindex');
+  });
+
   it('does nothing without a rounded section', () => {
     const { main, footer } = mountPage(`
       <div class="section hero-container"><div class="hero hero-full-screen"></div></div>
@@ -227,6 +271,20 @@ describe('clearFooterReveal', () => {
     expect(footer).not.toHaveClass('section-scroll-under');
     expect(footer).not.toHaveClass('section-scroll-logo');
     expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('');
+  });
+
+  it('restores the menu tab order', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    const inner = footer.querySelector('.footer__inner');
+    cardBottom(main.children[0], 800);
+    menuHeight(inner, 240);
+
+    bindFooterReveal(main, document);
+    expect(inner.querySelector('a')).toHaveAttribute('tabindex', '-1');
+
+    clearFooterReveal(document);
+
+    expect(inner.querySelector('a')).not.toHaveAttribute('tabindex');
   });
 
   it('stops syncing on scroll', () => {

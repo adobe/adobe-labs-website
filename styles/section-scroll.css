@@ -41,6 +41,11 @@
     align-self: flex-start;
     inline-size: 100%;
     overflow: clip;
+
+    /* The clip contains the lagging inner content; the margin is the default
+       focus ring (2px outline plus 2px offset) on a control at the card edge,
+       which would otherwise be cut off. */
+    overflow-clip-margin: 4px;
   }
 
   main > .section.section-scroll-intro {
@@ -127,7 +132,13 @@
     position: sticky;
     inset-block-end: 0;
     z-index: 0;
-    overflow: hidden;
+
+    /* `clip`, not `hidden`: `hidden` is a scroll container, so focusing a menu
+       link part-way through the reveal lets the browser scroll it into view and
+       fight the transform below. `clip` cannot scroll, and it takes the focus
+       ring margin. The bleed sits behind the last card, so it never shows. */
+    overflow: clip;
+    overflow-clip-margin: 4px;
   }
 
   body > footer.section-scroll-under:not(.section-scroll-logo) .footer__content {
