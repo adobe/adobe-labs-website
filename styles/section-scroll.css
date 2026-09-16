@@ -1,24 +1,27 @@
 /*
  * Opt-in section slowdown. Nothing in this file applies unless
- * prefers-reduced-motion: no-preference.
+ * prefers-reduced-motion: no-preference. See the README's section-surface notes
+ * for the authored behaviour.
  *
- * Rounded cards pin once the next rounded section reaches COVER_START_VH.
- * GSAP eases inner content into the slowed parallax before that pin, then
- * recedes it as the next card covers. Page header / default hero sections
- * stay in flow: the hero lags instead of pinning, and the page-header wrapper
- * sticks under the nav, sits behind the hero and next card, and quickly fades
- * out as the page scrolls. Full-screen heroes pin in place without the inner
- * shift so they are not pulled under the nav. On touch, intro lag uses a CSS
- * scroll timeline instead of GSAP y, and rounded inner parallax is skipped.
- * A dark overlay fades in on the outgoing card, and hero copy fades to
- * transparent with that dim. Intro sections dim the hero card only; rounded
- * sections still dim the whole outgoing card. The last rounded card
- * garage-doors the footer menu the same way the footer later reveals the
- * Adobe logo: the menu sticks, clips, and rises behind the card until it is
- * in, then the logo sticky takes over.
+ * This file owns the parts that need no JS: sticky positioning, stacking order,
+ * the dim layer's box, and the touch-only intro lag. `scripts/section-scroll.js`
+ * classifies sections and sets the three custom properties read below —
+ * `--section-scroll-slow-top`, `--section-scroll-intro-lag`, and
+ * `--section-scroll-inner-progress`.
  */
 
 @media (prefers-reduced-motion: no-preference) {
+  /*
+   * Lenis drives scrollTop from its own rAF loop, so the native smooth scroll
+   * `styles.css` enables under this same query fights it on programmatic scrolls
+   * — the skip link, in-page anchors, and hash deep links. Lenis shipped this
+   * override in its own stylesheet until 1.3.26 dropped it. Keyed off Lenis's
+   * root class so touch, which skips Lenis, keeps native smooth scrolling.
+   */
+  html.lenis.lenis-smooth {
+    scroll-behavior: auto;
+  }
+
   /* Covers that are not also outgoing, plus trailing cards like Coming Soon.
      `:not(.section-scroll-slow)` keeps mid-chain sticky cards at z-index 0 so
      they do not paint above the footer and show through the last end-radius. */

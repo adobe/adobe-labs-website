@@ -9,6 +9,7 @@
  */
 import { getMetadata } from '../../scripts/aem.js';
 import {
+  debounce,
   ensureSkipLink,
   escapeAttr,
   fromHTML,
@@ -711,10 +712,17 @@ function bindOverlayChrome(block, signal) {
   });
   heroObserver.observe(hero);
 
+  /*
+   * `rootMargin` is fixed per observer but depends on the viewport, so the
+   * frost observer has to be rebuilt when that changes. Debounced: a resize
+   * drag fires per frame, and frost is cosmetic enough to settle late.
+   * The `aborted` check keeps a queued rebuild from outliving the header and
+   * leaving an observer nothing disconnects.
+   */
   /** @type {IntersectionObserver | null} */
   let frostObserver = null;
   const connectFrost = () => {
-    if (!next) return;
+    if (!next || signal.aborted) return;
     frostObserver?.disconnect();
     const belowNav = Math.max(window.innerHeight - getNavHeightPx(), 0);
     frostObserver = new IntersectionObserver((entries) => {
@@ -729,7 +737,7 @@ function bindOverlayChrome(block, signal) {
   };
 
   connectFrost();
-  if (next) window.addEventListener('resize', connectFrost, { signal });
+  if (next) window.addEventListener('resize', debounce(connectFrost), { signal });
   signal.addEventListener('abort', () => {
     heroObserver.disconnect();
     frostObserver?.disconnect();

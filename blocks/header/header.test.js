@@ -387,6 +387,54 @@ describe('header block', () => {
     expect(within(block).getByRole('link', { name: 'Subscribe' })).toHaveClass('button--static-white');
   });
 
+  it('rebuilds the frost observer once per resize burst', async () => {
+    const { next } = addFirstSectionFullScreenHero({ next: true });
+
+    await decorateHeader();
+    const [initial] = observerInstances.filter(isFrostObserver);
+
+    expect(initial).toBeDefined();
+
+    jest.useFakeTimers();
+    try {
+      for (let i = 0; i < 12; i += 1) window.dispatchEvent(new Event('resize'));
+
+      // A resize drag fires per frame, and the observer can only pick up a new
+      // viewport by being replaced, so the rebuild waits for the drag to settle.
+      expect(observerInstances.filter(isFrostObserver)).toHaveLength(1);
+
+      jest.advanceTimersByTime(500);
+    } finally {
+      jest.useRealTimers();
+    }
+
+    const frost = observerInstances.filter(isFrostObserver);
+
+    expect(frost).toHaveLength(2);
+    expect(initial.disconnect).toHaveBeenCalled();
+    expect(frost[1].observe).toHaveBeenCalledWith(next);
+  });
+
+  it('drops a queued frost rebuild when the header is replaced', async () => {
+    addFirstSectionFullScreenHero({ next: true });
+
+    await decorateHeader();
+
+    jest.useFakeTimers();
+    try {
+      window.dispatchEvent(new Event('resize'));
+      // Decorating again aborts the first header's listeners mid-debounce.
+      await decorateHeader();
+      jest.advanceTimersByTime(500);
+    } finally {
+      jest.useRealTimers();
+    }
+
+    // One per header, and none from the abandoned rebuild: that one would
+    // observe a detached tree with nothing left to disconnect it.
+    expect(observerInstances.filter(isFrostObserver)).toHaveLength(2);
+  });
+
   it('does not frost while a full-screen hero has no following section', async () => {
     addFirstSectionFullScreenHero();
 
