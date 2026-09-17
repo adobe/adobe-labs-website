@@ -1,11 +1,10 @@
 
 .image {
-  --image-width: 21.375rem; /* 342px */
+  /* No sub-768px tier: below 48rem the image just scales fluidly (see
+     .image__media), capped at the 48rem width instead of jumping to a
+     smaller fixed value. */
+  --image-width: 29.875rem; /* 478px */
   --image-aspect-ratio: 8 / 5;
-
-  @media (width >= 48rem) {
-    --image-width: 29.875rem; /* 478px */
-  }
 
   @media (width >= 64rem) {
     --image-width: 30.125rem; /* 482px */
@@ -36,9 +35,7 @@
   }
 
   &.xl {
-    @media (width >= 48rem) {
-      --image-width: calc(var(--article-content-inline-size-md, 37.375rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 598px */
-    }
+    --image-width: calc(var(--article-content-inline-size-md, 37.375rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 598px */
 
     @media (width >= 64rem) {
       --image-width: calc(var(--article-content-inline-size-lg, 50.75rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 812px */
@@ -65,8 +62,8 @@
 .image__media {
   position: relative;
   overflow: hidden;
-  width: var(--image-width);
-  max-width: 100%;
+  width: 100%;
+  max-width: var(--image-width);
   aspect-ratio: var(--image-aspect-ratio);
   border-radius: var(--s2a-border-radius-xs);
 
