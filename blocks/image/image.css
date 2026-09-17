@@ -37,7 +37,7 @@
 
   &.xl {
     @media (width >= 48rem) {
-      --image-width: 37.125rem; /* 594px; shared article-content-inline-size-md resolves to 598px, 4px off Figma, so this stays block-specific */
+      --image-width: calc(var(--article-content-inline-size-md, 37.375rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 598px */
     }
 
     @media (width >= 64rem) {
@@ -49,7 +49,7 @@
     }
 
     @media (width >= 120rem) {
-      --image-width: 97.25rem; /* 1556px; no shared token past -xl (consolidated), so this stays block-specific */
+      --image-width: 97.25rem; /* 1556px */
     }
   }
 }
