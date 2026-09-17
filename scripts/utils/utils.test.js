@@ -366,7 +366,7 @@ describe('buildAuthorByline', () => {
     const byline = buildAuthorByline();
 
     const img = byline.querySelector('.article-meta__author-image');
-    expect(img).toHaveAttribute('src', '/icons/authors/randy-oest.png');
+    expect(img).toHaveAttribute('src', '/media/authors/randy-oest.png');
     expect(img).toHaveAttribute('alt', '');
     expect(img.hidden).toBe(true);
   });

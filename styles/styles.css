@@ -499,7 +499,7 @@ body.article main .article-meta-section {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--s2a-spacing-xs);
+  gap: var(--s2a-spacing-sm);
 }
 
 .article-meta__authors-label,
@@ -533,13 +533,13 @@ body.article main .article-meta-section {
 .article-meta__author {
   display: flex;
   align-items: center;
-  gap: var(--s2a-spacing-2xs);
+  gap: var(--s2a-spacing-sm);
 }
 
 .article-meta__author-image {
-  inline-size: var(--s2a-spacing-lg);
-  block-size: var(--s2a-spacing-lg);
-  border-radius: var(--s2a-border-radius-8);
+  inline-size: 19px; /* Figma spec; no matching s2a spacing token */
+  block-size: 19px;
+  border-radius: var(--s2a-border-radius-round);
   object-fit: cover;
 }
 

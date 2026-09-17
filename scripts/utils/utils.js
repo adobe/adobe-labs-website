@@ -199,7 +199,8 @@ export function buildArticlePreFooter(main) {
 }
 
 const DEFAULT_AUTHOR_NAME = 'Adobe Labs';
-const AUTHOR_IMAGE_DIR = '/icons/authors';
+// DA-managed folder; photos uploaded there, not authored per-page.
+const AUTHOR_IMAGE_DIR = '/media/authors';
 
 /**
  * Author names from page `author` metadata (comma-separated for multiple
@@ -217,7 +218,7 @@ function getAuthorNames() {
 
 /**
  * Author photo, requested by convention from a slugified file name
- * (e.g. "Adobe Labs" → /icons/authors/adobe-labs.png) rather than an
+ * (e.g. "Adobe Labs" → /media/authors/adobe-labs.png) rather than an
  * authored field or extra fetch. Hidden until it loads, and removed on
  * 404 so a missing photo leaves no broken-image icon or empty space.
  *
