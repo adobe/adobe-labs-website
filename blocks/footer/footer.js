@@ -1,4 +1,5 @@
 import { getMetadata } from '../../scripts/aem.js';
+import { entryProgress } from '../../scripts/utils/entry-progress.js';
 import { escapeAttr, fromHTML } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
@@ -456,11 +457,61 @@ function decorateLegal(legal) {
  */
 
 /**
- * Appends the full Adobe logo.
+ * Drives `--footer-logo-entry-progress` so the image can rise from below the
+ * clip as `.footer__inner` uncovers it. Height is cached across scroll frames
+ * and dropped on resize.
  *
- * The logo does not move: `.footer__logo` sticks to the bottom of the viewport
- * and the footer content scrolling past it is the whole reveal. Nothing here is
- * scroll-linked, so there is no listener to bind.
+ * @param {Element|null} logo Footer logo element
+ * @returns {(() => void)|undefined} Cleanup that removes listeners and cancels pending frames
+ */
+function animateLogo(logo) {
+  if (!logo) return undefined;
+
+  let scrollPending = false;
+  let resizeRaf = null;
+  let logoHeight = 0;
+
+  const updateLogoProgress = () => {
+    const prevElement = logo.previousElementSibling;
+    if (!prevElement) return;
+    if (!logoHeight) logoHeight = logo.offsetHeight;
+    logo.style.setProperty(
+      '--footer-logo-entry-progress',
+      entryProgress(prevElement, logo, { height: logoHeight }),
+    );
+  };
+
+  const onScroll = () => {
+    if (scrollPending) return;
+    scrollPending = true;
+    requestAnimationFrame(() => {
+      updateLogoProgress();
+      scrollPending = false;
+    });
+  };
+
+  const onResize = () => {
+    if (resizeRaf) return;
+    resizeRaf = requestAnimationFrame(() => {
+      resizeRaf = null;
+      logoHeight = 0;
+      updateLogoProgress();
+    });
+  };
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onResize);
+  updateLogoProgress();
+
+  return () => {
+    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onResize);
+    if (resizeRaf) cancelAnimationFrame(resizeRaf);
+  };
+}
+
+/**
+ * Appends the full Adobe logo and starts its scroll-linked rise.
  *
  * @param {Element} parent Footer block or container to append the logo to
  * @returns {Element}
@@ -473,6 +524,7 @@ function decorateLogo(parent) {
     </div>
   `);
   parent.append(logo);
+  animateLogo(logo);
   return logo;
 }
 
