@@ -182,7 +182,8 @@ html.hero-intro {
      the knockout background never shows between them. */
   --hero-intro-section-offset: calc(100lvh - min(86lvh, 75rem));
 
-  overflow: hidden;
+  /* Clip the intro zoom on the inline axis. Keep vertical scroll. */
+  overflow: clip auto;
 
   @media (width < 48rem) {
     --hero-intro-section-offset: calc(100svh - 60lvh);
@@ -638,6 +639,7 @@ html.hero-intro--body main > .section:nth-of-type(2) {
 
 html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
   transform: translateY(var(--hero-intro-section-offset));
+  visibility: hidden;
 }
 
 @keyframes hero-intro-section-rise {
