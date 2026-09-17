@@ -100,10 +100,10 @@ describe('video block', () => {
     expect(block.querySelector('img').src).not.toContain('img.youtube.com');
   });
 
-  it('accepts Custom poster image without the optional parenthetical', () => {
+  it('uses the first row that contains media, regardless of the label', () => {
     const block = createBlock({
       'YouTube URL': youtubeLink(WATCH_URL),
-      'Custom poster image': '<img src="poster.png" alt="">',
+      Image: '<img src="poster.png" alt="">',
     });
 
     decorate(block);
