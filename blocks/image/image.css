@@ -39,7 +39,7 @@
     }
 
     @media (width >= 90rem) {
-      --image-width: calc(var(--article-content-inline-size-xl, 72.25rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 1156px */
+      --image-width: calc(var(--article-content-inline-size-xl, 72.375rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 1158px */
     }
 
     @media (width >= 120rem) {

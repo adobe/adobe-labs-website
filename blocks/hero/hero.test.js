@@ -1,5 +1,10 @@
 import { within } from '@testing-library/dom';
-import decorate from './hero.js';
+import decorate, {
+  clearHeroIntro,
+  HERO_INTRO_DURATION_MS,
+  HERO_INTRO_FROST_ID,
+  HERO_INTRO_NAV_DELAY_MS,
+} from './hero.js';
 
 /**
  * Builds a positional hero table (row 1 copy, row 2 image).
@@ -52,6 +57,37 @@ function expectPlayIcon(block) {
   expect(play.querySelector('svg')).toBeTruthy();
   return play;
 }
+
+/**
+ * Puts a hero in the first `main > .section`, which is required to start the intro.
+ *
+ * @param {HTMLElement} block Hero block
+ * @returns {HTMLElement} The same block
+ */
+function mountInFirstSection(block) {
+  const main = document.createElement('main');
+  const section = document.createElement('div');
+  section.className = 'section';
+  section.append(block);
+  main.append(section);
+  document.body.append(main);
+  return block;
+}
+
+function flushPaintFrames() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
+afterEach(() => {
+  clearHeroIntro();
+  document.body.classList.remove('appear');
+  document.querySelector('a.header__skip')?.remove();
+  document.querySelectorAll('main').forEach((main) => main.remove());
+});
 
 describe('hero block', () => {
   it('renders category, date, linked headline, CTA, and image', async () => {
@@ -179,6 +215,38 @@ describe('hero block', () => {
     }
   });
 
+  it('prints article category metadata above the headline as-is', async () => {
+    const template = document.createElement('meta');
+    template.setAttribute('name', 'template');
+    template.content = 'article';
+    const category = document.createElement('meta');
+    category.setAttribute('name', 'category');
+    category.content = 'Future of Creative Work, Standards & Practices';
+    document.head.append(template, category);
+
+    const block = createHeroBlock([
+      [
+        'Research',
+        'Oct 26',
+        '<h1>How Creatives are thinking about AI</h1>',
+        '',
+      ],
+    ]);
+    const main = placeInMain(block);
+
+    try {
+      await decorate(block);
+
+      const kicker = within(block).getByText('Future of Creative Work, Standards & Practices');
+      expect(kicker).toHaveClass('hero__category');
+      expect(kicker.nextElementSibling).toHaveClass('hero__headline');
+      expect(kicker.nextElementSibling).toHaveTextContent('How Creatives are thinking about AI');
+    } finally {
+      main.remove();
+      document.head.querySelectorAll('meta[name="template"], meta[name="category"]').forEach((el) => el.remove());
+    }
+  });
+
   it('omits empty optional fields', async () => {
     const block = createHeroBlock([
       ['<a href="/article">Headline only</a>'],
@@ -276,5 +344,199 @@ describe('hero block', () => {
     expect(block.querySelector('h2 a')).toBeNull();
     expect(block.querySelector('h2')).toHaveTextContent('Unsafe headline');
     expect(block.querySelector('.hero__cta-text')).toBeNull();
+  });
+
+  describe('full-screen loading intro', () => {
+    beforeEach(() => {
+      document.body.classList.add('appear');
+    });
+
+    it('adds hero-intro immediately and hero-intro--body after paint', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+
+      await decorate(block);
+
+      expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
+
+      await flushPaintFrames();
+
+      expect(document.documentElement).toHaveClass('hero-intro--body');
+    });
+
+    it('shows a hidden second section so the rise can run with the image', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+      const second = document.createElement('div');
+      second.className = 'section';
+      second.style.display = 'none';
+      second.dataset.sectionStatus = 'initialized';
+      block.closest('main').append(second);
+
+      await decorate(block);
+
+      expect(second.style.display).toBe('');
+      expect(second.dataset.sectionStatus).toBe('initialized');
+    });
+
+    it('clears the intro when the skip link is clicked', async () => {
+      const skip = document.createElement('a');
+      skip.className = 'header__skip';
+      skip.href = '#main';
+      document.body.prepend(skip);
+
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+        ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+
+      await decorate(block);
+      await flushPaintFrames();
+
+      const img = block.querySelector('.hero__media img');
+      expect(document.documentElement).toHaveClass('hero-intro--body');
+      expect(img.style.filter).toContain('blur');
+
+      skip.click();
+
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+      expect(img.style.filter).toBe('');
+    });
+
+    it('does not add hero-intro on a default hero in the first section', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      mountInFirstSection(block);
+
+      await decorate(block);
+
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+    });
+
+    it('does not add hero-intro on a full-screen hero outside the first section', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      const main = document.createElement('main');
+      const first = document.createElement('div');
+      first.className = 'section';
+      const second = document.createElement('div');
+      second.className = 'section';
+      second.append(block);
+      main.append(first, second);
+      document.body.append(main);
+
+      await decorate(block);
+
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+    });
+
+    it('does not add hero-intro when the URL has a hash', async () => {
+      window.history.replaceState({}, '', '/#section');
+      try {
+        const block = createHeroBlock([
+          ['<a href="/article">Headline</a>'],
+        ]);
+        block.classList.add('hero-full-screen');
+        mountInFirstSection(block);
+
+        await decorate(block);
+
+        expect(document.documentElement).not.toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+      } finally {
+        window.history.replaceState({}, '', '/');
+      }
+    });
+
+    it('does not add hero-intro when reduced motion is preferred', async () => {
+      const originalMatchMedia = window.matchMedia;
+      window.matchMedia = jest.fn((query) => ({
+        matches: String(query).includes('prefers-reduced-motion'),
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
+
+      try {
+        const block = createHeroBlock([
+          ['<a href="/article">Headline</a>'],
+        ]);
+        block.classList.add('hero-full-screen');
+        mountInFirstSection(block);
+
+        await decorate(block);
+
+        expect(document.documentElement).not.toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+      } finally {
+        window.matchMedia = originalMatchMedia;
+      }
+    });
+
+    it('adds hero-intro--nav after the nav delay and clears intro classes when done', async () => {
+      jest.useFakeTimers();
+      try {
+        const block = createHeroBlock([
+          ['<a href="/article">Headline</a>'],
+          ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+        ]);
+        block.classList.add('hero-full-screen');
+        mountInFirstSection(block);
+
+        await decorate(block);
+
+        const media = block.querySelector('.hero__media');
+        const img = media.querySelector('img');
+        expect(document.documentElement).toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
+        expect(img.style.filter).toContain('blur');
+        expect(media.style.filter).toBe('');
+
+        await jest.advanceTimersByTimeAsync(32);
+
+        expect(document.documentElement).toHaveClass('hero-intro--body');
+        expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+
+        jest.advanceTimersByTime(HERO_INTRO_NAV_DELAY_MS);
+        expect(document.documentElement).toHaveClass('hero-intro--nav');
+        expect(document.documentElement).toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
+
+        jest.advanceTimersByTime(HERO_INTRO_DURATION_MS - HERO_INTRO_NAV_DELAY_MS);
+        expect(document.documentElement).not.toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+        expect(img.style.filter).toBe('');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 });
