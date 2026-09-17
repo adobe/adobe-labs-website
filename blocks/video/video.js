@@ -102,6 +102,21 @@ function youtubePosterUrl(id, quality = 'maxresdefault') {
 }
 
 /**
+ * First picture or img in the block that is not in the YouTube URL cell.
+ *
+ * @param {Element} block The video block
+ * @param {Element} [urlCell] YouTube URL value cell to skip
+ * @returns {Element|null}
+ */
+function getAuthoredPosterMedia(block, urlCell) {
+  return [...block.children]
+    .flatMap((row) => [...row.children])
+    .filter((cell) => cell !== urlCell)
+    .map(getCellMedia)
+    .find(Boolean) || null;
+}
+
+/**
  * Reads authored key/value rows from a video block.
  *
  * @param {Element} block The block element
@@ -112,13 +127,12 @@ export function getVideoData(block) {
   const urlCell = cells['youtube-url'];
   const href = getCellLinkHref(urlCell) || toSafeHttpUrl(getCellText(urlCell));
   const videoId = getYoutubeId(href);
-  const posterCell = cells['custom-poster-image-optional'] || cells['custom-poster-image'];
   return {
     href,
     videoId,
     playLabel: getPlayLabel(urlCell, videoId),
     hasCustomPlayLabel: hasCustomLinkText(urlCell),
-    posterMedia: getCellMedia(posterCell),
+    posterMedia: getAuthoredPosterMedia(block, urlCell),
   };
 }
 
