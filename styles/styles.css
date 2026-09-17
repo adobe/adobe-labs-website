@@ -466,12 +466,24 @@ footer {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--s2a-spacing-xs);
-  font-size: var(--s2a-typography-font-size-label);
 }
 
 .article-meta__authors-label,
 .article-meta__author-name {
-  color: var(--s2a-color-content-body-subtle);
+  /* s2a/typography/heading-6 */
+  font-family: var(--heading-font-family);
+  font-size: var(--s2a-typography-font-size-heading-6);
+  font-weight: 900;
+  line-height: var(--s2a-typography-line-height-title-6, 1.125rem); /* 112.5% */
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+}
+
+.article-meta__authors-label {
+  color: var(--s2a-color-content-subtle);
+}
+
+.article-meta__author-name {
+  color: var(--s2a-color-content-default);
 }
 
 .article-meta__author-list {
