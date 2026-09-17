@@ -1,4 +1,5 @@
 import { waitFor, within } from '@testing-library/dom';
+import { getMetadata } from '../../scripts/aem.js';
 import decorate from './video.js';
 
 jest.mock('../../scripts/aem.js', () => ({
@@ -11,6 +12,12 @@ jest.mock('../../scripts/aem.js', () => ({
 
 const VIDEO_ID = '1F-5bZC_M7Q';
 const WATCH_URL = `https://www.youtube.com/watch?v=${VIDEO_ID}`;
+const CAPTIONS_PAYLOAD = {
+  videoId: VIDEO_ID,
+  language: 'en',
+  trackKind: 'standard',
+  cues: [{ start: 0, duration: 1.2, text: 'Hello from captions' }],
+};
 
 function createBlock(fields) {
   const block = document.createElement('div');
@@ -27,16 +34,47 @@ function youtubeLink(href, text = href) {
   return `<a href="${href}">${text}</a>`;
 }
 
+function isOembedUrl(value) {
+  return String(value).includes('youtube.com/oembed');
+}
+
+function isCaptionsUrl(value) {
+  return String(value).includes('/api/youtube-captions')
+    || String(value).includes('youtube-captions');
+}
+
+function mockFetch({ oembed, captions } = {}) {
+  window.fetch = jest.fn((input) => {
+    const href = String(input);
+    if (isOembedUrl(href)) {
+      return Promise.resolve({
+        ok: Boolean(oembed?.ok),
+        json: async () => oembed?.json || {},
+      });
+    }
+    if (isCaptionsUrl(href)) {
+      return Promise.resolve({
+        ok: Boolean(captions?.ok),
+        status: captions?.status ?? (captions?.ok ? 200 : 500),
+        json: async () => captions?.json || {},
+      });
+    }
+    return Promise.resolve({ ok: false, json: async () => ({}) });
+  });
+}
+
 describe('video block', () => {
+  let warn;
+
   beforeEach(() => {
-    window.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      json: async () => ({}),
-    });
+    getMetadata.mockReturnValue('');
+    mockFetch();
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
     delete window.fetch;
+    warn.mockRestore();
   });
   it('builds a YouTube maxres poster and play control from a watch URL', () => {
     const block = createBlock({
@@ -119,13 +157,13 @@ describe('video block', () => {
     decorate(block);
 
     expect(within(block).getByRole('button', { name: 'Play Keynote' })).toBeTruthy();
-    expect(window.fetch).not.toHaveBeenCalled();
+    expect(window.fetch.mock.calls.every(([url]) => !isOembedUrl(url))).toBe(true);
+    expect(window.fetch.mock.calls.some(([url]) => isCaptionsUrl(url))).toBe(true);
   });
 
   it('uses the YouTube oEmbed title for the play control', async () => {
-    window.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ title: 'How Creatives are thinking about AI' }),
+    mockFetch({
+      oembed: { ok: true, json: { title: 'How Creatives are thinking about AI' } },
     });
 
     const block = createBlock({
@@ -140,9 +178,8 @@ describe('video block', () => {
       })).toBeTruthy();
     });
 
-    const requested = String(window.fetch.mock.calls[0][0]);
-    expect(requested).toContain('youtube.com/oembed');
-    expect(requested).toContain(VIDEO_ID);
+    const requested = window.fetch.mock.calls.map(([url]) => String(url));
+    expect(requested.some((url) => isOembedUrl(url) && url.includes(VIDEO_ID))).toBe(true);
 
     within(block).getByRole('button', {
       name: 'Play How Creatives are thinking about AI',
@@ -223,6 +260,7 @@ describe('video block', () => {
     expect(wrapper.contains(block)).toBe(false);
     expect(wrapper.children).toHaveLength(0);
     expect(log).toHaveBeenCalledWith(`video: broken YouTube link (${href})`);
+    expect(window.fetch).not.toHaveBeenCalled();
     log.mockRestore();
   });
 
@@ -266,5 +304,131 @@ describe('video block', () => {
 
     expect(img.src).toContain('custom.jpg');
     expect(img.src).not.toContain('hqdefault.jpg');
+  });
+
+  it('logs captions when the captions API returns cues', async () => {
+    mockFetch({ captions: { ok: true, json: CAPTIONS_PAYLOAD } });
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+    });
+
+    decorate(block);
+
+    await waitFor(() => {
+      expect(log).toHaveBeenCalledWith(`video: captions (${VIDEO_ID})`, 'Hello from captions');
+    });
+    expect(log).toHaveBeenCalledWith(`video: captions cues (${VIDEO_ID})`, {
+      ...CAPTIONS_PAYLOAD,
+      transcript: 'Hello from captions',
+    });
+    const requested = window.fetch.mock.calls.map(([url]) => String(url));
+    expect(requested.some((url) => url.startsWith('http://127.0.0.1:7676/api/youtube-captions') && url.includes(VIDEO_ID))).toBe(true);
+    expect(within(block).getByRole('button', { name: `Play YouTube video ${VIDEO_ID}` })).toBeTruthy();
+    log.mockRestore();
+  });
+
+  it('logs a flattened transcript for overlapping ASR cues', async () => {
+    mockFetch({
+      captions: {
+        ok: true,
+        json: {
+          videoId: VIDEO_ID,
+          language: 'en',
+          trackKind: 'asr',
+          cues: [
+            { start: 2, duration: 2.3, text: 'Hello friends, Randy here. I am showing' },
+            { start: 4.3, duration: 0.01, text: 'Hello friends, Randy here. I am showing' },
+            { start: 4.32, duration: 4.63, text: 'Hello friends, Randy here. I am showing a video of the parallax effects um for' },
+            { start: 8.95, duration: 0.01, text: 'a video of the parallax effects um for' },
+            { start: 8.96, duration: 2.23, text: 'a video of the parallax effects um for Adobe Labs.' },
+          ],
+        },
+      },
+    });
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+    });
+
+    decorate(block);
+
+    await waitFor(() => {
+      expect(log).toHaveBeenCalledWith(
+        `video: captions (${VIDEO_ID})`,
+        'Hello friends, Randy here. I am showing a video of the parallax effects um for Adobe Labs.',
+      );
+    });
+    log.mockRestore();
+  });
+
+  it('stays silent when the captions API returns no cues', async () => {
+    mockFetch({ captions: { ok: true, json: { videoId: VIDEO_ID, cues: [] } } });
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+    });
+
+    decorate(block);
+
+    await waitFor(() => {
+      expect(window.fetch.mock.calls.some(([url]) => isCaptionsUrl(url))).toBe(true);
+    });
+    expect(log.mock.calls.every(([message]) => !String(message).startsWith('video: captions'))).toBe(true);
+    log.mockRestore();
+  });
+
+  it('stays silent when the captions API responds with an error', async () => {
+    mockFetch({ captions: { ok: false } });
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+    });
+
+    decorate(block);
+
+    await waitFor(() => {
+      expect(window.fetch.mock.calls.some(([url]) => isCaptionsUrl(url))).toBe(true);
+    });
+    expect(log.mock.calls.every(([message]) => !String(message).startsWith('video: captions'))).toBe(true);
+    log.mockRestore();
+  });
+
+  it('stays silent when the captions API responds with 404', async () => {
+    mockFetch({ captions: { ok: false, status: 404 } });
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+    });
+
+    decorate(block);
+
+    await waitFor(() => {
+      expect(window.fetch.mock.calls.some(([url]) => isCaptionsUrl(url))).toBe(true);
+    });
+    expect(log.mock.calls.every(([message]) => !String(message).startsWith('video: captions'))).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it('uses youtube-captions-api metadata as the captions endpoint', async () => {
+    getMetadata.mockImplementation((name) => (
+      name === 'youtube-captions-api' ? 'http://127.0.0.1:7676/api/youtube-captions' : ''
+    ));
+    mockFetch({ captions: { ok: true, json: CAPTIONS_PAYLOAD } });
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+    });
+
+    decorate(block);
+
+    await waitFor(() => {
+      expect(log).toHaveBeenCalledWith(`video: captions (${VIDEO_ID})`, 'Hello from captions');
+    });
+    expect(getMetadata).toHaveBeenCalledWith('youtube-captions-api');
+    const requested = window.fetch.mock.calls.map(([url]) => String(url));
+    expect(requested.some((url) => url.startsWith('http://127.0.0.1:7676/api/youtube-captions') && url.includes(VIDEO_ID))).toBe(true);
+    log.mockRestore();
   });
 });

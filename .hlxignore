@@ -9,3 +9,5 @@ package.json
 package-lock.json
 test/*
 tests/*
+config/
+edge-functions/

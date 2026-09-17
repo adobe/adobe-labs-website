@@ -1,3 +1,4 @@
+import { getMetadata } from '../../scripts/aem.js';
 import {
   buildPlayIcon,
   getAuthoredCells,
@@ -10,6 +11,8 @@ import {
 const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const YOUTUBE_POSTER_PLACEHOLDER_WIDTH = 120;
 const DEFAULT_PLAY_LABEL = 'Play YouTube video';
+const DEFAULT_CAPTIONS_PATH = '/api/youtube-captions';
+const LOCAL_CAPTIONS_URL = 'http://127.0.0.1:7676/api/youtube-captions';
 
 /**
  * Extracts an 11-character YouTube video ID from a URL.
@@ -88,6 +91,16 @@ function getPlayerTitle(playLabel) {
 function prefersReducedMotion() {
   if (typeof window.matchMedia !== 'function') return true;
   return !window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+}
+
+/**
+ * Whether this is local AEM CLI (no Cloud Manager CDN routing).
+ *
+ * @returns {boolean}
+ */
+function isLocalDev() {
+  const { hostname } = window.location;
+  return hostname === 'localhost' || hostname === '127.0.0.1';
 }
 
 /**
@@ -189,6 +202,141 @@ async function fetchYoutubeTitle(videoId) {
 }
 
 /**
+ * Captions API URL for a video ID. Uses `youtube-captions-api` metadata when
+ * set (local edge-function override); otherwise same-origin `/api/youtube-captions`.
+ *
+ * @param {string} videoId YouTube video ID
+ * @returns {URL}
+ */
+export function getCaptionsRequestUrl(videoId) {
+  const override = toSafeHttpUrl(getMetadata('youtube-captions-api'));
+  let base = override;
+  if (!base) {
+    base = isLocalDev()
+      ? LOCAL_CAPTIONS_URL
+      : new URL(DEFAULT_CAPTIONS_PATH, window.location.href).href;
+  }
+  const url = new URL(base);
+  url.searchParams.set('videoId', videoId);
+  return url;
+}
+
+/**
+ * Joins prev and next when they share a trailing/leading word overlap.
+ *
+ * @param {string} prev Current assembled line
+ * @param {string} next Incoming cue text
+ * @returns {string} Merged text, or empty if they do not overlap
+ */
+function mergeOverlappingText(prev, next) {
+  const prevWords = prev.split(' ');
+  const nextWords = next.split(' ');
+  let overlap = Math.min(prevWords.length, nextWords.length);
+  while (overlap > 0) {
+    if (prevWords.slice(-overlap).join(' ') === nextWords.slice(0, overlap).join(' ')) break;
+    overlap -= 1;
+  }
+  if (overlap === 0) return '';
+  return [...prevWords, ...nextWords.slice(overlap)].join(' ');
+}
+
+/**
+ * Collapses YouTube ASR rolling captions into a readable transcript.
+ * Keep in sync with `edge-functions/src/vtt.js`.
+ *
+ * @param {{ text?: string }[]} cues Timed caption cues
+ * @returns {string}
+ */
+export function cuesToTranscript(cues) {
+  if (!Array.isArray(cues) || !cues.length) return '';
+  const parts = [];
+  let current = '';
+
+  cues.forEach(({ text }) => {
+    const next = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!next || next === current) return;
+    if (!current) {
+      current = next;
+      return;
+    }
+    if (next.startsWith(current)) {
+      current = next;
+      return;
+    }
+    if (current.startsWith(next)) return;
+
+    const merged = mergeOverlappingText(current, next);
+    if (merged) {
+      current = merged;
+      return;
+    }
+    parts.push(current);
+    current = next;
+  });
+
+  if (current) parts.push(current);
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Ensures caption JSON includes a flattened transcript string.
+ *
+ * @param {object} payload Caption JSON from the proxy
+ * @returns {object}
+ */
+function withTranscript(payload) {
+  if (typeof payload.transcript === 'string' && payload.transcript.trim()) return payload;
+  return { ...payload, transcript: cuesToTranscript(payload.cues) };
+}
+
+/**
+ * Fetches caption cues from the OAuth proxy. Returns null when captions are
+ * missing or the request fails so decorate can stay silent.
+ *
+ * @param {string} videoId YouTube video ID
+ * @returns {Promise<object|null>}
+ */
+export async function fetchYoutubeCaptions(videoId) {
+  if (!YOUTUBE_ID_RE.test(videoId)) return null;
+  const url = getCaptionsRequestUrl(videoId);
+  try {
+    const resp = await window.fetch(url);
+    if (!resp.ok) {
+      if (isLocalDev() && resp.status !== 404) {
+        // eslint-disable-next-line no-console
+        console.warn(`video: captions proxy ${resp.status} at ${url}`);
+      }
+      return null;
+    }
+    const payload = await resp.json();
+    if (!Array.isArray(payload?.cues) || !payload.cues.length) return null;
+    return withTranscript(payload);
+  } catch {
+    if (isLocalDev()) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `video: captions proxy unreachable at ${url}. `
+        + 'Start it with: node edge-functions/dev-server.mjs',
+      );
+    }
+    return null;
+  }
+}
+
+/**
+ * Logs a readable transcript, then the timed cues, when a track is available.
+ *
+ * @param {string} videoId YouTube video ID
+ * @param {object} payload Caption JSON from the proxy
+ */
+function logVideoCaptions(videoId, payload) {
+  // eslint-disable-next-line no-console
+  console.log(`video: captions (${videoId})`, payload.transcript);
+  // eslint-disable-next-line no-console
+  console.log(`video: captions cues (${videoId})`, payload);
+}
+
+/**
  * Replaces the poster with a privacy-enhanced YouTube iframe and focuses it.
  *
  * @param {Element} block The video block
@@ -249,6 +397,10 @@ function buildVideo(data, block) {
   });
 
   block.replaceChildren(button);
+
+  fetchYoutubeCaptions(videoId).then((payload) => {
+    if (payload) logVideoCaptions(videoId, payload);
+  });
 
   if (hasCustomPlayLabel) return;
   fetchYoutubeTitle(videoId).then((title) => {

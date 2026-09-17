@@ -1,0 +1,15 @@
+{
+  "name": "youtube-captions",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "aio aem edge-functions build",
+    "deploy": "aio aem edge-functions deploy youtube-captions",
+    "serve": "aio aem edge-functions serve",
+    "auth": "node ./auth.mjs",
+    "dev": "node ./dev-server.mjs"
+  },
+  "dependencies": {
+    "@fastly/js-compute": "3.42.1"
+  }
+}

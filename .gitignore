@@ -8,6 +8,13 @@ helix-importer-ui
 *.bak
 .idea
 
+.env
+.env.local
+edge-functions/.env
+edge-functions/.env.local
+edge-functions/fastly.toml
+*client_secret*.json
+
 # Ensure these files are tracked
 !CLAUDE.md
 !AGENTS.md

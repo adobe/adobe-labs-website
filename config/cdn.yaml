@@ -1,0 +1,13 @@
+kind: CDN
+version: "1"
+data:
+  originSelectors:
+    rules:
+      - name: youtube-captions
+        when:
+          reqProperty: path
+          equals: /api/youtube-captions
+        action:
+          type: selectAemOrigin
+          originName: edgefunction-youtube-captions
+          skipCache: true
