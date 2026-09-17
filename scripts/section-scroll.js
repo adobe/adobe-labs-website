@@ -141,7 +141,15 @@ export function classifySectionScroll(root = document) {
       applySectionVars(section);
       if (started && motion) motion.bindPair(section, next);
     });
-    bindFooterReveal(main, root);
+    bindFooterReveal(main, root, {
+      scrollBy(delta) {
+        if (lenis) {
+          lenis.scrollTo(lenis.scroll + delta, { immediate: true });
+          return;
+        }
+        window.scrollBy(0, delta);
+      },
+    });
   };
 
   if (started && gsap) motionCtx = gsap.context(decorate, main);

@@ -64,6 +64,8 @@ jest.mock('../deps/lenis/dist/index.js', () => {
     resize: jest.fn(),
     destroy: jest.fn(),
     raf: jest.fn(),
+    scroll: 0,
+    scrollTo: jest.fn(),
   };
   const MockLenis = jest.fn(() => instance);
   return { __esModule: true, default: MockLenis };

@@ -182,38 +182,81 @@ describe('bindFooterReveal', () => {
     expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-50');
   });
 
-  it('takes the covered menu out of the tab order', () => {
+  it('keeps the covered menu in the tab order', () => {
     const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
-    const card = main.children[0];
     const inner = footer.querySelector('.footer__inner');
     menuHeight(inner, 240);
     // Card bottom on the viewport floor: the menu is entirely behind it.
-    cardBottom(card, 800);
+    cardBottom(main.children[0], 800);
 
     bindFooterReveal(main, document);
 
     const controls = [...inner.querySelectorAll('a, input, button')];
 
-    expect(controls.map((el) => el.getAttribute('tabindex'))).toEqual(['-1', '-1', '-1']);
-    // Skipped when tabbing, but not hidden from assistive technology.
+    expect(controls.map((el) => el.getAttribute('tabindex'))).toEqual([null, null, null]);
     expect(inner).not.toHaveAttribute('inert');
     expect(inner).not.toHaveAttribute('aria-hidden');
-
-    cardBottom(card, 680);
-    scroll();
-
-    expect(controls.map((el) => el.getAttribute('tabindex'))).toEqual([null, null, null]);
   });
 
-  it('leaves the menu tabbable when it has not been measured yet', () => {
+  it('scrolls the last card off a covered control that receives focus', () => {
     const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    menuHeight(footer.querySelector('.footer__inner'), 240);
+    cardBottom(main.children[0], 800);
+    const scrollBy = jest.fn();
+
+    bindFooterReveal(main, document, { scrollBy });
+    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    // Viewport 800, menu 240: the fully-in line is 560 from the top.
+    expect(scrollBy).toHaveBeenCalledWith(240);
+  });
+
+  it('scrolls the remaining cover when the menu is only partly in', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    menuHeight(footer.querySelector('.footer__inner'), 240);
     cardBottom(main.children[0], 680);
+    const scrollBy = jest.fn();
 
-    // An unmeasurable menu reads as fully covered, which must not be enough to
-    // strip the tab order, or a footer that never measures stays unreachable.
+    bindFooterReveal(main, document, { scrollBy });
+    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    expect(scrollBy).toHaveBeenCalledWith(120);
+  });
+
+  it('falls back to window.scrollBy when no scroller is wired', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    menuHeight(footer.querySelector('.footer__inner'), 240);
+    cardBottom(main.children[0], 800);
+    const scrollBy = jest.spyOn(window, 'scrollBy').mockImplementation(() => {});
+
     bindFooterReveal(main, document);
+    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 
-    expect(footer.querySelector('.footer__inner a')).not.toHaveAttribute('tabindex');
+    expect(scrollBy).toHaveBeenCalledWith(0, 240);
+    scrollBy.mockRestore();
+  });
+
+  it('does not scroll when the menu is already fully in', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    menuHeight(footer.querySelector('.footer__inner'), 240);
+    cardBottom(main.children[0], 500);
+    const scrollBy = jest.fn();
+
+    bindFooterReveal(main, document, { scrollBy });
+    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    expect(scrollBy).not.toHaveBeenCalled();
+  });
+
+  it('does not scroll a covered control when the menu has not been measured yet', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    cardBottom(main.children[0], 800);
+    const scrollBy = jest.fn();
+
+    bindFooterReveal(main, document, { scrollBy });
+    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    expect(scrollBy).not.toHaveBeenCalled();
   });
 
   it('does nothing without a rounded section', () => {
@@ -273,18 +316,17 @@ describe('clearFooterReveal', () => {
     expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('');
   });
 
-  it('restores the menu tab order', () => {
+  it('stops uncovering on focus', () => {
     const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
-    const inner = footer.querySelector('.footer__inner');
+    menuHeight(footer.querySelector('.footer__inner'), 240);
     cardBottom(main.children[0], 800);
-    menuHeight(inner, 240);
+    const scrollBy = jest.fn();
 
-    bindFooterReveal(main, document);
-    expect(inner.querySelector('a')).toHaveAttribute('tabindex', '-1');
-
+    bindFooterReveal(main, document, { scrollBy });
     clearFooterReveal(document);
+    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 
-    expect(inner.querySelector('a')).not.toHaveAttribute('tabindex');
+    expect(scrollBy).not.toHaveBeenCalled();
   });
 
   it('stops syncing on scroll', () => {
