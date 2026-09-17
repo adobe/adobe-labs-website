@@ -1,4 +1,5 @@
 import { getMetadata } from '../../scripts/aem.js';
+import { entryProgress } from '../../scripts/utils/entry-progress.js';
 import { escapeAttr, fromHTML } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
@@ -231,6 +232,12 @@ function decorateHeadline(heading, items) {
   heading.append(button);
 
   const desktopQuery = window.matchMedia('(min-width: 64rem)');
+
+  /**
+   * Toggles the accordion panel on mobile. A no-op at the desktop breakpoint,
+   * where the button is not in the tab order.
+   * @returns {void}
+   */
   const onActivate = () => {
     if (desktopQuery.matches) return;
     const expanded = button.getAttribute('aria-expanded') === 'true';
@@ -456,25 +463,38 @@ function decorateLegal(legal) {
  */
 
 /**
- * Updates footer logo entry progress from scroll and resize for CSS-driven animation.
+ * Drives `--footer-logo-entry-progress` so the image can rise from below the
+ * clip as `.footer__inner` uncovers it. Height is cached across scroll frames
+ * and dropped on resize.
+ *
  * @param {Element|null} logo Footer logo element
- * @returns {(() => void)|undefined} Cleanup that removes listeners and cancels pending frames
+ * @returns {void}
  */
 function animateLogo(logo) {
-  if (!logo) return undefined;
+  if (!logo) return;
 
   let scrollPending = false;
   let resizeRaf = null;
+  let logoHeight = 0;
 
+  /**
+   * Writes `--footer-logo-entry-progress` from the inner's current cover.
+   * @returns {void}
+   */
   const updateLogoProgress = () => {
     const prevElement = logo.previousElementSibling;
     if (!prevElement) return;
-    const bottom = prevElement.getBoundingClientRect().bottom ?? 0;
-    let progress = ((window.innerHeight - bottom) / logo.offsetHeight) * 100;
-    progress = Math.max(0, Math.min(100, progress));
-    logo.style.setProperty('--footer-logo-entry-progress', progress);
+    if (!logoHeight) logoHeight = logo.offsetHeight;
+    logo.style.setProperty(
+      '--footer-logo-entry-progress',
+      entryProgress(prevElement, logo, { height: logoHeight }),
+    );
   };
 
+  /**
+   * Coalesces scroll events onto one animation frame.
+   * @returns {void}
+   */
   const onScroll = () => {
     if (scrollPending) return;
     scrollPending = true;
@@ -484,10 +504,15 @@ function animateLogo(logo) {
     });
   };
 
+  /**
+   * Drops the cached height and remeasures after a resize.
+   * @returns {void}
+   */
   const onResize = () => {
     if (resizeRaf) return;
     resizeRaf = requestAnimationFrame(() => {
       resizeRaf = null;
+      logoHeight = 0;
       updateLogoProgress();
     });
   };
@@ -495,16 +520,11 @@ function animateLogo(logo) {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onResize);
   updateLogoProgress();
-
-  return () => {
-    window.removeEventListener('scroll', onScroll);
-    window.removeEventListener('resize', onResize);
-    if (resizeRaf) cancelAnimationFrame(resizeRaf);
-  };
 }
 
 /**
- * Appends the full Adobe logo and starts its scroll-linked animation.
+ * Appends the full Adobe logo and starts its scroll-linked rise.
+ *
  * @param {Element} parent Footer block or container to append the logo to
  * @returns {Element}
  */

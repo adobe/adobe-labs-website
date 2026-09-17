@@ -249,6 +249,25 @@ function setCalculatedPerspective() {
 }
 
 /**
+ * Warms a module that is about to be dynamically imported by another module.
+ *
+ * A dynamic `import()` inside a module cannot be requested until that module's
+ * own dependency graph has resolved, so a vendored bundle sitting behind one
+ * starts downloading several round trips late. This hint starts it immediately
+ * without putting it in any static import graph, which is why it stays a hint
+ * and never becomes an import. Browsers without `modulepreload` ignore it.
+ *
+ * @param {string} path Module path relative to the code base
+ * @returns {void}
+ */
+function modulePreload(path) {
+  const link = document.createElement('link');
+  link.rel = 'modulepreload';
+  link.href = `${window.hlx.codeBasePath}${path}`;
+  document.head.append(link);
+}
+
+/**
  * Loads everything that doesn't need to be delayed.
  * @param {Element} doc The container element
  */
@@ -260,7 +279,11 @@ async function loadLazy(doc) {
 
   const { hash } = window.location;
   const element = hash ? doc.getElementById(hash.substring(1)) : false;
-  if (hash && element) element.scrollIntoView();
+  // `instant` rather than the `scroll-behavior: smooth` that `styles.css` sets:
+  // a load-time deep link has nothing to animate from, and on motion pages
+  // Lenis attaches mid-flight and takes over the scroll position, stranding an
+  // in-progress smooth scroll short of the anchor.
+  if (hash && element) element.scrollIntoView({ behavior: 'instant' });
 
   loadFooter(doc.querySelector('body > footer'));
 
@@ -271,6 +294,22 @@ async function loadLazy(doc) {
   setCalculatedPerspective();
   const setCalcPerspectiveDebounced = debounce(setCalculatedPerspective);
   window.addEventListener('resize', setCalcPerspectiveDebounced);
+
+  // Section cover motion: pages with a rounded section, motion opted in. Guarded
+  // here so reduced-motion requests fetch none of it; the module then owns the
+  // change listener, so turning reduced motion *on* later still stops the
+  // animation. Turning it off later needs a reload, which is the safe asymmetry.
+  const rounded = doc.querySelector('main > .section[class*="section-rounded-"]');
+  if (rounded && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+    // GSAP is the largest asset these pages load and it sits two levels deep
+    // behind `section-scroll.js`. Warm it here so it downloads alongside that
+    // module's imports instead of after them. Lenis is small and is fetched in
+    // parallel with GSAP, so it needs no hint.
+    modulePreload('/deps/gsap/dist/index.js');
+    import('./section-scroll.js')
+      .then((mod) => mod.initSectionScroll())
+      .catch(() => { /* motion is optional: leave the static layout in place */ });
+  }
 }
 
 /**
