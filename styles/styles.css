@@ -659,7 +659,8 @@ body.article main {
   --article-content-inline-size-sm: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
   --article-content-inline-size-md: calc(37.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 598px @ 48rem (768px) viewport */
   --article-content-inline-size-lg: calc(50.75rem + (var(--site-root-inline-padding, 0px) * 2)); /* 812px @ 64rem (1024px) viewport */
-  --article-content-inline-size-xl: calc(72.25rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1156px @ 90rem (1440px) viewport and up */
+  --article-content-inline-size-xl: calc(72.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1158px @ 90rem (1440px) viewport */
+  --article-content-inline-size-xxl: calc(97.25rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1556px @ 120rem (1920px) viewport */
 
   @media (width >= 90rem) {
     --section-padding-block-end: var(--s2a-spacing-4xl);
