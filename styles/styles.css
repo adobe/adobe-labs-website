@@ -53,6 +53,50 @@
   size-adjust: 98.909%;
 }
 
+/* --- Page transitions --- */
+
+/* Enable native multi-page transitions if the user does not prefer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+/* Outgoing page: Fades out immediately. */
+::view-transition-old(root) {
+  animation: blur-fade-out 0.35s ease-out forwards;
+}
+
+/* Incoming page: Starts completely hidden, waits for at least the length of outgoing transition, then fades in. */
+::view-transition-new(root) {
+  opacity: 0; /* Keeps it hidden during the delay */
+  animation: blur-fade-in 0.45s ease-out 0.35s forwards;
+}
+
+@keyframes blur-fade-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    filter: blur(0.75rem);
+  }
+}
+
+@keyframes blur-fade-in {
+  from {
+    opacity: 0;
+    filter: blur(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
 /* --- Project specific CSS variables --- */
 :root {
   /* colors - TODO: we'll likely want to refactor these away from the boilerplate */
