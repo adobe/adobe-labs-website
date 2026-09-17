@@ -2,12 +2,14 @@
  * Takes the controls inside a visually hidden element out of the tab order, and
  * puts them back.
  *
- * Three things the section surfaces hide stay in the viewport rather than
+ * Two things the section surfaces hide stay in the viewport rather than
  * scrolling away: a pinned card, which the cards above it cover for the rest of
- * the page; the sticky page-header wrapper, which fades out under the nav; and
- * the footer menu, which the last rounded card covers until it garage-doors
- * open. A keyboard user would otherwise tab into controls in any of them that
- * they cannot see — WCAG 2.2 SC 2.4.11, Focus Not Obscured.
+ * the page; and the sticky page-header wrapper, which fades out under the nav.
+ * A keyboard user would otherwise tab into controls in either of them that they
+ * cannot see — WCAG 2.2 SC 2.4.11, Focus Not Obscured. The footer menu is
+ * different: it is the next stop in document order, so taking it out of the tab
+ * order would make it unreachable. Focusing a covered footer control scrolls
+ * the last card off it instead.
  *
  * Deliberately not `inert`, and not GSAP's `autoAlpha` (which adds
  * `visibility: hidden`): both of those also drop the content from the
@@ -17,8 +19,8 @@
  * content-loss defect. Suppressing only the tab order keeps everything readable
  * and navigable by assistive technology, and scrolling restores it.
  *
- * Lives here rather than in `section-scroll/motion.js` because
- * `section-scroll/footer-reveal.js` needs it and must not reach GSAP.
+ * Lives here rather than in `section-scroll/motion.js` so the helper stays
+ * importable without pulling GSAP.
  */
 
 /** Marks an element whose tab order is currently suppressed. */
