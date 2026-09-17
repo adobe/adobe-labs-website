@@ -15,6 +15,7 @@
  * without CLS. `local("Arial")` is scaled to the webfont width.
  * adobe-clean 400/700: helix-font-fallback-extension sample values.
  * adobe-clean-display 700/900: measured against kit xsh2otx.
+ * adobe-clean-spectrum-serif 400/700: measured against kit xsh2otx on article body copy.
  * @see https://www.aem.live/developer/font-fallback
  */
 @font-face {
@@ -53,6 +54,24 @@
   size-adjust: 98.909%;
 }
 
+@font-face {
+  font-family: adobe-clean-spectrum-serif-fallback;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local("Arial");
+  size-adjust: 94.316%;
+}
+
+@font-face {
+  font-family: adobe-clean-spectrum-serif-fallback;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local("Arial");
+  size-adjust: 98.242%;
+}
+
 /* --- Project specific CSS variables --- */
 :root {
   /* colors - TODO: we'll likely want to refactor these away from the boilerplate */
@@ -77,6 +96,9 @@
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, adobe-clean-fallback, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, adobe-clean-display-fallback, sans-serif;
+  --serif-font-family: adobe-clean-spectrum-serif, adobe-clean-spectrum-serif-fallback, serif;
+  --serif-body-font-size: var(--s2a-font-size-md);
+  --serif-body-line-height: var(--s2a-font-line-height-20);
   --typography-font-weight-heading-2: var(--s2a-font-weight-adobe-clean-display-black);
 
   /* nav height: 64px mobile bar, 80px desktop (8px inset + 64px bar) */
@@ -104,6 +126,13 @@
   :root {
     --site-root-inline-padding: var(--s2a-spacing-lg, 1.0rem);
     --nav-height: 80px;
+  }
+}
+
+@media (width >= 64rem) {
+  :root {
+    --serif-body-font-size: var(--s2a-font-size-xl);
+    --serif-body-line-height: 1.625rem; /* 26px */
   }
 }
 
@@ -289,6 +318,7 @@ h6, .heading-6 {
 }
 
 .caption, [class*="caption-"] {
+  font-family: var(--body-font-family);
   font-weight: var(--s2a-font-weight-caption);
   font-size: var(--s2a-typography-font-size-caption);
   line-height: var(--s2a-typography-line-height-caption);
@@ -676,4 +706,13 @@ body.article main {
     max-inline-size: none;
     padding-inline: 0;
   }
+}
+
+/* Article body: serif paragraphs and lists. :where() keeps this a default
+   so headings, captions, and block styles can override. Heading sizes already
+   follow s2a heading-1 through heading-6; no article heading overrides. */
+:where(body.article .default-content-wrapper) :where(p, ul, ol) {
+  font-family: var(--serif-font-family);
+  font-size: var(--serif-body-font-size);
+  line-height: var(--serif-body-line-height);
 }
