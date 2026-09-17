@@ -43,7 +43,7 @@
     }
 
     @media (width >= 120rem) {
-      --image-width: 97.25rem; /* 1556px */
+      --image-width: calc(var(--article-content-inline-size-xxl, 97.25rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 1556px */
     }
   }
 }
