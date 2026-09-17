@@ -286,13 +286,36 @@ export function buildAuthorByline() {
  * the author byline today; action buttons (copy/download/feedback) join it
  * in the same container later (ADBLABS-144/ADBLABS-155).
  *
+ * Returns the `<aside class="article-meta">` wrapped in a plain, classless
+ * `<div>`. Two reasons:
+ *  - `<aside>`, not `<div>`, for the meta element itself: once
+ *    `decorateSections` wraps it, a `<div class="article-meta">` here would
+ *    land at exactly `div.section > div > div` — the same generic depth
+ *    `decorateBlocks` uses to detect a block and try to load
+ *    `blocks/<name>/<name>.js` — and get silently (mis)treated as a
+ *    nonexistent "article-meta" block. A non-`div` tag sidesteps that
+ *    selector entirely.
+ *  - The outer classless `<div>` forces `decorateSections` to give this its
+ *    own section-level wrapper instead of merging it into the neighboring
+ *    `.default-content-wrapper` (its algorithm only starts a new wrapper on
+ *    a `<div>`; an `<aside>` alone would be swept into whatever "default
+ *    content" run it lands next to). Sitting inside `.default-content-wrapper`
+ *    would cap the meta section to that wrapper's narrow, fixed
+ *    `--article-content-inline-size-sm`, overriding the wider, breakpoint-
+ *    matching width this needs to line up with the lead-in block. Being
+ *    classless, the `<div>` itself has no `classList[0]`, so `decorateBlock`
+ *    (which keys off exactly that) no-ops on it.
+ *
  * @returns {HTMLDivElement}
  */
 function buildArticleMeta() {
-  const meta = document.createElement('div');
+  const meta = document.createElement('aside');
   meta.className = 'article-meta';
   meta.append(buildAuthorByline());
-  return meta;
+
+  const wrapper = document.createElement('div');
+  wrapper.append(meta);
+  return wrapper;
 }
 
 /**
@@ -352,6 +375,41 @@ export function decorateArticleSections(main) {
   main.querySelectorAll(':scope > .section').forEach((section) => {
     if (section.querySelector('.hero')) return;
     section.classList.add('section-rounded-default');
+  });
+}
+
+/**
+ * Names the section-level wrapper `decorateSections` builds around each
+ * author-meta byline `article-meta-section`, mirroring how `decorateBlock`
+ * gives a real block's own wrapper a `<name>-wrapper` class — except this
+ * isn't a block, so nothing does that for it automatically. Must run after
+ * `decorateSections` (the wrapper doesn't exist before that).
+ *
+ * Without this, the byline's own `.article-meta` used to carry its width
+ * rule directly, but `decorateSections` always inserts a wrapper around
+ * whatever `buildArticleAuthorMeta` puts in a section, so `.article-meta`
+ * ends up one level deeper than the wrapper that actually gets the site's
+ * generic `main > .section > div` inline padding. Since the
+ * `--article-content-inline-size-*` values already have that padding baked
+ * into them (see `.lead-in-wrapper` in lead-in.css, which applies its width
+ * rule to the exact element that owns the padding), setting the same rule
+ * one level deeper double-counted the padding and threw off alignment by
+ * ~24px. `.article-meta-section` is that outer element, put back in the
+ * same structural position `.lead-in-wrapper` occupies, so both compute an
+ * identical width and left edge at every breakpoint (see `.article-meta-
+ * section` in styles.css). It's also the container the action-buttons
+ * component (ADBLABS-144/ADBLABS-155) should attach to, to right-align next
+ * to the byline on the same row.
+ *
+ * @param {Element} main The page's main element
+ */
+export function decorateArticleMetaSections(main) {
+  main.querySelectorAll('.article-meta').forEach((meta) => {
+    let wrapper = meta.parentElement;
+    while (wrapper?.parentElement && !wrapper.parentElement.classList.contains('section')) {
+      wrapper = wrapper.parentElement;
+    }
+    wrapper?.classList.add('article-meta-section');
   });
 }
 

@@ -440,9 +440,14 @@ describe('buildArticleAuthorMeta', () => {
     buildArticleAuthorMeta(main);
 
     expect(hero.querySelector('.article-meta')).toBeNull();
-    expect(body.firstElementChild).toHaveClass('article-meta');
-    expect(preFooter.lastElementChild).toHaveClass('article-meta');
-    expect(body.querySelector('.article-meta').contains(body.firstElementChild)).toBe(true);
+    expect(body.firstElementChild.querySelector('.article-meta')).not.toBeNull();
+    expect(preFooter.lastElementChild.querySelector('.article-meta')).not.toBeNull();
+    // The meta lives in its own classless wrapper div, not directly as the
+    // section's child, so decorateSections can't merge it into a shared
+    // .default-content-wrapper with neighboring content.
+    expect(body.firstElementChild).not.toHaveClass('article-meta');
+    expect(body.firstElementChild.className).toBe('');
+    expect(body.querySelector('.article-meta').tagName).toBe('ASIDE');
   });
 
   it('places both the top and bottom meta in the only section when there is no hero', () => {
@@ -454,8 +459,8 @@ describe('buildArticleAuthorMeta', () => {
 
     buildArticleAuthorMeta(main);
 
-    expect(only.firstElementChild).toHaveClass('article-meta');
-    expect(only.lastElementChild).toHaveClass('article-meta');
+    expect(only.firstElementChild.querySelector('.article-meta')).not.toBeNull();
+    expect(only.lastElementChild.querySelector('.article-meta')).not.toBeNull();
     expect(only.querySelectorAll('.article-meta')).toHaveLength(2);
   });
 
@@ -475,8 +480,8 @@ describe('buildArticleAuthorMeta', () => {
 
     buildArticleAuthorMeta(main);
 
-    expect(hero.nextElementSibling).toHaveClass('article-meta');
-    expect(section.lastElementChild).toHaveClass('article-meta');
+    expect(hero.nextElementSibling.querySelector('.article-meta')).not.toBeNull();
+    expect(section.lastElementChild.querySelector('.article-meta')).not.toBeNull();
     expect(section.querySelectorAll('.article-meta')).toHaveLength(2);
   });
 });

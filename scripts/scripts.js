@@ -28,6 +28,7 @@ import {
   buildArticlePreFooter,
   debounce,
   ensureSkipLink,
+  decorateArticleMetaSections,
   decorateArticleSections,
 } from './utils/utils.js';
 
@@ -169,6 +170,7 @@ export function decorateMain(main) {
   buildAutoBlocks(main);
   decorateSections(main);
   decorateArticleSections(main);
+  decorateArticleMetaSections(main);
   decorateBlocks(main);
   decorateButtons(main);
 }

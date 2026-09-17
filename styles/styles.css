@@ -450,13 +450,40 @@ footer {
 }
 
 /* --- Article meta ---
-   Shared container for the top and bottom meta sections of an article: the
+   `.article-meta-section` is the section-level wrapper `decorateSections`
+   builds around the byline (see `decorateArticleMetaSections` in utils.js)
+   — structurally the same position `.lead-in-wrapper` occupies (see
+   lead-in.css), so both pick up the site's generic `main > .section > div`
+   inline padding and resolve to an identical width/left edge at every
+   breakpoint. This is also where the action-buttons component
+   (ADBLABS-144/ADBLABS-155) should attach, right-aligned next to the
+   byline on the same row — do not add a second, separately-centered
+   wrapper for it. */
+body.article main .article-meta-section {
+  max-inline-size: var(--article-content-inline-size-md);
+  margin-inline: auto;
+
+  @media (width >= 64rem) {
+    max-inline-size: var(--article-content-inline-size-lg);
+  }
+
+  @media (width >= 90rem) {
+    max-inline-size: var(--article-content-inline-size-xl);
+  }
+
+  @media (width >= 120rem) {
+    max-inline-size: var(--article-content-inline-size-xxl);
+  }
+}
+
+/* Shared container for the top and bottom meta sections of an article: the
    author byline today, action buttons (copy/download/feedback) join it in
    the same container later (ADBLABS-144/ADBLABS-155). */
 .article-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: var(--s2a-spacing-sm);
   margin-block-end: var(--s2a-spacing-lg);
 }
