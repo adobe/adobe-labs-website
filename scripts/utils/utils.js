@@ -296,9 +296,34 @@ function buildArticleMeta() {
 }
 
 /**
- * Adds the author byline to the top and bottom of an article's content,
- * skipping any section that contains the hero. No-op when `main` is
- * detached or the page is not an article detail.
+ * Inserts the top meta byline. When the hero has its own section (nothing
+ * else authored alongside it), the byline goes at the top of the section
+ * that follows, keeping it out of the hero's own (often full-bleed) section.
+ * When authors skip that section break and the hero shares a section with
+ * the rest of the content, the byline is inserted right after the hero
+ * element instead, so it still renders rather than being silently dropped.
+ *
+ * @param {Element[]} sections `main`'s direct children
+ */
+function insertTopArticleMeta(sections) {
+  const hero = sections.flatMap((section) => [...section.querySelectorAll('.hero')])[0];
+  if (!hero) {
+    sections[0]?.prepend(buildArticleMeta());
+    return;
+  }
+
+  const heroSection = sections.find((section) => section.contains(hero));
+  if (heroSection.children.length === 1) {
+    const nextSection = sections[sections.indexOf(heroSection) + 1] || heroSection;
+    nextSection.prepend(buildArticleMeta());
+  } else {
+    hero.after(buildArticleMeta());
+  }
+}
+
+/**
+ * Adds the author byline to the top and bottom of an article's content.
+ * No-op when `main` is detached or the page is not an article detail.
  *
  * @param {Element} main The page's main element
  */
@@ -306,11 +331,11 @@ export function buildArticleAuthorMeta(main) {
   if (!document.body.contains(main)) return;
   if (!isArticleDetailPage()) return;
 
-  const contentSections = [...main.children].filter((section) => !section.querySelector('.hero'));
-  if (!contentSections.length) return;
+  const sections = [...main.children];
+  if (!sections.length) return;
 
-  contentSections[0].prepend(buildArticleMeta());
-  contentSections[contentSections.length - 1].append(buildArticleMeta());
+  insertTopArticleMeta(sections);
+  sections[sections.length - 1].append(buildArticleMeta());
 }
 
 /**

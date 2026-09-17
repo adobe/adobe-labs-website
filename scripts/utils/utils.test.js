@@ -458,4 +458,25 @@ describe('buildArticleAuthorMeta', () => {
     expect(only.lastElementChild).toHaveClass('article-meta');
     expect(only.querySelectorAll('.article-meta')).toHaveLength(2);
   });
+
+  it('inserts the top meta right after the hero when authors skip the section break after it', () => {
+    mockTemplate('article');
+    const section = document.createElement('div');
+    section.className = 'section';
+    const hero = document.createElement('div');
+    hero.className = 'hero';
+    const leadIn = document.createElement('div');
+    leadIn.className = 'lead-in';
+    leadIn.textContent = 'Lead in text';
+    section.append(hero, leadIn);
+    const main = document.createElement('main');
+    main.append(section);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(hero.nextElementSibling).toHaveClass('article-meta');
+    expect(section.lastElementChild).toHaveClass('article-meta');
+    expect(section.querySelectorAll('.article-meta')).toHaveLength(2);
+  });
 });
