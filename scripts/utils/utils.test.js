@@ -464,6 +464,20 @@ describe('buildArticleAuthorMeta', () => {
     expect(only.querySelectorAll('.article-meta')).toHaveLength(2);
   });
 
+  it('marks the top and bottom instances with article-meta--top/--bottom', () => {
+    mockTemplate('article');
+    const hero = createSection({ hero: true });
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(hero, body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(body.firstElementChild.querySelector('.article-meta')).toHaveClass('article-meta--top');
+    expect(body.lastElementChild.querySelector('.article-meta')).toHaveClass('article-meta--bottom');
+  });
+
   it('inserts the top meta right after the hero when authors skip the section break after it', () => {
     mockTemplate('article');
     const section = document.createElement('div');

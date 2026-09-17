@@ -313,11 +313,15 @@ export function buildAuthorByline() {
  *    classless, the `<div>` itself has no `classList[0]`, so `decorateBlock`
  *    (which keys off exactly that) no-ops on it.
  *
+ * @param {'top'|'bottom'} position Which meta instance this is. Adds
+ * `article-meta--top`/`article-meta--bottom` so CSS can target just one
+ * (e.g. the narrow-viewport two-line byline applies to the top instance
+ * only).
  * @returns {HTMLDivElement}
  */
-function buildArticleMeta() {
+function buildArticleMeta(position) {
   const meta = document.createElement('aside');
-  meta.className = 'article-meta';
+  meta.className = `article-meta article-meta--${position}`;
   meta.append(buildAuthorByline());
 
   const wrapper = document.createElement('div');
@@ -338,16 +342,16 @@ function buildArticleMeta() {
 function insertTopArticleMeta(sections) {
   const hero = sections.flatMap((section) => [...section.querySelectorAll('.hero')])[0];
   if (!hero) {
-    sections[0]?.prepend(buildArticleMeta());
+    sections[0]?.prepend(buildArticleMeta('top'));
     return;
   }
 
   const heroSection = sections.find((section) => section.contains(hero));
   if (heroSection.children.length === 1) {
     const nextSection = sections[sections.indexOf(heroSection) + 1] || heroSection;
-    nextSection.prepend(buildArticleMeta());
+    nextSection.prepend(buildArticleMeta('top'));
   } else {
-    hero.after(buildArticleMeta());
+    hero.after(buildArticleMeta('top'));
   }
 }
 
@@ -365,7 +369,7 @@ export function buildArticleAuthorMeta(main) {
   if (!sections.length) return;
 
   insertTopArticleMeta(sections);
-  sections[sections.length - 1].append(buildArticleMeta());
+  sections[sections.length - 1].append(buildArticleMeta('bottom'));
 }
 
 /**

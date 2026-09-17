@@ -502,6 +502,15 @@ body.article main .article-meta-section {
   gap: var(--s2a-spacing-sm);
 }
 
+/* Top byline only: stack "Words by:" above the author list at narrow
+   viewports instead of wrapping mid-row. */
+@media (width <= 23.4375rem) {
+  .article-meta--top .article-meta__authors {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 .article-meta__authors-label,
 .article-meta__author-name {
   /* s2a/typography/heading-6 */
