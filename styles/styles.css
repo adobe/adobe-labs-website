@@ -478,7 +478,14 @@ body.article main .article-meta-section {
 
 /* Shared container for the top and bottom meta sections of an article: the
    author byline today, action buttons (copy/download/feedback) join it in
-   the same container later (ADBLABS-144/ADBLABS-155). */
+   the same container later (ADBLABS-144/ADBLABS-155).
+   For ADBLABS-155: append the actions markup as a second child of
+   `.article-meta` (sibling to `.article-meta__authors`, e.g. wrapped in
+   `.article-meta__actions`) — `justify-content: space-between` below
+   already pushes a second child to the right, no extra alignment or
+   width/centering CSS needed. `.article-meta` exists twice per page (top
+   and bottom byline), so iterate `main.querySelectorAll('.article-meta')`
+   rather than assuming one instance. See `buildArticleMeta` in utils.js. */
 .article-meta {
   display: flex;
   flex-wrap: wrap;
