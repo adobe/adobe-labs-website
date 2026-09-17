@@ -259,14 +259,33 @@ function buildVideo(data, block) {
 }
 
 /**
+ * Removes an unusable video block and its empty wrapper.
+ *
+ * @param {Element} block The video block element
+ * @param {string} [href] Authored URL, if any
+ */
+function discardBrokenBlock(block, href) {
+  // eslint-disable-next-line no-console
+  console.log(`video: broken YouTube link${href ? ` (${href})` : ''}`);
+  const wrapper = block.parentElement;
+  block.remove();
+  if (wrapper?.classList.contains('video-wrapper') && !wrapper.children.length) {
+    wrapper.remove();
+  }
+}
+
+/**
  * Decorates a video block: a YouTube URL becomes a poster with a play control
- * that swaps in an embedded player on activation. Invalid URLs are left as-is.
+ * that swaps in an embedded player on activation. Unusable URLs are not rendered.
  *
  * @param {Element} block The video block element
  */
 export default function decorate(block) {
   if (block.querySelector('.video__poster, .video__player')) return;
   const data = getVideoData(block);
-  if (!data.videoId) return;
+  if (!data.videoId) {
+    discardBrokenBlock(block, data.href);
+    return;
+  }
   buildVideo(data, block);
 }

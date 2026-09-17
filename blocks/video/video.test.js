@@ -207,16 +207,23 @@ describe('video block', () => {
     expect(block.querySelector('iframe')).toHaveAttribute('title', 'Keynote');
   });
 
-  it('leaves an invalid URL as an authored link', () => {
+  it('removes the block and logs when the YouTube URL is invalid', () => {
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
     const href = 'https://example.com/not-youtube';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'video-wrapper';
     const block = createBlock({
       'YouTube URL': youtubeLink(href),
     });
+    wrapper.append(block);
 
     decorate(block);
 
-    expect(within(block).queryByRole('button')).toBeNull();
-    expect(block.querySelector('a')).toHaveAttribute('href', href);
+    expect(block.parentElement).toBeNull();
+    expect(wrapper.contains(block)).toBe(false);
+    expect(wrapper.children).toHaveLength(0);
+    expect(log).toHaveBeenCalledWith(`video: broken YouTube link (${href})`);
+    log.mockRestore();
   });
 
   it('swaps a tiny YouTube poster to hqdefault.jpg', () => {
