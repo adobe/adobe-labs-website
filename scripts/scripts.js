@@ -24,6 +24,7 @@ import {
   getMetadata,
 } from './aem.js';
 import {
+  buildArticleAuthorMeta,
   buildArticlePreFooter,
   debounce,
   ensureSkipLink,
@@ -85,6 +86,7 @@ function buildWidgetAutoBlocks(main) {
  */
 function buildAutoBlocks(main) {
   try {
+    buildArticleAuthorMeta(main);
     buildArticlePreFooter(main);
     // auto load `*/fragments/*` references
     const fragments = [...main.querySelectorAll('a[href*="/fragments/"]')].filter((f) => !f.closest('.fragment'));

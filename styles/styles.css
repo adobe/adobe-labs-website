@@ -449,6 +449,54 @@ footer {
   }
 }
 
+/* --- Article meta ---
+   Shared container for the top and bottom meta sections of an article: the
+   author byline today, action buttons (copy/download/feedback) join it in
+   the same container later (ADBLABS-144/ADBLABS-155). */
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2a-spacing-sm);
+  margin-block-end: var(--s2a-spacing-lg);
+}
+
+.article-meta__authors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2a-spacing-xs);
+  font-size: var(--s2a-typography-font-size-label);
+}
+
+.article-meta__authors-label,
+.article-meta__author-name {
+  color: var(--s2a-color-content-body-subtle);
+}
+
+.article-meta__author-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2a-spacing-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.article-meta__author {
+  display: flex;
+  align-items: center;
+  gap: var(--s2a-spacing-2xs);
+}
+
+.article-meta__author-image {
+  inline-size: var(--s2a-spacing-lg);
+  block-size: var(--s2a-spacing-lg);
+  border-radius: var(--s2a-border-radius-8);
+  object-fit: cover;
+}
+
 /* --- Buttons --- */
 
 /* Default .button uses the Primary button style. */

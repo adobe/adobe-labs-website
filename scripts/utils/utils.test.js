@@ -1,6 +1,8 @@
 import { buildBlock, getMetadata } from '../aem.js';
 import {
+  buildArticleAuthorMeta,
   buildArticlePreFooter,
+  buildAuthorByline,
   buildPlayIcon,
   ensureSkipLink,
   decorateArticleSections,
@@ -330,5 +332,130 @@ describe('decorateArticleSections', () => {
 
     expect(first).toHaveClass('section-rounded-default');
     expect(second).toHaveClass('section-rounded-default');
+  });
+});
+
+describe('buildAuthorByline', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getMetadata.mockReturnValue('');
+  });
+
+  it('falls back to Adobe Labs when there is no author metadata', () => {
+    const byline = buildAuthorByline();
+
+    expect(byline).toHaveClass('article-meta__authors');
+    expect(byline.querySelector('.article-meta__authors-label')).toHaveTextContent('Words by:');
+    const names = [...byline.querySelectorAll('.article-meta__author-name')].map((el) => el.textContent);
+    expect(names).toEqual(['Adobe Labs']);
+  });
+
+  it('reads one author per name from comma-separated metadata', () => {
+    getMetadata.mockReturnValue('Randy Oest, Josh Winn');
+
+    const byline = buildAuthorByline();
+
+    const names = [...byline.querySelectorAll('.article-meta__author-name')].map((el) => el.textContent);
+    expect(names).toEqual(['Randy Oest', 'Josh Winn']);
+    expect(byline.querySelectorAll('.article-meta__author')).toHaveLength(2);
+  });
+
+  it('requests each author image by slugified name and hides it until it loads', () => {
+    getMetadata.mockReturnValue('Randy Oest');
+
+    const byline = buildAuthorByline();
+
+    const img = byline.querySelector('.article-meta__author-image');
+    expect(img).toHaveAttribute('src', '/icons/authors/randy-oest.png');
+    expect(img).toHaveAttribute('alt', '');
+    expect(img.hidden).toBe(true);
+  });
+
+  it('reveals the image on load and removes it on error', () => {
+    getMetadata.mockReturnValue('Randy Oest');
+    const byline = buildAuthorByline();
+    const img = byline.querySelector('.article-meta__author-image');
+    const item = img.closest('.article-meta__author');
+
+    img.dispatchEvent(new Event('load'));
+    expect(img.hidden).toBe(false);
+
+    img.dispatchEvent(new Event('error'));
+    expect(item.querySelector('.article-meta__author-image')).toBeNull();
+    expect(item.querySelector('.article-meta__author-name')).toHaveTextContent('Randy Oest');
+  });
+
+  it('does not render authors as links', () => {
+    getMetadata.mockReturnValue('Randy Oest');
+
+    const byline = buildAuthorByline();
+
+    expect(byline.querySelector('a')).toBeNull();
+  });
+
+  it('returns a new element on every call', () => {
+    expect(buildAuthorByline()).not.toBe(buildAuthorByline());
+  });
+});
+
+describe('buildArticleAuthorMeta', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getMetadata.mockReturnValue('');
+    document.body.innerHTML = '';
+  });
+
+  it('does not inject when main is detached from the document', () => {
+    mockTemplate('article');
+    const main = document.createElement('main');
+    main.append(createSection());
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector('.article-meta')).toBeNull();
+  });
+
+  it('does not inject on non-article pages', () => {
+    const main = document.createElement('main');
+    main.append(createSection());
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector('.article-meta')).toBeNull();
+  });
+
+  it('prepends the top meta and appends the bottom meta to the non-hero sections', () => {
+    mockTemplate('article');
+    const hero = createSection({ hero: true });
+    const body = createSection();
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'Body copy';
+    body.append(paragraph);
+    const preFooter = createSection();
+    const main = document.createElement('main');
+    main.append(hero, body, preFooter);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(hero.querySelector('.article-meta')).toBeNull();
+    expect(body.firstElementChild).toHaveClass('article-meta');
+    expect(preFooter.lastElementChild).toHaveClass('article-meta');
+    expect(body.querySelector('.article-meta').contains(body.firstElementChild)).toBe(true);
+  });
+
+  it('places both the top and bottom meta in the only section when there is no hero', () => {
+    mockTemplate('article');
+    const only = createSection();
+    const main = document.createElement('main');
+    main.append(only);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(only.firstElementChild).toHaveClass('article-meta');
+    expect(only.lastElementChild).toHaveClass('article-meta');
+    expect(only.querySelectorAll('.article-meta')).toHaveLength(2);
   });
 });

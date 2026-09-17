@@ -198,6 +198,121 @@ export function buildArticlePreFooter(main) {
   main.append(section);
 }
 
+const DEFAULT_AUTHOR_NAME = 'Adobe Labs';
+const AUTHOR_IMAGE_DIR = '/icons/authors';
+
+/**
+ * Author names from page `author` metadata (comma-separated for multiple
+ * authors). Falls back to "Adobe Labs" when none is authored.
+ *
+ * @returns {string[]}
+ */
+function getAuthorNames() {
+  const names = getMetadata('author')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+  return names.length ? names : [DEFAULT_AUTHOR_NAME];
+}
+
+/**
+ * Author photo, requested by convention from a slugified file name
+ * (e.g. "Adobe Labs" → /icons/authors/adobe-labs.png) rather than an
+ * authored field or extra fetch. Hidden until it loads, and removed on
+ * 404 so a missing photo leaves no broken-image icon or empty space.
+ *
+ * @param {string} name Author name
+ * @returns {HTMLImageElement}
+ */
+function buildAuthorImage(name) {
+  const img = document.createElement('img');
+  img.className = 'article-meta__author-image';
+  img.alt = '';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.hidden = true;
+  img.addEventListener('load', () => { img.hidden = false; });
+  img.addEventListener('error', () => img.remove());
+  img.src = `${AUTHOR_IMAGE_DIR}/${toClassName(name)}.png`;
+  return img;
+}
+
+/**
+ * One author entry: an optional photo followed by the author's name.
+ * Author information is not a link.
+ *
+ * @param {string} name Author name
+ * @returns {HTMLLIElement}
+ */
+function buildAuthorItem(name) {
+  const item = document.createElement('li');
+  item.className = 'article-meta__author';
+  item.append(buildAuthorImage(name));
+
+  const label = document.createElement('span');
+  label.className = 'article-meta__author-name';
+  label.textContent = name;
+  item.append(label);
+
+  return item;
+}
+
+/**
+ * Builds the "Words by: <author>, <author>" byline from page metadata.
+ * Returns a new element on every call so it can be placed in both the
+ * top and bottom meta sections of an article.
+ *
+ * @returns {HTMLDivElement}
+ */
+export function buildAuthorByline() {
+  const byline = document.createElement('div');
+  byline.className = 'article-meta__authors';
+
+  const label = document.createElement('span');
+  label.className = 'article-meta__authors-label';
+  label.textContent = 'Words by:';
+  byline.append(label);
+
+  const list = document.createElement('ul');
+  list.className = 'article-meta__author-list';
+  getAuthorNames().forEach((name) => list.append(buildAuthorItem(name)));
+  byline.append(list);
+
+  return byline;
+}
+
+/**
+ * Meta section container shared by the top and bottom of an article. Holds
+ * the author byline today; action buttons (copy/download/feedback) join it
+ * in the same container later (ADBLABS-144/ADBLABS-155).
+ *
+ * @returns {HTMLDivElement}
+ */
+function buildArticleMeta() {
+  const meta = document.createElement('div');
+  meta.className = 'article-meta';
+  meta.append(buildAuthorByline());
+  return meta;
+}
+
+/**
+ * Adds the author byline to the top and bottom of an article's content,
+ * skipping any section that contains the hero. No-op when `main` is
+ * detached or the page is not an article detail.
+ *
+ * @param {Element} main The page's main element
+ */
+export function buildArticleAuthorMeta(main) {
+  if (!document.body.contains(main)) return;
+  if (!isArticleDetailPage()) return;
+
+  const contentSections = [...main.children].filter((section) => !section.querySelector('.hero'));
+  if (!contentSections.length) return;
+
+  contentSections[0].prepend(buildArticleMeta());
+  contentSections[contentSections.length - 1].append(buildArticleMeta());
+}
+
 /**
  * Adds `section-rounded-default` to every article section that is not a hero.
  * No-op when the page is not an article detail. Runs after `decorateSections`
