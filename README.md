@@ -257,6 +257,8 @@ See [AEM bulk metadata docs](https://www.aem.live/docs/bulk-metadata) for more i
 
 Article detail pages (`/research/*`, `/workflows/*`, `/sneaks/*`, `/playground/*`) get `template: article` from that spreadsheet. The article pre-footer autoblock keys off this metadata, not a hardcoded path list. A page-level metadata block can still add or omit `article` for an exception.
 
+Article headings keep the site `h1`–`h6` / `heading-*` tokens (s2a heading-1 through heading-6). Default-content paragraphs and lists use Adobe Clean Spectrum Serif at 16px/20px below 64rem (1024px), then 20px/26px.
+
 Individual pages can then set metadata values via a `metadata` block, including overriding any of those default values.
 See [AEM metadata block docs](https://www.aem.live/developer/block-collection/metadata) for more info. 
 
