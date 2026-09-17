@@ -1,0 +1,90 @@
+main > .section > .table-wrapper {
+  margin-inline: auto;
+  max-inline-size: var(--article-content-inline-size-md);
+  min-inline-size: 0;
+
+  @media (width >= 64rem) {
+    max-inline-size: var(--article-content-inline-size-lg);
+  }
+
+  @media (width >= 90rem) {
+    max-inline-size: var(--article-content-inline-size-xl);
+  }
+
+  @media (width >= 120rem) {
+    max-inline-size: var(--article-content-inline-size-xxl);
+  }
+}
+
+.table {
+  --table-border-color: var(--s2a-color-border-subtle);
+  --table-fade-size: var(--s2a-spacing-3xl);
+  --table-surface: var(--color-section-surface-default, var(--s2a-color-background-default));
+
+  display: flex;
+  inline-size: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--table-border-color) transparent;
+  color: var(--s2a-color-content-default);
+
+  table {
+    flex: 0 0 auto;
+    inline-size: max-content;
+    min-inline-size: 100%;
+    border-collapse: collapse;
+    border-block-start: 1px solid var(--table-border-color);
+  }
+
+  /* Overflow fade on the inline-end edge (Figma 1463-15330). */
+  &::after {
+    content: "";
+    flex: 0 0 var(--table-fade-size);
+    align-self: stretch;
+    margin-inline-start: calc(-1 * var(--table-fade-size));
+    position: sticky;
+    inset-inline-end: 0;
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, var(--table-surface));
+  }
+
+  th,
+  td {
+    padding-block: var(--s2a-spacing-sm);
+    padding-inline: var(--s2a-spacing-md);
+    border-block-end: 1px solid var(--table-border-color);
+    text-align: start;
+    vertical-align: top;
+    white-space: nowrap;
+    color: var(--s2a-color-content-default);
+
+    & > * {
+      margin: 0;
+    }
+
+    & > * + * {
+      margin-block-start: var(--s2a-spacing-3xs);
+    }
+  }
+
+  th {
+    font-family: var(--body-font-family);
+    font-size: var(--s2a-typography-font-size-heading-6);
+    font-weight: var(--s2a-font-weight-label);
+    line-height: var(--s2a-typography-line-height-heading-6);
+    letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+  }
+
+  td {
+    font-family: var(--body-font-family);
+    font-size: var(--s2a-typography-font-size-body-sm);
+    font-weight: var(--s2a-font-weight-body);
+    line-height: var(--s2a-typography-line-height-body-sm);
+    letter-spacing: var(--s2a-typography-letter-spacing-body-sm);
+  }
+}
+
+:root[data-theme="dark"] .table {
+  --table-border-color: var(--s2a-color-gray-700);
+}
