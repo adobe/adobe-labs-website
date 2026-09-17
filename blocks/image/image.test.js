@@ -29,7 +29,6 @@ describe('image block', () => {
     expect(figure).toBeTruthy();
     const img = within(block).getByAltText('A red rock canyon');
     expect(figure).toContainElement(img);
-    expect(block.querySelector('.image__media')).toContainElement(img);
   });
 
   it('renders an optional caption below the image', () => {

@@ -35,12 +35,7 @@ export function buildImage(data = {}, root = document.createElement('div')) {
   const figure = document.createElement('figure');
   figure.className = 'image__figure';
 
-  if (data.image) {
-    const media = document.createElement('div');
-    media.className = 'image__media';
-    media.append(data.image);
-    figure.append(media);
-  }
+  if (data.image) figure.append(data.image);
 
   if (data.caption) {
     const figcaption = document.createElement('figcaption');
