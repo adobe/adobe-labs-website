@@ -147,6 +147,29 @@ describe('toc block', () => {
     expect(heading).toHaveClass('heading-5');
   });
 
+  it('exposes itself as a navigation landmark labelled by its own heading', () => {
+    const main = document.createElement('main');
+    const { section: blockSection, block } = createBlockSection();
+    main.append(createHeadedSection('A', 'a'), blockSection);
+
+    decorate(block);
+
+    expect(block).toHaveAttribute('role', 'navigation');
+    const headingId = block.querySelector('.toc__heading').id;
+    expect(headingId).toBeTruthy();
+    expect(block).toHaveAttribute('aria-labelledby', headingId);
+  });
+
+  it('marks the list with role="list" (Safari/VoiceOver drops it for list-style: none)', () => {
+    const main = document.createElement('main');
+    const { section: blockSection, block } = createBlockSection();
+    main.append(createHeadedSection('A', 'a'), blockSection);
+
+    decorate(block);
+
+    expect(block.querySelector('.toc__list')).toHaveAttribute('role', 'list');
+  });
+
   it('ignores sections without data-toc', () => {
     const main = document.createElement('main');
     const { section: blockSection, block } = createBlockSection();

@@ -91,12 +91,17 @@ export default function decorate(block) {
   }
 
   const heading = document.createElement('h2');
+  heading.id = 'toc-heading';
   heading.className = 'toc__heading heading-5';
   heading.textContent = HEADING_TEXT;
 
   const list = document.createElement('ol');
   list.className = 'toc__list';
+  // Safari + VoiceOver drops list semantics when list-style is none.
+  list.setAttribute('role', 'list');
   sections.forEach((section, index) => list.append(buildItem(section, index)));
 
+  block.setAttribute('role', 'navigation');
+  block.setAttribute('aria-labelledby', 'toc-heading');
   block.replaceChildren(heading, list);
 }
