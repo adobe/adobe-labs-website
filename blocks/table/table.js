@@ -24,6 +24,58 @@ function applyCellAlignment(cell, source) {
   }
 }
 
+function isScrolledToEnd(scroller) {
+  return scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1;
+}
+
+function contentWidth(scroller, table) {
+  return Math.max(scroller.scrollWidth, table?.scrollWidth ?? 0);
+}
+
+function availableWidth(scroller) {
+  return scroller.offsetWidth || scroller.clientWidth;
+}
+
+function bindOverflowUi(block) {
+  const scroller = block.parentElement?.classList.contains('table-wrapper')
+    ? block.parentElement
+    : block;
+  const table = block.querySelector('table');
+
+  const applyScrollable = (scrollable) => {
+    block.classList.toggle('table--scrollable', scrollable);
+    if (scroller.classList.contains('table-wrapper')) {
+      scroller.classList.toggle('table-wrapper--scrollable', scrollable);
+    }
+  };
+
+  const updateScrollable = () => {
+    applyScrollable(contentWidth(scroller, table) > availableWidth(scroller));
+  };
+
+  const updateFade = () => {
+    const scrollable = block.classList.contains('table--scrollable');
+    block.classList.toggle('table--scrolled-end', scrollable && isScrolledToEnd(scroller));
+  };
+
+  const update = () => {
+    updateScrollable();
+    updateFade();
+  };
+
+  scroller.addEventListener('scroll', updateFade, { passive: true });
+  window.addEventListener('resize', update);
+
+  if (typeof ResizeObserver === 'function') {
+    const observer = new ResizeObserver(update);
+    observer.observe(scroller);
+    observer.observe(block);
+    if (table) observer.observe(table);
+  }
+
+  update();
+}
+
 export default function decorate(block) {
   const headerColumn = block.classList.contains('header-column');
   const headerRow = !headerColumn || block.classList.contains('header-row');
@@ -49,4 +101,5 @@ export default function decorate(block) {
   });
 
   block.replaceChildren(table);
+  bindOverflowUi(block);
 }
