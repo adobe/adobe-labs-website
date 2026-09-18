@@ -1,6 +1,12 @@
 import { within } from '@testing-library/dom';
 import decorate from './table.js';
 
+function mockWrapperWidths(wrapper, { scrollWidth, clientWidth, offsetWidth = clientWidth }) {
+  Object.defineProperty(wrapper, 'scrollWidth', { configurable: true, writable: true, value: scrollWidth });
+  Object.defineProperty(wrapper, 'clientWidth', { configurable: true, value: clientWidth });
+  Object.defineProperty(wrapper, 'offsetWidth', { configurable: true, value: offsetWidth });
+}
+
 function createBlock(rows, className = 'table') {
   const block = document.createElement('div');
   block.className = className;
@@ -173,5 +179,102 @@ describe('table block', () => {
     expect(cell).toHaveAttribute('data-align', 'right');
     expect(cell).toHaveAttribute('data-valign', 'middle');
     expect(cell).toHaveStyle({ textAlign: 'right', verticalAlign: 'middle' });
+  });
+
+  it('hides the end fade when the wrapper is scrolled to the right', () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-wrapper';
+    const block = createBlock(WAGE_SUMMARY);
+    wrapper.append(block);
+    document.body.append(wrapper);
+
+    mockWrapperWidths(wrapper, { scrollWidth: 500, clientWidth: 200, offsetWidth: 200 });
+    Object.defineProperty(wrapper, 'scrollLeft', { configurable: true, writable: true, value: 0 });
+
+    decorate(block);
+
+    expect(block).toHaveClass('table--scrollable');
+    expect(wrapper).toHaveClass('table-wrapper--scrollable');
+    expect(block).not.toHaveClass('table--scrolled-end');
+
+    wrapper.scrollLeft = 300;
+    wrapper.dispatchEvent(new Event('scroll'));
+
+    expect(block).toHaveClass('table--scrolled-end');
+
+    wrapper.remove();
+  });
+
+  it('adds scrollable classes when the table is wider than the wrapper', () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-wrapper';
+    const block = createBlock(WAGE_SUMMARY);
+    wrapper.append(block);
+    document.body.append(wrapper);
+
+    mockWrapperWidths(wrapper, { scrollWidth: 900, clientWidth: 400, offsetWidth: 400 });
+
+    decorate(block);
+
+    expect(block).toHaveClass('table--scrollable');
+    expect(wrapper).toHaveClass('table-wrapper--scrollable');
+
+    wrapper.remove();
+  });
+
+  it('does not add scrollable classes when the table fits the wrapper', () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-wrapper';
+    const block = createBlock(WAGE_SUMMARY);
+    wrapper.append(block);
+    document.body.append(wrapper);
+
+    mockWrapperWidths(wrapper, { scrollWidth: 400, clientWidth: 800, offsetWidth: 800 });
+
+    decorate(block);
+
+    expect(block).not.toHaveClass('table--scrollable');
+    expect(wrapper).not.toHaveClass('table-wrapper--scrollable');
+
+    wrapper.remove();
+  });
+
+  it('keeps default padding when the table fits the full wrapper', () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-wrapper';
+    const block = createBlock(WAGE_SUMMARY);
+    wrapper.append(block);
+    document.body.append(wrapper);
+
+    mockWrapperWidths(wrapper, { scrollWidth: 580, clientWidth: 500, offsetWidth: 609 });
+
+    decorate(block);
+
+    expect(block).not.toHaveClass('table--scrollable');
+    expect(wrapper).not.toHaveClass('table-wrapper--scrollable');
+
+    wrapper.remove();
+  });
+
+  it('drops scrollable classes when the table fits after resize', () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-wrapper';
+    const block = createBlock(WAGE_SUMMARY);
+    wrapper.append(block);
+    document.body.append(wrapper);
+
+    mockWrapperWidths(wrapper, { scrollWidth: 900, clientWidth: 400, offsetWidth: 400 });
+
+    decorate(block);
+
+    expect(block).toHaveClass('table--scrollable');
+
+    wrapper.scrollWidth = 300;
+    window.dispatchEvent(new Event('resize'));
+
+    expect(block).not.toHaveClass('table--scrollable');
+    expect(wrapper).not.toHaveClass('table-wrapper--scrollable');
+
+    wrapper.remove();
   });
 });
