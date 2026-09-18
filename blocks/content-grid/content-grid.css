@@ -82,7 +82,7 @@
   &.content-grid--related .content-grid__intro-copy :is(h1, h2, h3, h4, h5, h6) {
     color: var(--s2a-color-content-subtle);
     font-size: var(--s2a-typography-font-size-heading-6);
-    line-height: 16px;
+    line-height: 1rem;
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
   }
 
@@ -139,7 +139,7 @@
     }
   }
 
-  @container content-grid (inline-size >= 450px) {
+  @container content-grid (inline-size >= 28.125rem) {
     --content-grid-columns: 2;
 
     &.content-grid--has-intro {
@@ -156,11 +156,11 @@
     }
   }
 
-  @container content-grid (inline-size >= 700px) {
+  @container content-grid (inline-size >= 43.75rem) {
     --content-grid-columns: 3;
   }
 
-  @container content-grid (inline-size >= 1024px) {
+  @container content-grid (inline-size >= 64rem) {
     --content-grid-columns: 4;
 
     &.content-grid--has-intro {
