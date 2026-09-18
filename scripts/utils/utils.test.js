@@ -4,6 +4,7 @@ import {
   buildPlayIcon,
   ensureSkipLink,
   decorateArticleSections,
+  decorateSectionMetadata,
   formatCardDate,
   getAuthoredCells,
   getSection,
@@ -16,6 +17,21 @@ jest.mock('../aem.js', () => ({
   toClassName: (name) => (typeof name === 'string'
     ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     : ''),
+  toCamelCase: (name) => (typeof name === 'string'
+    ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      .replace(/-([a-z])/g, (g) => g[1].toUpperCase())
+    : ''),
+  readBlockConfig: (block) => {
+    const config = {};
+    [...block.children].forEach((row) => {
+      const cols = [...row.children];
+      if (cols[1]) {
+        const name = cols[0].textContent.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        config[name] = cols[1].textContent.trim();
+      }
+    });
+    return config;
+  },
   getMetadata: jest.fn(() => ''),
   buildBlock: jest.fn(),
 }));
@@ -330,5 +346,94 @@ describe('decorateArticleSections', () => {
 
     expect(first).toHaveClass('section-rounded-default');
     expect(second).toHaveClass('section-rounded-default');
+  });
+});
+
+/**
+ * Mirrors the DOM shape decorateSections leaves behind: a `.section` whose
+ * `Section Metadata` table sits in its own wrapper div, as `.section-metadata`.
+ */
+function createSectionMetadataFixture(fields) {
+  const meta = createKeyValueBlock(fields);
+  meta.className = 'section-metadata';
+  const wrapper = document.createElement('div');
+  wrapper.append(meta);
+  const section = document.createElement('div');
+  section.className = 'section';
+  section.append(wrapper);
+  return { section, meta };
+}
+
+describe('decorateSectionMetadata', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('copies metadata keys onto section.dataset and removes the table', () => {
+    const { section, meta } = createSectionMetadataFixture({ Toc: 'Section 1' });
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(section.dataset.toc).toBe('Section 1');
+    expect(section.contains(meta)).toBe(false);
+  });
+
+  it('assigns a slugified id from the toc text for deep linking', () => {
+    const { section } = createSectionMetadataFixture({ Toc: 'Section 1' });
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(section.id).toBe('section-1');
+  });
+
+  it('does not overwrite an existing section id', () => {
+    const { section } = createSectionMetadataFixture({ Toc: 'Section 1' });
+    section.id = 'custom-id';
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(section.id).toBe('custom-id');
+  });
+
+  it('dedupes ids that collide with an id already in the document', () => {
+    const existing = document.createElement('div');
+    existing.id = 'section-1';
+    document.body.append(existing);
+
+    const { section } = createSectionMetadataFixture({ Toc: 'Section 1' });
+    const main = document.createElement('main');
+    main.append(section);
+    document.body.append(main);
+
+    decorateSectionMetadata(main);
+
+    expect(section.id).toBe('section-1-2');
+  });
+
+  it('splits the style key into one or more section classes instead of a dataset entry', () => {
+    const { section } = createSectionMetadataFixture({ Style: 'section-rounded-blue, highlight' });
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(section).toHaveClass('section-rounded-blue');
+    expect(section).toHaveClass('highlight');
+    expect(section.dataset.style).toBeUndefined();
+  });
+
+  it('does not touch sections without a Section Metadata table', () => {
+    const section = createSection();
+    const main = document.createElement('main');
+    main.append(section);
+
+    expect(() => decorateSectionMetadata(main)).not.toThrow();
+    expect(section.dataset.toc).toBeUndefined();
   });
 });

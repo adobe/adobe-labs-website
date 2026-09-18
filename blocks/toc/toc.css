@@ -1,0 +1,96 @@
+main > .section > .toc-wrapper {
+  margin-inline: auto;
+  max-inline-size: var(--article-content-inline-size-md);
+
+  @media (width >= 64rem) {
+    max-inline-size: var(--article-content-inline-size-lg);
+  }
+
+  @media (width >= 90rem) {
+    max-inline-size: var(--article-content-inline-size-xl);
+  }
+
+  @media (width >= 120rem) {
+    max-inline-size: var(--article-content-inline-size-xxl);
+  }
+}
+
+.toc {
+  --toc-border-color: var(--s2a-color-border-subtle);
+  --toc-number-background: var(--s2a-color-transparent-black-08);
+  --toc-number-background-hover: var(--s2a-color-transparent-black-16);
+
+  padding-block-start: var(--s2a-spacing-lg);
+  border-block-start: var(--s2a-border-width-sm) solid var(--toc-border-color);
+}
+
+:root[data-theme="dark"] .toc {
+  --toc-border-color: var(--s2a-color-gray-700);
+  --toc-number-background: var(--s2a-color-transparent-white-08);
+  --toc-number-background-hover: var(--s2a-color-transparent-white-16);
+}
+
+.toc__heading {
+  margin: 0 0 var(--s2a-spacing-md);
+  color: var(--s2a-color-content-default);
+}
+
+.toc__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2a-spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc__link {
+  display: flex;
+  align-items: center;
+  gap: var(--s2a-spacing-sm);
+  color: var(--s2a-color-content-default);
+  text-decoration: none;
+}
+
+.toc__number {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 1.5rem;
+  block-size: 1.5rem;
+  padding-inline: var(--s2a-spacing-2xs);
+  border-radius: var(--s2a-border-radius-xs);
+  background: var(--toc-number-background);
+  color: var(--s2a-color-content-default);
+  font-family: var(--s2a-font-family-body);
+  font-size: var(--s2a-typography-font-size-body-sm);
+  line-height: 1;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.toc__text {
+  color: var(--s2a-color-content-default);
+  text-wrap-style: pretty;
+}
+
+.toc__link:hover .toc__number,
+.toc__link:focus-visible .toc__number {
+  background: var(--toc-number-background-hover);
+}
+
+.toc__link:hover .toc__text,
+.toc__link:focus-visible .toc__text {
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: auto;
+  text-underline-offset: auto;
+  text-underline-position: from-font;
+}
+
+.toc__link:focus-visible {
+  outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+  outline-offset: var(--s2a-border-width-md);
+  border-radius: var(--s2a-border-radius-xs);
+}

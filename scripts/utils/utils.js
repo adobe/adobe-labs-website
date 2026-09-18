@@ -5,7 +5,9 @@
  * there are not an excessive number of network requests on the page.
  * `toClassName` comes from aem.js, which is already loaded on every page.
  */
-import { buildBlock, getMetadata, toClassName } from '../aem.js';
+import {
+  buildBlock, getMetadata, readBlockConfig, toCamelCase, toClassName,
+} from '../aem.js';
 
 /**
  * Site sections shared by content-grid and grid-item.
@@ -196,6 +198,59 @@ export function buildArticlePreFooter(main) {
   const section = document.createElement('div');
   section.append(buildBlock('fragment', { elems: [link] }));
   main.append(section);
+}
+
+/**
+ * Assigns a stable, unique id to a section from its TOC link text
+ * (e.g. "Section 1" -> "section-1"), unless it already has one.
+ * The Table of Contents block deep links to this id.
+ *
+ * @param {Element} section
+ * @param {string} text Authored `toc` metadata value
+ */
+function assignTocId(section, text) {
+  if (section.id) return;
+  const base = toClassName(text) || 'section';
+  let id = base;
+  let n = 2;
+  while (document.getElementById(id)) {
+    id = `${base}-${n}`;
+    n += 1;
+  }
+  section.id = id;
+}
+
+/**
+ * Reads each section's authored `Section Metadata` table into `section.dataset`
+ * and removes the table so it never reaches `decorateBlocks` as a block to load.
+ * Runs after `decorateSections` (needs the `.section` wrapper) and before
+ * `decorateBlocks` (the table would otherwise resolve to a nonexistent
+ * `section-metadata` block folder).
+ *
+ * Two keys carry special behavior: `style` adds one or more (comma-separated)
+ * classes to the section instead of a dataset entry, and `toc` (in addition to
+ * `section.dataset.toc`) assigns the section a deep-linkable id so the Table
+ * of Contents block can link to it.
+ *
+ * @param {Element} main The container element
+ */
+export function decorateSectionMetadata(main) {
+  main.querySelectorAll(':scope > .section > div > .section-metadata').forEach((sectionMeta) => {
+    const section = sectionMeta.closest('.section');
+    const config = readBlockConfig(sectionMeta);
+    Object.entries(config).forEach(([key, value]) => {
+      if (key === 'style') {
+        value.split(',').forEach((style) => {
+          const className = toClassName(style.trim());
+          if (className) section.classList.add(className);
+        });
+        return;
+      }
+      section.dataset[toCamelCase(key)] = value;
+      if (key === 'toc' && value) assignTocId(section, value);
+    });
+    sectionMeta.remove();
+  });
 }
 
 /**
