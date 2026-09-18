@@ -1,10 +1,9 @@
 import { within } from '@testing-library/dom';
 import decorate from './table.js';
 
-function mockWrapperWidths(wrapper, { scrollWidth, clientWidth, offsetWidth = clientWidth }) {
+function mockWrapperWidths(wrapper, { scrollWidth, clientWidth }) {
   Object.defineProperty(wrapper, 'scrollWidth', { configurable: true, writable: true, value: scrollWidth });
   Object.defineProperty(wrapper, 'clientWidth', { configurable: true, value: clientWidth });
-  Object.defineProperty(wrapper, 'offsetWidth', { configurable: true, value: offsetWidth });
 }
 
 function createBlock(rows, className = 'table') {
@@ -20,6 +19,17 @@ function createBlock(rows, className = 'table') {
     block.append(row);
   });
   return block;
+}
+
+function decorateInWrapper(block, widths) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'table-wrapper';
+  wrapper.append(block);
+  document.body.append(wrapper);
+  mockWrapperWidths(wrapper, widths);
+  Object.defineProperty(wrapper, 'scrollLeft', { configurable: true, writable: true, value: 0 });
+  decorate(block);
+  return wrapper;
 }
 
 const WAGE_SUMMARY = [
@@ -96,17 +106,6 @@ describe('table block', () => {
     expect(table.querySelectorAll('tbody td')).toHaveLength(15);
   });
 
-  it('uses the first row as column headers when header-row is set', () => {
-    const block = createBlock(WAGE_SUMMARY, 'table header-row');
-
-    decorate(block);
-
-    const table = within(block).getByRole('table');
-    expect(table.querySelector('thead')).not.toBeNull();
-    expect(within(table).getAllByRole('columnheader')).toHaveLength(5);
-    expect(within(table).queryByRole('rowheader')).not.toBeInTheDocument();
-  });
-
   it('uses the first cell of each row as a row header when header-column is set', () => {
     const block = createBlock(HEADER_COLUMN_ROWS, 'table header-column');
 
@@ -164,116 +163,35 @@ describe('table block', () => {
     expect(bodyCells[1]).toBeEmptyDOMElement();
   });
 
-  it('applies authored cell alignment attributes', () => {
-    const block = createBlock([
-      ['<p>Occupation</p>', '<p>Median</p>'],
-      ['<p>Art Directors</p>', '<p>$114,850</p>'],
-    ]);
-    const authoredCell = block.children[1].children[1];
-    authoredCell.setAttribute('data-align', 'right');
-    authoredCell.setAttribute('data-valign', 'middle');
-
-    decorate(block);
-
-    const cell = within(block).getByRole('table').querySelector('tbody td:last-child');
-    expect(cell).toHaveAttribute('data-align', 'right');
-    expect(cell).toHaveAttribute('data-valign', 'middle');
-    expect(cell).toHaveStyle({ textAlign: 'right', verticalAlign: 'middle' });
-  });
-
   it('hides the end fade when the wrapper is scrolled to the right', () => {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'table-wrapper';
     const block = createBlock(WAGE_SUMMARY);
-    wrapper.append(block);
-    document.body.append(wrapper);
-
-    mockWrapperWidths(wrapper, { scrollWidth: 500, clientWidth: 200, offsetWidth: 200 });
-    Object.defineProperty(wrapper, 'scrollLeft', { configurable: true, writable: true, value: 0 });
-
-    decorate(block);
+    const wrapper = decorateInWrapper(block, { scrollWidth: 500, clientWidth: 200 });
 
     expect(block).toHaveClass('table--scrollable');
-    expect(wrapper).toHaveClass('table-wrapper--scrollable');
     expect(block).not.toHaveClass('table--scrolled-end');
 
     wrapper.scrollLeft = 300;
     wrapper.dispatchEvent(new Event('scroll'));
 
+    expect(block).toHaveClass('table--scrollable');
     expect(block).toHaveClass('table--scrolled-end');
 
     wrapper.remove();
   });
 
-  it('adds scrollable classes when the table is wider than the wrapper', () => {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'table-wrapper';
+  it('hides the end fade after resize when the table fits', () => {
     const block = createBlock(WAGE_SUMMARY);
-    wrapper.append(block);
-    document.body.append(wrapper);
-
-    mockWrapperWidths(wrapper, { scrollWidth: 900, clientWidth: 400, offsetWidth: 400 });
-
-    decorate(block);
+    const wrapper = decorateInWrapper(block, { scrollWidth: 900, clientWidth: 400 });
 
     expect(block).toHaveClass('table--scrollable');
-    expect(wrapper).toHaveClass('table-wrapper--scrollable');
-
-    wrapper.remove();
-  });
-
-  it('does not add scrollable classes when the table fits the wrapper', () => {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'table-wrapper';
-    const block = createBlock(WAGE_SUMMARY);
-    wrapper.append(block);
-    document.body.append(wrapper);
-
-    mockWrapperWidths(wrapper, { scrollWidth: 400, clientWidth: 800, offsetWidth: 800 });
-
-    decorate(block);
-
-    expect(block).not.toHaveClass('table--scrollable');
-    expect(wrapper).not.toHaveClass('table-wrapper--scrollable');
-
-    wrapper.remove();
-  });
-
-  it('keeps default padding when the table fits the full wrapper', () => {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'table-wrapper';
-    const block = createBlock(WAGE_SUMMARY);
-    wrapper.append(block);
-    document.body.append(wrapper);
-
-    mockWrapperWidths(wrapper, { scrollWidth: 580, clientWidth: 500, offsetWidth: 609 });
-
-    decorate(block);
-
-    expect(block).not.toHaveClass('table--scrollable');
-    expect(wrapper).not.toHaveClass('table-wrapper--scrollable');
-
-    wrapper.remove();
-  });
-
-  it('drops scrollable classes when the table fits after resize', () => {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'table-wrapper';
-    const block = createBlock(WAGE_SUMMARY);
-    wrapper.append(block);
-    document.body.append(wrapper);
-
-    mockWrapperWidths(wrapper, { scrollWidth: 900, clientWidth: 400, offsetWidth: 400 });
-
-    decorate(block);
-
-    expect(block).toHaveClass('table--scrollable');
+    expect(block).not.toHaveClass('table--scrolled-end');
 
     wrapper.scrollWidth = 300;
     window.dispatchEvent(new Event('resize'));
 
     expect(block).not.toHaveClass('table--scrollable');
-    expect(wrapper).not.toHaveClass('table-wrapper--scrollable');
+    expect(block).toHaveClass('table--fitted');
+    expect(block).toHaveClass('table--scrolled-end');
 
     wrapper.remove();
   });

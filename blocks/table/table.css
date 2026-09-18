@@ -1,77 +1,75 @@
-main>.section>.table-wrapper {
+main > .section > .table-wrapper {
   --table-scrollbar-track: var(--s2a-color-surface-default);
-  --table-scrollbar-thumb: #A2A2A24D;
+  --table-scrollbar-thumb: color-mix(in srgb, var(--s2a-color-gray-500) 30%, transparent);
 
-  @media (width >= 48rem) {
-    max-inline-size: 38.25rem;
+  margin-inline: auto;
+  max-inline-size: var(--article-content-inline-size-md);
+  overflow-x: auto;
+  overscroll-behavior-x: none;
+
+  &:has(.table--scrollable) {
+    padding-inline: 0;
+    padding-block-end: var(--s2a-spacing-xs);
+  }
+
+  @media (width >= 64rem) {
+    max-inline-size: var(--article-content-inline-size-lg);
   }
 
   @media (width >= 90rem) {
-    max-inline-size: 57.75rem;
-
+    max-inline-size: var(--article-content-inline-size-xl);
   }
 
-  &.table-wrapper--scrollable {
-    overflow-x: scroll;
-    overscroll-behavior-x: none;
-    padding-inline: 0;
-    padding-block-end: 0.5rem;
+  @media (width >= 120rem) {
+    max-inline-size: var(--article-content-inline-size-xxl);
+  }
 
-    &::-webkit-scrollbar {
-      height: 0.5rem;
-      background: var(--table-scrollbar-track);
-    }
+  &::-webkit-scrollbar {
+    height: var(--s2a-spacing-xs);
+    background: var(--table-scrollbar-track);
+  }
 
-    &::-webkit-scrollbar-track {
-      margin-inline: 0.5rem;
-      background: var(--table-scrollbar-track);
-    }
+  &::-webkit-scrollbar-track {
+    margin-inline: var(--s2a-spacing-xs);
+    background: var(--table-scrollbar-track);
+  }
 
-    &::-webkit-scrollbar-thumb {
-      background-color: var(--table-scrollbar-thumb);
-      border-radius: var(--s2a-border-radius-round);
-    }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--table-scrollbar-thumb);
+    border-radius: var(--s2a-border-radius-round);
+  }
 
-    @supports not selector(::-webkit-scrollbar) {
-      scrollbar-width: auto;
-      scrollbar-color: var(--table-scrollbar-thumb) var(--table-scrollbar-track);
-    }
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: auto;
+    scrollbar-color: var(--table-scrollbar-thumb) var(--table-scrollbar-track);
   }
 }
 
 .table {
   --table-border-color: var(--s2a-color-border-subtle);
-  --table-fade-size: 3.125rem;
-  --table-surface: var(--color-section-surface-default, var(--s2a-color-background-default));
+  --table-fade-size: var(--s2a-spacing-3xl);
   --table-th-background: var(--s2a-color-transparent-black-08);
 
   display: flex;
-  inline-size: 100%;
-  color: var(--s2a-color-content-default);
-  font-size: var(--s2a-typography-font-size-body-sm);
-
-  &.table--scrollable {
-    inline-size: max-content;
-  }
+  inline-size: max-content;
+  min-inline-size: 100%;
 
   table {
-    flex: 1 1 auto;
-    inline-size: 100%;
+    flex: 0 0 auto;
+    inline-size: max-content;
     min-inline-size: 100%;
+    overflow: hidden;
     border-collapse: separate;
     border-spacing: 0;
     border: 1px solid var(--table-border-color);
-    border-radius: var(--s2a-border-radius-xs);
-  }
-
-  &.table--scrollable table {
-    flex: 0 0 auto;
-    inline-size: max-content;
-    min-inline-size: max-content;
     border-radius: 0;
   }
 
-  &.table--scrollable::after {
+  &.table--fitted table {
+    border-radius: var(--s2a-border-radius-xs);
+  }
+
+  &::after {
     content: "";
     flex: 0 0 var(--table-fade-size);
     align-self: stretch;
@@ -79,7 +77,11 @@ main>.section>.table-wrapper {
     position: sticky;
     inset-inline-end: 0;
     pointer-events: none;
-    background: linear-gradient(270deg, rgb(115 115 115 / 50%) 0%, rgb(115 115 115 / 0%) 79.25%);
+    background: linear-gradient(
+      270deg,
+      color-mix(in srgb, var(--s2a-color-gray-600) 50%, transparent) 0%,
+      transparent 79.25%
+    );
   }
 
   &.table--scrolled-end::after {
@@ -89,9 +91,8 @@ main>.section>.table-wrapper {
   th,
   td {
     font-size: var(--s2a-typography-font-size-body-sm);
-    font-style: normal;
-    font-weight: 400;
-    line-height: var(--s2a-typography-line-height-body-sm); /* 128.571% */
+    font-weight: var(--s2a-font-weight-body);
+    line-height: var(--s2a-typography-line-height-body-sm);
     letter-spacing: var(--s2a-typography-letter-spacing-body-sm);
     padding-block: 0.75rem;
     padding-inline: 1.25rem;
@@ -101,11 +102,9 @@ main>.section>.table-wrapper {
     vertical-align: middle;
     white-space: nowrap;
     color: var(--s2a-color-content-default);
-    max-inline-size: 164px;
     min-inline-size: 105px;
 
     @media (width >= 90rem) {
-      max-inline-size: 164px;
       min-inline-size: 164px;
     }
 
@@ -117,11 +116,11 @@ main>.section>.table-wrapper {
       border-inline-end: 0;
     }
 
-    &>* {
+    & > * {
       margin: 0;
     }
 
-    &>*+* {
+    & > * + * {
       margin-block-start: var(--s2a-spacing-3xs);
     }
   }
@@ -129,45 +128,20 @@ main>.section>.table-wrapper {
   th {
     background: var(--table-th-background);
     padding-block: 1rem;
-    font-weight: 700;
+    font-weight: var(--s2a-font-weight-label);
   }
 
-  td {
-    letter-spacing: var(--s2a-typography-letter-spacing-body-sm);
-  }
-
-  table> :first-child>tr:first-child>:first-child {
-    border-start-start-radius: var(--s2a-border-radius-xs);
-  }
-
-  table> :first-child>tr:first-child>:last-child {
-    border-start-end-radius: var(--s2a-border-radius-xs);
-  }
-
-  table> :last-child>tr:last-child>* {
+  table > :last-child > tr:last-child > * {
     border-block-end: 0;
-  }
-
-  table> :last-child>tr:last-child>:first-child {
-    border-end-start-radius: var(--s2a-border-radius-xs);
-  }
-
-  table> :last-child>tr:last-child>:last-child {
-    border-end-end-radius: var(--s2a-border-radius-xs);
-  }
-
-  &.table--scrollable :is(th, td) {
-    border-radius: 0;
   }
 }
 
 :root[data-theme="dark"] .table-wrapper {
-  --table-border-color: var(--s2a-color-gray-700);
   --table-scrollbar-track: var(--s2a-color-transparent-white-12);
   --table-scrollbar-thumb: var(--s2a-color-gray-400);
 }
 
 :root[data-theme="dark"] .table {
-  /* --table-surface: var(--s2a-color-transparent-white-12); */
+  --table-border-color: var(--s2a-color-gray-700);
   --table-th-background: var(--s2a-color-transparent-white-12);
 }
