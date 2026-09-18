@@ -480,6 +480,109 @@ footer {
   }
 }
 
+/* --- Article meta ---
+   `.article-meta-section` is the section-level wrapper `decorateSections`
+   builds around the byline (see `decorateArticleMetaSections` in utils.js)
+   — structurally the same position `.lead-in-wrapper` occupies (see
+   lead-in.css), so both pick up the site's generic `main > .section > div`
+   inline padding and resolve to an identical width/left edge at every
+   breakpoint. This is also where the action-buttons component
+   (ADBLABS-144/ADBLABS-155) should attach, right-aligned next to the
+   byline on the same row — do not add a second, separately-centered
+   wrapper for it. */
+body.article main .article-meta-section {
+  max-inline-size: var(--article-content-inline-size-md);
+  margin-inline: auto;
+
+  @media (width >= 64rem) {
+    max-inline-size: var(--article-content-inline-size-lg);
+  }
+
+  @media (width >= 90rem) {
+    max-inline-size: var(--article-content-inline-size-xl);
+  }
+
+  @media (width >= 120rem) {
+    max-inline-size: var(--article-content-inline-size-xxl);
+  }
+}
+
+/* Shared container for the top and bottom meta sections of an article: the
+   author byline today, action buttons (copy/download/feedback) join it in
+   the same container later (ADBLABS-144/ADBLABS-155).
+   For ADBLABS-155: append the actions markup as a second child of
+   `.article-meta` (sibling to `.article-meta__authors`, e.g. wrapped in
+   `.article-meta__actions`) — `justify-content: space-between` below
+   already pushes a second child to the right, no extra alignment or
+   width/centering CSS needed. `.article-meta` exists twice per page (top
+   and bottom byline), so iterate `main.querySelectorAll('.article-meta')`
+   rather than assuming one instance. See `buildArticleMeta` in utils.js. */
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2a-spacing-sm);
+  margin-block-end: var(--s2a-spacing-lg);
+}
+
+.article-meta__authors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2a-spacing-sm);
+}
+
+/* Top byline only: stack "Words by:" above the author list at narrow
+   viewports instead of wrapping mid-row. */
+@media (width <= 23.4375rem) {
+  .article-meta--top .article-meta__authors {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.article-meta__authors-label,
+.article-meta__author-name {
+  /* s2a/typography/heading-6 */
+  font-family: var(--heading-font-family);
+  font-size: var(--s2a-typography-font-size-heading-6);
+  font-weight: 900;
+  line-height: var(--s2a-typography-line-height-title-6, 1.125rem); /* 112.5% */
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+}
+
+.article-meta__authors-label {
+  color: var(--s2a-color-content-subtle);
+}
+
+.article-meta__author-name {
+  color: var(--s2a-color-content-default);
+}
+
+.article-meta__author-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2a-spacing-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.article-meta__author {
+  display: flex;
+  align-items: center;
+  gap: var(--s2a-spacing-sm);
+}
+
+.article-meta__author-image {
+  inline-size: 19px; /* Figma spec; no matching s2a spacing token */
+  block-size: 19px;
+  border-radius: var(--s2a-border-radius-round);
+  object-fit: cover;
+}
+
 /* --- Buttons --- */
 
 /* Default .button uses the Primary button style. */

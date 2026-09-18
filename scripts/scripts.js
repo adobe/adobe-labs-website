@@ -24,9 +24,11 @@ import {
   getMetadata,
 } from './aem.js';
 import {
+  buildArticleAuthorMeta,
   buildArticlePreFooter,
   debounce,
   ensureSkipLink,
+  decorateArticleMetaSections,
   decorateArticleSections,
 } from './utils/utils.js';
 
@@ -85,6 +87,7 @@ function buildWidgetAutoBlocks(main) {
  */
 function buildAutoBlocks(main) {
   try {
+    buildArticleAuthorMeta(main);
     buildArticlePreFooter(main);
     // auto load `*/fragments/*` references
     const fragments = [...main.querySelectorAll('a[href*="/fragments/"]')].filter((f) => !f.closest('.fragment'));
@@ -167,6 +170,7 @@ export function decorateMain(main) {
   buildAutoBlocks(main);
   decorateSections(main);
   decorateArticleSections(main);
+  decorateArticleMetaSections(main);
   decorateBlocks(main);
   decorateButtons(main);
 }
