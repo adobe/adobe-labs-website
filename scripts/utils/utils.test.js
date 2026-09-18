@@ -380,42 +380,6 @@ describe('decorateSectionMetadata', () => {
     expect(section.contains(meta)).toBe(false);
   });
 
-  it('assigns a slugified id from the toc text for deep linking', () => {
-    const { section } = createSectionMetadataFixture({ Toc: 'Section 1' });
-    const main = document.createElement('main');
-    main.append(section);
-
-    decorateSectionMetadata(main);
-
-    expect(section.id).toBe('section-1');
-  });
-
-  it('does not overwrite an existing section id', () => {
-    const { section } = createSectionMetadataFixture({ Toc: 'Section 1' });
-    section.id = 'custom-id';
-    const main = document.createElement('main');
-    main.append(section);
-
-    decorateSectionMetadata(main);
-
-    expect(section.id).toBe('custom-id');
-  });
-
-  it('dedupes ids that collide with an id already in the document', () => {
-    const existing = document.createElement('div');
-    existing.id = 'section-1';
-    document.body.append(existing);
-
-    const { section } = createSectionMetadataFixture({ Toc: 'Section 1' });
-    const main = document.createElement('main');
-    main.append(section);
-    document.body.append(main);
-
-    decorateSectionMetadata(main);
-
-    expect(section.id).toBe('section-1-2');
-  });
-
   it('splits the style key into one or more section classes instead of a dataset entry', () => {
     const { section } = createSectionMetadataFixture({ Style: 'section-rounded-blue, highlight' });
     const main = document.createElement('main');

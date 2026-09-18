@@ -201,36 +201,16 @@ export function buildArticlePreFooter(main) {
 }
 
 /**
- * Assigns a stable, unique id to a section from its TOC link text
- * (e.g. "Section 1" -> "section-1"), unless it already has one.
- * The Table of Contents block deep links to this id.
- *
- * @param {Element} section
- * @param {string} text Authored `toc` metadata value
- */
-function assignTocId(section, text) {
-  if (section.id) return;
-  const base = toClassName(text) || 'section';
-  let id = base;
-  let n = 2;
-  while (document.getElementById(id)) {
-    id = `${base}-${n}`;
-    n += 1;
-  }
-  section.id = id;
-}
-
-/**
  * Reads each section's authored `Section Metadata` table into `section.dataset`
  * and removes the table so it never reaches `decorateBlocks` as a block to load.
  * Runs after `decorateSections` (needs the `.section` wrapper) and before
  * `decorateBlocks` (the table would otherwise resolve to a nonexistent
  * `section-metadata` block folder).
  *
- * Two keys carry special behavior: `style` adds one or more (comma-separated)
- * classes to the section instead of a dataset entry, and `toc` (in addition to
- * `section.dataset.toc`) assigns the section a deep-linkable id so the Table
- * of Contents block can link to it.
+ * The `style` key is special-cased: it adds one or more (comma-separated)
+ * classes to the section instead of a dataset entry. Every other key
+ * (including `toc`, read by the Table of Contents block) becomes a plain
+ * `section.dataset` entry.
  *
  * @param {Element} main The container element
  */
@@ -247,7 +227,6 @@ export function decorateSectionMetadata(main) {
         return;
       }
       section.dataset[toCamelCase(key)] = value;
-      if (key === 'toc' && value) assignTocId(section, value);
     });
     sectionMeta.remove();
   });

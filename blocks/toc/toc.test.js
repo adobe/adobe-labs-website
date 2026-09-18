@@ -1,10 +1,26 @@
 import decorate from './toc.js';
 
-function createTocSection(id, text) {
+/**
+ * A TOC section with a heading — the common case, mirroring how the backend
+ * assigns headings an id from their slugified text before any JS runs.
+ */
+function createHeadedSection(text, headingId) {
   const section = document.createElement('div');
   section.className = 'section';
-  section.id = id;
   section.dataset.toc = text;
+  const heading = document.createElement('h2');
+  heading.textContent = text;
+  if (headingId) heading.id = headingId;
+  section.append(heading);
+  return section;
+}
+
+/** A TOC section with no heading at all. */
+function createBareSection(text, id) {
+  const section = document.createElement('div');
+  section.className = 'section';
+  section.dataset.toc = text;
+  if (id) section.id = id;
   return section;
 }
 
@@ -25,11 +41,71 @@ function createBlockSection(...siblings) {
 }
 
 describe('toc block', () => {
+  it('links to the section heading\'s existing id instead of inventing a new one', () => {
+    const main = document.createElement('main');
+    const first = createHeadedSection('Section 1', 'section-1');
+    const { section: blockSection, block } = createBlockSection();
+    main.append(first, blockSection);
+
+    decorate(block);
+
+    const link = block.querySelector('.toc__link');
+    expect(link).toHaveAttribute('href', '#section-1');
+  });
+
+  it('assigns an id to the heading (not the section) when it has none', () => {
+    const main = document.createElement('main');
+    const first = createHeadedSection('Most Creatives are undecided about AI');
+    const { section: blockSection, block } = createBlockSection();
+    main.append(first, blockSection);
+
+    decorate(block);
+
+    const heading = first.querySelector('h2');
+    expect(heading.id).toBe('most-creatives-are-undecided-about-ai');
+    expect(first.id).toBe('');
+    expect(block.querySelector('.toc__link')).toHaveAttribute(
+      'href',
+      '#most-creatives-are-undecided-about-ai',
+    );
+  });
+
+  it('falls back to an id on the section itself when it has no heading', () => {
+    const main = document.createElement('main');
+    const first = createBareSection('Section 1');
+    const { section: blockSection, block } = createBlockSection();
+    main.append(first, blockSection);
+
+    decorate(block);
+
+    expect(first.id).toBe('section-1');
+    expect(block.querySelector('.toc__link')).toHaveAttribute('href', '#section-1');
+  });
+
+  it('dedupes a generated id that collides with one already in the document', () => {
+    const existing = document.createElement('div');
+    existing.id = 'section-1';
+    document.body.append(existing);
+
+    const main = document.createElement('main');
+    const first = createBareSection('Section 1');
+    const { section: blockSection, block } = createBlockSection();
+    main.append(first, blockSection);
+    document.body.append(main);
+
+    decorate(block);
+
+    expect(first.id).toBe('section-1-2');
+
+    document.body.removeChild(existing);
+    document.body.removeChild(main);
+  });
+
   it('builds a numbered list linking to each TOC section, in document order', () => {
     const main = document.createElement('main');
-    const first = createTocSection('section-1', 'Section 1');
+    const first = createHeadedSection('Section 1', 'section-1');
     const { section: blockSection, block } = createBlockSection();
-    const second = createTocSection('section-2', 'Section 2');
+    const second = createHeadedSection('Section 2', 'section-2');
     main.append(first, blockSection, second);
 
     decorate(block);
@@ -46,9 +122,9 @@ describe('toc block', () => {
     const main = document.createElement('main');
     const { section: blockSection, block } = createBlockSection();
     main.append(
-      createTocSection('a', 'A'),
-      createTocSection('b', 'B'),
-      createTocSection('c', 'C'),
+      createHeadedSection('A', 'a'),
+      createHeadedSection('B', 'b'),
+      createHeadedSection('C', 'c'),
       blockSection,
     );
 
@@ -62,7 +138,7 @@ describe('toc block', () => {
   it('renders the "Table of contents" heading as a heading-5', () => {
     const main = document.createElement('main');
     const { section: blockSection, block } = createBlockSection();
-    main.append(createTocSection('a', 'A'), blockSection);
+    main.append(createHeadedSection('A', 'a'), blockSection);
 
     decorate(block);
 
@@ -76,7 +152,7 @@ describe('toc block', () => {
     const { section: blockSection, block } = createBlockSection();
     const plain = document.createElement('div');
     plain.className = 'section';
-    main.append(plain, createTocSection('a', 'A'), blockSection);
+    main.append(plain, createHeadedSection('A', 'a'), blockSection);
 
     decorate(block);
 

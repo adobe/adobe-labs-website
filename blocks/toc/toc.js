@@ -1,9 +1,37 @@
+import { toClassName } from '../../scripts/aem.js';
+
 const HEADING_TEXT = 'Table of contents';
+const SECTION_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
 
 /**
- * Builds one numbered TOC row linking to a section's id.
+ * Deep-link anchor for a TOC section. The backend already assigns headings
+ * an id from their slugified text, so this reuses that id when present
+ * instead of inventing a second, conflicting one. Only assigns a fresh id
+ * (to the heading if there is one, otherwise the section itself) as a
+ * fallback for a heading-less section.
  *
- * @param {Element} section A section with `dataset.toc` and an id
+ * @param {Element} section A section with `dataset.toc`
+ * @returns {string}
+ */
+function resolveAnchorId(section) {
+  const target = section.querySelector(SECTION_HEADING_SELECTOR) || section;
+  if (target.id) return target.id;
+
+  const base = toClassName(section.dataset.toc) || 'section';
+  let id = base;
+  let n = 2;
+  while (document.getElementById(id)) {
+    id = `${base}-${n}`;
+    n += 1;
+  }
+  target.id = id;
+  return id;
+}
+
+/**
+ * Builds one numbered TOC row linking to a section's heading.
+ *
+ * @param {Element} section A section with `dataset.toc`
  * @param {number} index 0-based; displayed number is `index + 1`
  * @returns {HTMLLIElement}
  */
@@ -13,7 +41,7 @@ function buildItem(section, index) {
 
   const link = document.createElement('a');
   link.className = 'toc__link';
-  link.href = `#${section.id}`;
+  link.href = `#${resolveAnchorId(section)}`;
 
   const number = document.createElement('span');
   number.className = 'toc__number';
