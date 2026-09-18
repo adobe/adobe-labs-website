@@ -571,19 +571,20 @@ footer {
 
 /* --- Sections --- */
 
-/* TODO: boilerplate - Sections - better handling of this group of styles for overall site spacing. And use tokens. */
 main > .section {
   display: flex;
   flex-flow: column nowrap;
   gap: var(--s2a-spacing-xl);
 }
 
-main > .section > div {
+/* Wrappers: block wrappers (`.BLOCKNAME-wrapper`) and `.default-content-wrapper`. 
+   The custom property `--wrapper-max-inline-size` can be overriden by block classes.
+   Low specificity is used so block wrapper classes can easily change styles without adding specificity. */
+:where(main > .section > div) {
   inline-size: 100%;
-  max-inline-size: var(--site-max-inline-size);
+  max-inline-size: var(--wrapper-max-inline-size, var(--site-max-inline-size));
   margin: auto;
   padding: 0 var(--site-root-inline-padding);
-
 }
 
 main .section[class*="section-rounded-"] {
@@ -684,22 +685,47 @@ html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
 
 /* --- Articles --- */
 
+/* Block wrappers within articles. */
+:where(body.article main > .section > div) {
+  /* Default max width for custom block wrappers within articles.
+    The value of this variable can be changed within a block's wrapper class. */
+  --article-content-max-inline-size: 100%;
+
+  @media (width >= 48rem) {
+    --article-content-max-inline-size: min(calc(10 / 12 * 100%), 97.25rem); /* 1556px max. Full-width. */
+  }
+
+  /* Modify base wrapper styles custom property to use our article specific sizing. */
+  --wrapper-max-inline-size: calc(
+    var(--article-content-max-inline-size) + (var(--site-root-inline-padding, 0px) * 2)
+  );
+}
+
 body.article main {
   --section-padding-block-end: var(--s2a-spacing-2xl);
 
-  /* Article content max-widths. */
-  --article-content-inline-size-sm: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
-  --article-content-inline-size-md: calc(37.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 598px @ 48rem (768px) viewport */
-  --article-content-inline-size-lg: calc(50.75rem + (var(--site-root-inline-padding, 0px) * 2)); /* 812px @ 64rem (1024px) viewport */
-  --article-content-inline-size-xl: calc(72.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1158px @ 90rem (1440px) viewport */
-  --article-content-inline-size-xxl: calc(97.25rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1556px @ 120rem (1920px) viewport */
+  /* Represents the max width of the default content column with regular authored text. */
+  --article-default-content-max-inline-size: min(100%, 30.125rem); 
+
+  @media (width >= 48rem) {
+    --article-default-content-max-inline-size: min(calc(8 / 12 * 100%), 46.875rem);
+  }
+
+  @media (width >= 64rem) {
+    --article-default-content-max-inline-size: min(calc(6 / 12 * 100%), 46.875rem);
+  }
 
   @media (width >= 90rem) {
     --section-padding-block-end: var(--s2a-spacing-4xl);
   }
 
+  @media (width >= 120rem) {
+    --article-default-content-max-inline-size: min(39%, 46.875rem); /* Max 750px */
+  }
+
   .default-content-wrapper {
-    max-inline-size: var(--article-content-inline-size-sm);
+    /* Default content max width of regular authored text content. */
+    --article-content-max-inline-size: var(--article-default-content-max-inline-size);
   }
 
   .full-bleed .default-content-wrapper {
