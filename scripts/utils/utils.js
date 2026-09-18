@@ -156,6 +156,47 @@ export function formatCardDate(value, now = new Date()) {
 
 const DEFAULT_ARTICLE_PRE_FOOTER = '/fragments/article-pre-footer';
 
+const COPY_LINK_LABEL = 'Copy link';
+const COPIED_LABEL = 'Copied';
+const COPY_LINK_REVERT_MS = 2000;
+
+const LINK_ICON_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" fill="none" focusable="false">
+  <path fill="currentColor" d="M4.78213 16.8732C3.84521 16.8732 2.90919 16.5164 2.19639 15.8036C0.770805 14.378 0.770805 12.0577 2.19639 10.6313L5.71113 7.11651C7.13759 5.69093 9.45703 5.6918 10.8835 7.11651C11.0786 7.3125 11.25 7.52783 11.3933 7.75547C11.5919 8.071 11.497 8.4876 11.1814 8.68623C10.8642 8.88575 10.4493 8.78907 10.2507 8.47442C10.1602 8.33027 10.0512 8.19405 9.92724 8.07012C9.02812 7.171 7.56474 7.17188 6.66563 8.071L3.15088 11.5857C2.25176 12.4857 2.25176 13.95 3.15088 14.8491C4.05176 15.75 5.51514 15.7465 6.41426 14.8491L8.1712 13.0922C8.43487 12.8285 8.86202 12.8285 9.12569 13.0922C9.38937 13.3559 9.38937 13.783 9.12569 14.0467L7.36876 15.8036C6.65597 16.5164 5.71904 16.8724 4.78213 16.8732ZM12.2889 10.8835L15.8036 7.36876C17.2292 5.94229 17.2292 3.62198 15.8036 2.1964C14.378 0.770814 12.0568 0.770814 10.6312 2.1964L8.87431 3.95333C8.61064 4.217 8.61064 4.64415 8.87431 4.90783C9.13799 5.1715 9.56514 5.1715 9.82881 4.90783L11.5857 3.15089C12.4849 2.25265 13.9482 2.25089 14.8491 3.15089C15.7482 4.05001 15.7482 5.51427 14.8491 6.41427L11.3344 9.92902C10.4353 10.8281 8.97188 10.829 8.07277 9.9299C7.94884 9.80597 7.83986 9.66974 7.74932 9.5256C7.55069 9.21095 7.13585 9.11427 6.81856 9.31379C6.50303 9.51242 6.40812 9.92902 6.60675 10.2445C6.75001 10.4722 6.9214 10.6875 7.11652 10.8835C7.83019 11.5963 8.76622 11.9531 9.70313 11.9531C10.6392 11.9531 11.5761 11.5963 12.2889 10.8835Z"/>
+</svg>
+`.trim();
+
+const CHECK_ICON_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" fill="none" focusable="false">
+  <path fill="currentColor" d="M16.2129 5.26855C16.4775 5.5332 16.4775 5.96094 16.2129 6.22559L8.15039 14.2881C8.02148 14.417 7.84961 14.4814 7.67773 14.4814C7.50586 14.4814 7.33398 14.417 7.20508 14.2881L2.78711 9.87012C2.52246 9.60547 2.52246 9.17773 2.78711 8.91309C3.05176 8.64844 3.47949 8.64844 3.74414 8.91309L7.67773 12.8467L15.2559 5.26855C15.5205 5.00391 15.9482 5.00391 16.2129 5.26855Z"/>
+</svg>
+`.trim();
+
+/**
+ * Article meta action buttons. Copy link ships now; Download and Feedback
+ * plug in here later (likely `<a>`s gated on metadata).
+ *
+ * @type {Array<{
+ *   id: string,
+ *   label: string,
+ *   render: 'button'|'a',
+ *   icon: string,
+ *   isEnabled?: function(): boolean,
+ * }>}
+ */
+const META_ACTIONS = [
+  {
+    id: 'copy-link',
+    label: COPY_LINK_LABEL,
+    render: 'button',
+    icon: LINK_ICON_SVG,
+    isEnabled: () => true,
+  },
+];
+
+/** @type {WeakMap<Element, number>} */
+const copyRevertTimers = new WeakMap();
+
 /**
  * Whether a page is an article detail.
  * True when bulk or page-level `template` metadata includes `article`.
@@ -196,6 +237,368 @@ export function buildArticlePreFooter(main) {
   const section = document.createElement('div');
   section.append(buildBlock('fragment', { elems: [link] }));
   main.append(section);
+}
+
+/**
+ * Share URL for Copy link: canonical when present, otherwise the current
+ * location, with the hash stripped so in-page jumps are not part of the link.
+ *
+ * @returns {string}
+ */
+function getShareUrl() {
+  const canonical = document.querySelector('link[rel="canonical"]')?.href;
+  const raw = canonical || window.location.href;
+  try {
+    const url = new URL(raw, window.location.href);
+    url.hash = '';
+    return url.href;
+  } catch {
+    return raw;
+  }
+}
+
+/**
+ * Copies text with a hidden textarea and `document.execCommand('copy')`.
+ * Restores focus to `restoreFocusTo` (or the previously focused element)
+ * so removing the textarea does not dump focus to `body`.
+ *
+ * @param {string} text Text to copy
+ * @param {Element} [restoreFocusTo] Element to focus after copying
+ * @returns {boolean}
+ */
+function copyTextFallback(text, restoreFocusTo) {
+  const previouslyFocused = document.activeElement;
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.setAttribute('aria-hidden', 'true');
+  textarea.tabIndex = -1;
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  document.body.append(textarea);
+  textarea.focus();
+  textarea.select();
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch {
+    ok = false;
+  }
+  textarea.remove();
+  const target = restoreFocusTo || previouslyFocused;
+  if (target && typeof target.focus === 'function' && document.contains(target)) {
+    target.focus();
+  }
+  return ok;
+}
+
+/**
+ * Copies text via the Clipboard API, falling back to `execCommand`.
+ *
+ * @param {string} text Text to copy
+ * @param {Element} [restoreFocusTo] Element to focus after the fallback path
+ * @returns {Promise<boolean>}
+ */
+async function copyText(text, restoreFocusTo) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* fall through */
+  }
+  return copyTextFallback(text, restoreFocusTo);
+}
+
+/**
+ * Shared polite live region for meta-action status (one per article `main`).
+ * An `<output>` (not a `div`) so `decorateSections` does not treat it as a
+ * section. Kept off the action group so stale status is not inside a
+ * named control group.
+ *
+ * @param {Element} main The page's main element
+ * @returns {Element}
+ */
+function ensureMetaActionStatus(main) {
+  let status = main.querySelector(':scope > [data-meta-action-status]');
+  if (status) return status;
+
+  status = document.createElement('output');
+  status.className = 'visually-hidden';
+  status.dataset.metaActionStatus = '';
+  status.setAttribute('aria-live', 'polite');
+  status.setAttribute('aria-atomic', 'true');
+  main.append(status);
+  return status;
+}
+
+/**
+ * Announces a status message to assistive tech.
+ *
+ * @param {Element} main The page's main element
+ * @param {string} message Status text
+ */
+function announceMetaAction(main, message) {
+  const status = ensureMetaActionStatus(main);
+  status.textContent = message;
+}
+
+/**
+ * Clears the copy-success status if it is still showing.
+ *
+ * @param {Element} main The page's main element
+ */
+function clearCopiedStatus(main) {
+  const status = main.querySelector(':scope > [data-meta-action-status]');
+  if (status?.textContent === 'Link copied') status.textContent = '';
+}
+
+/**
+ * Sets or clears the Copy link success state on one button.
+ *
+ * @param {Element} button Copy link button
+ * @param {boolean} copied Whether to show Copied
+ */
+function setCopiedState(button, copied) {
+  const label = button.querySelector('.action-button__label');
+  const icon = button.querySelector('.action-button__icon');
+  if (label) label.textContent = copied ? COPIED_LABEL : COPY_LINK_LABEL;
+  if (icon) icon.innerHTML = copied ? CHECK_ICON_SVG : LINK_ICON_SVG;
+}
+
+/**
+ * Reverts a Copy link button to its default label and icon.
+ *
+ * @param {Element} button Copy link button
+ */
+function revertCopied(button) {
+  const timer = copyRevertTimers.get(button);
+  if (timer) window.clearTimeout(timer);
+  copyRevertTimers.delete(button);
+  setCopiedState(button, false);
+}
+
+/**
+ * Shows Copied on the clicked button and reverts after a short delay.
+ *
+ * @param {Element} button Copy link button
+ * @param {Element} main The page's main element
+ */
+function showCopied(button, main) {
+  revertCopied(button);
+  setCopiedState(button, true);
+  const timer = window.setTimeout(() => {
+    copyRevertTimers.delete(button);
+    setCopiedState(button, false);
+    clearCopiedStatus(main);
+  }, COPY_LINK_REVERT_MS);
+  copyRevertTimers.set(button, timer);
+}
+
+/**
+ * Copies the article URL and updates the clicked button plus live region.
+ *
+ * @param {Element} main The page's main element
+ * @param {Element} button Copy link button
+ * @returns {Promise<void>}
+ */
+async function handleCopyLink(main, button) {
+  const ok = await copyText(getShareUrl(), button);
+  if (ok) {
+    showCopied(button, main);
+    announceMetaAction(main, 'Link copied');
+    return;
+  }
+  announceMetaAction(main, 'Unable to copy link');
+}
+
+/**
+ * One control in a meta-action group (`button` or `a`).
+ *
+ * @param {{ id: string, label: string, render: 'button'|'a', icon: string }} action
+ * @returns {HTMLButtonElement|HTMLAnchorElement}
+ */
+function createMetaActionControl(action) {
+  const el = document.createElement(action.render === 'a' ? 'a' : 'button');
+  el.className = 'action-button';
+  el.dataset.metaAction = action.id;
+  if (el.tagName === 'BUTTON') el.type = 'button';
+
+  const icon = document.createElement('span');
+  icon.className = 'action-button__icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = action.icon;
+
+  const label = document.createElement('span');
+  label.className = 'action-button__label';
+  label.textContent = action.label;
+
+  el.append(icon, label);
+  return el;
+}
+
+/**
+ * Builds one article meta-action group from enabled `META_ACTIONS`.
+ * A named `group`, not a `nav` landmark — these are actions, not navigation,
+ * and the control appears twice on the page.
+ *
+ * @param {'top'|'bottom'} position Which instance this is
+ * @returns {HTMLElement|null}
+ */
+function createMetaActionGroup(position) {
+  const group = document.createElement('div');
+  group.className = 'article-meta__actions';
+  group.setAttribute('role', 'group');
+  group.setAttribute(
+    'aria-label',
+    position === 'bottom' ? 'Article actions, bottom of article' : 'Article actions',
+  );
+
+  META_ACTIONS.forEach((action) => {
+    if (action.isEnabled && !action.isEnabled()) return;
+    group.append(createMetaActionControl(action));
+  });
+
+  return group.children.length ? group : null;
+}
+
+/**
+ * Delegated click handling for meta actions. Idempotent per `main`.
+ *
+ * @param {Element} main The page's main element
+ */
+function bindArticleMetaActions(main) {
+  if (main.dataset.metaActionsBound === 'true') return;
+  main.dataset.metaActionsBound = 'true';
+  main.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-meta-action="copy-link"]');
+    if (!button || !main.contains(button)) return;
+    handleCopyLink(main, button);
+  });
+}
+
+/**
+ * Accessible name for a complementary landmark. Distinguishes the duplicate
+ * top/bottom asides for screen reader landmark lists.
+ *
+ * @param {Element} meta `.article-meta` element
+ * @param {'top'|'bottom'} position Which instance this is
+ */
+function nameArticleMeta(meta, position) {
+  if (meta.hasAttribute('aria-label')) return;
+  meta.setAttribute(
+    'aria-label',
+    position === 'bottom' ? 'Article details, bottom of article' : 'Article details',
+  );
+}
+
+/**
+ * Top vs bottom from the byline modifier class, or from document order.
+ *
+ * @param {Element} meta `.article-meta` element
+ * @param {number} index Index among `.article-meta` nodes
+ * @param {number} total Number of `.article-meta` nodes
+ * @returns {'top'|'bottom'}
+ */
+function articleMetaPosition(meta, index, total) {
+  if (meta.classList.contains('article-meta--bottom')) return 'bottom';
+  if (meta.classList.contains('article-meta--top')) return 'top';
+  return index === total - 1 && total > 1 ? 'bottom' : 'top';
+}
+
+/**
+ * Empty `.article-meta` shell matching ADBLABS-130: an `<aside>` (so
+ * `decorateBlocks` does not treat it as a block) inside a classless `<div>`
+ * (so `decorateSections` gives it its own wrapper instead of folding it into
+ * `.default-content-wrapper`). Width/centering of that wrapper is owned by
+ * `.article-meta-section` on the byline PR — do not add a second centered
+ * wrapper here.
+ *
+ * @param {'top'|'bottom'} position Which instance this is
+ * @returns {{ wrapper: HTMLDivElement, meta: HTMLElement }}
+ */
+function createArticleMetaWrapper(position) {
+  const meta = document.createElement('aside');
+  meta.className = `article-meta article-meta--${position}`;
+  nameArticleMeta(meta, position);
+  const wrapper = document.createElement('div');
+  wrapper.append(meta);
+  return { wrapper, meta };
+}
+
+/**
+ * Places the top meta wrapper the same way ADBLABS-130 does: after a
+ * standalone hero's section, or immediately after a hero that shares its
+ * section with other content.
+ *
+ * @param {Element[]} sections `main`'s direct children
+ * @param {Element} wrapper Classless wrapper around `.article-meta`
+ */
+function insertTopArticleMetaWrapper(sections, wrapper) {
+  const hero = sections.flatMap((section) => [...section.querySelectorAll('.hero')])[0];
+  if (!hero) {
+    sections[0]?.prepend(wrapper);
+    return;
+  }
+
+  const heroSection = sections.find((section) => section.contains(hero));
+  if (heroSection.children.length === 1) {
+    const nextSection = sections[sections.indexOf(heroSection) + 1] || heroSection;
+    nextSection.prepend(wrapper);
+  } else {
+    hero.after(wrapper);
+  }
+}
+
+/**
+ * Existing `.article-meta` nodes (from the author byline), or a top/bottom
+ * fallback pair so this ticket is not blocked on ADBLABS-130 merging.
+ *
+ * @param {Element} main The page's main element
+ * @returns {Element[]}
+ */
+function ensureArticleMetaElements(main) {
+  const existing = [...main.querySelectorAll('.article-meta')];
+  if (existing.length) return existing;
+
+  const sections = [...main.children];
+  if (!sections.length) return [];
+
+  const top = createArticleMetaWrapper('top');
+  insertTopArticleMetaWrapper(sections, top.wrapper);
+
+  const bottom = createArticleMetaWrapper('bottom');
+  sections[sections.length - 1].append(bottom.wrapper);
+
+  return [top.meta, bottom.meta];
+}
+
+/**
+ * Injects Copy link (and later Download / Feedback) into each `.article-meta`
+ * on the article (top and bottom). If the byline has not created those
+ * containers yet, builds the same aside+wrapper fallback. No-op on
+ * non-article pages or fragment mains.
+ *
+ * @param {Element} main The page's main element
+ */
+export function buildArticleMetaActions(main) {
+  if (main.parentElement !== document.body) return;
+  if (!isArticleDetailPage()) return;
+
+  const metas = ensureArticleMetaElements(main);
+  if (!metas.length) return;
+
+  metas.forEach((meta, index) => {
+    const position = articleMetaPosition(meta, index, metas.length);
+    nameArticleMeta(meta, position);
+    if (meta.querySelector('.article-meta__actions')) return;
+    const group = createMetaActionGroup(position);
+    if (group) meta.append(group);
+  });
+
+  ensureMetaActionStatus(main);
+  bindArticleMetaActions(main);
 }
 
 /**

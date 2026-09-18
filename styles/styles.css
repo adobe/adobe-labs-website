@@ -557,6 +557,70 @@ footer {
   }
 }
 
+/* Quiet Spectrum 2 Action Button (medium). Used by article meta actions. */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  box-sizing: border-box;
+  margin: 0;
+  padding-block: 0;
+  padding-inline: var(--s2a-spacing-sm);
+  block-size: 2rem;
+  border: 0;
+  border-radius: var(--s2a-border-radius-8);
+  background-color: var(--s2a-color-button-background-primary-transparent-on-light-default);
+  color: var(--s2a-color-button-content-primary-transparent-default);
+  font-family: var(--body-font-family);
+  font-size: var(--s2a-typography-font-size-label);
+  font-style: normal;
+  font-weight: var(--s2a-font-weight-adobe-clean-medium);
+  line-height: var(--s2a-typography-line-height-label);
+  letter-spacing: var(--s2a-typography-letter-spacing-label);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition-timing-function: cubic-bezier(.45,0,.4,1);
+  transition-duration: .13s;
+  transition-property: outline, color, background-color;
+
+  &:hover {
+    background-color: var(--s2a-color-button-background-primary-transparent-on-light-hover);
+    text-decoration: none;
+  }
+
+  &:active {
+    background-color: var(--s2a-color-button-background-primary-transparent-on-light-active);
+  }
+
+  &:focus-visible {
+    outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+    outline-offset: var(--s2a-border-width-md);
+  }
+}
+
+.action-button__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+
+  & svg {
+    display: block;
+  }
+}
+
+/* Button group only. Alignment/width live on `.article-meta` /
+   `.article-meta-section` from ADBLABS-130 — append this as the second
+   child of `.article-meta`, do not add another centered wrapper. */
+.article-meta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2a-spacing-xs);
+}
+
 /* --- Icons --- */
 .icon {
   display: inline-block;
