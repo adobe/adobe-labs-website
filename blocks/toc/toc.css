@@ -62,10 +62,15 @@ main > .section > .toc-wrapper {
   padding-inline: var(--s2a-spacing-2xs);
   border-radius: var(--s2a-border-radius-xs);
   background: var(--toc-number-background);
-  color: var(--s2a-color-content-default);
-  font-family: var(--s2a-font-family-body);
-  font-size: var(--s2a-typography-font-size-body-sm);
-  line-height: 1;
+  color: var(--s2a-color-content-subtle);
+  font-family: var(--body-font-family);
+  font-size: 0.75rem; /* 12px */
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  text-wrap-style: pretty;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
   transition: background-color 0.15s ease-in-out;
 }
 
