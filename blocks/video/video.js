@@ -122,7 +122,7 @@ function getAuthoredPosterMedia(block, urlCell) {
  * Reads authored key/value rows from a video block.
  *
  * @param {Element} block The block element
- * @returns {object} Authored href, video ID, play label, custom-label flag, poster media, and transcript cell
+ * @returns {object} Authored href, video ID, play label, poster media, and transcript cell
  */
 export function getVideoData(block) {
   const cells = getAuthoredCells(block);
@@ -279,11 +279,13 @@ function loadEmbed(block, { videoId, playLabel }) {
 /**
  * Builds poster + play control markup and writes it into `block`.
  *
- * @param {{ videoId: string, playLabel: string, posterMedia: Element|null, transcriptCell?: Element }} data
+ * @param {object} data Authored video fields including optional transcript cell
  * @param {Element} block The video block
  */
 function buildVideo(data, block) {
-  const { videoId, posterMedia, hasCustomPlayLabel, transcriptCell } = data;
+  const {
+    videoId, posterMedia, hasCustomPlayLabel, transcriptCell,
+  } = data;
   let { playLabel } = data;
 
   const button = document.createElement('button');
