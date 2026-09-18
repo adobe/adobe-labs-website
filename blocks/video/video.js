@@ -10,6 +10,8 @@ import {
 const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const YOUTUBE_POSTER_PLACEHOLDER_WIDTH = 120;
 const DEFAULT_PLAY_LABEL = 'Play YouTube video';
+const TRANSCRIPT_LABEL = 'View transcript';
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /**
  * Extracts an 11-character YouTube video ID from a URL.
@@ -120,7 +122,7 @@ function getAuthoredPosterMedia(block, urlCell) {
  * Reads authored key/value rows from a video block.
  *
  * @param {Element} block The block element
- * @returns {object} Authored href, video ID, play label, custom-label flag, and poster media
+ * @returns {object} Authored href, video ID, play label, poster media, and transcript cell
  */
 export function getVideoData(block) {
   const cells = getAuthoredCells(block);
@@ -133,7 +135,59 @@ export function getVideoData(block) {
     playLabel: getPlayLabel(urlCell, videoId),
     hasCustomPlayLabel: hasCustomLinkText(urlCell),
     posterMedia: getAuthoredPosterMedia(block, urlCell),
+    transcriptCell: cells.transcript,
   };
+}
+
+/**
+ * 10px right-pointing chevron for the transcript disclosure.
+ *
+ * @returns {HTMLSpanElement}
+ */
+function buildTranscriptChevron() {
+  const wrap = document.createElement('span');
+  wrap.className = 'video__transcript-icon';
+  wrap.setAttribute('aria-hidden', 'true');
+
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 10 10');
+  svg.setAttribute('width', '10');
+  svg.setAttribute('height', '10');
+  svg.setAttribute('focusable', 'false');
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('fill', 'currentColor');
+  path.setAttribute(
+    'd',
+    'M3.25 1.22a.75.75 0 0 1 1.06 0l3.47 3.47a.75.75 0 0 1 0 1.06L4.31 9.22a.75.75 0 1 1-1.06-1.06L6.19 5.22 3.25 2.28a.75.75 0 0 1 0-1.06z',
+  );
+  svg.append(path);
+  wrap.append(svg);
+  return wrap;
+}
+
+/**
+ * Quiet “View transcript” disclosure from the authored Transcript cell.
+ * Closed by default. Omits when the cell is empty.
+ *
+ * @param {Element} [cell] Transcript value cell
+ * @returns {HTMLDetailsElement|null}
+ */
+function buildTranscript(cell) {
+  if (!getCellText(cell)) return null;
+
+  const details = document.createElement('details');
+  details.className = 'video__transcript';
+
+  const summary = document.createElement('summary');
+  summary.append(buildTranscriptChevron(), document.createTextNode(TRANSCRIPT_LABEL));
+
+  const panel = document.createElement('div');
+  panel.className = 'video__transcript-panel';
+  panel.append(...cell.childNodes);
+
+  details.append(summary, panel);
+  return details;
 }
 
 /**
@@ -190,6 +244,7 @@ async function fetchYoutubeTitle(videoId) {
 
 /**
  * Replaces the poster with a privacy-enhanced YouTube iframe and focuses it.
+ * Only the stage is replaced so a transcript disclosure stays in the block.
  *
  * @param {Element} block The video block
  * @param {{ videoId: string, playLabel: string }} data
@@ -216,18 +271,21 @@ function loadEmbed(block, { videoId, playLabel }) {
   status.textContent = 'Video player loaded';
 
   player.append(iframe);
-  block.replaceChildren(player, status);
+  const stage = block.querySelector('.video__stage') || block;
+  stage.replaceChildren(player, status);
   iframe.focus();
 }
 
 /**
  * Builds poster + play control markup and writes it into `block`.
  *
- * @param {{ videoId: string, playLabel: string, posterMedia: Element|null }} data
+ * @param {object} data Authored video fields including optional transcript cell
  * @param {Element} block The video block
  */
 function buildVideo(data, block) {
-  const { videoId, posterMedia, hasCustomPlayLabel } = data;
+  const {
+    videoId, posterMedia, hasCustomPlayLabel, transcriptCell,
+  } = data;
   let { playLabel } = data;
 
   const button = document.createElement('button');
@@ -248,7 +306,13 @@ function buildVideo(data, block) {
     loadEmbed(block, { videoId, playLabel });
   });
 
-  block.replaceChildren(button);
+  const stage = document.createElement('div');
+  stage.className = 'video__stage';
+  stage.append(button);
+
+  const transcript = buildTranscript(transcriptCell);
+  block.replaceChildren(stage);
+  if (transcript) block.append(transcript);
 
   if (hasCustomPlayLabel) return;
   fetchYoutubeTitle(videoId).then((title) => {
@@ -276,7 +340,8 @@ function discardBrokenBlock(block, href) {
 
 /**
  * Decorates a video block: a YouTube URL becomes a poster with a play control
- * that swaps in an embedded player on activation. Unusable URLs are not rendered.
+ * that swaps in an embedded player on activation. An authored Transcript row
+ * becomes a closed “View transcript” disclosure. Unusable URLs are not rendered.
  *
  * @param {Element} block The video block element
  */

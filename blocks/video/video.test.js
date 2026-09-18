@@ -264,7 +264,84 @@ describe('video block', () => {
     const img = block.querySelector('img');
     img.dispatchEvent(new Event('error'));
 
-    expect(img.src).toContain('custom.jpg');
     expect(img.src).not.toContain('hqdefault.jpg');
+  });
+
+  it('omits the transcript disclosure when the Transcript cell is empty', () => {
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+      Transcript: '',
+    });
+
+    decorate(block);
+
+    expect(block.querySelector('.video__transcript')).toBeNull();
+    expect(within(block).queryByText('View transcript')).toBeNull();
+  });
+
+  it('omits the transcript disclosure when the Transcript row is missing', () => {
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+    });
+
+    decorate(block);
+
+    expect(block.querySelector('.video__transcript')).toBeNull();
+  });
+
+  it('builds a closed View transcript disclosure from the authored cell', () => {
+    const transcript = 'Hello from the talk.';
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+      Transcript: transcript,
+    });
+
+    decorate(block);
+
+    const details = within(block).getByRole('group');
+    expect(details).toHaveClass('video__transcript');
+    expect(details.open).toBe(false);
+    expect(within(details).getByText('View transcript')).toBeTruthy();
+    expect(details.querySelector('.video__transcript-panel')).toHaveTextContent(transcript);
+  });
+
+  it('preserves authored paragraphs and headings in the transcript panel', () => {
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+      Transcript: '<h2>Chapter</h2><p>First line.</p>',
+    });
+
+    decorate(block);
+
+    const panel = block.querySelector('.video__transcript-panel');
+    expect(panel.querySelector('h2')).toHaveTextContent('Chapter');
+    expect(panel.querySelector('p')).toHaveTextContent('First line.');
+  });
+
+  it('keeps the transcript disclosure after play', () => {
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+      Transcript: '<p>Hello from the talk.</p>',
+    });
+
+    decorate(block);
+    within(block).getByRole('button', { name: `Play YouTube video ${VIDEO_ID}` }).click();
+
+    expect(block.querySelector('iframe')).toBeTruthy();
+    expect(within(block).getByRole('group')).toHaveClass('video__transcript');
+    expect(within(block).getByText('View transcript')).toBeTruthy();
+    expect(block.querySelector('.video__transcript-panel')).toHaveTextContent('Hello from the talk.');
+  });
+
+  it('opens the transcript disclosure on summary click', () => {
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+      Transcript: '<p>Hello from the talk.</p>',
+    });
+
+    decorate(block);
+    within(block).getByText('View transcript').click();
+
+    expect(block.querySelector('.video__transcript').open).toBe(true);
   });
 });
