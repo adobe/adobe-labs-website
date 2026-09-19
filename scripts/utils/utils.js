@@ -5,7 +5,9 @@
  * there are not an excessive number of network requests on the page.
  * `toClassName` comes from aem.js, which is already loaded on every page.
  */
-import { buildBlock, getMetadata, toClassName } from '../aem.js';
+import {
+  buildBlock, getMetadata, readBlockConfig, toCamelCase, toClassName,
+} from '../aem.js';
 
 /**
  * Site sections shared by content-grid and grid-item.
@@ -196,6 +198,38 @@ export function buildArticlePreFooter(main) {
   const section = document.createElement('div');
   section.append(buildBlock('fragment', { elems: [link] }));
   main.append(section);
+}
+
+/**
+ * Reads each section's authored `Section Metadata` table into `section.dataset`
+ * and removes the table so it never reaches `decorateBlocks` as a block to load.
+ * Runs after `decorateSections` (needs the `.section` wrapper) and before
+ * `decorateBlocks` (the table would otherwise resolve to a nonexistent
+ * `section-metadata` block folder).
+ *
+ * The `style` key is special-cased: it adds one or more (comma-separated)
+ * classes to the section instead of a dataset entry. Every other key
+ * (including `toc`, read by the Table of Contents block) becomes a plain
+ * `section.dataset` entry.
+ *
+ * @param {Element} main The container element
+ */
+export function decorateSectionMetadata(main) {
+  main.querySelectorAll(':scope > .section > div > .section-metadata').forEach((sectionMeta) => {
+    const section = sectionMeta.closest('.section');
+    const config = readBlockConfig(sectionMeta);
+    Object.entries(config).forEach(([key, value]) => {
+      if (key === 'style') {
+        value.split(',').forEach((style) => {
+          const className = toClassName(style.trim());
+          if (className) section.classList.add(className);
+        });
+        return;
+      }
+      section.dataset[toCamelCase(key)] = value;
+    });
+    sectionMeta.remove();
+  });
 }
 
 /**
