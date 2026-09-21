@@ -778,17 +778,10 @@ describe('ensureSkipLink', () => {
 });
 
 describe('ensureArticleBackToTop', () => {
-  let scrollTo;
-  let matchMedia;
-
   beforeEach(() => {
     jest.clearAllMocks();
     getMetadata.mockReturnValue('');
     document.body.innerHTML = '';
-    scrollTo = jest.fn();
-    matchMedia = jest.fn(() => ({ matches: false }));
-    window.scrollTo = scrollTo;
-    window.matchMedia = matchMedia;
   });
 
   afterEach(() => {
@@ -834,27 +827,6 @@ describe('ensureArticleBackToTop', () => {
     ensureArticleBackToTop(document);
 
     expect(document.querySelectorAll('.back-to-top')).toHaveLength(1);
-  });
-
-  it('scrolls to the top smoothly when activated', () => {
-    mockTemplate('article');
-    document.body.innerHTML = '<main></main>';
-
-    ensureArticleBackToTop(document);
-    document.querySelector('.back-to-top').click();
-
-    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
-  });
-
-  it('uses instant scroll when the user prefers reduced motion', () => {
-    matchMedia.mockReturnValue({ matches: true });
-    mockTemplate('article');
-    document.body.innerHTML = '<main></main>';
-
-    ensureArticleBackToTop(document);
-    document.querySelector('.back-to-top').click();
-
-    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' });
   });
 });
 

@@ -703,17 +703,20 @@ footer {
   block-size: 2.5rem;
   padding: 0;
   border: 0;
-  border-radius: var(--s2a-border-radius-xs);
-  background-color: var(--s2a-color-gray-75);
+  border-radius: var(--s2a-border-radius-6);
+  background-color: var(--s2a-color-gray-100);
   color: var(--s2a-color-gray-1000);
   text-decoration: none;
   cursor: pointer;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
   transition-timing-function: cubic-bezier(.45,0,.4,1);
   transition-duration: .13s;
   transition-property: outline, color, background-color;
 
   &:hover {
-    background-color: var(--s2a-color-gray-100);
+    background-color: var(--s2a-color-gray-400);
     text-decoration: none;
   }
 
@@ -723,8 +726,33 @@ footer {
   }
 }
 
+@keyframes back-to-top-in {
+  from {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  to {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .back-to-top {
+    animation: back-to-top-in linear both;
+    animation-timeline: scroll(root);
+    animation-range: 100vh 100vh;
+  }
+}
+
 html.hero-intro .back-to-top {
+  animation: none;
   visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .back-to-top__icon {

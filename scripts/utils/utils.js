@@ -1147,13 +1147,5 @@ export function ensureArticleBackToTop(doc = document) {
   icon.innerHTML = ARROW_UP_ICON_SVG;
   link.append(icon);
 
-  link.addEventListener('click', (event) => {
-    event.preventDefault();
-    const view = doc.defaultView;
-    if (!view) return;
-    const reduced = view.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    view.scrollTo({ top: 0, behavior: reduced ? 'instant' : 'smooth' });
-  });
-
   main.after(link);
 }
