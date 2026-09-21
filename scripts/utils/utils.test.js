@@ -378,7 +378,13 @@ describe('buildArticleMetaActions', () => {
       expect(group.parentElement).toHaveClass('article-meta');
       expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
       expect(group.querySelector('[data-meta-action="download"]')).toBeNull();
-      expect(group.querySelector('[data-meta-action="feedback"]')).toBeNull();
+      const feedback = within(group).getByRole('link', { name: 'Feedback' });
+      expect(feedback).toHaveAttribute('href', 'mailto:labs@adobe.com');
+      expect(feedback).not.toHaveAttribute('download');
+      expect([...group.children].map((el) => el.dataset.metaAction)).toEqual([
+        'copy-link',
+        'feedback',
+      ]);
     });
     const status = main.querySelector(':scope > [data-meta-action-status]');
     expect(status).toBeTruthy();
@@ -551,7 +557,13 @@ describe('buildArticleMetaActions', () => {
       expect(icon).toHaveAttribute('aria-hidden', 'true');
       expect(download.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
       expect(download.querySelector('svg')).toHaveAttribute('focusable', 'false');
-      expect(group.querySelector('[data-meta-action="feedback"]')).toBeNull();
+      const feedback = within(group).getByRole('link', { name: 'Feedback' });
+      expect(feedback).toHaveAttribute('data-meta-action', 'feedback');
+      expect([...group.children].map((el) => el.dataset.metaAction)).toEqual([
+        'copy-link',
+        'download',
+        'feedback',
+      ]);
     });
   });
 
@@ -623,6 +635,82 @@ describe('buildArticleMetaActions', () => {
         expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
       });
     });
+  });
+
+  it('uses the metadata Title as the Feedback subject', () => {
+    mockTemplate('article', {
+      title: 'Ignored meta name',
+      'og:title': 'How Creatives think',
+    });
+    document.title = 'Ignored browser title';
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const groups = main.querySelectorAll('.article-meta__actions');
+    expect(groups).toHaveLength(2);
+    groups.forEach((group) => {
+      const feedback = within(group).getByRole('link', { name: 'Feedback' });
+      expect(feedback).toHaveAttribute(
+        'href',
+        'mailto:labs@adobe.com?subject=How%20Creatives%20think',
+      );
+      expect(feedback).not.toHaveAttribute('download');
+      expect(feedback).not.toHaveAttribute('target');
+      expect(feedback).not.toHaveAttribute('rel');
+    });
+  });
+
+  it('percent-encodes spaces and ampersands in the Feedback subject', () => {
+    const title = 'Research & design?';
+    mockTemplate('article', { 'og:title': title });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const feedback = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Feedback' });
+    expect(feedback).toHaveAttribute(
+      'href',
+      `mailto:labs@adobe.com?subject=${encodeURIComponent(title)}`,
+    );
+    expect(feedback.getAttribute('href')).not.toContain('&');
+    expect(feedback.getAttribute('href')).toContain('%26');
+    expect(feedback.getAttribute('href')).toContain('%3F');
+  });
+
+  it('omits the Feedback subject when Title is missing or whitespace', () => {
+    ['', '   '].forEach((ogTitle) => {
+      document.body.innerHTML = '';
+      document.title = 'Browser title';
+      mockTemplate('article', { title: 'Meta name title', 'og:title': ogTitle });
+      const { main } = createArticleMain();
+      buildArticleMetaActions(main);
+
+      const feedback = within(main.querySelector('.article-meta__actions'))
+        .getByRole('link', { name: 'Feedback' });
+      expect(feedback).toHaveAttribute('href', 'mailto:labs@adobe.com');
+    });
+  });
+
+  it('uses the envelope icon on Feedback', () => {
+    mockTemplate('article', { title: 'Article' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const feedback = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Feedback' });
+    const icon = feedback.querySelector('.action-button__icon');
+    const svg = feedback.querySelector('svg');
+    expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(svg).toHaveAttribute('aria-hidden', 'true');
+    expect(svg).toHaveAttribute('focusable', 'false');
+    expect(svg).toHaveAttribute('viewBox', '0 0 18 18');
+    expect(svg.querySelector('path')).toHaveAttribute(
+      'd',
+      'M15.0749 2.69336H2.9249C1.8087 2.69336 0.899902 3.60215 0.899902 4.71836V13.2684C0.899902 14.3846 1.8087 15.2934 2.9249 15.2934H15.0749C16.1911 15.2934 17.0999 14.3846 17.0999 13.2684V4.71836C17.0999 3.60215 16.1911 2.69336 15.0749 2.69336ZM14.6963 4.04336L9.44287 8.61807C9.1915 8.83779 8.80918 8.83779 8.55606 8.61807L3.30349 4.04336H14.6963ZM15.0749 13.9434H2.9249C2.55312 13.9434 2.2499 13.6401 2.2499 13.2684V4.91523L7.66923 9.63584C8.04893 9.96631 8.52441 10.1315 8.9999 10.1315C9.47539 10.1315 9.95088 9.96631 10.3297 9.63584L15.7499 4.91523V13.2684C15.7499 13.6401 15.4467 13.9434 15.0749 13.9434Z',
+    );
   });
 
   it('does not render Download for empty, whitespace, or non-http URLs', () => {
