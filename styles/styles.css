@@ -542,7 +542,7 @@ body.article main .article-meta-section {
 .article-meta__author {
   display: flex;
   align-items: center;
-  gap: var(--s2a-spacing-sm);
+  gap: var(--s2a-spacing-2xs);
 }
 
 .article-meta__author-image {
