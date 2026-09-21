@@ -1114,3 +1114,46 @@ export function ensureSkipLink(doc = document) {
   const header = doc.querySelector('body > header');
   (header || doc.body).prepend(skip);
 }
+
+const BACK_TO_TOP_LABEL = 'Back to top';
+
+const ARROW_UP_ICON_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" width="12" height="12" fill="none" focusable="false">
+  <path fill="currentColor" d="M5.39398 0.893948L1.79381 4.49412C1.45899 4.82894 1.45899 5.37135 1.79381 5.70617C2.12862 6.04099 2.67104 6.04099 3.00586 5.70617L5.14285 3.56918V10.5C5.14285 10.9737 5.52623 11.3571 6 11.3571C6.47376 11.3571 6.85714 10.9737 6.85714 10.5V3.56917L8.99413 5.70616C9.32895 6.04098 9.87137 6.04098 10.2062 5.70616C10.3736 5.53875 10.4573 5.31944 10.4573 5.10014C10.4573 4.88083 10.3736 4.66152 10.2062 4.49411L6.60601 0.89394C6.27119 0.559122 5.7288 0.559131 5.39398 0.893948Z"/>
+</svg>
+`.trim();
+
+/**
+ * Fixed back-to-top control on article detail pages. No-ops if the page is
+ * not an article, the control already exists, or there is no `body > main`.
+ *
+ * @param {Document} [doc=document]
+ */
+export function ensureArticleBackToTop(doc = document) {
+  if (!isArticleDetailPage()) return;
+  if (doc.querySelector('a.back-to-top')) return;
+
+  const main = doc.querySelector('body > main');
+  if (!main) return;
+
+  const link = doc.createElement('a');
+  link.className = 'back-to-top';
+  link.href = '#top';
+  link.setAttribute('aria-label', BACK_TO_TOP_LABEL);
+
+  const icon = doc.createElement('span');
+  icon.className = 'back-to-top__icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = ARROW_UP_ICON_SVG;
+  link.append(icon);
+
+  link.addEventListener('click', (event) => {
+    event.preventDefault();
+    const view = doc.defaultView;
+    if (!view) return;
+    const reduced = view.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    view.scrollTo({ top: 0, behavior: reduced ? 'instant' : 'smooth' });
+  });
+
+  main.after(link);
+}

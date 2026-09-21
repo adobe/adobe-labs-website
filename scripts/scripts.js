@@ -30,6 +30,7 @@ import {
   debounce,
   ensureSkipLink,
   decorateArticleMetaSections,
+  ensureArticleBackToTop,
   decorateArticleSections,
   decorateSectionMetadata,
 } from './utils/utils.js';
@@ -225,6 +226,7 @@ async function loadEager(doc) {
     decorateMain(main);
   }
   ensureSkipLink(doc);
+  ensureArticleBackToTop(doc);
   if (main) {
     document.body.classList.add('appear');
     await loadSection(main.querySelector('.section'), waitForFirstImage);
