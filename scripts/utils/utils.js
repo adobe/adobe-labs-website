@@ -161,20 +161,98 @@ const COPIED_LABEL = 'Copied';
 const COPY_LINK_REVERT_MS = 2000;
 
 const LINK_ICON_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" fill="none" focusable="false">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" fill="none" aria-hidden="true" focusable="false">
   <path fill="currentColor" d="M4.78213 16.8732C3.84521 16.8732 2.90919 16.5164 2.19639 15.8036C0.770805 14.378 0.770805 12.0577 2.19639 10.6313L5.71113 7.11651C7.13759 5.69093 9.45703 5.6918 10.8835 7.11651C11.0786 7.3125 11.25 7.52783 11.3933 7.75547C11.5919 8.071 11.497 8.4876 11.1814 8.68623C10.8642 8.88575 10.4493 8.78907 10.2507 8.47442C10.1602 8.33027 10.0512 8.19405 9.92724 8.07012C9.02812 7.171 7.56474 7.17188 6.66563 8.071L3.15088 11.5857C2.25176 12.4857 2.25176 13.95 3.15088 14.8491C4.05176 15.75 5.51514 15.7465 6.41426 14.8491L8.1712 13.0922C8.43487 12.8285 8.86202 12.8285 9.12569 13.0922C9.38937 13.3559 9.38937 13.783 9.12569 14.0467L7.36876 15.8036C6.65597 16.5164 5.71904 16.8724 4.78213 16.8732ZM12.2889 10.8835L15.8036 7.36876C17.2292 5.94229 17.2292 3.62198 15.8036 2.1964C14.378 0.770814 12.0568 0.770814 10.6312 2.1964L8.87431 3.95333C8.61064 4.217 8.61064 4.64415 8.87431 4.90783C9.13799 5.1715 9.56514 5.1715 9.82881 4.90783L11.5857 3.15089C12.4849 2.25265 13.9482 2.25089 14.8491 3.15089C15.7482 4.05001 15.7482 5.51427 14.8491 6.41427L11.3344 9.92902C10.4353 10.8281 8.97188 10.829 8.07277 9.9299C7.94884 9.80597 7.83986 9.66974 7.74932 9.5256C7.55069 9.21095 7.13585 9.11427 6.81856 9.31379C6.50303 9.51242 6.40812 9.92902 6.60675 10.2445C6.75001 10.4722 6.9214 10.6875 7.11652 10.8835C7.83019 11.5963 8.76622 11.9531 9.70313 11.9531C10.6392 11.9531 11.5761 11.5963 12.2889 10.8835Z"/>
 </svg>
 `.trim();
 
 const CHECK_ICON_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" fill="none" focusable="false">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" fill="none" aria-hidden="true" focusable="false">
   <path fill="currentColor" d="M16.2129 5.26855C16.4775 5.5332 16.4775 5.96094 16.2129 6.22559L8.15039 14.2881C8.02148 14.417 7.84961 14.4814 7.67773 14.4814C7.50586 14.4814 7.33398 14.417 7.20508 14.2881L2.78711 9.87012C2.52246 9.60547 2.52246 9.17773 2.78711 8.91309C3.05176 8.64844 3.47949 8.64844 3.74414 8.91309L7.67773 12.8467L15.2559 5.26855C15.5205 5.00391 15.9482 5.00391 16.2129 5.26855Z"/>
 </svg>
 `.trim();
 
+const DOWNLOAD_ICON_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="18" height="18" fill="none" aria-hidden="true" focusable="false">
+  <path fill="currentColor" d="m13.53027 9.42676c-.29199-.29199-.7666-.29395-1.06055 0l-1.7168 1.71411V2.75c0-.41406-.33594-.75-.75-.75s-.75.33594-.75.75v8.39941l-1.72266-1.72266c-.29297-.29297-.76758-.29297-1.06055 0s-.29297.76758 0 1.06055l2.99805 2.99805c.14648.14648.33789.21973.53027.21973.19141 0 .38379-.07324.53027-.21973l3.00195-2.99805c.29297-.29199.29297-.76758 0-1.06055Z"/>
+  <path fill="currentColor" d="M15.75 18H4.25c-1.24023 0-2.25-1.00977-2.25-2.25v-2.02148c0-.41406.33594-.75.75-.75s.75.33594.75.75v2.02148c0 .41309.33691.75.75.75h11.5c.41309 0 .75-.33691.75-.75v-2.02148c0-.41406.33594-.75.75-.75s.75.33594.75.75v2.02148c0 1.24023-1.00977 2.25-2.25 2.25Z"/>
+</svg>
+`.trim();
+
+const DA_HOSTS = new Set(['da.live', 'www.da.live', 'content.da.live']);
+const DA_SITE_PREFIX = '/adobe/adobe-labs-website';
+const DOWNLOAD_LABEL = 'Download';
+
 /**
- * Article meta action buttons. Copy link ships now; Download and Feedback
- * plug in here later (likely `<a>`s gated on metadata).
+ * Site path for a DA authoring or content URL on this project, or empty.
+ * File path is in the hash on `da.live` (`/media` there is the app, not the
+ * folder) and in the pathname on `content.da.live`.
+ *
+ * @param {URL} url Parsed DA URL
+ * @returns {string}
+ */
+function getDaSiteFilePath(url) {
+  const encoded = url.hostname === 'content.da.live'
+    ? url.pathname
+    : (url.hash.replace(/^#/, '') || url.pathname);
+  let path = encoded;
+  try {
+    path = decodeURIComponent(encoded);
+  } catch {
+    return '';
+  }
+  if (!path.startsWith(`${DA_SITE_PREFIX}/`)) return '';
+  const sitePath = path.slice(DA_SITE_PREFIX.length);
+  const last = sitePath.split('/').pop();
+  if (!last || !last.includes('.')) return '';
+  return sitePath;
+}
+
+/**
+ * Public href for the article Download action from `download-link` metadata.
+ * DA media-browser URLs for this site become a same-origin file path.
+ *
+ * @returns {string}
+ */
+function getDownloadHref() {
+  const raw = getMetadata('download-link').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw, window.location.href);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+    if (DA_HOSTS.has(url.hostname)) {
+      const sitePath = getDaSiteFilePath(url);
+      if (!sitePath) return '';
+      return new URL(sitePath, window.location.href).href;
+    }
+    return url.href;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Filename hint for the `download` attribute, from the URL pathname.
+ *
+ * @param {string} href Download href
+ * @returns {string}
+ */
+function getDownloadFilename(href) {
+  try {
+    const last = new URL(href, window.location.href)
+      .pathname
+      .split('/')
+      .filter(Boolean)
+      .pop();
+    return last ? decodeURIComponent(last) : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Article meta action buttons. Copy link always ships; Download is gated on
+ * `download-link` metadata. Feedback plugs in here later.
  *
  * @type {Array<{
  *   id: string,
@@ -182,6 +260,7 @@ const CHECK_ICON_SVG = `
  *   render: 'button'|'a',
  *   icon: string,
  *   isEnabled?: function(): boolean,
+ *   getHref?: function(): string,
  * }>}
  */
 const META_ACTIONS = [
@@ -191,6 +270,14 @@ const META_ACTIONS = [
     render: 'button',
     icon: LINK_ICON_SVG,
     isEnabled: () => true,
+  },
+  {
+    id: 'download',
+    label: DOWNLOAD_LABEL,
+    render: 'a',
+    icon: DOWNLOAD_ICON_SVG,
+    isEnabled: () => Boolean(getDownloadHref()),
+    getHref: getDownloadHref,
   },
 ];
 
@@ -355,6 +442,21 @@ function clearCopiedStatus(main) {
 }
 
 /**
+ * Paints a decorative action icon. The glyph is hidden from assistive tech;
+ * the visible label on the control is the accessible name (WCAG 1.1.1).
+ *
+ * @param {Element} iconEl `.action-button__icon` wrapper
+ * @param {string} svgMarkup Inline SVG markup
+ */
+function setActionIcon(iconEl, svgMarkup) {
+  iconEl.innerHTML = svgMarkup;
+  const svg = iconEl.querySelector('svg');
+  if (!svg) return;
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+}
+
+/**
  * Sets or clears the Copy link success state on one button.
  *
  * @param {Element} button Copy link button
@@ -364,7 +466,7 @@ function setCopiedState(button, copied) {
   const label = button.querySelector('.action-button__label');
   const icon = button.querySelector('.action-button__icon');
   if (label) label.textContent = copied ? COPIED_LABEL : COPY_LINK_LABEL;
-  if (icon) icon.innerHTML = copied ? CHECK_ICON_SVG : LINK_ICON_SVG;
+  if (icon) setActionIcon(icon, copied ? CHECK_ICON_SVG : LINK_ICON_SVG);
 }
 
 /**
@@ -416,7 +518,13 @@ async function handleCopyLink(main, button) {
 /**
  * One control in a meta-action group (`button` or `a`).
  *
- * @param {{ id: string, label: string, render: 'button'|'a', icon: string }} action
+ * @param {{
+ *   id: string,
+ *   label: string,
+ *   render: 'button'|'a',
+ *   icon: string,
+ *   getHref?: function(): string,
+ * }} action
  * @returns {HTMLButtonElement|HTMLAnchorElement}
  */
 function createMetaActionControl(action) {
@@ -424,11 +532,19 @@ function createMetaActionControl(action) {
   el.className = 'action-button';
   el.dataset.metaAction = action.id;
   if (el.tagName === 'BUTTON') el.type = 'button';
+  if (el.tagName === 'A' && typeof action.getHref === 'function') {
+    const href = action.getHref();
+    if (href) {
+      el.href = href;
+      const filename = getDownloadFilename(href);
+      if (filename) el.setAttribute('download', filename);
+    }
+  }
 
   const icon = document.createElement('span');
   icon.className = 'action-button__icon';
   icon.setAttribute('aria-hidden', 'true');
-  icon.innerHTML = action.icon;
+  setActionIcon(icon, action.icon);
 
   const label = document.createElement('span');
   label.className = 'action-button__label';
@@ -575,7 +691,7 @@ function ensureArticleMetaElements(main) {
 }
 
 /**
- * Injects Copy link (and later Download / Feedback) into each `.article-meta`
+ * Injects Copy link and a metadata-gated Download into each `.article-meta`
  * on the article (top and bottom). If the byline has not created those
  * containers yet, builds the same aside+wrapper fallback. No-op on
  * non-article pages or fragment mains.

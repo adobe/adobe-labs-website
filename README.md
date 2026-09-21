@@ -260,7 +260,31 @@ Article detail pages (`/research/*`, `/workflows/*`, `/sneaks/*`, `/playground/*
 Article headings keep the site `h1`–`h6` / `heading-*` tokens (s2a heading-1 through heading-6). Default-content paragraphs and lists use Adobe Clean Spectrum Serif at 16px/20px below 64rem (1024px), then 20px/26px.
 
 Individual pages can then set metadata values via a `metadata` block, including overriding any of those default values.
-See [AEM metadata block docs](https://www.aem.live/developer/block-collection/metadata) for more info. 
+See [AEM metadata block docs](https://www.aem.live/developer/block-collection/metadata) for more info.
+
+### Dataset download
+
+Article pages show a Download action next to Copy link when the page Metadata table includes a **Download Link** row. After preview, that value is available as `meta[name="download-link"]`.
+
+#### Add a PDF from the DA media folder
+
+1. Upload the PDF under `/media` in [Document Authoring](https://da.live/#/adobe/adobe-labs-website).
+2. Preview and publish the file so Edge Delivery can serve it.
+3. In the article Metadata table, add **Download Link** and paste either:
+   - The site path, for example `/media/c4611-sample-explain.pdf`
+   - The DA media URL, for example `https://da.live/media#/adobe/adobe-labs-website/media/c4611-sample-explain.pdf`
+
+The site rewrites DA media and content URLs for this project (`adobe/adobe-labs-website`) to the same-origin file path. Visitors download the file from the site; they do not land on `da.live`, which is the authoring app.
+
+You can also paste a public file URL (for example an Adobe-hosted PDF).
+
+#### How AEM handles media
+
+- Images and short videos go through [Media Bus](https://www.aem.live/docs/media) when you paste them into a document.
+- PDF and SVG files are content files. They follow the normal preview and publish lifecycle and are not stored on Media Bus.
+- Document Authoring can upload JPG, PNG, GIF, SVG, PDF, and MP4. See [Adding media](https://docs.da.live/authors/guides/adding-media).
+- ZIP is not a DA media type. Host the ZIP (AEM Assets or another public URL) and paste that URL into **Download Link**.
+- Do not drop a ZIP or PDF into the article body as if it were an image.
 
 ### Full-bleed images in articles
 

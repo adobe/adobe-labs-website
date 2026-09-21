@@ -466,6 +466,8 @@ describe('buildArticleMetaActions', () => {
 
     expect(writeText).toHaveBeenCalledWith('https://labs.adobe.com/research/foo');
     expect(within(groups[0]).getByRole('button', { name: 'Copied' })).toBeTruthy();
+    expect(groups[0].querySelector('[data-meta-action="copy-link"] svg'))
+      .toHaveAttribute('aria-hidden', 'true');
     expect(within(groups[1]).getByRole('button', { name: 'Copy link' })).toBeTruthy();
     expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Link copied');
 
@@ -528,6 +530,113 @@ describe('buildArticleMetaActions', () => {
 
     expect(button).toHaveAccessibleName('Copy link');
     expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Unable to copy link');
+  });
+
+  it('adds Download next to Copy link when download-link metadata is set', () => {
+    mockTemplate('article', { 'download-link': 'https://example.com/data.zip' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const groups = main.querySelectorAll('.article-meta__actions');
+    expect(groups).toHaveLength(2);
+    groups.forEach((group) => {
+      expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
+      const download = within(group).getByRole('link', { name: 'Download' });
+      expect(download).toHaveAccessibleName('Download');
+      expect(download).toHaveAttribute('href', 'https://example.com/data.zip');
+      expect(download).toHaveAttribute('data-meta-action', 'download');
+      expect(download).toHaveAttribute('download', 'data.zip');
+      const icon = download.querySelector('.action-button__icon');
+      expect(icon).toHaveAttribute('aria-hidden', 'true');
+      expect(download.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+      expect(download.querySelector('svg')).toHaveAttribute('focusable', 'false');
+      expect(group.querySelector('[data-meta-action="feedback"]')).toBeNull();
+    });
+  });
+
+  it('resolves a relative download-link against the current origin', () => {
+    mockTemplate('article', { 'download-link': '/media/dataset.pdf' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    const href = new URL(download.getAttribute('href'));
+    expect(href.origin).toBe(window.location.origin);
+    expect(href.pathname).toBe('/media/dataset.pdf');
+    expect(download).toHaveAttribute('download', 'dataset.pdf');
+  });
+
+  it('rewrites a DA media-browser URL for this site to a same-origin file path', () => {
+    mockTemplate('article', {
+      'download-link': 'https://da.live/media#/adobe/adobe-labs-website/media/c4611-sample-explain.pdf ',
+    });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    const href = new URL(download.getAttribute('href'));
+    expect(href.origin).toBe(window.location.origin);
+    expect(href.pathname).toBe('/media/c4611-sample-explain.pdf');
+    expect(download).toHaveAttribute('download', 'c4611-sample-explain.pdf');
+  });
+
+  it('rewrites content.da.live and da.live edit URLs for this site', () => {
+    const cases = [
+      'https://content.da.live/adobe/adobe-labs-website/media/c4611-sample-explain.pdf',
+      'https://da.live/edit#/adobe/adobe-labs-website/media/c4611-sample-explain.pdf',
+    ];
+
+    cases.forEach((downloadLink) => {
+      document.body.innerHTML = '';
+      mockTemplate('article', { 'download-link': downloadLink });
+      const { main } = createArticleMain();
+      buildArticleMetaActions(main);
+
+      const download = within(main.querySelector('.article-meta__actions'))
+        .getByRole('link', { name: 'Download' });
+      expect(new URL(download.getAttribute('href')).pathname).toBe(
+        '/media/c4611-sample-explain.pdf',
+      );
+    });
+  });
+
+  it('does not render Download for a DA URL from another site or a folder', () => {
+    [
+      'https://da.live/media#/other-org/other-site/media/file.pdf',
+      'https://da.live/media#/adobe/adobe-labs-website/media',
+    ].forEach((downloadLink) => {
+      document.body.innerHTML = '';
+      mockTemplate('article', { 'download-link': downloadLink });
+      const { main } = createArticleMain();
+      buildArticleMetaActions(main);
+
+      const groups = main.querySelectorAll('.article-meta__actions');
+      expect(groups).toHaveLength(2);
+      groups.forEach((group) => {
+        expect(within(group).queryByRole('link', { name: 'Download' })).toBeNull();
+        expect(group.querySelector('[data-meta-action="download"]')).toBeNull();
+        expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
+      });
+    });
+  });
+
+  it('does not render Download for empty, whitespace, or non-http URLs', () => {
+    const scriptUrl = ['javascript', 'alert(1)'].join(':');
+    ['', '   ', scriptUrl].forEach((downloadLink) => {
+      document.body.innerHTML = '';
+      mockTemplate('article', { 'download-link': downloadLink });
+      const { main } = createArticleMain();
+      buildArticleMetaActions(main);
+
+      expect(
+        within(main.querySelector('.article-meta__actions')).queryByRole('link', { name: 'Download' }),
+      ).toBeNull();
+    });
   });
 });
 
