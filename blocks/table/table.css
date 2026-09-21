@@ -124,13 +124,20 @@
   }
 }
 
-/* Dark theme */
-:root[data-theme="dark"] .table-wrapper {
-  --table-scrollbar-track: var(--s2a-color-transparent-white-12);
-  --table-scrollbar-thumb: var(--s2a-color-gray-400);
-}
-
-:root[data-theme="dark"] .table {
-  --table-border-color: var(--s2a-color-gray-700);
-  --table-th-background: var(--s2a-color-transparent-white-12);
+:root[data-theme="dark"] {
+  .table-wrapper {
+    --table-scrollbar-track: var(--s2a-color-transparent-white-12);
+    --table-scrollbar-thumb: var(--s2a-color-gray-400);
+  }
+  
+  .table {
+    --table-border-color: var(--s2a-color-gray-700);
+    --table-th-background: var(--s2a-color-transparent-white-12);
+  }
+  
+  .table--scrollable::after {
+    background: linear-gradient(270deg,
+        var(--s2a-color-gray-900) 0%,
+        transparent 79.25%);
+  }
 }
