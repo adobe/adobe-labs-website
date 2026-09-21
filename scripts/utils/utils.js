@@ -172,9 +172,86 @@ const CHECK_ICON_SVG = `
 </svg>
 `.trim();
 
+const DOWNLOAD_ICON_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="18" height="18" fill="none" focusable="false">
+  <path fill="currentColor" d="M10.75 3.5a.75.75 0 0 0-1.5 0v7.19L6.53 7.97a.75.75 0 0 0-1.06 1.06l4.25 4.25c.3.3.75.3 1.06 0l4.25-4.25a.75.75 0 0 0-1.06-1.06l-2.72 2.72V3.5ZM3.5 14.25a.75.75 0 0 0 0 1.5h13a.75.75 0 0 0 0-1.5h-13Z"/>
+</svg>
+`.trim();
+
+const DA_HOSTS = new Set(['da.live', 'www.da.live', 'content.da.live']);
+const DA_SITE_PREFIX = '/adobe/adobe-labs-website';
+const DOWNLOAD_LABEL = 'Download';
+
 /**
- * Article meta action buttons. Copy link ships now; Download and Feedback
- * plug in here later (likely `<a>`s gated on metadata).
+ * Site path for a DA authoring or content URL on this project, or empty.
+ * File path is in the hash on `da.live` (`/media` there is the app, not the
+ * folder) and in the pathname on `content.da.live`.
+ *
+ * @param {URL} url Parsed DA URL
+ * @returns {string}
+ */
+function getDaSiteFilePath(url) {
+  const encoded = url.hostname === 'content.da.live'
+    ? url.pathname
+    : (url.hash.replace(/^#/, '') || url.pathname);
+  let path = encoded;
+  try {
+    path = decodeURIComponent(encoded);
+  } catch {
+    return '';
+  }
+  if (!path.startsWith(`${DA_SITE_PREFIX}/`)) return '';
+  const sitePath = path.slice(DA_SITE_PREFIX.length);
+  const last = sitePath.split('/').pop();
+  if (!last || !last.includes('.')) return '';
+  return sitePath;
+}
+
+/**
+ * Public href for the article Download action from `download-link` metadata.
+ * DA media-browser URLs for this site become a same-origin file path.
+ *
+ * @returns {string}
+ */
+function getDownloadHref() {
+  const raw = getMetadata('download-link').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw, window.location.href);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+    if (DA_HOSTS.has(url.hostname)) {
+      const sitePath = getDaSiteFilePath(url);
+      if (!sitePath) return '';
+      return new URL(sitePath, window.location.href).href;
+    }
+    return url.href;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Filename hint for the `download` attribute, from the URL pathname.
+ *
+ * @param {string} href Download href
+ * @returns {string}
+ */
+function getDownloadFilename(href) {
+  try {
+    const last = new URL(href, window.location.href)
+      .pathname
+      .split('/')
+      .filter(Boolean)
+      .pop();
+    return last ? decodeURIComponent(last) : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Article meta action buttons. Copy link always ships; Download is gated on
+ * `download-link` metadata. Feedback plugs in here later.
  *
  * @type {Array<{
  *   id: string,
@@ -182,6 +259,7 @@ const CHECK_ICON_SVG = `
  *   render: 'button'|'a',
  *   icon: string,
  *   isEnabled?: function(): boolean,
+ *   getHref?: function(): string,
  * }>}
  */
 const META_ACTIONS = [
@@ -191,6 +269,14 @@ const META_ACTIONS = [
     render: 'button',
     icon: LINK_ICON_SVG,
     isEnabled: () => true,
+  },
+  {
+    id: 'download',
+    label: DOWNLOAD_LABEL,
+    render: 'a',
+    icon: DOWNLOAD_ICON_SVG,
+    isEnabled: () => Boolean(getDownloadHref()),
+    getHref: getDownloadHref,
   },
 ];
 
@@ -416,7 +502,13 @@ async function handleCopyLink(main, button) {
 /**
  * One control in a meta-action group (`button` or `a`).
  *
- * @param {{ id: string, label: string, render: 'button'|'a', icon: string }} action
+ * @param {{
+ *   id: string,
+ *   label: string,
+ *   render: 'button'|'a',
+ *   icon: string,
+ *   getHref?: function(): string,
+ * }} action
  * @returns {HTMLButtonElement|HTMLAnchorElement}
  */
 function createMetaActionControl(action) {
@@ -424,6 +516,14 @@ function createMetaActionControl(action) {
   el.className = 'action-button';
   el.dataset.metaAction = action.id;
   if (el.tagName === 'BUTTON') el.type = 'button';
+  if (el.tagName === 'A' && typeof action.getHref === 'function') {
+    const href = action.getHref();
+    if (href) {
+      el.href = href;
+      const filename = getDownloadFilename(href);
+      if (filename) el.setAttribute('download', filename);
+    }
+  }
 
   const icon = document.createElement('span');
   icon.className = 'action-button__icon';
@@ -575,7 +675,7 @@ function ensureArticleMetaElements(main) {
 }
 
 /**
- * Injects Copy link (and later Download / Feedback) into each `.article-meta`
+ * Injects Copy link and a metadata-gated Download into each `.article-meta`
  * on the article (top and bottom). If the byline has not created those
  * containers yet, builds the same aside+wrapper fallback. No-op on
  * non-article pages or fragment mains.
