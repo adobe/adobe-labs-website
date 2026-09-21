@@ -3,6 +3,8 @@
 }
 
 .content-grid {
+  --content-grid-columns: 1;
+
   .grid-item {
     /* Allow cards to fill the grid track instead of the standalone 50ch cap. */
     max-width: none;
@@ -10,7 +12,7 @@
 
   .content-grid__list {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(var(--content-grid-columns), 1fr);
     gap: var(--s2a-spacing-lg) var(--s2a-spacing-xs);
     margin: 0;
     padding: 0;
@@ -25,7 +27,7 @@
   &.content-grid--has-intro {
     display: grid;
     align-items: start;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(var(--content-grid-columns), 1fr);
     gap: var(--s2a-spacing-lg) var(--s2a-spacing-xs);
 
     /* Larger gap when the intro stacks above the card list. */
@@ -35,7 +37,9 @@
 
     .content-grid__list {
       grid-column: 1 / -1;
-      grid-template-columns: 1fr;
+
+      /* Fallback when subgrid is unsupported. */
+      grid-template-columns: repeat(var(--content-grid-columns), 1fr);
       grid-template-columns: subgrid;
     }
   }
@@ -78,12 +82,14 @@
   &.content-grid--related .content-grid__intro-copy :is(h1, h2, h3, h4, h5, h6) {
     color: var(--s2a-color-content-subtle);
     font-size: var(--s2a-typography-font-size-heading-6);
-    line-height: 16px;
+    line-height: 1rem;
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
   }
 
   .content-grid__pager {
     display: none;
+    flex-shrink: 0;
+    gap: var(--s2a-spacing-2xs);
   }
 
   .content-grid__pager-link {
@@ -133,51 +139,47 @@
     }
   }
 
-  @container content-grid (inline-size >= 700px) {
-    .content-grid__list,
+  @container content-grid (inline-size >= 28.125rem) {
+    --content-grid-columns: 2;
+
     &.content-grid--has-intro {
-      grid-template-columns: repeat(3, 1fr);
-    }
+      .content-grid__intro {
+        flex-direction: row;
+        align-items: start;
+        grid-column: 1 / -1;
+      }
 
-    &.content-grid--has-intro .content-grid__list {
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-columns: subgrid;
-    }
-
-    &.content-grid--has-intro .content-grid__intro {
-      flex-direction: row;
-      align-items: start;
-      grid-column: 1 / -1;
-    }
-
-    &.content-grid--has-intro .content-grid__pager {
-      display: flex;
-      flex-shrink: 0;
-      gap: var(--s2a-spacing-2xs);
-      margin-inline-start: auto;
+      .content-grid__pager {
+        display: flex;
+        margin-inline-start: auto;
+      }
     }
   }
 
-  @container content-grid (inline-size >= 1024px) {
-    .content-grid__list,
+  @container content-grid (inline-size >= 43.75rem) {
+    --content-grid-columns: 3;
+  }
+
+  @container content-grid (inline-size >= 64rem) {
+    --content-grid-columns: 4;
+
     &.content-grid--has-intro {
-      grid-template-columns: repeat(4, 1fr);
-    }
+      .content-grid__intro {
+        flex-direction: column;
+        grid-column: 1;
+        padding-inline-end: var(--s2a-spacing-4xl);
+      }
 
-    &.content-grid--has-intro .content-grid__intro {
-      flex-direction: column;
-      grid-column: 1;
-      padding-inline-end: var(--s2a-spacing-4xl);
-    }
+      .content-grid__list {
+        /* Three tracks beside the intro when subgrid is unsupported. */
+        --content-grid-columns: 3;
 
-    &.content-grid--has-intro .content-grid__list {
-      grid-column: 2 / -1;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-columns: subgrid;
-    }
+        grid-column: 2 / -1;
+      }
 
-    &.content-grid--has-intro .content-grid__pager {
-      margin-inline-start: 0;
+      .content-grid__pager {
+        margin-inline-start: 0;
+      }
     }
   }
 }

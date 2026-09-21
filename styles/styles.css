@@ -15,6 +15,7 @@
  * without CLS. `local("Arial")` is scaled to the webfont width.
  * adobe-clean 400/700: helix-font-fallback-extension sample values.
  * adobe-clean-display 700/900: measured against kit xsh2otx.
+ * adobe-clean-spectrum-serif 400/700: measured against kit xsh2otx on article body copy.
  * @see https://www.aem.live/developer/font-fallback
  */
 @font-face {
@@ -53,6 +54,24 @@
   size-adjust: 98.909%;
 }
 
+@font-face {
+  font-family: adobe-clean-spectrum-serif-fallback;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local("Arial");
+  size-adjust: 94.316%;
+}
+
+@font-face {
+  font-family: adobe-clean-spectrum-serif-fallback;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local("Arial");
+  size-adjust: 98.242%;
+}
+
 /* --- Project specific CSS variables --- */
 :root {
   /* colors - TODO: we'll likely want to refactor these away from the boilerplate */
@@ -77,6 +96,9 @@
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, adobe-clean-fallback, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, adobe-clean-display-fallback, sans-serif;
+  --serif-font-family: adobe-clean-spectrum-serif, adobe-clean-spectrum-serif-fallback, serif;
+  --serif-body-font-size: var(--s2a-font-size-md);
+  --serif-body-line-height: var(--s2a-font-line-height-20);
   --typography-font-weight-heading-2: var(--s2a-font-weight-adobe-clean-display-black);
 
   /* nav height: 64px mobile bar, 80px desktop (8px inset + 64px bar) */
@@ -104,6 +126,13 @@
   :root {
     --site-root-inline-padding: var(--s2a-spacing-lg, 1.0rem);
     --nav-height: 80px;
+  }
+}
+
+@media (width >= 64rem) {
+  :root {
+    --serif-body-font-size: var(--s2a-font-size-xl);
+    --serif-body-line-height: 1.625rem; /* 26px */
   }
 }
 
@@ -182,7 +211,8 @@ html.hero-intro {
      the knockout background never shows between them. */
   --hero-intro-section-offset: calc(100lvh - min(86lvh, 75rem));
 
-  overflow: hidden;
+  /* Clip the intro zoom on the inline axis. Keep vertical scroll. */
+  overflow: clip auto;
 
   @media (width < 48rem) {
     --hero-intro-section-offset: calc(100svh - 60lvh);
@@ -288,6 +318,7 @@ h6, .heading-6 {
 }
 
 .caption, [class*="caption-"] {
+  font-family: var(--body-font-family);
   font-weight: var(--s2a-font-weight-caption);
   font-size: var(--s2a-typography-font-size-caption);
   line-height: var(--s2a-typography-line-height-caption);
@@ -629,6 +660,70 @@ body.article main .article-meta-section {
   }
 }
 
+/* Quiet Spectrum 2 Action Button (medium). Used by article meta actions. */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  box-sizing: border-box;
+  margin: 0;
+  padding-block: 0;
+  padding-inline: var(--s2a-spacing-sm);
+  block-size: 2rem;
+  border: 0;
+  border-radius: var(--s2a-border-radius-8);
+  background-color: var(--s2a-color-button-background-primary-transparent-on-light-default);
+  color: var(--s2a-color-button-content-primary-transparent-default);
+  font-family: var(--body-font-family);
+  font-size: var(--s2a-typography-font-size-label);
+  font-style: normal;
+  font-weight: var(--s2a-font-weight-adobe-clean-medium);
+  line-height: var(--s2a-typography-line-height-label);
+  letter-spacing: var(--s2a-typography-letter-spacing-label);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition-timing-function: cubic-bezier(.45,0,.4,1);
+  transition-duration: .13s;
+  transition-property: outline, color, background-color;
+
+  &:hover {
+    background-color: var(--s2a-color-button-background-primary-transparent-on-light-hover);
+    text-decoration: none;
+  }
+
+  &:active {
+    background-color: var(--s2a-color-button-background-primary-transparent-on-light-active);
+  }
+
+  &:focus-visible {
+    outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+    outline-offset: var(--s2a-border-width-md);
+  }
+}
+
+.action-button__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+
+  & svg {
+    display: block;
+  }
+}
+
+/* Button group only. Alignment/width live on `.article-meta` /
+   `.article-meta-section` from ADBLABS-130 — append this as the second
+   child of `.article-meta`, do not add another centered wrapper. */
+.article-meta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2a-spacing-xs);
+}
+
 /* --- Icons --- */
 .icon {
   display: inline-block;
@@ -643,19 +738,20 @@ body.article main .article-meta-section {
 
 /* --- Sections --- */
 
-/* TODO: boilerplate - Sections - better handling of this group of styles for overall site spacing. And use tokens. */
 main > .section {
   display: flex;
   flex-flow: column nowrap;
   gap: var(--s2a-spacing-xl);
 }
 
-main > .section > div {
+/* Wrappers: block wrappers (`.BLOCKNAME-wrapper`) and `.default-content-wrapper`. 
+   The custom property `--wrapper-max-inline-size` can be overriden by block classes.
+   Low specificity is used so block wrapper classes can easily change styles without adding specificity. */
+:where(main > .section > div) {
   inline-size: 100%;
-  max-inline-size: var(--site-max-inline-size);
+  max-inline-size: var(--wrapper-max-inline-size, var(--site-max-inline-size));
   margin: auto;
   padding: 0 var(--site-root-inline-padding);
-
 }
 
 main .section[class*="section-rounded-"] {
@@ -741,6 +837,7 @@ html.hero-intro--body main > .section:nth-of-type(2) {
 
 html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
   transform: translateY(var(--hero-intro-section-offset));
+  visibility: hidden;
 }
 
 @keyframes hero-intro-section-rise {
@@ -755,26 +852,60 @@ html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
 
 /* --- Articles --- */
 
+/* Block wrappers within articles. */
+:where(body.article main > .section > div) {
+  /* Default max width for custom block wrappers within articles.
+    The value of this variable can be changed within a block's wrapper class. */
+  --article-content-max-inline-size: 100%;
+
+  @media (width >= 48rem) {
+    --article-content-max-inline-size: min(calc(10 / 12 * 100%), 97.25rem); /* 1556px max. Full-width. */
+  }
+
+  /* Modify base wrapper styles custom property to use our article specific sizing. */
+  --wrapper-max-inline-size: calc(
+    var(--article-content-max-inline-size) + (var(--site-root-inline-padding, 0px) * 2)
+  );
+}
+
 body.article main {
   --section-padding-block-end: var(--s2a-spacing-2xl);
 
-  /* Article content max-widths. */
-  --article-content-inline-size-sm: calc(43.25rem + (var(--site-root-inline-padding, 0px) * 2));
-  --article-content-inline-size-md: calc(37.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 598px @ 48rem (768px) viewport */
-  --article-content-inline-size-lg: calc(50.75rem + (var(--site-root-inline-padding, 0px) * 2)); /* 812px @ 64rem (1024px) viewport */
-  --article-content-inline-size-xl: calc(72.375rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1158px @ 90rem (1440px) viewport */
-  --article-content-inline-size-xxl: calc(97.25rem + (var(--site-root-inline-padding, 0px) * 2)); /* 1556px @ 120rem (1920px) viewport */
+  /* Represents the max width of the default content column with regular authored text. */
+  --article-default-content-max-inline-size: min(100%, 30.125rem); 
+
+  @media (width >= 48rem) {
+    --article-default-content-max-inline-size: min(calc(8 / 12 * 100%), 46.875rem);
+  }
+
+  @media (width >= 64rem) {
+    --article-default-content-max-inline-size: min(calc(6 / 12 * 100%), 46.875rem);
+  }
 
   @media (width >= 90rem) {
     --section-padding-block-end: var(--s2a-spacing-4xl);
   }
 
+  @media (width >= 120rem) {
+    --article-default-content-max-inline-size: min(39%, 46.875rem); /* Max 750px */
+  }
+
   .default-content-wrapper {
-    max-inline-size: var(--article-content-inline-size-sm);
+    /* Default content max width of regular authored text content. */
+    --article-content-max-inline-size: var(--article-default-content-max-inline-size);
   }
 
   .full-bleed .default-content-wrapper {
     max-inline-size: none;
     padding-inline: 0;
   }
+}
+
+/* Article body: serif paragraphs and lists. :where() keeps this a default
+   so headings, captions, and block styles can override. Heading sizes already
+   follow s2a heading-1 through heading-6; no article heading overrides. */
+:where(body.article .default-content-wrapper) :where(p, ul, ol) {
+  font-family: var(--serif-font-family);
+  font-size: var(--serif-body-font-size);
+  line-height: var(--serif-body-line-height);
 }

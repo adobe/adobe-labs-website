@@ -1,11 +1,14 @@
+import { within } from '@testing-library/dom';
 import { buildBlock, getMetadata } from '../aem.js';
 import {
   buildArticleAuthorMeta,
+  buildArticleMetaActions,
   buildArticlePreFooter,
   buildAuthorByline,
   buildPlayIcon,
   ensureSkipLink,
   decorateArticleSections,
+  decorateSectionMetadata,
   formatCardDate,
   getAuthoredCells,
   getSection,
@@ -18,6 +21,21 @@ jest.mock('../aem.js', () => ({
   toClassName: (name) => (typeof name === 'string'
     ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     : ''),
+  toCamelCase: (name) => (typeof name === 'string'
+    ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      .replace(/-([a-z])/g, (g) => g[1].toUpperCase())
+    : ''),
+  readBlockConfig: (block) => {
+    const config = {};
+    [...block.children].forEach((row) => {
+      const cols = [...row.children];
+      if (cols[1]) {
+        const name = cols[0].textContent.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        config[name] = cols[1].textContent.trim();
+      }
+    });
+    return config;
+  },
   getMetadata: jest.fn(() => ''),
   buildBlock: jest.fn(),
 }));
@@ -233,6 +251,410 @@ describe('buildArticlePreFooter', () => {
     buildArticlePreFooter(main);
 
     expect(main.querySelector('a[href="/fragments/custom-pre-footer"]')).not.toBeNull();
+  });
+});
+
+describe('buildArticleMetaActions', () => {
+  let writeText;
+  let originalClipboard;
+  let originalExecCommand;
+
+  function createArticleMain({ hero = true, extraSection = false } = {}) {
+    const main = document.createElement('main');
+    if (hero) {
+      const heroSection = document.createElement('div');
+      const heroBlock = document.createElement('div');
+      heroBlock.className = 'hero';
+      heroSection.append(heroBlock);
+      main.append(heroSection);
+    }
+    const body = document.createElement('div');
+    const heading = document.createElement('h2');
+    heading.textContent = 'Headline';
+    body.append(heading);
+    main.append(body);
+    let extra;
+    if (extraSection) {
+      extra = document.createElement('div');
+      const more = document.createElement('p');
+      more.textContent = 'More';
+      extra.append(more);
+      main.append(extra);
+    }
+    document.body.append(main);
+    return { main, body, extra };
+  }
+
+  function addArticleMeta(section, position, { byline = true } = {}) {
+    const wrapper = document.createElement('div');
+    const meta = document.createElement('aside');
+    meta.className = `article-meta article-meta--${position}`;
+    if (byline) {
+      const authors = document.createElement('div');
+      authors.className = 'article-meta__authors';
+      authors.textContent = 'Words by: Adobe Labs';
+      meta.append(authors);
+    }
+    wrapper.append(meta);
+    if (position === 'bottom') section.append(wrapper);
+    else section.prepend(wrapper);
+    return meta;
+  }
+
+  function setCanonical(href) {
+    const link = document.createElement('link');
+    link.rel = 'canonical';
+    link.href = href;
+    document.head.append(link);
+    return link;
+  }
+
+  async function waitForCopy() {
+    await Promise.resolve();
+    await Promise.resolve();
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getMetadata.mockReturnValue('');
+    document.body.innerHTML = '';
+    document.head.querySelectorAll('link[rel="canonical"]').forEach((link) => link.remove());
+    originalClipboard = navigator.clipboard;
+    originalExecCommand = document.execCommand;
+    writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    document.body.innerHTML = '';
+    document.head.querySelectorAll('link[rel="canonical"]').forEach((link) => link.remove());
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: originalClipboard,
+    });
+    document.execCommand = originalExecCommand;
+  });
+
+  it('does not inject when main is not a child of body', () => {
+    mockTemplate('article');
+    const main = document.createElement('main');
+
+    buildArticleMetaActions(main);
+
+    expect(main.querySelector('.article-meta__actions')).toBeNull();
+  });
+
+  it('does not inject on a fragment main nested under body', () => {
+    mockTemplate('article');
+    const wrapper = document.createElement('div');
+    const main = document.createElement('main');
+    wrapper.append(main);
+    document.body.append(wrapper);
+
+    buildArticleMetaActions(main);
+
+    expect(main.querySelector('.article-meta__actions')).toBeNull();
+  });
+
+  it('does not inject on non-article pages', () => {
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    expect(main.querySelector('.article-meta__actions')).toBeNull();
+  });
+
+  it('injects Copy link into fallback .article-meta shells at the top and bottom', () => {
+    mockTemplate('article');
+    const { main, body } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const metas = main.querySelectorAll('.article-meta');
+    expect(metas).toHaveLength(2);
+    expect(body.firstElementChild.className).toBe('');
+    expect(body.firstElementChild.querySelector('.article-meta')).toHaveClass('article-meta--top');
+    expect(body.lastElementChild.querySelector('.article-meta')).toHaveClass('article-meta--bottom');
+    expect(body.firstElementChild.querySelector('.article-meta').tagName).toBe('ASIDE');
+    expect(main.querySelector('.article-meta--top')).toHaveAccessibleName('Article details');
+    expect(main.querySelector('.article-meta--bottom')).toHaveAccessibleName(
+      'Article details, bottom of article',
+    );
+    expect(main.querySelector('.article-meta-section')).toBeNull();
+
+    const groups = main.querySelectorAll('.article-meta__actions');
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toHaveAttribute('role', 'group');
+    expect(groups[0]).toHaveAccessibleName('Article actions');
+    expect(groups[1]).toHaveAccessibleName('Article actions, bottom of article');
+    groups.forEach((group) => {
+      expect(group.tagName).toBe('DIV');
+      expect(group.parentElement).toHaveClass('article-meta');
+      expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
+      expect(group.querySelector('[data-meta-action="download"]')).toBeNull();
+      expect(group.querySelector('[data-meta-action="feedback"]')).toBeNull();
+    });
+    const status = main.querySelector(':scope > [data-meta-action-status]');
+    expect(status).toBeTruthy();
+    expect(status.parentElement).toBe(main);
+    expect(groups[0].contains(status)).toBe(false);
+  });
+
+  it('places the bottom fallback on the last authored section when there are several', () => {
+    mockTemplate('article');
+    const { main, body, extra } = createArticleMain({ extraSection: true });
+
+    buildArticleMetaActions(main);
+
+    expect(body.querySelector('.article-meta--top .article-meta__actions')).toBeTruthy();
+    expect(extra.querySelector('.article-meta--bottom .article-meta__actions')).toBeTruthy();
+  });
+
+  it('prepends the fallback to the first section when there is no hero', () => {
+    mockTemplate('article');
+    const { main, body } = createArticleMain({ hero: false });
+
+    buildArticleMetaActions(main);
+
+    expect(body.firstElementChild.querySelector('.article-meta--top')).toBeTruthy();
+    expect(body.lastElementChild.querySelector('.article-meta--bottom')).toBeTruthy();
+  });
+
+  it('inserts the top fallback after a hero that shares its section', () => {
+    mockTemplate('article');
+    const section = document.createElement('div');
+    const hero = document.createElement('div');
+    hero.className = 'hero';
+    const leadIn = document.createElement('div');
+    leadIn.className = 'lead-in';
+    leadIn.textContent = 'Lead in';
+    section.append(hero, leadIn);
+    const main = document.createElement('main');
+    main.append(section);
+    document.body.append(main);
+
+    buildArticleMetaActions(main);
+
+    expect(hero.nextElementSibling.querySelector('.article-meta--top')).toBeTruthy();
+    expect(section.lastElementChild.querySelector('.article-meta--bottom')).toBeTruthy();
+  });
+
+  it('appends actions as the second child of existing .article-meta containers', () => {
+    mockTemplate('article');
+    const { main, body, extra } = createArticleMain({ extraSection: true });
+    const topMeta = addArticleMeta(body, 'top');
+    const bottomMeta = addArticleMeta(extra, 'bottom');
+
+    buildArticleMetaActions(main);
+
+    expect(main.querySelectorAll('.article-meta')).toHaveLength(2);
+    expect(topMeta.children).toHaveLength(2);
+    expect(topMeta.firstElementChild).toHaveClass('article-meta__authors');
+    expect(topMeta.lastElementChild).toHaveClass('article-meta__actions');
+    expect(bottomMeta.lastElementChild).toHaveClass('article-meta__actions');
+    expect(topMeta).toHaveAccessibleName('Article details');
+    expect(bottomMeta).toHaveAccessibleName('Article details, bottom of article');
+    expect(body.querySelector(':scope > .article-meta__actions')).toBeNull();
+  });
+
+  it('does not add a second pair of groups when called again', () => {
+    mockTemplate('article');
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+    buildArticleMetaActions(main);
+
+    expect(main.querySelectorAll('.article-meta')).toHaveLength(2);
+    expect(main.querySelectorAll('.article-meta__actions')).toHaveLength(2);
+  });
+
+  it('copies the canonical URL without a hash from either group', async () => {
+    mockTemplate('article');
+    setCanonical('https://labs.adobe.com/research/foo#intro');
+    const { main } = createArticleMain();
+    buildArticleMetaActions(main);
+
+    const groups = [...main.querySelectorAll('.article-meta__actions')];
+    within(groups[0]).getByRole('button', { name: 'Copy link' }).click();
+    await waitForCopy();
+
+    expect(writeText).toHaveBeenCalledWith('https://labs.adobe.com/research/foo');
+    expect(within(groups[0]).getByRole('button', { name: 'Copied' })).toBeTruthy();
+    expect(groups[0].querySelector('[data-meta-action="copy-link"] svg'))
+      .toHaveAttribute('aria-hidden', 'true');
+    expect(within(groups[1]).getByRole('button', { name: 'Copy link' })).toBeTruthy();
+    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Link copied');
+
+    within(groups[1]).getByRole('button', { name: 'Copy link' }).click();
+    await waitForCopy();
+
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(within(groups[1]).getByRole('button', { name: 'Copied' })).toBeTruthy();
+  });
+
+  it('reverts Copied back to Copy link after the delay', async () => {
+    jest.useFakeTimers();
+    mockTemplate('article');
+    setCanonical('https://labs.adobe.com/research/foo');
+    const { main } = createArticleMain();
+    buildArticleMetaActions(main);
+
+    const button = within(main).getAllByRole('button', { name: 'Copy link' })[0];
+    button.click();
+    await waitForCopy();
+
+    expect(button).toHaveAccessibleName('Copied');
+    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Link copied');
+    jest.advanceTimersByTime(2000);
+    expect(button).toHaveAccessibleName('Copy link');
+    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('');
+  });
+
+  it('falls back to execCommand when the Clipboard API is missing', async () => {
+    mockTemplate('article');
+    setCanonical('https://labs.adobe.com/research/foo');
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    });
+    document.execCommand = jest.fn(() => true);
+    const { main } = createArticleMain();
+    buildArticleMetaActions(main);
+
+    const button = within(main).getAllByRole('button', { name: 'Copy link' })[0];
+    button.focus();
+    button.click();
+    await waitForCopy();
+
+    expect(document.execCommand).toHaveBeenCalledWith('copy');
+    expect(document.activeElement).toBe(button);
+    expect(button).toHaveAccessibleName('Copied');
+  });
+
+  it('announces failure when copying is not possible', async () => {
+    mockTemplate('article');
+    writeText.mockRejectedValue(new Error('denied'));
+    document.execCommand = jest.fn(() => false);
+    const { main } = createArticleMain();
+    buildArticleMetaActions(main);
+
+    const button = within(main).getAllByRole('button', { name: 'Copy link' })[0];
+    button.click();
+    await waitForCopy();
+
+    expect(button).toHaveAccessibleName('Copy link');
+    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Unable to copy link');
+  });
+
+  it('adds Download next to Copy link when download-link metadata is set', () => {
+    mockTemplate('article', { 'download-link': 'https://example.com/data.zip' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const groups = main.querySelectorAll('.article-meta__actions');
+    expect(groups).toHaveLength(2);
+    groups.forEach((group) => {
+      expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
+      const download = within(group).getByRole('link', { name: 'Download' });
+      expect(download).toHaveAccessibleName('Download');
+      expect(download).toHaveAttribute('href', 'https://example.com/data.zip');
+      expect(download).toHaveAttribute('data-meta-action', 'download');
+      expect(download).toHaveAttribute('download', 'data.zip');
+      const icon = download.querySelector('.action-button__icon');
+      expect(icon).toHaveAttribute('aria-hidden', 'true');
+      expect(download.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+      expect(download.querySelector('svg')).toHaveAttribute('focusable', 'false');
+      expect(group.querySelector('[data-meta-action="feedback"]')).toBeNull();
+    });
+  });
+
+  it('resolves a relative download-link against the current origin', () => {
+    mockTemplate('article', { 'download-link': '/media/dataset.pdf' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    const href = new URL(download.getAttribute('href'));
+    expect(href.origin).toBe(window.location.origin);
+    expect(href.pathname).toBe('/media/dataset.pdf');
+    expect(download).toHaveAttribute('download', 'dataset.pdf');
+  });
+
+  it('rewrites a DA media-browser URL for this site to a same-origin file path', () => {
+    mockTemplate('article', {
+      'download-link': 'https://da.live/media#/adobe/adobe-labs-website/media/c4611-sample-explain.pdf ',
+    });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    const href = new URL(download.getAttribute('href'));
+    expect(href.origin).toBe(window.location.origin);
+    expect(href.pathname).toBe('/media/c4611-sample-explain.pdf');
+    expect(download).toHaveAttribute('download', 'c4611-sample-explain.pdf');
+  });
+
+  it('rewrites content.da.live and da.live edit URLs for this site', () => {
+    const cases = [
+      'https://content.da.live/adobe/adobe-labs-website/media/c4611-sample-explain.pdf',
+      'https://da.live/edit#/adobe/adobe-labs-website/media/c4611-sample-explain.pdf',
+    ];
+
+    cases.forEach((downloadLink) => {
+      document.body.innerHTML = '';
+      mockTemplate('article', { 'download-link': downloadLink });
+      const { main } = createArticleMain();
+      buildArticleMetaActions(main);
+
+      const download = within(main.querySelector('.article-meta__actions'))
+        .getByRole('link', { name: 'Download' });
+      expect(new URL(download.getAttribute('href')).pathname).toBe(
+        '/media/c4611-sample-explain.pdf',
+      );
+    });
+  });
+
+  it('does not render Download for a DA URL from another site or a folder', () => {
+    [
+      'https://da.live/media#/other-org/other-site/media/file.pdf',
+      'https://da.live/media#/adobe/adobe-labs-website/media',
+    ].forEach((downloadLink) => {
+      document.body.innerHTML = '';
+      mockTemplate('article', { 'download-link': downloadLink });
+      const { main } = createArticleMain();
+      buildArticleMetaActions(main);
+
+      const groups = main.querySelectorAll('.article-meta__actions');
+      expect(groups).toHaveLength(2);
+      groups.forEach((group) => {
+        expect(within(group).queryByRole('link', { name: 'Download' })).toBeNull();
+        expect(group.querySelector('[data-meta-action="download"]')).toBeNull();
+        expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
+      });
+    });
+  });
+
+  it('does not render Download for empty, whitespace, or non-http URLs', () => {
+    const scriptUrl = ['javascript', 'alert(1)'].join(':');
+    ['', '   ', scriptUrl].forEach((downloadLink) => {
+      document.body.innerHTML = '';
+      mockTemplate('article', { 'download-link': downloadLink });
+      const { main } = createArticleMain();
+      buildArticleMetaActions(main);
+
+      expect(
+        within(main.querySelector('.article-meta__actions')).queryByRole('link', { name: 'Download' }),
+      ).toBeNull();
+    });
   });
 });
 
@@ -497,5 +919,58 @@ describe('buildArticleAuthorMeta', () => {
     expect(hero.nextElementSibling.querySelector('.article-meta')).not.toBeNull();
     expect(section.lastElementChild.querySelector('.article-meta')).not.toBeNull();
     expect(section.querySelectorAll('.article-meta')).toHaveLength(2);
+  });
+});
+
+/**
+ * Mirrors the DOM shape decorateSections leaves behind: a `.section` whose
+ * `Section Metadata` table sits in its own wrapper div, as `.section-metadata`.
+ */
+function createSectionMetadataFixture(fields) {
+  const meta = createKeyValueBlock(fields);
+  meta.className = 'section-metadata';
+  const wrapper = document.createElement('div');
+  wrapper.append(meta);
+  const section = document.createElement('div');
+  section.className = 'section';
+  section.append(wrapper);
+  return { section, meta };
+}
+
+describe('decorateSectionMetadata', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('copies metadata keys onto section.dataset and removes the table', () => {
+    const { section, meta } = createSectionMetadataFixture({ Toc: 'Section 1' });
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(section.dataset.toc).toBe('Section 1');
+    expect(section.contains(meta)).toBe(false);
+  });
+
+  it('splits the style key into one or more section classes instead of a dataset entry', () => {
+    const { section } = createSectionMetadataFixture({ Style: 'section-rounded-blue, highlight' });
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(section).toHaveClass('section-rounded-blue');
+    expect(section).toHaveClass('highlight');
+    expect(section.dataset.style).toBeUndefined();
+  });
+
+  it('does not touch sections without a Section Metadata table', () => {
+    const section = createSection();
+    const main = document.createElement('main');
+    main.append(section);
+
+    expect(() => decorateSectionMetadata(main)).not.toThrow();
+    expect(section.dataset.toc).toBeUndefined();
   });
 });
