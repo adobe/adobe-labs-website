@@ -21,10 +21,26 @@
   padding-inline: var(--s2a-spacing-md, 1rem);
 }
 
+.side-by-side-image__item {
+  margin: 0;
+}
+
 .side-by-side-image__item img {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.side-by-side-image__caption {
+  margin-top: var(--s2a-spacing-2xs, 0.5rem);
+  color: var(--s2a-color-content-subtle);
+  text-align: center;
+  font-family: var(--body-font-family);
+  font-size: var(--s2a-typography-font-size-caption);
+  font-style: normal;
+  font-weight: 700;
+  line-height: var(--s2a-typography-line-height-caption);
+  letter-spacing: var(--s2a-typography-letter-spacing-caption);
 }
 
 @media (width >= 56.25rem) {
