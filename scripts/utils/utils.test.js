@@ -378,7 +378,9 @@ describe('buildArticleMetaActions', () => {
       expect(group.parentElement).toHaveClass('article-meta');
       expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
       expect(group.querySelector('[data-meta-action="download"]')).toBeNull();
-      const feedback = within(group).getByRole('link', { name: 'Feedback' });
+      const feedback = within(group).getByRole('link', { name: 'Feedback (opens email)' });
+      expect(feedback.querySelector('.action-button__label').textContent).toBe('Feedback');
+      expect(feedback.querySelector('.visually-hidden').textContent).toBe(' (opens email)');
       expect(feedback).toHaveAttribute('href', 'mailto:labs@adobe.com');
       expect(feedback).not.toHaveAttribute('download');
       expect([...group.children].map((el) => el.dataset.metaAction)).toEqual([
@@ -557,7 +559,7 @@ describe('buildArticleMetaActions', () => {
       expect(icon).toHaveAttribute('aria-hidden', 'true');
       expect(download.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
       expect(download.querySelector('svg')).toHaveAttribute('focusable', 'false');
-      const feedback = within(group).getByRole('link', { name: 'Feedback' });
+      const feedback = within(group).getByRole('link', { name: 'Feedback (opens email)' });
       expect(feedback).toHaveAttribute('data-meta-action', 'feedback');
       expect([...group.children].map((el) => el.dataset.metaAction)).toEqual([
         'copy-link',
@@ -650,7 +652,7 @@ describe('buildArticleMetaActions', () => {
     const groups = main.querySelectorAll('.article-meta__actions');
     expect(groups).toHaveLength(2);
     groups.forEach((group) => {
-      const feedback = within(group).getByRole('link', { name: 'Feedback' });
+      const feedback = within(group).getByRole('link', { name: 'Feedback (opens email)' });
       expect(feedback).toHaveAttribute(
         'href',
         'mailto:labs@adobe.com?subject=How%20Creatives%20think',
@@ -669,7 +671,7 @@ describe('buildArticleMetaActions', () => {
     buildArticleMetaActions(main);
 
     const feedback = within(main.querySelector('.article-meta__actions'))
-      .getByRole('link', { name: 'Feedback' });
+      .getByRole('link', { name: 'Feedback (opens email)' });
     expect(feedback).toHaveAttribute(
       'href',
       `mailto:labs@adobe.com?subject=${encodeURIComponent(title)}`,
@@ -688,7 +690,7 @@ describe('buildArticleMetaActions', () => {
       buildArticleMetaActions(main);
 
       const feedback = within(main.querySelector('.article-meta__actions'))
-        .getByRole('link', { name: 'Feedback' });
+        .getByRole('link', { name: 'Feedback (opens email)' });
       expect(feedback).toHaveAttribute('href', 'mailto:labs@adobe.com');
     });
   });
@@ -700,7 +702,7 @@ describe('buildArticleMetaActions', () => {
     buildArticleMetaActions(main);
 
     const feedback = within(main.querySelector('.article-meta__actions'))
-      .getByRole('link', { name: 'Feedback' });
+      .getByRole('link', { name: 'Feedback (opens email)' });
     const icon = feedback.querySelector('.action-button__icon');
     const svg = feedback.querySelector('svg');
     expect(icon).toHaveAttribute('aria-hidden', 'true');

@@ -190,6 +190,7 @@ const DA_HOSTS = new Set(['da.live', 'www.da.live', 'content.da.live']);
 const DA_SITE_PREFIX = '/adobe/adobe-labs-website';
 const DOWNLOAD_LABEL = 'Download';
 const FEEDBACK_LABEL = 'Feedback';
+const FEEDBACK_HINT = '(opens email)';
 const FEEDBACK_EMAIL = 'labs@adobe.com';
 
 /**
@@ -285,6 +286,7 @@ function getFeedbackHref() {
  *   isEnabled?: function(): boolean,
  *   getHref?: function(): string,
  *   download?: boolean,
+ *   hint?: string,
  * }>}
  */
 const META_ACTIONS = [
@@ -311,6 +313,7 @@ const META_ACTIONS = [
     icon: FEEDBACK_ICON_SVG,
     isEnabled: () => true,
     getHref: getFeedbackHref,
+    hint: FEEDBACK_HINT,
   },
 ];
 
@@ -558,6 +561,7 @@ async function handleCopyLink(main, button) {
  *   icon: string,
  *   getHref?: function(): string,
  *   download?: boolean,
+ *   hint?: string,
  * }} action
  * @returns {HTMLButtonElement|HTMLAnchorElement}
  */
@@ -587,6 +591,12 @@ function createMetaActionControl(action) {
   label.textContent = action.label;
 
   el.append(icon, label);
+  if (action.hint) {
+    const hint = document.createElement('span');
+    hint.className = 'visually-hidden';
+    hint.textContent = ` ${action.hint}`;
+    el.append(hint);
+  }
   return el;
 }
 
