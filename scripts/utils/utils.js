@@ -287,12 +287,6 @@ export function buildAuthorByline() {
  * the author byline today; action buttons (copy/download/feedback) join it
  * in the same container later (ADBLABS-144/ADBLABS-155).
  *
- * For ADBLABS-155: append the actions markup as a second child of the
- * returned `.article-meta` (see the `.article-meta` CSS in styles.css for
- * the alignment/width rules already in place). This function runs twice
- * per page (top and bottom byline) — hook into both by querying
- * `main.querySelectorAll('.article-meta')` rather than this function.
- *
  * Returns the `<aside class="article-meta">` wrapped in a plain, classless
  * `<div>`. Two reasons:
  *  - `<aside>`, not `<div>`, for the meta element itself: once
