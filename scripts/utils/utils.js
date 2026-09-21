@@ -328,6 +328,174 @@ export function buildArticlePreFooter(main) {
   main.append(section);
 }
 
+const DEFAULT_AUTHOR_NAME = 'Adobe Labs';
+// DA-managed folder; photos uploaded there, not authored per-page.
+const AUTHOR_IMAGE_DIR = '/media/authors';
+
+/**
+ * Author names from page `author` metadata (comma-separated for multiple
+ * authors). Falls back to "Adobe Labs" when none is authored.
+ *
+ * @returns {string[]}
+ */
+function getAuthorNames() {
+  const names = getMetadata('author')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+  return names.length ? names : [DEFAULT_AUTHOR_NAME];
+}
+
+/**
+ * Author photo, requested by convention from a slugified file name
+ * (e.g. "Adobe Labs" → /media/authors/adobe-labs.png) rather than an
+ * authored field or extra fetch. Hidden until it loads, and removed on
+ * 404 so a missing photo leaves no broken-image icon or empty space.
+ *
+ * @param {string} name Author name
+ * @returns {HTMLImageElement}
+ */
+function buildAuthorImage(name) {
+  const img = document.createElement('img');
+  img.className = 'article-meta__author-image';
+  img.alt = '';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.hidden = true;
+  img.addEventListener('load', () => { img.hidden = false; });
+  img.addEventListener('error', () => img.remove());
+  img.src = `${AUTHOR_IMAGE_DIR}/${toClassName(name)}.png`;
+  return img;
+}
+
+/**
+ * One author entry: an optional photo followed by the author's name.
+ * Author information is not a link.
+ *
+ * @param {string} name Author name
+ * @returns {HTMLLIElement}
+ */
+function buildAuthorItem(name) {
+  const item = document.createElement('li');
+  item.className = 'article-meta__author';
+  item.append(buildAuthorImage(name));
+
+  const label = document.createElement('span');
+  label.className = 'article-meta__author-name';
+  label.textContent = name;
+  item.append(label);
+
+  return item;
+}
+
+/**
+ * Builds the "Words by: <author>, <author>" byline from page metadata.
+ * Returns a new element on every call so it can be placed in both the
+ * top and bottom meta sections of an article.
+ *
+ * @returns {HTMLDivElement}
+ */
+export function buildAuthorByline() {
+  const byline = document.createElement('div');
+  byline.className = 'article-meta__authors';
+
+  const label = document.createElement('span');
+  label.className = 'article-meta__authors-label';
+  label.textContent = 'Words by:';
+  byline.append(label);
+
+  const list = document.createElement('ul');
+  list.className = 'article-meta__author-list';
+  getAuthorNames().forEach((name) => list.append(buildAuthorItem(name)));
+  byline.append(list);
+
+  return byline;
+}
+
+/**
+ * Meta section container shared by the top and bottom of an article. Holds
+ * the author byline today; action buttons (copy/download/feedback) join it
+ * in the same container later (ADBLABS-144/ADBLABS-155).
+ *
+ * Returns the `<aside class="article-meta">` wrapped in a plain, classless
+ * `<div>`. Two reasons:
+ *  - `<aside>`, not `<div>`, for the meta element itself: once
+ *    `decorateSections` wraps it, a `<div class="article-meta">` here would
+ *    land at exactly `div.section > div > div` — the same generic depth
+ *    `decorateBlocks` uses to detect a block and try to load
+ *    `blocks/<name>/<name>.js` — and get silently (mis)treated as a
+ *    nonexistent "article-meta" block. A non-`div` tag sidesteps that
+ *    selector entirely.
+ *  - The outer classless `<div>` forces `decorateSections` to give this its
+ *    own section-level wrapper instead of merging it into the neighboring
+ *    `.default-content-wrapper` (its algorithm only starts a new wrapper on
+ *    a `<div>`; an `<aside>` alone would be swept into whatever "default
+ *    content" run it lands next to). Sitting inside `.default-content-wrapper`
+ *    would cap the meta section to that wrapper's narrow, fixed
+ *    `--article-content-inline-size-sm`, overriding the wider, breakpoint-
+ *    matching width this needs to line up with the lead-in block. Being
+ *    classless, the `<div>` itself has no `classList[0]`, so `decorateBlock`
+ *    (which keys off exactly that) no-ops on it.
+ *
+ * @param {'top'|'bottom'} position Which meta instance this is. Adds
+ * `article-meta--top`/`article-meta--bottom` so CSS can target just one
+ * (e.g. the narrow-viewport two-line byline applies to the top instance
+ * only).
+ * @returns {HTMLDivElement}
+ */
+function buildArticleMeta(position) {
+  const meta = document.createElement('aside');
+  meta.className = `article-meta article-meta--${position}`;
+  meta.append(buildAuthorByline());
+
+  const wrapper = document.createElement('div');
+  wrapper.append(meta);
+  return wrapper;
+}
+
+/**
+ * Inserts the top meta byline. When the hero has its own section (nothing
+ * else authored alongside it), the byline goes at the top of the section
+ * that follows, keeping it out of the hero's own (often full-bleed) section.
+ * When authors skip that section break and the hero shares a section with
+ * the rest of the content, the byline is inserted right after the hero
+ * element instead, so it still renders rather than being silently dropped.
+ *
+ * @param {Element[]} sections `main`'s direct children
+ */
+function insertTopArticleMeta(sections) {
+  const hero = sections.flatMap((section) => [...section.querySelectorAll('.hero')])[0];
+  if (!hero) {
+    sections[0]?.prepend(buildArticleMeta('top'));
+    return;
+  }
+
+  const heroSection = sections.find((section) => section.contains(hero));
+  if (heroSection.children.length === 1) {
+    const nextSection = sections[sections.indexOf(heroSection) + 1] || heroSection;
+    nextSection.prepend(buildArticleMeta('top'));
+  } else {
+    hero.after(buildArticleMeta('top'));
+  }
+}
+
+/**
+ * Adds the author byline to the top and bottom of an article's content.
+ * No-op when `main` is detached or the page is not an article detail.
+ *
+ * @param {Element} main The page's main element
+ */
+export function buildArticleAuthorMeta(main) {
+  if (!document.body.contains(main)) return;
+  if (!isArticleDetailPage()) return;
+
+  const sections = [...main.children];
+  if (!sections.length) return;
+
+  insertTopArticleMeta(sections);
+  sections[sections.length - 1].append(buildArticleMeta('bottom'));
+}
+
 /**
  * Reads each section's authored `Section Metadata` table into `section.dataset`
  * and removes the table so it never reaches `decorateBlocks` as a block to load.
@@ -765,6 +933,22 @@ export function decorateArticleSections(main) {
   main.querySelectorAll(':scope > .section').forEach((section) => {
     if (section.querySelector('.hero')) return;
     section.classList.add('section-rounded-default');
+  });
+}
+
+/**
+ * Names the byline's section-level wrapper `article-meta-section`, matching
+ * `.lead-in-wrapper`'s structural position. Must run after `decorateSections`.
+ *
+ * @param {Element} main The page's main element
+ */
+export function decorateArticleMetaSections(main) {
+  main.querySelectorAll('.article-meta').forEach((meta) => {
+    let wrapper = meta.parentElement;
+    while (wrapper?.parentElement && !wrapper.parentElement.classList.contains('section')) {
+      wrapper = wrapper.parentElement;
+    }
+    wrapper?.classList.add('article-meta-section');
   });
 }
 

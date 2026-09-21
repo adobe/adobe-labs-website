@@ -24,10 +24,12 @@ import {
   getMetadata,
 } from './aem.js';
 import {
+  buildArticleAuthorMeta,
   buildArticleMetaActions,
   buildArticlePreFooter,
   debounce,
   ensureSkipLink,
+  decorateArticleMetaSections,
   decorateArticleSections,
   decorateSectionMetadata,
 } from './utils/utils.js';
@@ -87,8 +89,7 @@ function buildWidgetAutoBlocks(main) {
  */
 function buildAutoBlocks(main) {
   try {
-    // After buildArticleAuthorMeta (ADBLABS-130) when that lands, so actions
-    // join existing `.article-meta` instead of creating a second wrapper.
+    buildArticleAuthorMeta(main);
     buildArticleMetaActions(main);
     buildArticlePreFooter(main);
     // auto load `*/fragments/*` references
@@ -173,6 +174,7 @@ export function decorateMain(main) {
   decorateSections(main);
   decorateSectionMetadata(main);
   decorateArticleSections(main);
+  decorateArticleMetaSections(main);
   decorateBlocks(main);
   decorateButtons(main);
 }
