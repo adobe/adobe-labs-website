@@ -189,6 +189,20 @@ async function fetchYoutubeTitle(videoId) {
 }
 
 /**
+ * Visually hidden live region used to announce player load.
+ *
+ * @returns {HTMLParagraphElement}
+ */
+function buildStatus() {
+  const status = document.createElement('p');
+  status.className = 'visually-hidden';
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  status.setAttribute('aria-atomic', 'true');
+  return status;
+}
+
+/**
  * Replaces the poster with a privacy-enhanced YouTube iframe and focuses it.
  *
  * @param {Element} block The video block
@@ -208,11 +222,8 @@ function loadEmbed(block, { videoId, playLabel }) {
   iframe.title = playerTitle;
   iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
   iframe.setAttribute('allowfullscreen', '');
-  iframe.setAttribute('tabindex', '-1');
 
-  const status = document.createElement('p');
-  status.className = 'visually-hidden';
-  status.setAttribute('role', 'status');
+  const status = block.querySelector('[role="status"]') || buildStatus();
   status.textContent = 'Video player loaded';
 
   player.append(iframe);
@@ -248,7 +259,7 @@ function buildVideo(data, block) {
     loadEmbed(block, { videoId, playLabel });
   });
 
-  block.replaceChildren(button);
+  block.replaceChildren(button, buildStatus());
 
   if (hasCustomPlayLabel) return;
   fetchYoutubeTitle(videoId).then((title) => {

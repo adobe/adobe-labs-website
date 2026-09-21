@@ -54,6 +54,10 @@ describe('video block', () => {
     expect(img).toHaveAttribute('alt', '');
     expect(button.querySelector('.play-icon')).toHaveAttribute('aria-hidden', 'true');
     expect(within(block).queryByText('Video article')).toBeNull();
+    const status = within(block).getByRole('status');
+    expect(status).toHaveTextContent('');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toHaveAttribute('aria-atomic', 'true');
   });
 
   it('extracts an ID from a youtu.be URL', () => {
@@ -170,6 +174,7 @@ describe('video block', () => {
     expect(iframe.src).toContain('cc_load_policy=1');
     expect(iframe).toHaveAttribute('title', `YouTube video ${VIDEO_ID}`);
     expect(iframe).toHaveAttribute('allowfullscreen');
+    expect(iframe).not.toHaveAttribute('tabindex');
     expect(within(block).getByRole('status')).toHaveTextContent('Video player loaded');
   });
 
