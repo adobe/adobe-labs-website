@@ -466,6 +466,8 @@ describe('buildArticleMetaActions', () => {
 
     expect(writeText).toHaveBeenCalledWith('https://labs.adobe.com/research/foo');
     expect(within(groups[0]).getByRole('button', { name: 'Copied' })).toBeTruthy();
+    expect(groups[0].querySelector('[data-meta-action="copy-link"] svg'))
+      .toHaveAttribute('aria-hidden', 'true');
     expect(within(groups[1]).getByRole('button', { name: 'Copy link' })).toBeTruthy();
     expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Link copied');
 
@@ -541,9 +543,14 @@ describe('buildArticleMetaActions', () => {
     groups.forEach((group) => {
       expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
       const download = within(group).getByRole('link', { name: 'Download' });
+      expect(download).toHaveAccessibleName('Download');
       expect(download).toHaveAttribute('href', 'https://example.com/data.zip');
       expect(download).toHaveAttribute('data-meta-action', 'download');
       expect(download).toHaveAttribute('download', 'data.zip');
+      const icon = download.querySelector('.action-button__icon');
+      expect(icon).toHaveAttribute('aria-hidden', 'true');
+      expect(download.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+      expect(download.querySelector('svg')).toHaveAttribute('focusable', 'false');
       expect(group.querySelector('[data-meta-action="feedback"]')).toBeNull();
     });
   });
