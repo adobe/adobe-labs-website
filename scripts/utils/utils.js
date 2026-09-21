@@ -390,27 +390,8 @@ export function decorateArticleSections(main) {
 }
 
 /**
- * Names the section-level wrapper `decorateSections` builds around each
- * author-meta byline `article-meta-section`, mirroring how `decorateBlock`
- * gives a real block's own wrapper a `<name>-wrapper` class — except this
- * isn't a block, so nothing does that for it automatically. Must run after
- * `decorateSections` (the wrapper doesn't exist before that).
- *
- * Without this, the byline's own `.article-meta` used to carry its width
- * rule directly, but `decorateSections` always inserts a wrapper around
- * whatever `buildArticleAuthorMeta` puts in a section, so `.article-meta`
- * ends up one level deeper than the wrapper that actually gets the site's
- * generic `main > .section > div` inline padding. Since the
- * `--article-content-inline-size-*` values already have that padding baked
- * into them (see `.lead-in-wrapper` in lead-in.css, which applies its width
- * rule to the exact element that owns the padding), setting the same rule
- * one level deeper double-counted the padding and threw off alignment by
- * ~24px. `.article-meta-section` is that outer element, put back in the
- * same structural position `.lead-in-wrapper` occupies, so both compute an
- * identical width and left edge at every breakpoint (see `.article-meta-
- * section` in styles.css). It's also the container the action-buttons
- * component (ADBLABS-144/ADBLABS-155) should attach to, to right-align next
- * to the byline on the same row.
+ * Names the byline's section-level wrapper `article-meta-section`, matching
+ * `.lead-in-wrapper`'s structural position. Must run after `decorateSections`.
  *
  * @param {Element} main The page's main element
  */
