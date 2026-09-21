@@ -29,6 +29,7 @@ import {
   debounce,
   ensureSkipLink,
   decorateArticleSections,
+  decorateSectionMetadata,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -170,6 +171,7 @@ export function decorateMain(main) {
   decorateIcons(main);
   buildAutoBlocks(main);
   decorateSections(main);
+  decorateSectionMetadata(main);
   decorateArticleSections(main);
   decorateBlocks(main);
   decorateButtons(main);
