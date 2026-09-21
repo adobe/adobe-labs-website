@@ -1,66 +1,31 @@
-
-.image {
-  /* No sub-768px tier: below 48rem the image just scales fluidly (see
-     picture/img below), capped at the 48rem width instead of jumping to
-     a smaller fixed value. */
-  --image-width: 29.875rem; /* 478px */
-
-  @media (width >= 64rem) {
-    --image-width: 30.125rem; /* 482px */
+.image-wrapper {
+  &:has(.image.md) {
+    --article-content-max-inline-size: var(--article-default-content-max-inline-size);
   }
 
-  @media (width >= 90rem) {
-    --image-width: 43.25rem; /* 692px */
-  }
+  &:has(.image.lg) {
+    --article-content-max-inline-size: var(--article-default-content-max-inline-size);
 
-  @media (width >= 120rem) {
-    --image-width: 46.875rem; /* 750px */
-  }
-
-  &.lg {
-    @media (width >= 64rem) {
-      --image-width: 40.5rem; /* 648px */
-    }
-
-    @media (width >= 90rem) {
-      --image-width: 57.875rem; /* 926px */
-    }
-
-    @media (width >= 120rem) {
-      --image-width: 77.875rem; /* 1246px */
-    }
-  }
-
-  &.xl {
-    --image-width: calc(var(--article-content-inline-size-md, 37.375rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 598px */
-
-    @media (width >= 64rem) {
-      --image-width: calc(var(--article-content-inline-size-lg, 50.75rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 812px */
-    }
-
-    @media (width >= 90rem) {
-      --image-width: calc(var(--article-content-inline-size-xl, 72.375rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 1158px */
-    }
-
-    @media (width >= 120rem) {
-      --image-width: calc(var(--article-content-inline-size-xxl, 97.25rem) - (var(--site-root-inline-padding, 0px) * 2)); /* 1556px */
+    @media (width >= 48rem) {
+      --article-content-max-inline-size: max(calc(8 / 12 * 100%), var(--article-default-content-max-inline-size, 100%));
     }
   }
 }
 
 .image__figure {
-  margin: 0;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--s2a-spacing-2xs);
+  max-width: 100%;
 }
 
 .image__figure picture,
 .image__figure img {
   display: block;
   width: 100%;
-  max-width: var(--image-width);
+  max-width: 100%;
   height: auto;
   border-radius: var(--s2a-border-radius-xs);
 }
