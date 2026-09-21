@@ -1,91 +1,83 @@
-main > .section > .table-wrapper {
+.table-wrapper {
+  /* Scrollbar and max inline sizes */
   --table-scrollbar-track: var(--s2a-color-surface-default);
   --table-scrollbar-thumb: color-mix(in srgb, var(--s2a-color-gray-500) 30%, transparent);
 
-  margin-inline: auto;
-  max-inline-size: var(--article-content-inline-size-md);
-  overflow-x: auto;
-  overscroll-behavior-x: none;
-
-  &:has(.table--scrollable) {
-    padding-inline: 0;
-    padding-block-end: var(--s2a-spacing-xs);
-  }
+  overflow-x: clip;
 
   @media (width >= 64rem) {
-    max-inline-size: var(--article-content-inline-size-lg);
+    --article-content-max-inline-size: min(calc(8 / 12 * 100%), 57.75rem); /* 924px max. */
   }
 
-  @media (width >= 90rem) {
-    max-inline-size: var(--article-content-inline-size-xl);
-  }
+  &:has(.table--scrollable) {
+    overflow-x: auto;
+    overscroll-behavior-x: none;
+    padding-inline: 0;
+    padding-block-end: var(--s2a-spacing-xs);
 
-  @media (width >= 120rem) {
-    max-inline-size: var(--article-content-inline-size-xxl);
-  }
+    &::-webkit-scrollbar {
+      height: var(--s2a-spacing-xs);
+      background: var(--table-scrollbar-track);
+    }
 
-  &::-webkit-scrollbar {
-    height: var(--s2a-spacing-xs);
-    background: var(--table-scrollbar-track);
-  }
+    &::-webkit-scrollbar-track {
+      margin-inline: var(--s2a-spacing-xs);
+      background: var(--table-scrollbar-track);
+    }
 
-  &::-webkit-scrollbar-track {
-    margin-inline: var(--s2a-spacing-xs);
-    background: var(--table-scrollbar-track);
-  }
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--table-scrollbar-thumb);
+      border-radius: var(--s2a-border-radius-round);
+    }
 
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--table-scrollbar-thumb);
-    border-radius: var(--s2a-border-radius-round);
-  }
-
-  @supports not selector(::-webkit-scrollbar) {
-    scrollbar-width: auto;
-    scrollbar-color: var(--table-scrollbar-thumb) var(--table-scrollbar-track);
+    @supports not selector(::-webkit-scrollbar) {
+      scrollbar-width: auto;
+      scrollbar-color: var(--table-scrollbar-thumb) var(--table-scrollbar-track);
+    }
   }
 }
 
 .table {
+  /* Table chrome */
   --table-border-color: var(--s2a-color-border-subtle);
   --table-fade-size: var(--s2a-spacing-3xl);
   --table-th-background: var(--s2a-color-transparent-black-08);
 
-  display: flex;
-  inline-size: max-content;
-  min-inline-size: 100%;
-
   table {
-    flex: 0 0 auto;
-    inline-size: max-content;
     min-inline-size: 100%;
     overflow: hidden;
-    border-collapse: separate;
     border-spacing: 0;
     border: 1px solid var(--table-border-color);
-    border-radius: 0;
-  }
-
-  &.table--fitted table {
     border-radius: var(--s2a-border-radius-xs);
   }
 
-  &::after {
-    content: "";
-    flex: 0 0 var(--table-fade-size);
-    align-self: stretch;
-    margin-inline-start: calc(-1 * var(--table-fade-size));
-    position: sticky;
-    inset-inline-end: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      270deg,
-      color-mix(in srgb, var(--s2a-color-gray-600) 50%, transparent) 0%,
-      transparent 79.25%
-    );
-  }
+  &.table--scrollable {
+    display: flex;
 
-  &.table--scrolled-end::after {
-    opacity: 0;
+    table {
+      border-radius: 0;
+      flex-shrink: 0;
+    }
+
+    /* Table edge "fade" for scrollable tables */
+    &::after {
+      content: "";
+      flex: 0 0 var(--table-fade-size);
+      align-self: stretch;
+      margin-inline-start: calc(-1 * var(--table-fade-size));
+      position: sticky;
+      inset-inline-end: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        270deg,
+        color-mix(in srgb, var(--s2a-color-gray-600) 50%, transparent) 0%,
+        transparent 79.25%
+      );
+    }
+
+    &.table--scrolled-end::after {
+      opacity: 0;
+    }
   }
 
   th,
@@ -94,18 +86,17 @@ main > .section > .table-wrapper {
     font-weight: var(--s2a-font-weight-body);
     line-height: var(--s2a-typography-line-height-body-sm);
     letter-spacing: var(--s2a-typography-letter-spacing-body-sm);
-    padding-block: 0.75rem;
-    padding-inline: 1.25rem;
+    padding: var(--s2a-spacing-sm);
     border-block-end: 1px solid var(--table-border-color);
     border-inline-end: 1px solid var(--table-border-color);
     text-align: center;
     vertical-align: middle;
     white-space: nowrap;
     color: var(--s2a-color-content-default);
-    min-inline-size: 105px;
+    min-inline-size: 6.5rem; /* 104px */
 
     @media (width >= 90rem) {
-      min-inline-size: 164px;
+      min-inline-size: 10.25rem; /* 164px */
     }
 
     &:first-child {
@@ -119,16 +110,13 @@ main > .section > .table-wrapper {
     & > * {
       margin: 0;
     }
-
-    & > * + * {
-      margin-block-start: var(--s2a-spacing-3xs);
-    }
   }
 
   th {
     background: var(--table-th-background);
-    padding-block: 1rem;
+    padding-block: var(--s2a-spacing-md);
     font-weight: var(--s2a-font-weight-label);
+    line-height: var(--s2a-typography-line-height-body-sm);
   }
 
   table > :last-child > tr:last-child > * {
@@ -136,6 +124,7 @@ main > .section > .table-wrapper {
   }
 }
 
+/* Dark theme */
 :root[data-theme="dark"] .table-wrapper {
   --table-scrollbar-track: var(--s2a-color-transparent-white-12);
   --table-scrollbar-thumb: var(--s2a-color-gray-400);

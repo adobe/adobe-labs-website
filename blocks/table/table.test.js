@@ -1,9 +1,13 @@
 import { within } from '@testing-library/dom';
 import decorate from './table.js';
 
-function mockWrapperWidths(wrapper, { scrollWidth, clientWidth }) {
-  Object.defineProperty(wrapper, 'scrollWidth', { configurable: true, writable: true, value: scrollWidth });
+function mockScrollerWidths(wrapper, { tableScrollWidth, clientWidth }) {
+  Object.defineProperty(wrapper, 'scrollWidth', { configurable: true, writable: true, value: tableScrollWidth });
   Object.defineProperty(wrapper, 'clientWidth', { configurable: true, value: clientWidth });
+}
+
+function mockTableScrollWidth(table, tableScrollWidth) {
+  Object.defineProperty(table, 'scrollWidth', { configurable: true, writable: true, value: tableScrollWidth });
 }
 
 function createBlock(rows, className = 'table') {
@@ -21,14 +25,42 @@ function createBlock(rows, className = 'table') {
   return block;
 }
 
+function mockSitePad(wrapper, sitePad) {
+  if (!sitePad) return () => {};
+  const getComputedStyle = window.getComputedStyle.bind(window);
+  const spy = jest.spyOn(window, 'getComputedStyle').mockImplementation((el) => {
+    const styles = getComputedStyle(el);
+    if (el !== wrapper) return styles;
+    return {
+      getPropertyValue: (name) => (
+        name === '--site-root-inline-padding' ? `${sitePad}px` : styles.getPropertyValue(name)
+      ),
+    };
+  });
+  return () => spy.mockRestore();
+}
+
 function decorateInWrapper(block, widths) {
   const wrapper = document.createElement('div');
   wrapper.className = 'table-wrapper';
   wrapper.append(block);
   document.body.append(wrapper);
-  mockWrapperWidths(wrapper, widths);
+  mockScrollerWidths(wrapper, widths);
   Object.defineProperty(wrapper, 'scrollLeft', { configurable: true, writable: true, value: 0 });
+  const restoreSitePad = mockSitePad(wrapper, widths.sitePad);
+
+  const createElement = document.createElement.bind(document);
+  const spy = jest.spyOn(document, 'createElement').mockImplementation((tagName, options) => {
+    const el = createElement(tagName, options);
+    if (String(tagName).toLowerCase() === 'table') {
+      mockTableScrollWidth(el, widths.tableScrollWidth);
+    }
+    return el;
+  });
+
   decorate(block);
+  spy.mockRestore();
+  wrapper.restoreSitePad = restoreSitePad;
   return wrapper;
 }
 
@@ -77,6 +109,11 @@ const HTML_CELLS = [
 ];
 
 describe('table block', () => {
+  afterEach(() => {
+    document.body.replaceChildren();
+    jest.restoreAllMocks();
+  });
+
   it('renders any number of rows and columns from the wage-summary grid', () => {
     const block = createBlock(WAGE_SUMMARY);
 
@@ -165,9 +202,10 @@ describe('table block', () => {
 
   it('hides the end fade when the wrapper is scrolled to the right', () => {
     const block = createBlock(WAGE_SUMMARY);
-    const wrapper = decorateInWrapper(block, { scrollWidth: 500, clientWidth: 200 });
+    const wrapper = decorateInWrapper(block, { tableScrollWidth: 500, clientWidth: 200 });
 
     expect(block).toHaveClass('table--scrollable');
+    expect(block).not.toHaveClass('table--fitted');
     expect(block).not.toHaveClass('table--scrolled-end');
 
     wrapper.scrollLeft = 300;
@@ -181,17 +219,34 @@ describe('table block', () => {
 
   it('hides the end fade after resize when the table fits', () => {
     const block = createBlock(WAGE_SUMMARY);
-    const wrapper = decorateInWrapper(block, { scrollWidth: 900, clientWidth: 400 });
+    const wrapper = decorateInWrapper(block, { tableScrollWidth: 900, clientWidth: 400 });
 
     expect(block).toHaveClass('table--scrollable');
+    expect(block).not.toHaveClass('table--fitted');
     expect(block).not.toHaveClass('table--scrolled-end');
 
+    const table = block.querySelector('table');
+    table.scrollWidth = 300;
     wrapper.scrollWidth = 300;
     window.dispatchEvent(new Event('resize'));
 
     expect(block).not.toHaveClass('table--scrollable');
-    expect(block).toHaveClass('table--fitted');
+    expect(block).not.toHaveClass('table--fitted');
     expect(block).toHaveClass('table--scrolled-end');
+
+    wrapper.remove();
+  });
+
+  it('keeps a table fitted when it only fills the padded column', () => {
+    const block = createBlock(WAGE_SUMMARY);
+    const wrapper = decorateInWrapper(block, {
+      tableScrollWidth: 400,
+      clientWidth: 400,
+      sitePad: 16,
+    });
+
+    expect(block).not.toHaveClass('table--scrollable');
+    expect(block).not.toHaveClass('table--fitted');
 
     wrapper.remove();
   });

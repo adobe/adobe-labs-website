@@ -9,23 +9,23 @@ function buildCell(headerRow, headerColumn, rowIndex, colIndex) {
   return cell;
 }
 
-function isScrolledToEnd(scroller) {
-  return scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1;
+function isScrolledToEnd(tableWrapper) {
+  return tableWrapper.scrollLeft + tableWrapper.clientWidth >= tableWrapper.scrollWidth - 1;
 }
 
 function bindOverflowUi(block) {
-  const scroller = block.parentElement?.classList.contains('table-wrapper')
+  const tableWrapper = block.parentElement?.classList.contains('table-wrapper')
     ? block.parentElement
     : block;
 
   const updateOverflowUi = () => {
-    const scrollable = scroller.scrollWidth > scroller.clientWidth;
+    const table = block.querySelector('table');
+    const scrollable = table.scrollWidth > tableWrapper.clientWidth;
     block.classList.toggle('table--scrollable', scrollable);
-    block.classList.toggle('table--fitted', !scrollable);
-    block.classList.toggle('table--scrolled-end', isScrolledToEnd(scroller));
+    block.classList.toggle('table--scrolled-end', isScrolledToEnd(tableWrapper));
   };
 
-  scroller.addEventListener('scroll', updateOverflowUi, { passive: true });
+  tableWrapper.addEventListener('scroll', updateOverflowUi, { passive: true });
   window.addEventListener('resize', updateOverflowUi);
   updateOverflowUi();
   requestAnimationFrame(updateOverflowUi);
