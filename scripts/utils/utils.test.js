@@ -673,7 +673,7 @@ describe('buildArticleMetaActions', () => {
       const feedback = within(group).getByRole('link', { name: 'Feedback (opens email)' });
       expect(feedback).toHaveAttribute(
         'href',
-        'mailto:labs@adobe.com?subject=How%20Creatives%20think',
+        'mailto:labs@adobe.com?subject=Feedback%3A%20How%20Creatives%20think',
       );
       expect(feedback).not.toHaveAttribute('download');
       expect(feedback).not.toHaveAttribute('target');
@@ -692,7 +692,7 @@ describe('buildArticleMetaActions', () => {
       .getByRole('link', { name: 'Feedback (opens email)' });
     expect(feedback).toHaveAttribute(
       'href',
-      `mailto:labs@adobe.com?subject=${encodeURIComponent(title)}`,
+      `mailto:labs@adobe.com?subject=${encodeURIComponent(`Feedback: ${title}`)}`,
     );
     expect(feedback.getAttribute('href')).not.toContain('&');
     expect(feedback.getAttribute('href')).toContain('%26');

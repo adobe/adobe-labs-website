@@ -263,9 +263,9 @@ function getDownloadFilename(href) {
 }
 
 /**
- * Mailto for the article Feedback action. The subject is the page metadata
- * Title. AEM writes that row to `og:title`, not `meta[name="title"]`.
- * A missing title omits the query.
+ * Mailto for the article Feedback action. The subject is "Feedback: " plus
+ * the page metadata Title. AEM writes that row to `og:title`, not
+ * `meta[name="title"]`. A missing title omits the query.
  *
  * @returns {string}
  */
