@@ -1,11 +1,14 @@
 import { within } from '@testing-library/dom';
 import { buildBlock, getMetadata } from '../aem.js';
 import {
+  buildArticleAuthorMeta,
   buildArticleMetaActions,
   buildArticlePreFooter,
+  buildAuthorByline,
   buildPlayIcon,
   ensureSkipLink,
   decorateArticleSections,
+  decorateSectionMetadata,
   formatCardDate,
   getAuthoredCells,
   getSection,
@@ -18,6 +21,21 @@ jest.mock('../aem.js', () => ({
   toClassName: (name) => (typeof name === 'string'
     ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     : ''),
+  toCamelCase: (name) => (typeof name === 'string'
+    ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      .replace(/-([a-z])/g, (g) => g[1].toUpperCase())
+    : ''),
+  readBlockConfig: (block) => {
+    const config = {};
+    [...block.children].forEach((row) => {
+      const cols = [...row.children];
+      if (cols[1]) {
+        const name = cols[0].textContent.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        config[name] = cols[1].textContent.trim();
+      }
+    });
+    return config;
+  },
   getMetadata: jest.fn(() => ''),
   buildBlock: jest.fn(),
 }));
@@ -826,5 +844,223 @@ describe('decorateArticleSections', () => {
 
     expect(first).toHaveClass('section-rounded-default');
     expect(second).toHaveClass('section-rounded-default');
+  });
+});
+
+describe('buildAuthorByline', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getMetadata.mockReturnValue('');
+  });
+
+  it('falls back to Adobe Labs when there is no author metadata', () => {
+    const byline = buildAuthorByline();
+
+    expect(byline).toHaveClass('article-meta__authors');
+    expect(byline.querySelector('.article-meta__authors-label')).toHaveTextContent('Words by:');
+    const names = [...byline.querySelectorAll('.article-meta__author-name')].map((el) => el.textContent);
+    expect(names).toEqual(['Adobe Labs']);
+  });
+
+  it('reads one author per name from comma-separated metadata', () => {
+    getMetadata.mockReturnValue('Randy Oest, Josh Winn');
+
+    const byline = buildAuthorByline();
+
+    const names = [...byline.querySelectorAll('.article-meta__author-name')].map((el) => el.textContent);
+    expect(names).toEqual(['Randy Oest', 'Josh Winn']);
+    expect(byline.querySelectorAll('.article-meta__author')).toHaveLength(2);
+  });
+
+  it('requests each author image by slugified name and hides it until it loads', () => {
+    getMetadata.mockReturnValue('Randy Oest');
+
+    const byline = buildAuthorByline();
+
+    const img = byline.querySelector('.article-meta__author-image');
+    expect(img).toHaveAttribute('src', '/media/authors/randy-oest.png');
+    expect(img).toHaveAttribute('alt', '');
+    expect(img.hidden).toBe(true);
+  });
+
+  it('reveals the image on load and removes it on error', () => {
+    getMetadata.mockReturnValue('Randy Oest');
+    const byline = buildAuthorByline();
+    const img = byline.querySelector('.article-meta__author-image');
+    const item = img.closest('.article-meta__author');
+
+    img.dispatchEvent(new Event('load'));
+    expect(img.hidden).toBe(false);
+
+    img.dispatchEvent(new Event('error'));
+    expect(item.querySelector('.article-meta__author-image')).toBeNull();
+    expect(item.querySelector('.article-meta__author-name')).toHaveTextContent('Randy Oest');
+  });
+
+  it('does not render authors as links', () => {
+    getMetadata.mockReturnValue('Randy Oest');
+
+    const byline = buildAuthorByline();
+
+    expect(byline.querySelector('a')).toBeNull();
+  });
+
+  it('returns a new element on every call', () => {
+    expect(buildAuthorByline()).not.toBe(buildAuthorByline());
+  });
+});
+
+describe('buildArticleAuthorMeta', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getMetadata.mockReturnValue('');
+    document.body.innerHTML = '';
+  });
+
+  it('does not inject when main is detached from the document', () => {
+    mockTemplate('article');
+    const main = document.createElement('main');
+    main.append(createSection());
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector('.article-meta')).toBeNull();
+  });
+
+  it('does not inject on non-article pages', () => {
+    const main = document.createElement('main');
+    main.append(createSection());
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector('.article-meta')).toBeNull();
+  });
+
+  it('prepends the top meta and appends the bottom meta to the non-hero sections', () => {
+    mockTemplate('article');
+    const hero = createSection({ hero: true });
+    const body = createSection();
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'Body copy';
+    body.append(paragraph);
+    const preFooter = createSection();
+    const main = document.createElement('main');
+    main.append(hero, body, preFooter);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(hero.querySelector('.article-meta')).toBeNull();
+    expect(body.firstElementChild.querySelector('.article-meta')).not.toBeNull();
+    expect(preFooter.lastElementChild.querySelector('.article-meta')).not.toBeNull();
+    // The meta lives in its own classless wrapper div, not directly as the
+    // section's child, so decorateSections can't merge it into a shared
+    // .default-content-wrapper with neighboring content.
+    expect(body.firstElementChild).not.toHaveClass('article-meta');
+    expect(body.firstElementChild.className).toBe('');
+    expect(body.querySelector('.article-meta').tagName).toBe('ASIDE');
+  });
+
+  it('places both the top and bottom meta in the only section when there is no hero', () => {
+    mockTemplate('article');
+    const only = createSection();
+    const main = document.createElement('main');
+    main.append(only);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(only.firstElementChild.querySelector('.article-meta')).not.toBeNull();
+    expect(only.lastElementChild.querySelector('.article-meta')).not.toBeNull();
+    expect(only.querySelectorAll('.article-meta')).toHaveLength(2);
+  });
+
+  it('marks the top and bottom instances with article-meta--top/--bottom', () => {
+    mockTemplate('article');
+    const hero = createSection({ hero: true });
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(hero, body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(body.firstElementChild.querySelector('.article-meta')).toHaveClass('article-meta--top');
+    expect(body.lastElementChild.querySelector('.article-meta')).toHaveClass('article-meta--bottom');
+  });
+
+  it('inserts the top meta right after the hero when authors skip the section break after it', () => {
+    mockTemplate('article');
+    const section = document.createElement('div');
+    section.className = 'section';
+    const hero = document.createElement('div');
+    hero.className = 'hero';
+    const leadIn = document.createElement('div');
+    leadIn.className = 'lead-in';
+    leadIn.textContent = 'Lead in text';
+    section.append(hero, leadIn);
+    const main = document.createElement('main');
+    main.append(section);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(hero.nextElementSibling.querySelector('.article-meta')).not.toBeNull();
+    expect(section.lastElementChild.querySelector('.article-meta')).not.toBeNull();
+    expect(section.querySelectorAll('.article-meta')).toHaveLength(2);
+  });
+});
+
+/**
+ * Mirrors the DOM shape decorateSections leaves behind: a `.section` whose
+ * `Section Metadata` table sits in its own wrapper div, as `.section-metadata`.
+ */
+function createSectionMetadataFixture(fields) {
+  const meta = createKeyValueBlock(fields);
+  meta.className = 'section-metadata';
+  const wrapper = document.createElement('div');
+  wrapper.append(meta);
+  const section = document.createElement('div');
+  section.className = 'section';
+  section.append(wrapper);
+  return { section, meta };
+}
+
+describe('decorateSectionMetadata', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('copies metadata keys onto section.dataset and removes the table', () => {
+    const { section, meta } = createSectionMetadataFixture({ Toc: 'Section 1' });
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(section.dataset.toc).toBe('Section 1');
+    expect(section.contains(meta)).toBe(false);
+  });
+
+  it('splits the style key into one or more section classes instead of a dataset entry', () => {
+    const { section } = createSectionMetadataFixture({ Style: 'section-rounded-blue, highlight' });
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(section).toHaveClass('section-rounded-blue');
+    expect(section).toHaveClass('highlight');
+    expect(section.dataset.style).toBeUndefined();
+  });
+
+  it('does not touch sections without a Section Metadata table', () => {
+    const section = createSection();
+    const main = document.createElement('main');
+    main.append(section);
+
+    expect(() => decorateSectionMetadata(main)).not.toThrow();
+    expect(section.dataset.toc).toBeUndefined();
   });
 });
