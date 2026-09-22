@@ -75,6 +75,85 @@ const readCredentials = async (img) => {
 };
 
 /**
+ * Adds a "CR" pin button to the image's pin wrapper. The button uses the native Popover API
+ * to toggle a panel that displays the image's content credentials data and an inspect button.
+
+ * @param {HTMLElement} pinWrapper The wrapper element to append the button to.
+ */
+const buildCRPinPopoverComponent = (pinWrapper) => {
+  const popoverId = `cr-popover-${crypto.randomUUID()}`;
+  const groupClass = 'cr-pin-popover__group';
+  const itemClass = 'cr-pin-button__item';
+
+  // CR pin button that toggles the popover.
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.classList.add('cr-pin-button');
+  button.setAttribute('popovertarget', popoverId);
+  button.setAttribute('aria-haspopup', 'dialog');
+  button.setAttribute('aria-controls', popoverId);
+  button.setAttribute('aria-expanded', 'false');
+  button.innerHTML = '<svg aria-label="View content credentials for this image" class="cr-pin-button__icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" part="svg"><path fill="white" stroke="black" stroke-width="2.08" d="M1.54 12C1.54 5.94696 6.44696 1.04 12.5 1.04C18.553 1.04 23.46 5.94696 23.46 12V22.96H12.5C6.44696 22.96 1.54 18.053 1.54 12Z"></path><path fill="black" d="M9.61051 17.322C6.89755 17.322 5.20411 15.1966 5.20411 12.6737C5.20411 10.1508 6.89755 8.02536 9.61051 8.02536C11.8051 8.02536 13.2912 9.4596 13.6886 11.3258H11.4768C11.183 10.4964 10.4918 9.99528 9.61051 9.99528C8.24539 9.99528 7.34683 11.0666 7.34683 12.6737C7.34683 14.2807 8.24539 15.3521 9.61051 15.3521C10.5264 15.3521 11.2348 14.8164 11.5113 13.9351H13.7059C13.343 15.8532 11.8396 17.322 9.61051 17.322ZM14.5797 17.0801V8.26728H16.6533V9.21768C17.1372 8.57832 17.8975 8.1636 19.038 8.1636H19.5736V10.2026H19.0207C18.2431 10.2026 17.7592 10.3754 17.3964 10.7038C16.9816 11.0494 16.7397 11.6196 16.7397 12.4836V17.0801H14.5797Z"></path></svg>';
+
+  // Popover (container/content).
+  const popover = document.createElement('div');
+  popover.id = popoverId;
+  popover.classList.add('cr-pin-popover');
+  popover.setAttribute('popover', 'auto');
+  popover.setAttribute('role', 'dialog');
+  popover.setAttribute('aria-label', 'Content credentials');
+  popover.innerHTML = '<div class="cr-pin-popover__group"><h3 class="cr-pin-popover__heading">Content Credentials</h3><p class="cr-pin-popover__subheading">Recorded by Adobe Content Authenticity</p></div>';
+
+  // Build groups of items based on the CR data in the manifest.
+  const buildCredentialName = () => {
+    const group = document.createElement('div');
+    group.classList.add(groupClass);
+
+    const item = document.createElement('div');
+    item.classList.add(itemClass, `${itemClass}--name`);
+    group.append(item);
+
+    return group;
+  };
+
+  const buildCredentialSocials = () => {
+    const group = document.createElement('div');
+    group.classList.add(groupClass);
+
+    const item = document.createElement('div');
+    item.classList.add(itemClass, `${itemClass}--socials`);
+    group.append(item);
+
+    return group;
+  };
+
+  const buildCredentialAiNotice = () => {
+    const group = document.createElement('div');
+    group.classList.add(groupClass);
+
+    const item = document.createElement('div');
+    item.classList.add(itemClass, `${itemClass}--ai-notice`);
+    group.append(item);
+
+    return group;
+  };
+
+  const itemName = buildCredentialName();
+  const itemSocials = buildCredentialSocials();
+  const itemAiNotice = buildCredentialAiNotice();
+  popover.append(itemName, itemSocials, itemAiNotice);
+
+  // Keep `aria-expanded` in sync with the popover's open/closed state, including when it
+  // is closed via light-dismiss (an outside click or Escape key).
+  popover.addEventListener('toggle', (event) => {
+    button.setAttribute('aria-expanded', event.newState === 'open' ? 'true' : 'false');
+  });
+
+  // Append the CR pin and its popover.
+  pinWrapper.append(button, popover);
+};
+
+/**
  * Find and read images on the page, and read their CR data.
  */
 const addContentCredentials = async (crImageSelector) => {
@@ -99,16 +178,8 @@ const addContentCredentials = async (crImageSelector) => {
     crPinWrapper.classList.add('cr-pin-image');
     picture.before(crPinWrapper);
     crPinWrapper.append(picture);
+    buildCRPinPopoverComponent(crPinWrapper);
   });
-};
-
-/**
- * Adds a "CR" button to the image. The button is a component that toggles a popover
- * displaying the image data.
- */
-// eslint-disable-next-line no-unused-vars
-const buildComponent = (imageElement, crData) => {
-  throw new Error('Not Implemented Exception');
 };
 
 // Run on import for all relevant images.
