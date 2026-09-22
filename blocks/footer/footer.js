@@ -99,7 +99,7 @@ function decorateNewsletterColumn(column) {
     <div class="footer__menu-column footer__menu-column--newsletter">
       <div class="footer__menu-section">
         <div class="footer__menu-items footer__menu-items--newsletter">
-          <form class="footer__form" action="${escapeAttr(action)}" method="post" aria-label="Newsletter signup">
+          <form class="footer__form" action="${escapeAttr(action)}" method="post" aria-label="Newsletter sign up">
             <label class="footer__label" for="footer-email">Your email address</label>
             <input
               id="footer-email"
