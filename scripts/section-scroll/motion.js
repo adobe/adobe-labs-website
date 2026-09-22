@@ -11,7 +11,6 @@
  * pair.
  */
 import { gsap, ScrollTrigger } from '../../deps/gsap/dist/index.js';
-import { clearTabOrderSuppression, setTabOrderSuppressed } from '../utils/tab-order.js';
 import {
   CLASS_FADE,
   COVER_EASE_VH,
@@ -93,29 +92,6 @@ function overlayFor(section) {
  */
 export function clearMotionState(root) {
   root.querySelectorAll(`.${CLASS_OVERLAY}`).forEach((el) => el.remove());
-  clearTabOrderSuppression(root);
-}
-
-/**
- * Adds tab-order suppression to a trigger that fades `host` out, applied once
- * the fade has fully landed.
- *
- * Bound to the range boundaries rather than to `onUpdate`, so it costs nothing
- * per scroll tick. `onRefresh` covers landing mid-page from a deep link, where
- * `onLeave` never fires.
- *
- * @param {object} config ScrollTrigger config
- * @param {HTMLElement} host Element the trigger hides
- * @returns {object}
- */
-function suppressTabOrderWhenHidden(config, host) {
-  const sync = (self) => setTabOrderSuppressed(host, self.progress >= 1);
-  return {
-    ...config,
-    onLeave: sync,
-    onEnterBack: sync,
-    onRefresh: sync,
-  };
 }
 
 /**
@@ -141,7 +117,7 @@ function atVh(fraction) {
 function coverTimeline(slow, next, startAt) {
   return gsap.timeline({
     defaults: { ease: 'none' },
-    scrollTrigger: suppressTabOrderWhenHidden(scrub(next, startAt), slow),
+    scrollTrigger: scrub(next, startAt),
   });
 }
 
@@ -160,9 +136,8 @@ function dim(timeline, overlay, heroText, span) {
   timeline.fromTo(overlay, { opacity: 0 }, { opacity: OVERLAY_DIM, duration }, at);
   // `opacity`, not GSAP's `autoAlpha`: autoAlpha adds `visibility: hidden` at 0,
   // which would drop the hero's heading out of the accessibility tree once the
-  // page has scrolled past it. Keyboard focus is handled by the cover
-  // timeline's `suppressTabOrderWhenHidden`, which hides nothing from
-  // assistive technology.
+  // page has scrolled past it. A covered control stays in the tab order;
+  // `focus-reveal.js` scrolls it into view.
   if (heroText) timeline.fromTo(heroText, { opacity: 1 }, { opacity: 0, duration }, at);
 }
 
@@ -180,12 +155,12 @@ function fadeHeader(headerWrap) {
   gsap.fromTo(headerWrap, { opacity: 1 }, {
     opacity: 0,
     ease: 'none',
-    scrollTrigger: suppressTabOrderWhenHidden({
+    scrollTrigger: {
       start: 0,
       end: () => window.innerHeight * headerFadeVh(),
       scrub: true,
       invalidateOnRefresh: true,
-    }, headerWrap),
+    },
   });
 }
 
