@@ -16,7 +16,7 @@ const FOOTER_FRAGMENT = `
     <div><div class="footer-newsletter">
       <h2>New research, in your inbox.</h2>
       <p>We publish new AI research as it's ready.</p>
-      <p><a href="https://example.com/subscribe">Subscribe</a></p>
+      <p class="button-wrapper"><a class="button primary" href="https://example.com/subscribe" title="Subscribe">Subscribe</a></p>
     </div></div>
     <div><div>
       <h2>Connect</h2>
@@ -102,18 +102,19 @@ describe('footer block', () => {
     expect(loadFragment).toHaveBeenCalledWith('/fragments/custom-footer');
   });
 
-  it('builds a newsletter form from authored content', async () => {
+  it('shows an authored button in the promo column', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
 
     await decorate(block);
 
-    const form = block.querySelector('.footer__form');
-    expect(form).toHaveAttribute('action', 'https://example.com/subscribe');
-    expect(form).toHaveAttribute('method', 'post');
-    expect(form).toHaveAttribute('aria-label');
-    expect(within(block).getByLabelText('Your email address')).toHaveAttribute('type', 'email');
-    expect(block.querySelector('.footer__submit')).toHaveAttribute('aria-label', 'Subscribe');
+    const button = within(block).getByRole('link', { name: 'Subscribe' });
+    expect(button).toHaveClass('button', 'button--static-white');
+    expect(button).toHaveAttribute('href', 'https://example.com/subscribe');
+    expect(button).not.toHaveAttribute('title');
+    expect(button.closest('.button-wrapper')).toBeTruthy();
+    expect(button.closest('.footer__menu-column--newsletter')).toBeTruthy();
+    expect(block.querySelector('.footer__form')).toBeNull();
   });
 
   it('parses menu columns from h2 groups', async () => {
