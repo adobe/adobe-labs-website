@@ -286,6 +286,10 @@ You can also paste a public file URL (for example an Adobe-hosted PDF).
 - ZIP is not a DA media type. Host the ZIP (AEM Assets or another public URL) and paste that URL into **Download Link**.
 - Do not drop a ZIP or PDF into the article body as if it were an image.
 
+### Feedback
+
+Article pages include a Feedback action with Copy link. It opens a message to labs@adobe.com. The subject is the **Title** row from the page Metadata table. After preview, AEM publishes that row as `og:title`. When Title is empty, the link has no subject.
+
 ### Full-bleed images in articles
 
 To use full-bleed default content in an article (for example a lone image), in the AEM editor use a section break and a Section Metadata block that includes "full-bleed" as a value for "Style". Keep that content in its own section.
