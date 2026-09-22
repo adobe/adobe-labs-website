@@ -273,7 +273,7 @@ function getFeedbackHref() {
   const title = getMetadata('og:title').trim();
   const base = `mailto:${FEEDBACK_EMAIL}`;
   if (!title) return base;
-  return `${base}?subject=${encodeURIComponent(title)}`;
+  return `${base}?subject=${encodeURIComponent("Feedback: " + title)}`;
 }
 
 /**
