@@ -884,3 +884,8 @@ body.article main {
   font-size: var(--serif-body-font-size);
   line-height: var(--serif-body-line-height);
 }
+
+/* Content credentials CR pin wrapper. */
+.cr-pin-image {
+  position: relative;
+}
