@@ -323,15 +323,21 @@
   pointer-events: none;
 }
 
-/* Wider than its box on purpose; `.footer__logo` clips the bleed. Starts 50%
-   below the clip (`-100`) and rises to rest (`0`) as the inner uncovers it. */
+/* Wider than its box on purpose; `.footer__logo` clips the bleed. When motion
+   is allowed, it starts 50% below the clip (`-100`) and rises to rest (`0`) as
+   the inner uncovers it. Reduced motion leaves the logo at rest. */
 .footer__logo-image {
   display: block;
   inline-size: calc(100% + 3.5rem);
   max-inline-size: none;
   block-size: auto;
   flex-shrink: 0;
-  transform: translateY(calc((var(--footer-logo-entry-progress, -100) / 100) * -50%));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .footer__logo-image {
+    transform: translateY(calc((var(--footer-logo-entry-progress, -100) / 100) * -50%));
+  }
 }
 
 @media (width >= 120rem) {

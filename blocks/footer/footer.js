@@ -464,8 +464,9 @@ function decorateLegal(legal) {
 
 /**
  * Drives `--footer-logo-entry-progress` so the image can rise from below the
- * clip as `.footer__inner` uncovers it. Height is cached across scroll frames
- * and dropped on resize.
+ * clip as `.footer__inner` uncovers it. The rise itself is the transform in
+ * `footer.css`, and that rule only applies when motion is allowed. Height is
+ * cached across scroll frames and dropped on resize.
  *
  * @param {Element|null} logo Footer logo element
  * @returns {void}
