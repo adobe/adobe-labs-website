@@ -1221,3 +1221,8 @@ body.article main > [class*="section-rounded-"]:not(
     margin-block-end: calc(-1 * (var(--s2a-spacing-4xl) - var(--s2a-spacing-2xl)));
   }
 }
+
+/* Content credentials CR pin wrapper. */
+.cr-pin-image {
+  position: relative;
+}

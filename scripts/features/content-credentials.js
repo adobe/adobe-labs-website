@@ -23,20 +23,24 @@ import { createC2pa, Reader } from '../../deps/c2pa-web/index.js';
 let c2pa = null;
 
 /**
- * Selector(s) for image elements that should be checked for CR data.
+ * Selector(s) for image elements that should display a CR pin if they have CR data.
  */
-const CR_IMAGE_SELECTOR = 'main picture > img';
+const CR_IMAGE_SELECTORS = [
+  'body.article .image-wrapper picture > img',
+  'body.article .side-by-side-image-wrapper picture > img',
+  'body.article .default-content-wrapper picture > img',
+].join(', ');
 
 /**
- * Read content credentials of image element.
+ * Read content credentials of image element and return the manifest data if it exists.
  * @param {HTMLImageElement} img
- * @returns
+ * @returns {Promise<object|false>} The image's active C2PA manifest, or false if none was found.
  */
 const readCredentials = async (img) => {
   // Make sure image exists and has a `src` value.
   if (!img?.src) return false;
 
-  // Create a c2pa instance with the WASM binary.
+  // Create a c2pa instance with the WASM binary, if it has not been created yet.
   if (!c2pa) {
     c2pa = await createC2pa({
       wasmSrc: new URL('../../deps/c2pa-web/resources/c2pa_bg.wasm', import.meta.url).href,
@@ -56,21 +60,18 @@ const readCredentials = async (img) => {
   // Create a c2pa reader.
   const reader = await Reader.fromBlob(c2pa, blob.type, blob);
   if (!reader) {
-    console.log(`No C2PA manifest found on: ${img.src}`);
+    console.log(`No C2PA manifest found on: ${urlWithoutQueryParams}`);
     return false;
   }
-  console.log(`Found a CR manifest on: ${img.src}`);
+  console.log(`Found a CR manifest on: ${urlWithoutQueryParams}`);
 
   // Read the manifest store from the fetched image.
-  const manifestStore = await reader.manifestStore();
-  console.log(JSON.stringify(manifestStore, null, 2));
-
-  const active = await reader.activeManifest();
-  console.log('Active title:', active.title);
+  const activeManifest = await reader.activeManifest();
 
   // Free the reader to release WASM memory.
   await reader.free();
-  return true;
+
+  return activeManifest;
 };
 
 /**
@@ -84,10 +85,20 @@ const addContentCredentials = async (crImageSelector) => {
   }
 
   // Find all relevant images in the DOM and read their credentials.
+  // If there is CR data, give it a wrapper and add the pin with its data.
   images.forEach((img) => {
-    img.closest('picture').setAttribute('style', 'display:block; border:1px solid hotpink;');
-    console.log(`reading ${img.src}`);
-    readCredentials(img);
+    // Get CR data.
+    const activeManifest = readCredentials(img);
+    if (!activeManifest) return;
+
+    // Give the picture element a wrapper, for positioning the CR pin on top of it.
+    const picture = img.closest('picture');
+    if (!picture) return;
+
+    const crPinWrapper = document.createElement('span');
+    crPinWrapper.classList.add('cr-pin-image');
+    picture.before(crPinWrapper);
+    crPinWrapper.append(picture);
   });
 };
 
@@ -102,7 +113,7 @@ const buildComponent = (imageElement, crData) => {
 
 // Run on import for all relevant images.
 try {
-  await addContentCredentials(CR_IMAGE_SELECTOR);
+  await addContentCredentials(CR_IMAGE_SELECTORS);
 } catch (error) {
   console.error('Error reading C2PA data:', error);
 } finally {
