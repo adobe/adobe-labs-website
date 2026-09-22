@@ -538,6 +538,14 @@ footer {
   }
 }
 
+@media (width > 23.4375rem) {
+  .article-meta--bottom {
+    flex-direction: column;
+    gap: var(--s2a-spacing-2xl);
+    align-items: flex-start;
+  }
+}
+
 .article-meta__authors-label,
 .article-meta__author-name {
   /* s2a/typography/heading-6 */
