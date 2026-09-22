@@ -581,8 +581,8 @@ footer {
 }
 
 .article-meta__author-image {
-  inline-size: 19px; /* Figma spec; no matching s2a spacing token */
-  block-size: 19px;
+  inline-size: 20px; /* Figma spec; no matching s2a spacing token */
+  block-size: 20px;
   border-radius: var(--s2a-border-radius-round);
   object-fit: cover;
 }
