@@ -4,6 +4,16 @@ body.article main .video-wrapper {
 }
 
 .video {
+  --video-transcript-summary-hover: var(--s2a-color-transparent-black-08);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2a-spacing-xs);
+
+  .video__stage {
+    width: 100%;
+  }
+
   .video__poster,
   .video__player {
     position: relative;
@@ -80,7 +90,89 @@ body.article main .video-wrapper {
   /* Inset so overflow:hidden on the player does not clip the ring. */
   .video__player iframe:focus,
   .video__player iframe:focus-visible {
-    outline: 2px solid var(--s2a-color-focus-ring-default);
-    outline-offset: -3px;
+    outline: 0.125rem solid var(--s2a-color-focus-ring-default);
+    outline-offset: -0.1875rem;
   }
+
+  .video__transcript {
+    width: 100%;
+  }
+
+  .video__transcript summary {
+    display: flex;
+    align-items: center;
+    min-block-size: 2rem;
+    padding-block: 0.4375rem;
+    padding-inline: 0.625rem;
+    border-radius: var(--s2a-border-radius-xs);
+    color: var(--s2a-color-content-default);
+    font-size: var(--s2a-typography-font-size-label);
+    font-weight: var(--s2a-font-weight-label);
+    line-height: var(--s2a-typography-line-height-label);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .video__transcript summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .video__transcript summary::marker {
+    content: '';
+  }
+
+  .video__transcript summary:hover {
+    background-color: var(--video-transcript-summary-hover);
+  }
+
+  .video__transcript summary:focus-visible {
+    outline: 0.125rem solid var(--s2a-color-focus-ring-default);
+    outline-offset: 0.125rem;
+  }
+
+  .video__transcript-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 0.625rem;
+    height: 0.625rem;
+    margin-inline-end: 0.625rem;
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .video__transcript-icon {
+      transition: transform 0.2s ease;
+    }
+  }
+
+  .video__transcript[open] .video__transcript-icon {
+    transform: rotate(90deg);
+  }
+
+  .video__transcript-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2a-spacing-md);
+    padding: var(--s2a-spacing-md);
+    border-radius: var(--s2a-border-radius-xs);
+    color: var(--s2a-color-content-default);
+  }
+
+  .video__transcript-panel :is(p, li) {
+    margin: 0;
+    font-size: var(--s2a-typography-font-size-body-sm);
+    font-weight: var(--s2a-font-weight-body);
+    letter-spacing: var(--s2a-typography-letter-spacing-body-sm);
+    line-height: var(--s2a-typography-line-height-body-sm);
+  }
+}
+
+:root[data-theme="dark"] .video {
+  --video-transcript-summary-hover: var(--s2a-color-transparent-white-08);
 }
