@@ -181,9 +181,19 @@ const DOWNLOAD_ICON_SVG = `
 </svg>
 `.trim();
 
+/** Spectrum S2_Icon_Email_20_N, exported from the article action group. */
+const FEEDBACK_ICON_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" fill="none" aria-hidden="true" focusable="false">
+  <path fill="currentColor" d="M15.0749 2.69336H2.9249C1.8087 2.69336 0.899902 3.60215 0.899902 4.71836V13.2684C0.899902 14.3846 1.8087 15.2934 2.9249 15.2934H15.0749C16.1911 15.2934 17.0999 14.3846 17.0999 13.2684V4.71836C17.0999 3.60215 16.1911 2.69336 15.0749 2.69336ZM14.6963 4.04336L9.44287 8.61807C9.1915 8.83779 8.80918 8.83779 8.55606 8.61807L3.30349 4.04336H14.6963ZM15.0749 13.9434H2.9249C2.55312 13.9434 2.2499 13.6401 2.2499 13.2684V4.91523L7.66923 9.63584C8.04893 9.96631 8.52441 10.1315 8.9999 10.1315C9.47539 10.1315 9.95088 9.96631 10.3297 9.63584L15.7499 4.91523V13.2684C15.7499 13.6401 15.4467 13.9434 15.0749 13.9434Z"/>
+</svg>
+`.trim();
+
 const DA_HOSTS = new Set(['da.live', 'www.da.live', 'content.da.live']);
 const DA_SITE_PREFIX = '/adobe/adobe-labs-website';
 const DOWNLOAD_LABEL = 'Download';
+const FEEDBACK_LABEL = 'Feedback';
+const FEEDBACK_HINT = '(opens email)';
+const FEEDBACK_EMAIL = 'labs@adobe.com';
 
 /**
  * Site path for a DA authoring or content URL on this project, or empty.
@@ -253,8 +263,22 @@ function getDownloadFilename(href) {
 }
 
 /**
- * Article meta action buttons. Copy link always ships; Download is gated on
- * `download-link` metadata. Feedback plugs in here later.
+ * Mailto for the article Feedback action. The subject is "Feedback: " plus
+ * the page metadata Title. AEM writes that row to `og:title`, not
+ * `meta[name="title"]`. A missing title omits the query.
+ *
+ * @returns {string}
+ */
+function getFeedbackHref() {
+  const title = getMetadata('og:title').trim();
+  const base = `mailto:${FEEDBACK_EMAIL}`;
+  if (!title) return base;
+  return `${base}?subject=${encodeURIComponent(`Feedback: ${title}`)}`;
+}
+
+/**
+ * Article meta action buttons. Copy link and Feedback always ship. Download
+ * is gated on `download-link` metadata.
  *
  * @type {Array<{
  *   id: string,
@@ -263,6 +287,8 @@ function getDownloadFilename(href) {
  *   icon: string,
  *   isEnabled?: function(): boolean,
  *   getHref?: function(): string,
+ *   download?: boolean,
+ *   hint?: string,
  * }>}
  */
 const META_ACTIONS = [
@@ -280,6 +306,16 @@ const META_ACTIONS = [
     icon: DOWNLOAD_ICON_SVG,
     isEnabled: () => Boolean(getDownloadHref()),
     getHref: getDownloadHref,
+    download: true,
+  },
+  {
+    id: 'feedback',
+    label: FEEDBACK_LABEL,
+    render: 'a',
+    icon: FEEDBACK_ICON_SVG,
+    isEnabled: () => true,
+    getHref: getFeedbackHref,
+    hint: FEEDBACK_HINT,
   },
 ];
 
@@ -726,6 +762,8 @@ async function handleCopyLink(main, button) {
  *   render: 'button'|'a',
  *   icon: string,
  *   getHref?: function(): string,
+ *   download?: boolean,
+ *   hint?: string,
  * }} action
  * @returns {HTMLButtonElement|HTMLAnchorElement}
  */
@@ -738,8 +776,10 @@ function createMetaActionControl(action) {
     const href = action.getHref();
     if (href) {
       el.href = href;
-      const filename = getDownloadFilename(href);
-      if (filename) el.setAttribute('download', filename);
+      if (action.download) {
+        const filename = getDownloadFilename(href);
+        if (filename) el.setAttribute('download', filename);
+      }
     }
   }
 
@@ -753,6 +793,12 @@ function createMetaActionControl(action) {
   label.textContent = action.label;
 
   el.append(icon, label);
+  if (action.hint) {
+    const hint = document.createElement('span');
+    hint.className = 'visually-hidden';
+    hint.textContent = ` ${action.hint}`;
+    el.append(hint);
+  }
   return el;
 }
 
@@ -893,7 +939,7 @@ function ensureArticleMetaElements(main) {
 }
 
 /**
- * Injects Copy link and a metadata-gated Download into each `.article-meta`
+ * Injects Copy link, a metadata-gated Download, and Feedback into each `.article-meta`
  * on the article (top and bottom). If the byline has not created those
  * containers yet, builds the same aside+wrapper fallback. No-op on
  * non-article pages or fragment mains.
