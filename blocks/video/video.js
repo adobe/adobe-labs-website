@@ -122,7 +122,8 @@ function getAuthoredPosterMedia(block, urlCell) {
  * Reads authored key/value rows from a video block.
  *
  * @param {Element} block The block element
- * @returns {object} Authored href, video ID, play label, poster media, and transcript cell
+ * @returns {object} Authored href, video ID, play label, custom-label flag,
+ * poster media, and transcript cell
  */
 export function getVideoData(block) {
   const cells = getAuthoredCells(block);
@@ -243,6 +244,20 @@ async function fetchYoutubeTitle(videoId) {
 }
 
 /**
+ * Visually hidden live region used to announce player load.
+ *
+ * @returns {HTMLParagraphElement}
+ */
+function buildStatus() {
+  const status = document.createElement('p');
+  status.className = 'visually-hidden';
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  status.setAttribute('aria-atomic', 'true');
+  return status;
+}
+
+/**
  * Replaces the poster with a privacy-enhanced YouTube iframe and focuses it.
  * Only the stage is replaced so a transcript disclosure stays in the block.
  *
@@ -263,16 +278,18 @@ function loadEmbed(block, { videoId, playLabel }) {
   iframe.title = playerTitle;
   iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
   iframe.setAttribute('allowfullscreen', '');
-  iframe.setAttribute('tabindex', '-1');
 
-  const status = document.createElement('p');
-  status.className = 'visually-hidden';
-  status.setAttribute('role', 'status');
+  const status = block.querySelector('[role="status"]') || buildStatus();
   status.textContent = 'Video player loaded';
 
   player.append(iframe);
-  const stage = block.querySelector('.video__stage') || block;
-  stage.replaceChildren(player, status);
+  const stage = block.querySelector('.video__stage');
+  if (stage) {
+    stage.replaceChildren(player);
+    if (!block.contains(status)) stage.after(status);
+  } else {
+    block.replaceChildren(player, status);
+  }
   iframe.focus();
 }
 
@@ -311,7 +328,7 @@ function buildVideo(data, block) {
   stage.append(button);
 
   const transcript = buildTranscript(transcriptCell);
-  block.replaceChildren(stage);
+  block.replaceChildren(stage, buildStatus());
   if (transcript) block.append(transcript);
 
   if (hasCustomPlayLabel) return;
