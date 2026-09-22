@@ -8,6 +8,7 @@
  *
  * - `section-scroll/sections.js` — predicates, tuning constants, geometry
  * - `section-scroll/motion.js` — GSAP tweens (loaded on demand with the bundle)
+ * - `section-scroll/focus-reveal.js` — scroll a covered control into view
  * - `section-scroll/footer-reveal.js` — the footer garage door
  *
  * See the README's section-surface notes for the authored behaviour, and
@@ -29,6 +30,10 @@ import {
   staysInFlow,
   usesTouchScroll,
 } from './section-scroll/sections.js';
+import {
+  bindFocusReveal,
+  clearFocusReveal,
+} from './section-scroll/focus-reveal.js';
 import {
   bindFooterReveal,
   clearFooterReveal,
@@ -101,9 +106,10 @@ function applySectionVars(section) {
 function clear(root = document) {
   motionCtx?.revert();
   motionCtx = null;
+  clearFocusReveal();
   clearFooterReveal(root);
-  // Overlays and `inert` only exist if motion set them, and reverting the
-  // context restores neither.
+  // Reverting the GSAP context restores inline styles, not the overlay nodes
+  // motion appended.
   motion?.clearMotionState(root);
   root.querySelectorAll(`.${CLASS_SLOW}, .${CLASS_NEXT}, .${CLASS_INTRO}, .${CLASS_FADE}`)
     .forEach((el) => {
@@ -141,15 +147,20 @@ export function classifySectionScroll(root = document) {
       applySectionVars(section);
       if (started && motion) motion.bindPair(section, next);
     });
-    bindFooterReveal(main, root, {
-      scrollBy(delta) {
-        if (lenis) {
-          lenis.scrollTo(lenis.scroll + delta, { immediate: true });
-          return;
-        }
-        window.scrollBy(0, delta);
-      },
-    });
+    const scrollBy = (delta) => {
+      if (lenis) {
+        lenis.scrollTo(lenis.scroll + delta, { immediate: true });
+        return;
+      }
+      window.scrollBy(0, delta);
+    };
+    bindFooterReveal(main, root, { scrollBy });
+    if (started) {
+      bindFocusReveal({
+        scrollBy,
+        getScroll: () => (lenis ? lenis.scroll : window.scrollY),
+      });
+    }
   };
 
   if (started && gsap) motionCtx = gsap.context(decorate, main);

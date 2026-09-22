@@ -2,9 +2,10 @@
  * Section cover classification and the motion opt-in lifecycle.
  *
  * Predicates and geometry are covered in `section-scroll/sections.test.js`, the
- * garage door in `section-scroll/footer-reveal.test.js`, and the shared entry
- * math in `utils/entry-progress.test.js`. What is left here is which sections
- * get paired, and what GSAP is asked to do once motion starts.
+ * garage door in `section-scroll/footer-reveal.test.js`, focus reveal in
+ * `section-scroll/focus-reveal.test.js`, and the shared entry math in
+ * `utils/entry-progress.test.js`. What is left here is which sections get
+ * paired, and what GSAP is asked to do once motion starts.
  */
 import { loadCSS } from './aem.js';
 import { gsap, ScrollTrigger } from '../deps/gsap/dist/index.js';
@@ -747,7 +748,7 @@ describe('initSectionScroll', () => {
     expect(document.querySelector('.section-scroll-slow')).toBeNull();
   });
 
-  it('takes a fully covered card out of the tab order without hiding it', async () => {
+  it('keeps a covered card in the tab order', async () => {
     mockMatchMedia(true);
     const main = mountMain(`
       <div class="section section-rounded-blue">
@@ -759,46 +760,68 @@ describe('initSectionScroll', () => {
 
     await initSectionScroll();
 
-    const slow = main.children[0];
     const link = main.querySelector('a');
-    const { scrollTrigger } = timelineTweening(link).config;
-
-    // Partly covered: still visible, so it stays reachable.
-    scrollTrigger.onRefresh({ progress: 0.9 });
     expect(link).not.toHaveAttribute('tabindex');
-
-    // Fully covered, and a pinned card stays parked in the viewport from here on.
-    scrollTrigger.onLeave({ progress: 1 });
-    expect(link).toHaveAttribute('tabindex', '-1');
-    // Still readable by assistive technology: nothing is inert or visibility-hidden.
-    expect(slow).not.toHaveAttribute('inert');
+    expect(main.children[0]).not.toHaveAttribute('inert');
     expect(main.querySelector('h2')).toBeInTheDocument();
-
-    // Scrolling back up restores it.
-    scrollTrigger.onEnterBack({ progress: 0.5 });
-    expect(link).not.toHaveAttribute('tabindex');
   });
 
-  it('restores a control that had its own tabindex', async () => {
+  it('scrolls a covered control into view without removing it from the tab order', async () => {
     mockMatchMedia(true);
     const main = mountMain(`
-      <div class="section section-rounded-blue"><div tabindex="0">Widget</div></div>
+      <div class="section section-rounded-blue"><a href="/x">Buried link</a></div>
       <div class="section section-rounded-default"></div>
     `);
 
     await initSectionScroll();
 
-    const widget = main.querySelector('[tabindex]');
-    const { scrollTrigger } = timelineTweening(widget).config;
+    const link = main.querySelector('a');
+    const slow = main.children[0];
+    const next = main.children[1];
+    const instance = Lenis.mock.results[0].value;
+    instance.scroll = 2500;
+    slow.style.position = 'sticky';
+    slow.style.top = '-100px';
+    slow.getBoundingClientRect = () => ({
+      top: -100, bottom: 500, left: 0, right: 400, width: 400, height: 600, x: 0, y: -100,
+    });
+    link.getBoundingClientRect = () => ({
+      top: 400, bottom: 420, left: 10, right: 100, width: 90, height: 20, x: 10, y: 400,
+    });
+    next.getBoundingClientRect = () => ({
+      top: 300, bottom: 900, left: 0, right: 400, width: 400, height: 600, x: 0, y: 300,
+    });
+    Object.defineProperty(next, 'offsetTop', { configurable: true, value: 2800 });
+    Object.defineProperty(next, 'offsetParent', { configurable: true, value: null });
+    document.documentElement.style.setProperty('--nav-height', '80px');
+    const originalHitTest = document.elementsFromPoint;
+    document.elementsFromPoint = () => [];
+    const frames = [];
+    const originalRaf = window.requestAnimationFrame;
+    const originalCancel = window.cancelAnimationFrame;
+    window.requestAnimationFrame = (cb) => {
+      frames.push(cb);
+      return frames.length;
+    };
+    window.cancelAnimationFrame = jest.fn();
 
-    scrollTrigger.onLeave({ progress: 1 });
-    expect(widget).toHaveAttribute('tabindex', '-1');
+    try {
+      link.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      frames[0](0);
 
-    scrollTrigger.onEnterBack({ progress: 0 });
-    expect(widget).toHaveAttribute('tabindex', '0');
+      // Next section top 300, link bottom 420, plus 12px of clearance.
+      expect(instance.scrollTo).toHaveBeenCalledWith(2368, { immediate: true });
+      expect(link).not.toHaveAttribute('tabindex');
+    } finally {
+      instance.scroll = 0;
+      document.elementsFromPoint = originalHitTest;
+      document.documentElement.style.removeProperty('--nav-height');
+      window.requestAnimationFrame = originalRaf;
+      window.cancelAnimationFrame = originalCancel;
+    }
   });
 
-  it('suppresses the page-header wrapper tab order once it has faded out', async () => {
+  it('fades the page-header wrapper without taking it out of the tab order', async () => {
     mockMatchMedia(true);
     mountMain(`
       <div class="section page-header-container">
@@ -816,32 +839,8 @@ describe('initSectionScroll', () => {
     const link = headerWrap.querySelector('a');
     const fade = gsap.fromTo.mock.calls.find(([subject]) => subject === headerWrap);
     expect(fade[1]).toEqual({ opacity: 1 });
-
-    // The wrapper is sticky, so it stays on screen invisible rather than leaving.
-    fade[2].scrollTrigger.onLeave({ progress: 1 });
-    expect(link).toHaveAttribute('tabindex', '-1');
+    expect(link).not.toHaveAttribute('tabindex');
     expect(headerWrap.querySelector('h1')).toBeInTheDocument();
-
-    fade[2].scrollTrigger.onEnterBack({ progress: 0.2 });
-    expect(link).not.toHaveAttribute('tabindex');
-  });
-
-  it('restores tab order on teardown', async () => {
-    mockMatchMedia(true);
-    const main = mountMain(`
-      <div class="section section-rounded-blue"><a href="/x">Buried link</a></div>
-      <div class="section section-rounded-default"></div>
-    `);
-
-    await initSectionScroll();
-    const link = main.querySelector('a');
-    timelineTweening(link).config.scrollTrigger.onLeave({ progress: 1 });
-    expect(link).toHaveAttribute('tabindex', '-1');
-
-    teardownSectionScroll();
-
-    expect(link).not.toHaveAttribute('tabindex');
-    expect(document.querySelector('[data-section-scroll-unfocusable]')).toBeNull();
   });
 
   it('rewires Lenis when motion is opted back in after a teardown', async () => {
