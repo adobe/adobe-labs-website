@@ -616,7 +616,7 @@ describe('content-grid block', () => {
       expect(dataFromCall(0)).toEqual(expect.objectContaining({
         title: 'Newer research',
         href: expect.stringMatching(/\/research\/newer$/),
-        subhead: 'Aug 20',
+        subhead: 'Aug 2026',
         contentType: '',
         imageUrl: '/newer.jpg',
         imageAlt: '',
@@ -829,10 +829,10 @@ describe('content-grid block', () => {
 
       await decorate(block);
 
-      expect(dataFromCall(0).subhead).toBe('Aug 20');
+      expect(dataFromCall(0).subhead).toBe('Aug 2026');
     });
 
-    it('includes the year when the date is not this year', async () => {
+    it('formats a date in a different year', async () => {
       dataStore.getData.mockResolvedValue({
         data: [{
           path: '/research/future',
@@ -849,7 +849,7 @@ describe('content-grid block', () => {
 
       await decorate(block);
 
-      expect(dataFromCall(0).subhead).toBe('Oct 21, 2027');
+      expect(dataFromCall(0).subhead).toBe('Oct 2027');
     });
 
     it('prefers the formatted date over the description by default', async () => {
@@ -861,7 +861,7 @@ describe('content-grid block', () => {
 
       await decorate(block);
 
-      expect(dataFromCall(0).subhead).toBe('Aug 20');
+      expect(dataFromCall(0).subhead).toBe('Aug 2026');
     });
 
     it('uses the description when a date is missing', async () => {
