@@ -515,6 +515,13 @@ footer {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  /* Top meta only: hide the action buttons (copy/download/feedback) at
+     375px — the bottom meta's actions stay visible, see
+     `.article-meta--bottom .article-meta__actions` below. */
+  .article-meta--top .article-meta__actions {
+    display: none;
+  }
 }
 
 .article-meta__authors-label,
