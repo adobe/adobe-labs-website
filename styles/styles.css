@@ -706,6 +706,24 @@ footer {
   gap: var(--s2a-spacing-xs);
 }
 
+/* Bottom meta only: stack the byline above the actions (overriding
+   `.article-meta`'s row/`space-between` layout, which would otherwise keep
+   the actions pinned to the right edge on their own row), then stack and
+   left-align the action buttons themselves. The top meta hides its actions
+   at this width instead, see `.article-meta--top .article-meta__actions`
+   above. */
+@media (width <= 23.4375rem) {
+  .article-meta--bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .article-meta--bottom .article-meta__actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 /* --- Icons --- */
 .icon {
   display: inline-block;
