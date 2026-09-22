@@ -26,6 +26,7 @@ const FOOTER_FRAGMENT = `
     <div><div>
       <h2>Explore</h2>
       <p><a href="/research" title="Research">Research</a></p>
+      <p><a href="https://research.adobe.com/" target="_blank">Adobe Research</a></p>
     </div></div>
   </div>
   <div class="section">
@@ -131,6 +132,20 @@ describe('footer block', () => {
     expect(block).toHaveTextContent('Connect');
     expect(block).toHaveTextContent('Collaborate');
     expect(block).toHaveTextContent('Research');
+  });
+
+  it('adds an external-link icon only on menu links that leave this site', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    const external = within(block).getByRole('link', { name: 'Adobe Research (opens in a new tab)' });
+    expect(external.querySelector('.footer__external-icon')).toBeTruthy();
+    expect(external.querySelector('.visually-hidden')).toHaveTextContent('(opens in a new tab)');
+    expect(block.querySelectorAll('.footer__external-icon')).toHaveLength(1);
+    expect(within(block).getByRole('link', { name: 'Research' }).querySelector('.footer__external-icon')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Subscribe' }).querySelector('.footer__external-icon')).toBeNull();
   });
 
   it('strips redundant title attributes that just repeat the link text', async () => {

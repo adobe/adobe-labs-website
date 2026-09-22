@@ -224,6 +224,42 @@ function decorateHeadline(heading, items) {
   syncHeadline(button, items, desktopQuery);
 }
 
+/** Same path as `icons/arrow-up-right.svg`. Inline so `currentColor` follows the link. */
+const EXTERNAL_ICON_PATH = 'M3.072 13.704L0.552 11.184L8.592 3.144H0L3.144 0L14.208.024V11.16L11.112 14.232V5.664L3.072 13.704Z';
+
+/**
+ * Whether a link points at another origin.
+ * @param {Element} link Anchor element
+ * @returns {boolean}
+ */
+function isExternalLink(link) {
+  try {
+    const url = new URL(link.getAttribute('href') || '', window.location.href);
+    return url.origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Appends the external-link icon. When the link opens a new tab, adds hidden text
+ * so the accessible name matches the social links.
+ * @param {Element} link Menu anchor element
+ */
+function decorateExternalLink(link) {
+  if (!isExternalLink(link)) return;
+
+  link.append(fromHTML(`
+    <svg class="footer__external-icon" viewBox="0 0 15 15" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="${EXTERNAL_ICON_PATH}"></path>
+    </svg>
+  `));
+
+  if (link.target === '_blank') {
+    link.append(fromHTML('<span class="visually-hidden"> (opens in a new tab)</span>'));
+  }
+}
+
 /**
  * Decorates a single nav menu column with headline and links. The column is its own nav
  * landmark, labelled by its own heading, so each topic (Connect, Explore, ...) is a distinct,
@@ -252,6 +288,7 @@ function decorateColumn(column) {
     column.querySelectorAll('p a').forEach((link) => {
       link.classList.add('footer__menu-link');
       dropRedundantTitle(link);
+      decorateExternalLink(link);
       const item = fromHTML('<li></li>');
       item.append(link);
       items.append(item);

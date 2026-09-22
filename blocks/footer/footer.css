@@ -109,11 +109,20 @@
 }
 
 .footer__menu-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2a-spacing-2xs);
   color: var(--footer-text-subtle);
   font-size: var(--s2a-typography-font-size-body-md);
   line-height: var(--s2a-typography-line-height-body-md);
   letter-spacing: var(--s2a-typography-letter-spacing-body-md);
   text-decoration: none;
+}
+
+.footer__external-icon {
+  flex-shrink: 0;
+  inline-size: 0.75em;
+  block-size: 0.75em;
 }
 
 .footer__menu-link:hover,
