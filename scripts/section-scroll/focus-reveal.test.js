@@ -256,6 +256,53 @@ describe('revealDelta', () => {
     expect(revealDelta(link, 400)).toBe(-400);
   });
 
+  it('scrolls a page-header jump link out from under a faded header', () => {
+    document.body.innerHTML = `
+      <main>
+        <div class="section section-scroll-intro">
+          <div class="section-scroll-fade" style="opacity: 0">
+            <nav class="page-header__jump">
+              <a href="#future-of-creative-work">Future of Creative Work</a>
+            </nav>
+          </div>
+        </div>
+        <div class="section section-scroll-next"></div>
+      </main>
+    `;
+    const link = document.querySelector('.page-header__jump a');
+    place(link, {
+      top: 90, bottom: 110, left: 10, right: 80,
+    });
+
+    expect(revealDelta(link, 400)).toBe(-400);
+  });
+
+  it('scrolls a page-header jump link out from under the intro hero', () => {
+    document.body.innerHTML = `
+      <main>
+        <div class="section section-scroll-intro">
+          <div class="section-scroll-fade">
+            <nav class="page-header__jump">
+              <a href="#economic-impact">Economic Impact</a>
+            </nav>
+          </div>
+          <div class="hero-wrapper"></div>
+        </div>
+      </main>
+    `;
+    const fade = document.querySelector('.section-scroll-fade');
+    const hero = document.querySelector('.hero-wrapper');
+    const link = document.querySelector('.page-header__jump a');
+    stick(fade, '80px');
+    place(fade, { top: 80, bottom: 200 });
+    place(link, {
+      top: 90, bottom: 110, left: 10, right: 200,
+    });
+    place(hero, { top: 60, bottom: 900 });
+
+    expect(revealDelta(link, 500)).toBe(-500);
+  });
+
   it('scrolls faded hero copy back to the cover line', () => {
     document.body.innerHTML = `
       <main>
@@ -305,10 +352,10 @@ describe('revealDelta', () => {
     expect(revealDelta(main, 0)).toBe(0);
   });
 
-  it('does not uncover an in-page hash link, so a pager click can leave the section', () => {
+  it('does not uncover a content-grid pager, so a pager click can leave the section', () => {
     document.body.innerHTML = `
       <main>
-        <div class="section slow"><a href="#two">Next</a></div>
+        <div class="section slow"><a class="content-grid__pager-link" href="#two">Next</a></div>
         <div class="section next" id="two"></div>
       </main>
     `;
