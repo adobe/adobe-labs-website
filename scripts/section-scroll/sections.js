@@ -17,6 +17,22 @@ export const CLASS_INTRO = 'section-scroll-intro';
 /** Page-header wrapper inside an intro section. */
 export const CLASS_FADE = 'section-scroll-fade';
 
+/** Dim layer on the outgoing card. */
+export const CLASS_OVERLAY = 'section-scroll-overlay';
+
+/**
+ * `main` carries this while touch fades run as scroll-driven CSS, so the
+ * stylesheet and the GSAP path never both own opacity.
+ */
+export const CLASS_CSS_COVER = 'section-scroll-css-cover';
+
+/**
+ * Feature query for the touch fade path. `animation-range` is part of the
+ * check so a browser with a partial implementation does not match. Keep this
+ * in sync with the `@supports` block in `styles/section-scroll.css`.
+ */
+export const CSS_COVER_SUPPORT = '(animation-timeline: view()) and (animation-range: entry) and (animation-timeline: scroll()) and (animation-range: 0% 100%)';
+
 /** Inner travel after the pin, as a fraction of the viewport. */
 export const SHIFT_VH = 0.2;
 
@@ -109,6 +125,16 @@ export function usesTouchScroll() {
 }
 
 /**
+ * True when a coarse pointer can run the cover dim and header fade as
+ * scroll-driven CSS, so the page does not need GSAP for those opacities.
+ *
+ * @returns {boolean}
+ */
+export function usesCssCover() {
+  return usesTouchScroll() && window.CSS?.supports?.(CSS_COVER_SUPPORT) === true;
+}
+
+/**
  * Inner recede of a pinned rounded card, in px. Negative: content moves up as
  * the next card covers it. Starts from 0 so the cover never reverses.
  *
@@ -138,10 +164,27 @@ export function introLagPx(section) {
  * @returns {number}
  */
 export function coverStartPx(section) {
-  if (section.classList.contains(CLASS_INTRO) || staysInFlow(section)) {
+  if (staysInFlow(section)) {
     return Math.min(section.offsetHeight, window.innerHeight);
   }
   return window.innerHeight * COVER_START_VH;
+}
+
+/**
+ * View-timeline `entry` percentage where `section` starts to dim.
+ * `entry 0%` is the incoming section's top at the bottom of the viewport, and
+ * `entry 100%` is that top at the viewport top. The cover line sits between them.
+ *
+ * @param {HTMLElement} section Outgoing section
+ * @returns {string}
+ */
+export function dimEntryStart(section) {
+  const vh = window.innerHeight;
+  if (!vh) return '0%';
+  const entry = (1 - coverStartPx(section) / vh) * 100;
+  const clamped = Math.min(100, Math.max(0, entry));
+  const rounded = Math.round(clamped * 1000) / 1000;
+  return `${rounded}%`;
 }
 
 /**

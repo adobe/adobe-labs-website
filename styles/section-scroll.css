@@ -7,7 +7,9 @@
  * the dim layer's box, and the touch-only intro lag. `scripts/section-scroll.js`
  * classifies sections and sets the three custom properties read below —
  * `--section-scroll-slow-top`, `--section-scroll-intro-lag`, and
- * `--section-scroll-inner-progress`.
+ * `--section-scroll-inner-progress`. On a coarse pointer that supports
+ * scroll-driven animations, it also owns the cover dim and the page-header
+ * fade, driven by `--section-scroll-dim-start` and a named view timeline.
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -148,6 +150,64 @@
       animation: section-scroll-intro-lag linear both;
       animation-timeline: --section-scroll-intro;
       animation-range: exit 0% exit 100%;
+    }
+  }
+}
+
+/*
+ * Touch fades on the compositor. Opacity does not fight native scroll the way
+ * a GSAP translate does, and these ranges match the GSAP fallback: the header
+ * fades across the first 17vh (40vh below 48rem), and a cover dims from
+ * `--section-scroll-dim-start` until the incoming section reaches the top.
+ * `0.8` matches `OVERLAY_DIM`. Named timelines are hoisted with `timeline-scope`
+ * because the dim layer is not a descendant of the incoming section.
+ * `@supports` stays at the root: nesting it breaks adjacent styles in Safari
+ * 16.5 through 18.1.
+ */
+@supports ((animation-timeline: view()) and (animation-range: entry)) and ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
+  @keyframes section-scroll-dim {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes section-scroll-fade-out {
+    from {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (hover: none) and (pointer: coarse) {
+    main.section-scroll-css-cover .section-scroll-overlay {
+      animation: section-scroll-dim linear both;
+      animation-timeline: var(--section-scroll-dim-timeline);
+      animation-range: entry var(--section-scroll-dim-start, 40%) entry 100%;
+    }
+
+    main.section-scroll-css-cover .hero__content {
+      animation: section-scroll-fade-out linear both;
+      animation-timeline: var(--section-scroll-dim-timeline);
+      animation-range: entry var(--section-scroll-dim-start, 40%) entry 100%;
+    }
+
+    main.section-scroll-css-cover > .section.section-scroll-intro > .section-scroll-fade {
+      animation: section-scroll-fade-out linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 17vh;
+    }
+
+    @media (width < 48rem) {
+      main.section-scroll-css-cover > .section.section-scroll-intro > .section-scroll-fade {
+        animation-range: 0 40vh;
+      }
     }
   }
 }

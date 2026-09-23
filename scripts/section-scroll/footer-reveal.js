@@ -4,14 +4,15 @@
  * behind the card until it is in, then `.section-scroll-logo` hands over to the
  * logo's own sticky.
  *
- * Uses no GSAP: this is one custom property driven from scroll, and the shared
- * entry math in `utils/entry-progress.js` is the same math `footer.js` uses for
- * the logo. The menu stays in the tab order; focusing a control that the card
+ * Uses no GSAP. One scroll frame writes both custom properties from the shared
+ * entry math in `utils/entry-progress.js`: the menu's, and the logo's, which
+ * `footer.js` otherwise drives on pages that never start section scroll. The
+ * menu stays in the tab order; focusing a control that the card
  * still covers scrolls the card off it so the control is not hidden. The logo
  * is not a tab stop, so a keyboard focus into the footer also scrolls until
  * the logo has fully risen.
  */
-import { ENTRY_END, entryProgress } from '../utils/entry-progress.js';
+import { ENTRY_END, entryProgress, holdLogoEntry } from '../utils/entry-progress.js';
 import { isRounded } from './sections.js';
 
 /** Last rounded card, raised above the footer. */
@@ -46,16 +47,6 @@ let boundFooter = null;
 /** @type {(() => void) | null} */
 let syncNow = null;
 let raf = 0;
-
-/**
- * Native page scroll used when section-scroll has not wired Lenis.
- *
- * @param {number} delta Pixels to scroll; negative moves up
- * @returns {void}
- */
-function defaultScrollBy(delta) {
-  window.scrollBy(0, delta);
-}
 
 /**
  * Reverts the garage door.
@@ -96,6 +87,11 @@ export function clearFooterReveal(root) {
     if (!(el instanceof HTMLElement)) return;
     el.style.removeProperty(VAR_PROGRESS);
   });
+  root.querySelectorAll('.footer__logo').forEach((el) => {
+    if (!(el instanceof HTMLElement)) return;
+    el.style.removeProperty(VAR_LOGO);
+  });
+  holdLogoEntry(false);
 }
 
 /**
@@ -124,8 +120,11 @@ export function bindFooterReveal(main, root, options = {}) {
   const footer = doc?.querySelector('body > footer');
   if (!(lastRounded instanceof HTMLElement) || !(footer instanceof HTMLElement)) return;
 
-  const scrollByDelta = options.scrollBy ?? defaultScrollBy;
+  const scrollByDelta = options.scrollBy ?? ((delta) => window.scrollBy(0, delta));
 
+  // Own both rises before the first measurement, so the footer's logo listener
+  // does not read layout on the same frames.
+  holdLogoEntry(true);
   main.classList.add(CLASS_REVEAL_MAIN);
   lastRounded.classList.add(CLASS_REVEAL);
   footer.classList.add(CLASS_UNDER);
@@ -140,6 +139,9 @@ export function bindFooterReveal(main, root, options = {}) {
   /** @type {HTMLElement | null} */
   let inner = null;
   let innerHeight = 0;
+  /** @type {HTMLElement | null} */
+  let logo = null;
+  let logoHeight = 0;
 
   /**
    * The footer menu element. `loadFooter` may not have built `.footer__inner`
@@ -157,6 +159,21 @@ export function bindFooterReveal(main, root, options = {}) {
   };
 
   /**
+   * The Adobe logo under the menu. Height is cached with the menu's.
+   *
+   * @returns {HTMLElement | null}
+   */
+  const resolveLogo = () => {
+    if (!logo?.isConnected) {
+      const found = footer.querySelector('.footer__logo');
+      logo = found instanceof HTMLElement ? found : null;
+      logoHeight = 0;
+    }
+    if (logo && !logoHeight) logoHeight = logo.offsetHeight;
+    return logo;
+  };
+
+  /**
    * Writes `--section-scroll-inner-progress` and swaps in the logo sticky once
    * the menu has fully risen.
    *
@@ -168,6 +185,15 @@ export function bindFooterReveal(main, root, options = {}) {
     const progress = entryProgress(lastRounded, el, { height: innerHeight });
     el.style.setProperty(VAR_PROGRESS, String(progress));
     footer.classList.toggle(CLASS_LOGO, progress >= ENTRY_END);
+
+    const logoEl = resolveLogo();
+    const cover = logoEl?.previousElementSibling;
+    if (logoEl && cover instanceof HTMLElement) {
+      logoEl.style.setProperty(
+        VAR_LOGO,
+        String(entryProgress(cover, logoEl, { height: logoHeight })),
+      );
+    }
   };
 
   /*
@@ -200,13 +226,13 @@ export function bindFooterReveal(main, root, options = {}) {
         - (window.innerHeight - innerHeight);
     }
 
-    const logo = footer.querySelector('.footer__logo');
-    const logoHeight = logo instanceof HTMLElement ? logo.offsetHeight : 0;
-    const cover = logo?.previousElementSibling;
+    const logoEl = footer.querySelector('.footer__logo');
+    const mark = logoEl instanceof HTMLElement ? logoEl.offsetHeight : 0;
+    const cover = logoEl?.previousElementSibling;
     let finishLogo = false;
-    if (revealLogo && logo instanceof HTMLElement && logoHeight && cover instanceof HTMLElement) {
+    if (revealLogo && logoEl instanceof HTMLElement && mark && cover instanceof HTMLElement) {
       const remaining = cover.getBoundingClientRect().bottom
-        - (window.innerHeight - logoHeight);
+        - (window.innerHeight - mark);
       if (remaining > 0) {
         delta += remaining;
         finishLogo = true;
@@ -218,11 +244,12 @@ export function bindFooterReveal(main, root, options = {}) {
     sync();
     // Lenis scrolls immediately and may not have run the footer's scroll
     // listener yet. The delta lands on a fully risen logo, so rest it now.
-    if (finishLogo) logo.style.setProperty(VAR_LOGO, String(ENTRY_END));
+    if (finishLogo) logoEl.style.setProperty(VAR_LOGO, String(ENTRY_END));
   };
 
   syncNow = () => {
     innerHeight = 0;
+    logoHeight = 0;
     sync();
   };
 

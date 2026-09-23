@@ -956,6 +956,53 @@ describe('initSectionScroll', () => {
     expect(document.querySelector('.section-rounded-blue')).toHaveClass('section-scroll-slow');
   });
 
+  it('fades a coarse pointer in CSS when scroll-driven animations exist', async () => {
+    mockMatchMedia(true, { touch: true });
+    window.CSS = { supports: () => true };
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section section-rounded-blue"></div>
+      <div class="section section-rounded-default"></div>
+    `);
+    Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 1200 });
+
+    await initSectionScroll();
+
+    expect(gsap.timeline).not.toHaveBeenCalled();
+    expect(gsap.context).not.toHaveBeenCalled();
+    expect(Lenis).not.toHaveBeenCalled();
+    expect(loadCSS).toHaveBeenCalledWith('/styles/section-scroll.css');
+    expect(main).toHaveClass('section-scroll-css-cover');
+    expect(main.style.getPropertyValue('timeline-scope')).toBe('--section-scroll-cover-0');
+    expect(main.children[1].style.getPropertyValue('view-timeline-name')).toBe('--section-scroll-cover-0');
+    expect(main.children[0].style.getPropertyValue('--section-scroll-dim-start')).toBe('40%');
+    expect(main.children[0].style.getPropertyValue('--section-scroll-dim-timeline')).toBe('--section-scroll-cover-0');
+    const overlay = main.querySelector('.section-scroll-overlay');
+    expect(overlay).toBeTruthy();
+    expect(overlay.style.getPropertyValue('animation-timeline')).toBe('--section-scroll-cover-0');
+
+    teardownSectionScroll();
+    expect(main).not.toHaveClass('section-scroll-css-cover');
+    expect(main.style.getPropertyValue('timeline-scope')).toBe('');
+    expect(document.querySelector('.section-scroll-overlay')).toBeNull();
+    delete window.CSS;
+  });
+
+  it('keeps GSAP on a fine pointer even when scroll-driven animations exist', async () => {
+    mockMatchMedia(true);
+    window.CSS = { supports: () => true };
+    mountMain(`
+      <div class="section section-rounded-blue"><div class="inner">Card</div></div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+
+    expect(gsap.timeline).toHaveBeenCalled();
+    expect(document.querySelector('main')).not.toHaveClass('section-scroll-css-cover');
+    delete window.CSS;
+  });
+
   it('does not build Lenis on touch even once GSAP is cached', async () => {
     mockMatchMedia(true);
     mountMain(`
@@ -1044,5 +1091,25 @@ describe('resize', () => {
 
     expect(gsap.context).toHaveBeenCalledTimes(2);
     expect(ScrollTrigger.refresh).not.toHaveBeenCalled();
+  });
+
+  it('moves a coarse pointer onto CSS fades without building another GSAP context', async () => {
+    mockMatchMedia(true);
+    window.CSS = { supports: () => true };
+    const main = mountMain(`
+      <div class="section section-rounded-blue"></div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+    expect(gsap.context).toHaveBeenCalledTimes(1);
+
+    mockMatchMedia(true, { touch: true });
+    resize();
+
+    expect(gsap.context).toHaveBeenCalledTimes(1);
+    expect(main).toHaveClass('section-scroll-css-cover');
+    expect(ScrollTrigger.refresh).not.toHaveBeenCalled();
+    delete window.CSS;
   });
 });

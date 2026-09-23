@@ -11,6 +11,31 @@ export const ENTRY_START = -100;
 export const ENTRY_END = 0;
 
 /**
+ * True while `footer-reveal.js` is writing both entry custom properties.
+ * The footer's own logo listener then skips its layout read.
+ */
+let logoHeld = false;
+
+/**
+ * Hands the logo rise to section scroll, or gives it back to `footer.js`.
+ *
+ * @param {boolean} held
+ * @returns {void}
+ */
+export function holdLogoEntry(held) {
+  logoHeld = held;
+}
+
+/**
+ * Whether section scroll currently owns the logo rise.
+ *
+ * @returns {boolean}
+ */
+export function logoEntryHeld() {
+  return logoHeld;
+}
+
+/**
  * Entry progress in -100–0: `ENTRY_START` while `previous` still covers `el`,
  * `ENTRY_END` once it has lifted by the element's own height.
  *

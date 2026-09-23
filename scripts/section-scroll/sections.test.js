@@ -9,6 +9,7 @@ import {
   SHIFT_VH,
   coverStartPx,
   coversPrevious,
+  dimEntryStart,
   headerFadeVh,
   introLagPx,
   isFullScreenHero,
@@ -16,6 +17,7 @@ import {
   pinTopPx,
   roundedParallax,
   staysInFlow,
+  usesCssCover,
   usesTouchScroll,
 } from './sections.js';
 
@@ -119,6 +121,41 @@ describe('headerFadeVh', () => {
 
     mockMatchMedia({ small: true });
     expect(headerFadeVh()).toBe(HEADER_FADE_VH_SMALL);
+  });
+});
+
+describe('usesCssCover', () => {
+  const supports = () => true;
+
+  afterEach(() => {
+    delete window.CSS;
+  });
+
+  it('is only the touch path that can run scroll-driven fades', () => {
+    window.CSS = { supports };
+    mockMatchMedia({ touch: false });
+    expect(usesCssCover()).toBe(false);
+
+    mockMatchMedia({ touch: true });
+    expect(usesCssCover()).toBe(true);
+
+    window.CSS = { supports: () => false };
+    expect(usesCssCover()).toBe(false);
+
+    delete window.CSS;
+    expect(usesCssCover()).toBe(false);
+  });
+});
+
+describe('dimEntryStart', () => {
+  it('maps the cover line onto a view-timeline entry percentage', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const rounded = section('<div class="section section-rounded-blue"></div>');
+    expect(dimEntryStart(rounded)).toBe('40%');
+
+    const intro = section('<div class="section page-header-container"></div>');
+    Object.defineProperty(intro, 'offsetHeight', { configurable: true, value: 400 });
+    expect(dimEntryStart(intro)).toBe('50%');
   });
 });
 

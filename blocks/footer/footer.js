@@ -1,5 +1,5 @@
 import { getMetadata } from '../../scripts/aem.js';
-import { entryProgress } from '../../scripts/utils/entry-progress.js';
+import { entryProgress, logoEntryHeld } from '../../scripts/utils/entry-progress.js';
 import { escapeAttr, fromHTML } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
@@ -504,6 +504,7 @@ function animateLogo(logo) {
    * @returns {void}
    */
   const updateLogoProgress = () => {
+    if (logoEntryHeld()) return;
     const prevElement = logo.previousElementSibling;
     if (!prevElement) return;
     if (!logoHeight) logoHeight = logo.offsetHeight;
@@ -515,10 +516,12 @@ function animateLogo(logo) {
 
   /**
    * Coalesces scroll events onto one animation frame.
+   * Section scroll owns this measurement while the garage door is up, so a
+   * second layout read on the same frame would fight that one.
    * @returns {void}
    */
   const onScroll = () => {
-    if (scrollPending) return;
+    if (logoEntryHeld() || scrollPending) return;
     scrollPending = true;
     requestAnimationFrame(() => {
       updateLogoProgress();
@@ -531,7 +534,7 @@ function animateLogo(logo) {
    * @returns {void}
    */
   const onResize = () => {
-    if (resizeRaf) return;
+    if (logoEntryHeld() || resizeRaf) return;
     resizeRaf = requestAnimationFrame(() => {
       resizeRaf = null;
       logoHeight = 0;
