@@ -217,7 +217,7 @@ npm run build:lenis
 
 That writes `deps/lenis/dist/index.js` and `deps/lenis/dist/lenis.css`. Commit those files with the version change.
 
-When a feature needs Lenis, import the committed dist file and load the stylesheet at that point. Do not add Lenis to `scripts.js` or `head.html`. Section overlays do this from `scripts/section-scroll.js` when motion is opted in, and skip it entirely on touch.
+When a feature needs Lenis, import the committed dist file and load the stylesheet at that point. Do not add Lenis to `scripts.js` or `head.html`. Section overlays do this from `scripts/section-scroll/init.js` when motion is opted in, and skip it entirely on touch.
 
 Lenis sets `scrollTop` from its own loop, so it fights anything else that animates the scroll position. `styles/section-scroll.css` turns off the native `scroll-behavior: smooth` while Lenis is active, and programmatic scrolls that run before Lenis attaches — the hash deep link in `loadLazy` — jump instantly so Lenis cannot take over mid-flight and strand them short of the target. In-page anchors (the skip link, content-grid pagers) are handled in capture: the native hash jump is prevented, Lenis smooth-scrolls to the target's in-flow offset (sticky `offsetTop` is the pinned box, so a Previous pager would stop short of the section top), focus moves to the destination heading so Tab continues in that section, and `history.pushState` updates the URL. A native hash click would otherwise be undone on the next animation frame, so the first click looks like a no-op.
 
@@ -239,13 +239,13 @@ npm run build:gsap
 
 That writes `deps/gsap/dist/index.js`. Commit that file with the version change.
 
-When a feature needs GSAP, import the committed dist file at the point of use. Do not add GSAP to `head.html`, and do not import it from `scripts.js`. Section overlays keep every GSAP import inside `scripts/section-scroll/motion.js`, which `scripts/section-scroll.js` dynamic-imports only once motion is opted in — so the bundle is never reachable from a static import chain.
+When a feature needs GSAP, import the committed dist file at the point of use. Do not add GSAP to `head.html`, and do not import it from `scripts.js`. Section overlays keep every GSAP import inside `scripts/section-scroll/section-motion.js`, which `scripts/section-scroll/init.js` dynamic-imports only once motion is opted in — so the bundle is never reachable from a static import chain.
 
 ```js
 import { gsap, ScrollTrigger } from '../../deps/gsap/dist/index.js';
 ```
 
-Anything driven from `gsap.ticker` — Lenis is, in `scripts/section-scroll.js` — needs `gsap.ticker.lagSmoothing(0)`, or a slow frame lets the ticker jump time forward and desyncs it from the real scroll position. That setting is global to GSAP, so restore the stock `lagSmoothing(500, 33)` on teardown instead of leaving every later animation on the page without it.
+Anything driven from `gsap.ticker` — Lenis is, in `scripts/section-scroll/init.js` — needs `gsap.ticker.lagSmoothing(0)`, or a slow frame lets the ticker jump time forward and desyncs it from the real scroll position. That setting is global to GSAP, so restore the stock `lagSmoothing(500, 33)` on teardown instead of leaving every later animation on the page without it.
 
 `scripts.js` may still emit a guarded `<link rel="modulepreload">` for the bundle, as `loadLazy` does for section overlays. A dynamic `import()` inside a module cannot be requested until that module's own imports have resolved, so a vendored bundle behind one starts downloading several round trips late. The hint starts the download early without placing the bundle in any import graph, and it must carry the same guard as the import it warms — otherwise it becomes an eager load for requests that never use it.
 

@@ -1,8 +1,8 @@
 /**
  * Which sections cover which, and the geometry that follows from it.
  *
- * Pure predicates and numbers only — no GSAP, no DOM writes. `section-scroll.js`
- * uses these to classify pairs; `motion.js` uses them to place tweens.
+ * Pure predicates and numbers only — no GSAP, no DOM writes. `init.js`
+ * uses these to classify pairs; `section-motion.js` uses them to place tweens.
  */
 
 /** Outgoing section: the one being covered. */

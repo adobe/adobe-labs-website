@@ -2,7 +2,7 @@
  * GSAP tweens for one outgoing/incoming section pair.
  *
  * This module statically imports GSAP, so it must only ever be reached through
- * the dynamic import in `section-scroll.js` — importing it eagerly would pull
+ * the dynamic import in `init.js` — importing it eagerly would pull
  * the vendored bundle onto the critical path.
  *
  * Every tween is scrubbed, and tweens that share a scroll range share a single
@@ -23,7 +23,7 @@ import {
   roundedParallax,
   staysInFlow,
   usesTouchScroll,
-} from './sections.js';
+} from './config-and-utils.js';
 
 /**
  * Shared ScrollTrigger for cover-driven tweens. `clamp()` keeps the start at

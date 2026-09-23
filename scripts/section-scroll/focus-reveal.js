@@ -19,7 +19,7 @@ import {
   CLASS_FADE,
   CLASS_OVERLAY,
   coverStartPx,
-} from './sections.js';
+} from './config-and-utils.js';
 
 /** Default focus ring: 2px outline plus 2px offset. Matches `overflow-clip-margin`. */
 const RING = 4;
