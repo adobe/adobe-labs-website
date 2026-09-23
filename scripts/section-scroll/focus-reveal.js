@@ -110,6 +110,8 @@ export function layoutTop(el) {
 }
 
 /**
+ * Parsed `--nav-height`, or 0 when the custom property is missing.
+ *
  * @returns {number}
  */
 function navHeight() {
@@ -119,7 +121,9 @@ function navHeight() {
 }
 
 /**
- * @param {HTMLElement} el
+ * True when `el` is `position: sticky` and currently stuck to its top offset.
+ *
+ * @param {HTMLElement} el Element to test
  * @returns {boolean}
  */
 function isCurrentlyStuck(el) {
@@ -147,9 +151,12 @@ function hasStuckAncestor(el) {
 }
 
 /**
- * @param {HTMLElement} el
- * @param {number} scroll
- * @returns {number | null} Null when nothing fading `el` needs a scroll
+ * Scroll that clears a fade or a hero painted over the page header. Null when
+ * nothing fading `el` needs a scroll.
+ *
+ * @param {HTMLElement} el Focused control
+ * @param {number} scroll Current page scroll
+ * @returns {number | null}
  */
 function opacityDelta(el, scroll) {
   const fade = el.closest(`.${CLASS_FADE}`);
@@ -189,8 +196,11 @@ function opacityDelta(el, scroll) {
 }
 
 /**
- * @param {HTMLElement} el
- * @param {DOMRect} rect
+ * Scroll that drops the focus ring below the sticky nav. Zero when the control
+ * is already clear, or when a stuck ancestor cannot move it further.
+ *
+ * @param {HTMLElement} el Focused control
+ * @param {DOMRect} rect `el`'s visual box
  * @returns {number}
  */
 function headerDelta(el, rect) {
@@ -203,7 +213,10 @@ function headerDelta(el, rect) {
 }
 
 /**
- * @param {DOMRect} rect
+ * Points inside `rect` that are also inside the viewport, for hit-testing what
+ * paints over the control.
+ *
+ * @param {DOMRect} rect Focused control's visual box
  * @returns {Array<[number, number]>}
  */
 function samplePoints(rect) {
@@ -221,6 +234,8 @@ function samplePoints(rect) {
 }
 
 /**
+ * True when both rectangles have area and intersect.
+ *
  * @param {DOMRect} a
  * @param {DOMRect} b
  * @returns {boolean}
@@ -241,6 +256,13 @@ function overlaps(a, b) {
 function obscurers(el, rect) {
   /** @type {HTMLElement[]} */
   const list = [];
+  /**
+   * Records a section that paints over the focused control. Skips the control's
+   * own section, and the page header and footer.
+   *
+   * @param {Element | null} section
+   * @returns {void}
+   */
   const add = (section) => {
     if (!(section instanceof HTMLElement)) return;
     if (section.contains(el) || el.contains(section)) return;
@@ -291,9 +313,12 @@ function isFollowing(el, section) {
 }
 
 /**
- * @param {HTMLElement} el
- * @param {HTMLElement} section
- * @param {DOMRect} rect
+ * Scroll that clears `section` off `el`. Positive moves the page down, negative
+ * moves it up. Zero when the section does not cover the control.
+ *
+ * @param {HTMLElement} el Focused control
+ * @param {HTMLElement} section Section painting over `el`
+ * @param {DOMRect} rect `el`'s visual box
  * @returns {number}
  */
 function deltaForSection(el, section, rect) {
@@ -392,9 +417,12 @@ export function revealDelta(el, scroll) {
 }
 
 /**
- * @param {HTMLElement} el
- * @param {(delta: number) => void} scrollBy
- * @param {() => number} getScroll
+ * Scrolls until `el` is clear of whatever covers it, over several frames when
+ * parallax moves the control with the page.
+ *
+ * @param {HTMLElement} el Focused control
+ * @param {(delta: number) => void} scrollBy Page scroll for one pass
+ * @param {() => number} getScroll Current page scroll
  * @returns {void}
  */
 function reveal(el, scrollBy, getScroll) {
@@ -403,6 +431,12 @@ function reveal(el, scrollBy, getScroll) {
   let pass = 0;
   let previous = Infinity;
 
+  /**
+   * One uncover pass. Repeats until the control is clear, the projected
+   * remainder finishes the overlap, or `MAX_PASSES` is reached.
+   *
+   * @returns {void}
+   */
   const step = () => {
     rafId = 0;
     if (id !== generation || !el.isConnected) return;
@@ -455,6 +489,8 @@ export function cancelFocusReveal() {
 }
 
 /**
+ * Cancels an in-flight uncover and removes the focus listener.
+ *
  * @returns {void}
  */
 export function clearFocusReveal() {
@@ -466,9 +502,12 @@ export function clearFocusReveal() {
 }
 
 /**
+ * Scrolls a focused control into view when a cover, the sticky header, or a
+ * fade is painting over it.
+ *
  * @param {object} [options]
- * @param {(delta: number) => void} [options.scrollBy]
- * @param {() => number} [options.getScroll]
+ * @param {(delta: number) => void} [options.scrollBy] Page scroll; Lenis when wired
+ * @param {() => number} [options.getScroll] Current page scroll
  * @returns {void}
  */
 export function bindFocusReveal(options = {}) {
