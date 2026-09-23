@@ -174,8 +174,20 @@
 
   /* Play icon: placement and size overrides only. Construction lives in styles.css. */
   .play-icon {
+    --play-icon-size: 50px;
+    --play-icon-svg-size: 18.8px;
+    --play-icon-radius: 9.375px;
+    --play-icon-blur: 6.25px;
+
     grid-area: play;
     place-self: start;
+    background:
+      linear-gradient(
+        0deg,
+        var(--s2a-color-transparent-white-16) 0%,
+        var(--s2a-color-transparent-white-16) 100%
+      ),
+      var(--s2a-color-transparent-black-24);
 
     /* Play glyph is left-heavy, inset it slightly to visually center it */
     svg {
