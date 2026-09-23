@@ -36,6 +36,7 @@
   }
 
   .header__bar {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--s2a-spacing-sm, 0.75rem);
@@ -66,6 +67,23 @@
 
   &.header--scrolled .header__bar {
     /* Matches adobe.com's nav shadow: a layered, soft elevation rather than a single hard-edged one. */
+    box-shadow:
+      0 4.1875rem 1.1875rem rgb(0 0 0 / 0%),
+      0 2.6875rem 1.0625rem rgb(0 0 0 / 1%),
+      0 1.5rem 0.875rem rgb(0 0 0 / 4%),
+      0 0.6875rem 0.6875rem rgb(0 0 0 / 7%),
+      0 0.1875rem 0.375rem rgb(0 0 0 / 8%);
+  }
+
+  /* Second shadow layer, behind the bar's content, for extra contrast. */
+  &.header--scrolled .header__bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    backdrop-filter: blur(var(--s2a-blur-sm, 1rem));
     box-shadow:
       0 4.1875rem 1.1875rem rgb(0 0 0 / 0%),
       0 2.6875rem 1.0625rem rgb(0 0 0 / 1%),
