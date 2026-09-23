@@ -4,6 +4,7 @@
 import {
   bindFocusReveal,
   clearFocusReveal,
+  layoutTop,
   revealDelta,
 } from './focus-reveal.js';
 
@@ -33,12 +34,14 @@ function place(el, box) {
 
 /**
  * @param {HTMLElement} el
- * @param {number} top
+ * @param {number} top In-flow document Y, applied as the previous sibling's height
  * @returns {void}
  */
 function layout(el, top) {
-  Object.defineProperty(el, 'offsetTop', { configurable: true, value: top });
-  Object.defineProperty(el, 'offsetParent', { configurable: true, value: null });
+  const prev = el.previousElementSibling;
+  if (prev instanceof HTMLElement) {
+    Object.defineProperty(prev, 'offsetHeight', { configurable: true, value: top });
+  }
 }
 
 /**
@@ -77,6 +80,7 @@ beforeEach(() => {
   Object.defineProperty(window, 'innerHeight', { configurable: true, value: 1000 });
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 });
   document.documentElement.style.setProperty('--nav-height', '80px');
+  document.body.style.margin = '0';
   document.elementsFromPoint = () => [];
   document.body.innerHTML = '';
 });
@@ -85,6 +89,27 @@ afterEach(() => {
   clearFocusReveal();
   document.body.innerHTML = '';
   document.documentElement.style.removeProperty('--nav-height');
+});
+
+describe('layoutTop', () => {
+  it('uses previous siblings heights instead of a sticky offsetTop', () => {
+    document.body.innerHTML = `
+      <header></header>
+      <main>
+        <div class="section" id="one"></div>
+        <div class="section" id="two"></div>
+      </main>
+    `;
+    const header = document.querySelector('header');
+    const one = document.getElementById('one');
+    const two = document.getElementById('two');
+    Object.defineProperty(header, 'offsetHeight', { configurable: true, value: 80 });
+    Object.defineProperty(one, 'offsetHeight', { configurable: true, value: 1000 });
+    Object.defineProperty(one, 'offsetTop', { configurable: true, value: 500 });
+    Object.defineProperty(two, 'offsetTop', { configurable: true, value: 200 });
+
+    expect(layoutTop(two)).toBe(1080);
+  });
 });
 
 describe('revealDelta', () => {
@@ -278,6 +303,26 @@ describe('revealDelta', () => {
     });
 
     expect(revealDelta(main, 0)).toBe(0);
+  });
+
+  it('does not uncover an in-page hash link, so a pager click can leave the section', () => {
+    document.body.innerHTML = `
+      <main>
+        <div class="section slow"><a href="#two">Next</a></div>
+        <div class="section next" id="two"></div>
+      </main>
+    `;
+    const slow = document.querySelector('.slow');
+    const next = document.querySelector('.next');
+    const link = document.querySelector('a');
+    stick(slow, '-100px');
+    place(slow, { top: -100, bottom: 500 });
+    place(link, {
+      top: 400, bottom: 420, left: 10, right: 80,
+    });
+    place(next, { top: 300, bottom: 900 });
+
+    expect(revealDelta(link, 1000)).toBe(0);
   });
 
   it('leaves header and footer controls to their own scrolling', () => {

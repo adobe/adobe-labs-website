@@ -165,6 +165,7 @@ beforeEach(() => {
   mockMatchMedia(false);
   window.hlx = { codeBasePath: '' };
   document.body.innerHTML = '';
+  document.body.style.margin = '0';
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
 });
 
@@ -389,12 +390,58 @@ describe('initSectionScroll', () => {
 
     expect(loadCSS).toHaveBeenCalledWith('/styles/section-scroll.css');
     expect(loadCSS).toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
-    expect(Lenis).toHaveBeenCalledWith({ autoRaf: false });
+    expect(Lenis).toHaveBeenCalledWith({ autoRaf: false, anchors: true });
     expect(Lenis.mock.results[0].value.on).toHaveBeenCalledWith('scroll', ScrollTrigger.update);
     expect(gsap.ticker.add).toHaveBeenCalled();
     expect(gsap.ticker.lagSmoothing).toHaveBeenCalledWith(0);
     expect(gsap.context).toHaveBeenCalled();
     expect(document.querySelector('.section-rounded-blue')).toHaveClass('section-scroll-slow');
+  });
+
+  it('smooth-scrolls an in-page hash to the target layout offset, not its sticky box', async () => {
+    mockMatchMedia(true);
+    const main = mountMain(`
+      <div class="section section-rounded-blue">
+        <a href="#two">Next</a>
+      </div>
+      <div class="section section-rounded-default" id="two"></div>
+    `);
+    const previous = `${window.location.pathname}${window.location.search}`;
+
+    await initSectionScroll();
+    const instance = Lenis.mock.results[0].value;
+    const dest = document.getElementById('two');
+    const previousSection = main.children[0];
+    Object.defineProperty(previousSection, 'offsetHeight', { configurable: true, value: 2400 });
+    // Sticky lie: Chrome reports the pinned box, which would stop the pager short.
+    Object.defineProperty(dest, 'offsetTop', { configurable: true, value: 1500 });
+    dest.getBoundingClientRect = () => ({
+      top: -640, bottom: 160, left: 0, right: 400, width: 400, height: 800, x: 0, y: -640,
+    });
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    main.querySelector('a').dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(instance.scrollTo).toHaveBeenCalledWith(2400);
+    expect(window.location.hash).toBe('#two');
+    history.pushState(null, '', previous);
+  });
+
+  it('leaves native hash clicks alone on touch, where Lenis is not driving', async () => {
+    mockMatchMedia(true, { touch: true });
+    const main = mountMain(`
+      <div class="section section-rounded-blue">
+        <a href="#two">Next</a>
+      </div>
+      <div class="section section-rounded-default" id="two"></div>
+    `);
+
+    await initSectionScroll();
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    main.querySelector('a').dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(Lenis).not.toHaveBeenCalled();
   });
 
   it('binds a rounded parallax timeline that recedes from rest with the dim', async () => {

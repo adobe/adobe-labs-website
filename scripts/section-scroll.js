@@ -32,7 +32,9 @@ import {
 } from './section-scroll/sections.js';
 import {
   bindFocusReveal,
+  cancelFocusReveal,
   clearFocusReveal,
+  layoutTop,
 } from './section-scroll/focus-reveal.js';
 import {
   bindFooterReveal,
@@ -72,6 +74,8 @@ let motion = null;
 let motionCtx = null;
 /** Touch state the current bindings were built for. */
 let boundToTouch = false;
+/** @type {((event: MouseEvent) => void) | null} */
+let onHashClick = null;
 
 /**
  * @returns {boolean}
@@ -196,6 +200,70 @@ function tickLenis(time) {
 }
 
 /**
+ * Same-page `#id` target of a click, when that id exists. Hash-only `href`s are
+ * same-document even when the resolved URL differs (a `<base href>` or a
+ * trailing-slash mismatch).
+ *
+ * @param {EventTarget | null} target
+ * @returns {{ el: HTMLElement, hash: string } | null}
+ */
+function samePageHashTarget(target) {
+  const link = target instanceof Element ? target.closest('a[href]') : null;
+  if (!(link instanceof HTMLAnchorElement)) return null;
+  const raw = link.getAttribute('href') || '';
+  let hash = '';
+  if (raw.startsWith('#')) {
+    hash = raw;
+  } else {
+    let next;
+    try {
+      next = new URL(link.href, window.location.href);
+    } catch {
+      return null;
+    }
+    const current = new URL(window.location.href);
+    if (next.origin !== current.origin) return null;
+    const strip = (path) => (path.length > 1 ? path.replace(/\/$/, '') : path);
+    if (strip(next.pathname) !== strip(current.pathname)) return null;
+    hash = next.hash;
+  }
+  if (!hash || hash === '#') return null;
+  const el = document.getElementById(decodeURIComponent(hash.slice(1)));
+  return el instanceof HTMLElement ? { el, hash } : null;
+}
+
+/**
+ * Native hash jumps set scrollTop; Lenis overwrites it on the next raf, so the
+ * first click looks like a no-op and only the second (already-hashed) click
+ * moves. Prevent the native jump and let Lenis own the scroll. Cancel any
+ * uncover queued from focusing the link, or it pulls the page back. `pushState`
+ * keeps the URL in sync without triggering another native scroll.
+ *
+ * @param {MouseEvent} event
+ * @returns {void}
+ */
+function handleHashClick(event) {
+  if (!lenis || event.defaultPrevented || event.button !== 0) return;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const dest = samePageHashTarget(event.target);
+  if (!dest) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  cancelFocusReveal();
+  // Native `scroll-behavior: smooth` is off while Lenis runs; this is that
+  // animation, owned by Lenis so it is not undone on the next raf. Layout Y
+  // (not the node): Lenis and `offsetTop` both read the pinned visual box.
+  // Subtract scroll-padding so the section top sits below the sticky header,
+  // matching native hash jumps.
+  const padding = parseFloat(
+    getComputedStyle(document.documentElement).scrollPaddingTop,
+  );
+  const top = layoutTop(dest.el) - (Number.isFinite(padding) ? padding : 0);
+  lenis.scrollTo(top > 0 ? top : 0);
+  if (window.location.hash !== dest.hash) history.pushState(null, '', dest.hash);
+}
+
+/**
  * Loads the vendored bundles and the tweens that need them, then hands scroll to
  * Lenis everywhere except touch.
  *
@@ -219,12 +287,19 @@ async function attach() {
   if (mod) motion = mod;
   if (!lenisLib) return;
   const { default: Lenis } = lenisLib;
-  lenis = new Lenis({ autoRaf: false });
+  // Native `#id` jumps fight Lenis unless we own the click (see handleHashClick).
+  // `anchors` is the fallback if that listener misses; both use Lenis's lerp so
+  // in-page links keep the same smooth scroll native CSS used to provide.
+  lenis = new Lenis({ autoRaf: false, anchors: true });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add(tickLenis);
   // Lenis drives its own rAF from this ticker, so smoothing a lagging frame
   // would desync it from the scroll position. `stop()` puts this back.
   gsap.ticker.lagSmoothing(0);
+  if (!onHashClick) {
+    onHashClick = handleHashClick;
+    document.addEventListener('click', onHashClick, true);
+  }
 }
 
 /**
@@ -245,6 +320,10 @@ function stop() {
   if (onResize) {
     window.removeEventListener('resize', onResize);
     onResize = null;
+  }
+  if (onHashClick) {
+    document.removeEventListener('click', onHashClick, true);
+    onHashClick = null;
   }
   clear();
 }
