@@ -6,8 +6,8 @@
  * and the classification of which section covers which; the behaviour itself
  * lives alongside it:
  *
- * - `section-scroll/sections.js` — predicates, tuning constants, geometry
- * - `section-scroll/motion.js` — GSAP tweens (loaded on demand with the bundle)
+ * - `section-scroll/config-and-utils.js` — predicates, tuning constants, geometry
+ * - `section-scroll/section-motion.js` — GSAP tweens (loaded on demand with the bundle)
  * - `section-scroll/focus-reveal.js` — scroll a covered control into view
  * - `section-scroll/footer-reveal.js` — the footer garage door
  *
@@ -17,8 +17,8 @@
  *
  * Exports beyond `initSectionScroll` exist for tests.
  */
-import { loadCSS } from './aem.js';
-import { debounce } from './utils/utils.js';
+import { loadCSS } from '../aem.js';
+import { debounce } from '../utils/utils.js';
 import {
   CLASS_CSS_COVER,
   CLASS_FADE,
@@ -34,19 +34,19 @@ import {
   staysInFlow,
   usesCssCover,
   usesTouchScroll,
-} from './section-scroll/sections.js';
+} from './config-and-utils.js';
 import {
   bindFocusReveal,
   cancelFocusReveal,
   clearFocusReveal,
   layoutTop,
   undimmedScrollTop,
-} from './section-scroll/focus-reveal.js';
+} from './focus-reveal.js';
 import {
   bindFooterReveal,
   clearFooterReveal,
   refreshFooterReveal,
-} from './section-scroll/footer-reveal.js';
+} from './footer-reveal.js';
 
 const MOTION_MQ = '(prefers-reduced-motion: no-preference)';
 
@@ -406,9 +406,9 @@ async function attach() {
   if (usesCssCover()) return;
   const needsLenis = !usesTouchScroll() && !lenis;
   const [lib, mod, lenisLib] = await Promise.all([
-    gsap ? null : import('../deps/gsap/dist/index.js'),
-    motion ? null : import('./section-scroll/motion.js'),
-    needsLenis ? import('../deps/lenis/dist/index.js') : null,
+    gsap ? null : import('../../deps/gsap/dist/index.js'),
+    motion ? null : import('./section-motion.js'),
+    needsLenis ? import('../../deps/lenis/dist/index.js') : null,
   ]);
   if (lib) {
     gsap = lib.gsap;

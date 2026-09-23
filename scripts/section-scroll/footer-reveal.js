@@ -13,7 +13,7 @@
  * the logo has fully risen.
  */
 import { ENTRY_END, entryProgress, holdLogoEntry } from '../utils/entry-progress.js';
-import { isRounded } from './sections.js';
+import { isRounded } from './config-and-utils.js';
 
 /** Last rounded card, raised above the footer. */
 const CLASS_REVEAL = 'section-scroll-reveal';

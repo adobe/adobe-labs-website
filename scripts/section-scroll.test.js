@@ -1,7 +1,7 @@
 /**
  * Section cover classification and the motion opt-in lifecycle.
  *
- * Predicates and geometry are covered in `section-scroll/sections.test.js`, the
+ * Predicates and geometry are covered in `section-scroll/config-and-utils.test.js`, the
  * garage door in `section-scroll/footer-reveal.test.js`, focus reveal in
  * `section-scroll/focus-reveal.test.js`, and the shared entry math in
  * `utils/entry-progress.test.js`. What is left here is which sections get
@@ -18,12 +18,12 @@ import {
   INTRO_LAG,
   OVERLAY_DIM,
   roundedParallax,
-} from './section-scroll/sections.js';
+} from './section-scroll/config-and-utils.js';
 import {
   classifySectionScroll,
   initSectionScroll,
   teardownSectionScroll,
-} from './section-scroll.js';
+} from './section-scroll/init.js';
 
 jest.mock('./aem.js', () => ({
   loadCSS: jest.fn(() => Promise.resolve()),

@@ -19,7 +19,7 @@ import {
   staysInFlow,
   usesCssCover,
   usesTouchScroll,
-} from './sections.js';
+} from './config-and-utils.js';
 
 /**
  * @param {string} html

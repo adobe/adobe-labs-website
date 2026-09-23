@@ -1,7 +1,7 @@
 /**
  * Keyboard focus scrolls a covered control into view instead of skipping it.
  */
-import { COVER_START_VH, coverStartPx } from './sections.js';
+import { COVER_START_VH, coverStartPx } from './config-and-utils.js';
 import {
   bindFocusReveal,
   clearFocusReveal,

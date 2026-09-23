@@ -4,7 +4,7 @@
  * for the authored behaviour.
  *
  * This file owns the parts that need no JS: sticky positioning, stacking order,
- * the dim layer's box, and the touch-only intro lag. `scripts/section-scroll.js`
+ * the dim layer's box, and the touch-only intro lag. `scripts/section-scroll/init.js`
  * classifies sections and sets the three custom properties read below —
  * `--section-scroll-slow-top`, `--section-scroll-intro-lag`, and
  * `--section-scroll-inner-progress`. On a coarse pointer that supports
