@@ -112,8 +112,6 @@
   --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
   --color-button-background-primary-hover: var(--s2a-color-gray-800);
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
-  --color-button-background-back-to-top: var(--s2a-color-transparent-black-08);
-  --color-button-background-back-to-top-hover: var(--s2a-color-transparent-black-16);
 
   &[data-theme="dark"] {
     --color-section-surface-default: #262626;
@@ -121,8 +119,6 @@
     --color-section-surface-pink: #301517;
     --color-section-surface-orange: #413b37;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
-    --color-button-background-back-to-top: var(--s2a-color-transparent-white-12);
-    --color-button-background-back-to-top-hover: var(--s2a-color-transparent-white-24);
   }
 }
 
@@ -708,8 +704,8 @@ footer {
   padding: 0;
   border: 0;
   border-radius: var(--s2a-border-radius-6);
-  background-color: var(--color-button-background-back-to-top);
-  color: var(--s2a-color-content-subtle);
+  background-color: var(--s2a-color-gray-100);
+  color: var(--s2a-color-gray-1000);
   text-decoration: none;
   cursor: pointer;
   visibility: hidden;
@@ -720,7 +716,7 @@ footer {
   transition-property: outline, color, background-color;
 
   &:hover {
-    background-color: var(--color-button-background-back-to-top-hover);
+    background-color: var(--s2a-color-gray-400);
     text-decoration: none;
   }
 
