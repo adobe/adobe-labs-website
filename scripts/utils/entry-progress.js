@@ -11,7 +11,7 @@ export const ENTRY_START = -100;
 export const ENTRY_END = 0;
 
 /**
- * True while `footer-reveal.js` is writing both entry custom properties.
+ * True while section scroll is writing both entry custom properties.
  * The footer's own logo listener then skips its layout read.
  */
 let logoHeld = false;
