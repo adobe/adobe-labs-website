@@ -424,7 +424,7 @@ describe('initSectionScroll', () => {
     expect(event.defaultPrevented).toBe(true);
     expect(instance.scrollTo).toHaveBeenCalledWith(2400);
     expect(window.location.hash).toBe('#two');
-    history.pushState(null, '', previous);
+    window.history.pushState(null, '', previous);
   });
 
   it('moves focus to the destination heading so Tab continues in that section', async () => {
@@ -450,7 +450,7 @@ describe('initSectionScroll', () => {
 
     expect(document.activeElement).toBe(heading);
     expect(heading).toHaveAttribute('tabindex', '-1');
-    history.pushState(null, '', previous);
+    window.history.pushState(null, '', previous);
   });
 
   it('leaves native hash clicks alone on touch, where Lenis is not driving', async () => {

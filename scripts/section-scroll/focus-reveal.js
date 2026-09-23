@@ -92,16 +92,21 @@ export function layoutTop(el) {
     y += parseFloat(parentStyle.paddingTop) || 0;
     y += parseFloat(parentStyle.borderTopWidth) || 0;
     const gap = parseFloat(parentStyle.rowGap) || 0;
-    let skipped = 0;
-    for (const child of parent.children) {
-      if (child === node) break;
-      if (!(child instanceof HTMLElement)) continue;
+    const children = [...parent.children];
+    const index = children.indexOf(node);
+    const previous = children.slice(0, index).reduce((sum, child) => {
+      if (!(child instanceof HTMLElement)) return sum;
       const cs = getComputedStyle(child);
-      y += (parseFloat(cs.marginTop) || 0)
-        + child.offsetHeight
-        + (parseFloat(cs.marginBottom) || 0);
-      skipped += 1;
-    }
+      return {
+        y: sum.y
+          + (parseFloat(cs.marginTop) || 0)
+          + child.offsetHeight
+          + (parseFloat(cs.marginBottom) || 0),
+        skipped: sum.skipped + 1,
+      };
+    }, { y: 0, skipped: 0 });
+    y += previous.y;
+    const { skipped } = previous;
     y += parseFloat(getComputedStyle(node).marginTop) || 0;
     if (skipped) y += gap * skipped;
     node = parent;
@@ -151,6 +156,18 @@ function hasStuckAncestor(el) {
 }
 
 /**
+ * True when both rectangles have area and intersect.
+ *
+ * @param {DOMRect} a
+ * @param {DOMRect} b
+ * @returns {boolean}
+ */
+function overlaps(a, b) {
+  return a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0
+    && a.bottom > b.top && a.top < b.bottom && a.right > b.left && a.left < b.right;
+}
+
+/**
  * Scroll that clears a fade or a hero painted over the page header. Null when
  * nothing fading `el` needs a scroll.
  *
@@ -168,11 +185,13 @@ function opacityDelta(el, scroll) {
     const rect = el.getBoundingClientRect();
     const section = fade.parentElement;
     if (section instanceof HTMLElement) {
-      for (const sibling of section.children) {
-        if (!(sibling instanceof HTMLElement) || sibling === fade) continue;
-        if (sibling.classList.contains('section-scroll-overlay')) continue;
-        if (overlaps(sibling.getBoundingClientRect(), rect)) return -scroll;
-      }
+      const covered = [...section.children].some((sibling) => (
+        sibling instanceof HTMLElement
+        && sibling !== fade
+        && !sibling.classList.contains('section-scroll-overlay')
+        && overlaps(sibling.getBoundingClientRect(), rect)
+      ));
+      if (covered) return -scroll;
     }
   }
 
@@ -231,18 +250,6 @@ function samplePoints(rect) {
   return candidates.filter(([x, y]) => (
     x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight
   ));
-}
-
-/**
- * True when both rectangles have area and intersect.
- *
- * @param {DOMRect} a
- * @param {DOMRect} b
- * @returns {boolean}
- */
-function overlaps(a, b) {
-  return a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0
-    && a.bottom > b.top && a.top < b.bottom && a.right > b.left && a.left < b.right;
 }
 
 /**

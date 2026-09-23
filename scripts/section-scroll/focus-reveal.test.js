@@ -1,6 +1,7 @@
 /**
  * Keyboard focus scrolls a covered control into view instead of skipping it.
  */
+import { COVER_START_VH } from './sections.js';
 import {
   bindFocusReveal,
   clearFocusReveal,
@@ -321,8 +322,8 @@ describe('revealDelta', () => {
       top: 200, bottom: 220, left: 10, right: 80,
     });
 
-    // Cover line is 0.7 of the 1000px viewport.
-    expect(revealDelta(link, 1500)).toBe(-200);
+    // Previous sibling is 2000px tall; the cover line is COVER_START_VH of the viewport.
+    expect(revealDelta(link, 1500)).toBe(500 - 1000 * COVER_START_VH);
   });
 
   it('does not scroll a control that is already fully visible', () => {

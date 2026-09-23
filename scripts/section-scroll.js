@@ -299,7 +299,7 @@ function handleHashClick(event) {
   );
   const top = layoutTop(dest.el) - (Number.isFinite(padding) ? padding : 0);
   lenis.scrollTo(top > 0 ? top : 0);
-  if (window.location.hash !== dest.hash) history.pushState(null, '', dest.hash);
+  if (window.location.hash !== dest.hash) window.history.pushState(null, '', dest.hash);
   // After the click, the browser would keep focus on the pager. Move it in a
   // microtask so that does not win, then drop any uncover the heading's focusin
   // queued.
