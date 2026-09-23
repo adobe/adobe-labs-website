@@ -130,6 +130,21 @@ export function introLagPx(section) {
 }
 
 /**
+ * Viewport Y where the incoming section starts dimming `section`.
+ * Intro sections start when the next section reaches their bottom. Rounded
+ * cards and full-screen heroes start at `COVER_START_VH`.
+ *
+ * @param {HTMLElement} section Outgoing section
+ * @returns {number}
+ */
+export function coverStartPx(section) {
+  if (section.classList.contains(CLASS_INTRO) || staysInFlow(section)) {
+    return Math.min(section.offsetHeight, window.innerHeight);
+  }
+  return window.innerHeight * COVER_START_VH;
+}
+
+/**
  * Sticky offset that parks a rounded card at the cover line. A full-screen hero
  * pins at the top instead, so it is never pulled under the nav.
  *
