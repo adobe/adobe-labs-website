@@ -48,9 +48,11 @@ let generation = 0;
 
 /**
  * The skip link focuses `main` itself. That landmark is not a covered control,
- * and scrolling it would fight the jump to the top of the page. Same for
- * in-page hash links (content-grid pagers): mousedown focuses the link, and
- * uncovering it after the hash jump pulls the page back to the old section.
+ * and scrolling it would fight the jump to the top of the page. Content-grid
+ * pagers are also skipped: mousedown focuses the link, and uncovering it after
+ * the hash jump pulls the page back to the old section. Page-header jump links
+ * are hash links too, but they stay in the tab order under the hero, so they
+ * must still uncover.
  *
  * @param {HTMLElement} el
  * @returns {boolean}
@@ -60,7 +62,7 @@ function skipsReveal(el) {
     el.closest('header')
     || el.closest('body > footer')
     || el.matches('body > main')
-    || el.closest('a[href^="#"]'),
+    || el.closest('.content-grid__pager-link'),
   );
 }
 
@@ -154,6 +156,17 @@ function opacityDelta(el, scroll) {
   if (fade instanceof HTMLElement) {
     const opacity = parseFloat(getComputedStyle(fade).opacity);
     if (Number.isFinite(opacity) && opacity < 1) return -scroll;
+    // The intro hero paints over the sticky page header at z-index, even
+    // while the fade is still at opacity 1. Scroll to the top of the fade.
+    const rect = el.getBoundingClientRect();
+    const section = fade.parentElement;
+    if (section instanceof HTMLElement) {
+      for (const sibling of section.children) {
+        if (!(sibling instanceof HTMLElement) || sibling === fade) continue;
+        if (sibling.classList.contains('section-scroll-overlay')) continue;
+        if (overlaps(sibling.getBoundingClientRect(), rect)) return -scroll;
+      }
+    }
   }
 
   let node = el.parentElement;
