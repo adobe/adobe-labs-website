@@ -1205,6 +1205,12 @@ body.article main > [class*="section-rounded-"]:not(
   /* Transparent border included for high contrast mode. */
   --cr-pin-popover-border-width: 0.125rem;
 
+  /* Block-level so the wrapper does not become an inline box around a block-level
+     `picture`, which would leave the absolutely positioned pin without a usable
+     containing block. Shrink-wrapped so the pin sits on the image's corner rather
+     than the container's. */
+  display: block;
+  inline-size: fit-content;
   position: relative;
 
   @media (width >= 48rem) {
@@ -1336,7 +1342,7 @@ body.article main > [class*="section-rounded-"]:not(
 .cr-pin-popover__socials {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding-inline: 0;
 }
 
 .cr-pin-popover__name {

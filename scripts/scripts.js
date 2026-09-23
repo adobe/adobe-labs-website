@@ -34,6 +34,7 @@ import {
   decorateArticleSections,
   decorateSectionMetadata,
   decorateBlockquotes,
+  isArticleDetailPage,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -351,12 +352,18 @@ async function loadLazy(doc) {
  */
 function loadDelayed() {
   // Content Credentials (CR Pin): Read images to look for content credentials,
-  // and add CR pins to any that have them.
-  import('./features/content-credentials.js')
-    .then(({ default: initContentCredentials }) => initContentCredentials())
-    .catch(() => {
-      // Ignore error.
-    });
+  // and add CR pins to any that have them. Only article pages show CR pins, and the
+  // c2pa library is large, so this waits out the window where the visitor first
+  // interacts rather than running the moment lazy loading resolves.
+  if (isArticleDetailPage()) {
+    window.setTimeout(() => {
+      import('./features/content-credentials.js')
+        .then(({ default: initContentCredentials }) => initContentCredentials())
+        .catch(() => {
+          // Ignore error.
+        });
+    }, 3000);
+  }
 }
 
 async function loadPage() {
