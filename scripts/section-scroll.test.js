@@ -427,6 +427,32 @@ describe('initSectionScroll', () => {
     history.pushState(null, '', previous);
   });
 
+  it('moves focus to the destination heading so Tab continues in that section', async () => {
+    mockMatchMedia(true);
+    const main = mountMain(`
+      <div class="section section-rounded-blue">
+        <a href="#two">Next</a>
+      </div>
+      <div class="section section-rounded-default" id="two">
+        <h2>Two</h2>
+        <a href="/card">Card</a>
+      </div>
+    `);
+    const previous = `${window.location.pathname}${window.location.search}`;
+    const link = main.querySelector('a[href="#two"]');
+    const heading = main.querySelector('h2');
+    Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 2400 });
+
+    await initSectionScroll();
+    link.focus();
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    await Promise.resolve();
+
+    expect(document.activeElement).toBe(heading);
+    expect(heading).toHaveAttribute('tabindex', '-1');
+    history.pushState(null, '', previous);
+  });
+
   it('leaves native hash clicks alone on touch, where Lenis is not driving', async () => {
     mockMatchMedia(true, { touch: true });
     const main = mountMain(`
