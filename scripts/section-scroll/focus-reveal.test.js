@@ -1,7 +1,7 @@
 /**
  * Keyboard focus scrolls a covered control into view instead of skipping it.
  */
-import { COVER_START_VH } from './sections.js';
+import { COVER_START_VH, coverStartPx } from './sections.js';
 import {
   bindFocusReveal,
   clearFocusReveal,
@@ -307,8 +307,10 @@ describe('revealDelta', () => {
   it('scrolls faded hero copy back to the cover line', () => {
     document.body.innerHTML = `
       <main>
-        <div class="section section-scroll-slow">
-          <div class="hero__content" style="opacity: 0.2"><a href="/x">CTA</a></div>
+        <div class="section hero-container section-scroll-slow">
+          <div class="hero hero-full-screen">
+            <div class="hero__content" style="opacity: 0.2"><a href="/x">CTA</a></div>
+          </div>
         </div>
         <div class="section next"></div>
       </main>
@@ -324,6 +326,30 @@ describe('revealDelta', () => {
 
     // Previous sibling is 2000px tall; the cover line is COVER_START_VH of the viewport.
     expect(revealDelta(link, 1500)).toBe(500 - 1000 * COVER_START_VH);
+  });
+
+  it('scrolls a dimmed section back until the overlay clears', () => {
+    document.body.innerHTML = `
+      <main>
+        <div class="section section-rounded-blue section-scroll-slow">
+          <a href="/x">Link</a>
+          <span class="section-scroll-overlay" style="opacity: 0.5"></span>
+        </div>
+        <div class="section next"></div>
+      </main>
+    `;
+    const section = document.querySelector('.section-scroll-slow');
+    const next = document.querySelector('.next');
+    const link = document.querySelector('a');
+    layout(next, 2000);
+    // The link is already clear of the next section. The overlay is not.
+    place(link, {
+      top: 200, bottom: 220, left: 10, right: 80,
+    });
+    place(next, { top: 500, bottom: 1400 });
+
+    const scroll = 1800;
+    expect(revealDelta(link, scroll)).toBe(2000 - coverStartPx(section) - scroll);
   });
 
   it('does not scroll a control that is already fully visible', () => {

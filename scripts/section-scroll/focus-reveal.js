@@ -7,7 +7,9 @@
  * on top of it, so the control is "on screen" and still hidden. Taking it out
  * of the tab order would skip something the user can reach; scrolling until it
  * is clear keeps it reachable (WCAG 2.2 SC 2.4.11). The scroll is limited so
- * the control itself stays inside the viewport.
+ * the control itself stays inside the viewport. A cover overlay that is still
+ * dimming the section is the exception: that scroll continues until the
+ * overlay is gone.
  *
  * The footer menu is not handled here. Its clip and translate mean a rectangle
  * clearance fights the garage door, so `footer-reveal.js` scrolls that card
@@ -15,8 +17,7 @@
  */
 import {
   CLASS_FADE,
-  CLASS_INTRO,
-  COVER_START_VH,
+  coverStartPx,
 } from './sections.js';
 
 /** Default focus ring: 2px outline plus 2px offset. Matches `overflow-clip-margin`. */
@@ -203,10 +204,7 @@ function opacityDelta(el, scroll) {
       const section = node.closest('main > .section');
       const next = section?.nextElementSibling;
       if (!(section instanceof HTMLElement) || !(next instanceof HTMLElement)) return 0;
-      const line = section.classList.contains(CLASS_INTRO)
-        ? Math.min(section.offsetHeight, window.innerHeight)
-        : window.innerHeight * COVER_START_VH;
-      const delta = layoutTop(next) - line - scroll;
+      const delta = layoutTop(next) - coverStartPx(section) - scroll;
       return delta < 0 ? delta : 0;
     }
     node = node.parentElement;
@@ -387,6 +385,28 @@ function intoViewDelta(rect) {
 }
 
 /**
+ * Scroll position where `el`'s section is no longer dimmed, or `scrollTop` when
+ * it has no visible cover overlay. The dim eases in from `coverStartPx` and is
+ * gone once the next section sits at or below that line.
+ *
+ * @param {HTMLElement} el Focused control, or the section itself
+ * @param {number} scrollTop Candidate page scroll
+ * @returns {number}
+ */
+export function undimmedScrollTop(el, scrollTop) {
+  const section = el.matches('main > .section') ? el : el.closest('main > .section');
+  if (!(section instanceof HTMLElement)) return scrollTop;
+  const overlay = section.querySelector('.section-scroll-overlay');
+  if (!(overlay instanceof HTMLElement)) return scrollTop;
+  const opacity = parseFloat(getComputedStyle(overlay).opacity);
+  if (!Number.isFinite(opacity) || opacity <= 0) return scrollTop;
+  const next = section.nextElementSibling;
+  if (!(next instanceof HTMLElement)) return scrollTop;
+  const clearAt = layoutTop(next) - coverStartPx(section);
+  return Math.min(scrollTop, clearAt);
+}
+
+/**
  * Scroll delta that brings `el` fully into view. Negative scrolls up.
  * Zero when the control is already clear, or when both sections are in flow
  * and scrolling would move them together.
@@ -418,9 +438,15 @@ export function revealDelta(el, scroll) {
   }
 
   // A stuck control stays put while the cover moves, so the viewport clamp
-  // would stop the scroll short and leave the last line covered.
-  if (hasStuckAncestor(el)) return delta;
-  return movementClamp(rect, delta);
+  // would stop the scroll short and leave the last line covered. A dim overlay
+  // paints the whole outgoing section, so uncovering the control alone can
+  // leave the bottom of the previous section still dimmed. Only an upward
+  // correction counts: a zero here means there is no visible overlay.
+  const clearDim = undimmedScrollTop(el, scroll) - scroll;
+  const undim = clearDim < 0;
+  if (hasStuckAncestor(el)) return undim && clearDim < delta ? clearDim : delta;
+  const clamped = movementClamp(rect, delta);
+  return undim && clearDim < clamped ? clearDim : clamped;
 }
 
 /**
@@ -453,8 +479,14 @@ function reveal(el, scrollBy, getScroll) {
     if (pass > 0 && !hasStuckAncestor(el)) {
       const rect = el.getBoundingClientRect();
       const offscreen = rect.bottom <= 0 || rect.top >= window.innerHeight;
-      const back = intoViewDelta(rect);
+      let back = intoViewDelta(rect);
       if (offscreen && Math.abs(back) >= 1) {
+        // Pulling the control back on screen can scroll into the cover again.
+        // Stop at the last position where the overlay is clear.
+        const scroll = getScroll();
+        const room = undimmedScrollTop(el, scroll + back) - scroll;
+        if (back > 0) back = Math.min(back, room);
+        if (Math.abs(back) < 1) return;
         scrollBy(back);
         return;
       }

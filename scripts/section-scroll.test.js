@@ -427,6 +427,32 @@ describe('initSectionScroll', () => {
     window.history.pushState(null, '', previous);
   });
 
+  it('scrolls a previous-section jump until the dim overlay is gone', async () => {
+    mockMatchMedia(true);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section section-rounded-default"></div>
+      <div class="section section-rounded-blue" id="one"></div>
+      <div class="section section-rounded-pink">
+        <a href="#one">Previous</a>
+      </div>
+    `);
+    const previous = `${window.location.pathname}${window.location.search}`;
+    Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 3000 });
+    Object.defineProperty(main.children[1], 'offsetHeight', { configurable: true, value: 400 });
+
+    await initSectionScroll();
+    const overlay = main.querySelector('#one .section-scroll-overlay');
+    overlay.style.opacity = '0.6';
+    const instance = Lenis.mock.results[0].value;
+    main.querySelector('a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    // The section top is still inside the dim. The overlay is clear once the
+    // following section sits at the cover line, which is further up.
+    expect(instance.scrollTo).toHaveBeenCalledWith(3400 - 800 * COVER_START_VH);
+    window.history.pushState(null, '', previous);
+  });
+
   it('moves focus to the destination heading so Tab continues in that section', async () => {
     mockMatchMedia(true);
     const main = mountMain(`

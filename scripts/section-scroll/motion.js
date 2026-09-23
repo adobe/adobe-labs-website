@@ -13,9 +13,9 @@
 import { gsap, ScrollTrigger } from '../../deps/gsap/dist/index.js';
 import {
   CLASS_FADE,
-  COVER_START_VH,
   HERO_TEXT_SPEED,
   OVERLAY_DIM,
+  coverStartPx,
   headerFadeVh,
   introLagPx,
   isFullScreenHero,
@@ -94,13 +94,13 @@ export function clearMotionState(root) {
 }
 
 /**
- * A cover timeline's start line, as a fraction of the viewport.
+ * ScrollTrigger start for the line where `section` begins to dim.
  *
- * @param {number} fraction
+ * @param {HTMLElement} section Outgoing section
  * @returns {() => string}
  */
-function atVh(fraction) {
-  return () => `top ${window.innerHeight * fraction}px`;
+function coverStart(section) {
+  return () => `top ${coverStartPx(section)}px`;
 }
 
 /**
@@ -204,11 +204,7 @@ export function bindPair(slow, next) {
     const headerWrap = slow.querySelector(`:scope > .${CLASS_FADE}`);
     if (headerWrap) fadeHeader(headerWrap);
 
-    const cover = coverTimeline(
-      slow,
-      next,
-      () => `top ${Math.min(slow.offsetHeight, window.innerHeight)}px`,
-    );
+    const cover = coverTimeline(slow, next, coverStart(slow));
     const lagInner = [...slow.children].filter((el) => el !== overlay && el !== headerWrap);
     if (lagInner.length && !touch) {
       cover.fromTo(lagInner, { y: 0 }, { y: () => introLagPx(slow), duration: 1 }, 0);
@@ -221,11 +217,11 @@ export function bindPair(slow, next) {
   // against page scroll rather than against the incoming card.
   if (isFullScreenHero(slow)) {
     if (!touch) recedeHeroText(slow);
-    dim(coverTimeline(slow, next, atVh(COVER_START_VH)), overlay, heroText, FULL_SPAN);
+    dim(coverTimeline(slow, next, coverStart(slow)), overlay, heroText, FULL_SPAN);
     return;
   }
 
-  const cover = coverTimeline(slow, next, atVh(COVER_START_VH));
+  const cover = coverTimeline(slow, next, coverStart(slow));
   const inner = touch ? [] : [...slow.children].filter((el) => el !== overlay);
   if (inner.length) {
     cover.fromTo(inner, { y: 0 }, {

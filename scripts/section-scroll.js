@@ -35,6 +35,7 @@ import {
   cancelFocusReveal,
   clearFocusReveal,
   layoutTop,
+  undimmedScrollTop,
 } from './section-scroll/focus-reveal.js';
 import {
   bindFooterReveal,
@@ -297,7 +298,8 @@ function handleHashClick(event) {
   const padding = parseFloat(
     getComputedStyle(document.documentElement).scrollPaddingTop,
   );
-  const top = layoutTop(dest.el) - (Number.isFinite(padding) ? padding : 0);
+  const padded = layoutTop(dest.el) - (Number.isFinite(padding) ? padding : 0);
+  const top = undimmedScrollTop(dest.el, padded);
   lenis.scrollTo(top > 0 ? top : 0);
   if (window.location.hash !== dest.hash) window.history.pushState(null, '', dest.hash);
   // After the click, the browser would keep focus on the pager. Move it in a

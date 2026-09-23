@@ -7,6 +7,7 @@ import {
   HEADER_FADE_VH_SMALL,
   INTRO_LAG,
   SHIFT_VH,
+  coverStartPx,
   coversPrevious,
   headerFadeVh,
   introLagPx,
@@ -155,6 +156,23 @@ describe('introLagPx', () => {
 
     Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 1200 });
     expect(introLagPx(el)).toBe(800 * INTRO_LAG);
+  });
+});
+
+describe('coverStartPx', () => {
+  it('starts a rounded card at the cover line', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const el = section('<div class="section section-rounded-blue"></div>');
+
+    expect(coverStartPx(el)).toBe(800 * COVER_START_VH);
+  });
+
+  it('starts an intro section at the bottom of the outgoing section', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const el = section('<div class="section page-header-container"></div>');
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 400 });
+
+    expect(coverStartPx(el)).toBe(400);
   });
 });
 
