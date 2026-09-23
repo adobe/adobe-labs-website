@@ -21,7 +21,7 @@ export const CLASS_FADE = 'section-scroll-fade';
 export const SHIFT_VH = 0.2;
 
 /** Viewport fraction where the incoming section starts the pin, lag, and dim. */
-export const COVER_START_VH = 0.7;
+export const COVER_START_VH = 0.6;
 
 /** Peak overlay opacity when the next section has covered the previous. */
 export const OVERLAY_DIM = 0.8;
