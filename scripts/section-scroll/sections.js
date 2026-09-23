@@ -23,9 +23,6 @@ export const SHIFT_VH = 0.2;
 /** Viewport fraction where the incoming section starts the pin, lag, and dim. */
 export const COVER_START_VH = 0.7;
 
-/** Viewport fraction before the pin used to ease into the slowed parallax. */
-export const COVER_EASE_VH = 0.2;
-
 /** Peak overlay opacity when the next section has covered the previous. */
 export const OVERLAY_DIM = 0.8;
 
@@ -108,15 +105,14 @@ export function usesTouchScroll() {
 }
 
 /**
- * Inner-lag endpoints for a rounded card, in px.
+ * Inner recede of a pinned rounded card, in px. Negative: content moves up as
+ * the next card covers it. Starts from 0 so the cover never reverses.
  *
  * @param {number} vh
- * @returns {{ prePinLag: number, postPinEnd: number }}
+ * @returns {number}
  */
 export function roundedParallax(vh) {
-  if (vh <= 0) return { prePinLag: 0, postPinEnd: 0 };
-  const prePinLag = (1 - SHIFT_VH / COVER_START_VH) * vh * COVER_EASE_VH * 0.5;
-  return { prePinLag, postPinEnd: prePinLag - SHIFT_VH * vh };
+  return vh > 0 ? -SHIFT_VH * vh : 0;
 }
 
 /**

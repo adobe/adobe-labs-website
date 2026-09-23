@@ -11,7 +11,6 @@ import { loadCSS } from './aem.js';
 import { gsap, ScrollTrigger } from '../deps/gsap/dist/index.js';
 import Lenis from '../deps/lenis/dist/index.js';
 import {
-  COVER_EASE_VH,
   COVER_START_VH,
   HEADER_FADE_VH,
   HEADER_FADE_VH_SMALL,
@@ -398,7 +397,7 @@ describe('initSectionScroll', () => {
     expect(document.querySelector('.section-rounded-blue')).toHaveClass('section-scroll-slow');
   });
 
-  it('binds a rounded parallax timeline that eases in then recedes', async () => {
+  it('binds a rounded parallax timeline that recedes from rest with the dim', async () => {
     mockMatchMedia(true);
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
@@ -421,21 +420,15 @@ describe('initSectionScroll', () => {
         invalidateOnRefresh: true,
       }),
     });
-    // Starts COVER_EASE_VH earlier than the dim, so it keeps its own trigger.
-    expect(config.scrollTrigger.start())
-      .toBe(`clamp(top ${800 * (COVER_START_VH + COVER_EASE_VH)}px)`);
+    expect(config.scrollTrigger.start()).toBe(`clamp(top ${800 * COVER_START_VH}px)`);
 
     expect(timeline.fromTo).toHaveBeenCalledWith(
       expect.arrayContaining([inner]),
       { y: 0 },
-      expect.objectContaining({ ease: 'power2.in', duration: COVER_EASE_VH }),
+      expect.objectContaining({ duration: 1 }),
     );
-    expect(timeline.fromTo.mock.calls[0][2].y()).toBe(roundedParallax(800).prePinLag);
-    expect(timeline.to).toHaveBeenCalledWith(
-      expect.arrayContaining([inner]),
-      expect.objectContaining({ duration: COVER_START_VH }),
-    );
-    expect(timeline.to.mock.calls[0][1].y()).toBe(roundedParallax(800).postPinEnd);
+    expect(timeline.fromTo.mock.calls[0][2].y()).toBe(roundedParallax(800));
+    expect(timeline.to).not.toHaveBeenCalled();
   });
 
   it('dims the outgoing card from the cover line, on the parallax timeline', async () => {
@@ -455,16 +448,15 @@ describe('initSectionScroll', () => {
     expect(overlay.tagName).toBe('SPAN');
     expect(overlay).toHaveAttribute('aria-hidden', 'true');
 
-    // One trigger for the pair: the dim rides the inner-lag timeline, offset to
-    // the cover line rather than to the earlier ease-in.
+    // One trigger for the pair: the dim and the recede share the cover line.
     expect(timelineTweening(overlay).timeline)
       .toBe(timelineTweening(main.querySelector('.inner')).timeline);
     expect(gsap.timeline).toHaveBeenCalledTimes(1);
     expect(timelineTweening(overlay).timeline.fromTo).toHaveBeenCalledWith(
       overlay,
       { opacity: 0 },
-      { opacity: OVERLAY_DIM, duration: COVER_START_VH },
-      COVER_EASE_VH,
+      { opacity: OVERLAY_DIM, duration: 1 },
+      0,
     );
   });
 

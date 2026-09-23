@@ -2,7 +2,6 @@
  * Section cover predicates and geometry.
  */
 import {
-  COVER_EASE_VH,
   COVER_START_VH,
   HEADER_FADE_VH,
   HEADER_FADE_VH_SMALL,
@@ -137,18 +136,12 @@ describe('usesTouchScroll', () => {
 });
 
 describe('roundedParallax', () => {
-  it('eases in a downward lag before the pin, then recedes after', () => {
-    const vh = 800;
-    const { prePinLag, postPinEnd } = roundedParallax(vh);
-
-    expect(prePinLag).toBeGreaterThan(0);
-    expect(prePinLag).toBe((1 - SHIFT_VH / COVER_START_VH) * vh * COVER_EASE_VH * 0.5);
-    expect(postPinEnd).toBeLessThan(prePinLag);
-    expect(postPinEnd).toBe(prePinLag - SHIFT_VH * vh);
+  it('recedes upward by SHIFT_VH, from rest', () => {
+    expect(roundedParallax(800)).toBe(-SHIFT_VH * 800);
   });
 
   it('is inert without a viewport', () => {
-    expect(roundedParallax(0)).toEqual({ prePinLag: 0, postPinEnd: 0 });
+    expect(roundedParallax(0)).toBe(0);
   });
 });
 

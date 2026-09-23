@@ -13,7 +13,6 @@
 import { gsap, ScrollTrigger } from '../../deps/gsap/dist/index.js';
 import {
   CLASS_FADE,
-  COVER_EASE_VH,
   COVER_START_VH,
   HERO_TEXT_SPEED,
   OVERLAY_DIM,
@@ -105,9 +104,8 @@ function atVh(fraction) {
 }
 
 /**
- * Timeline scrubbed over the incoming section's approach. Durations on it are
- * read as viewport fractions by `bindPair`, so a tween can be placed at the
- * scroll position it belongs to rather than needing a trigger of its own.
+ * Timeline scrubbed over the incoming section's approach. Dim and inner lag
+ * share it so they cannot drift onto separate triggers.
  *
  * @param {HTMLElement} slow Outgoing section
  * @param {HTMLElement} next Incoming section
@@ -225,28 +223,13 @@ export function bindPair(slow, next) {
     return;
   }
 
+  const cover = coverTimeline(slow, next, atVh(COVER_START_VH));
   const inner = touch ? [] : [...slow.children].filter((el) => el !== overlay);
-  if (!inner.length) {
-    dim(coverTimeline(slow, next, atVh(COVER_START_VH)), overlay, heroText, FULL_SPAN);
-    return;
+  if (inner.length) {
+    cover.fromTo(inner, { y: 0 }, {
+      y: () => roundedParallax(window.innerHeight),
+      duration: 1,
+    });
   }
-
-  /*
-   * Rounded card. The inner lag has to start COVER_EASE_VH before the dim so
-   * scrolling does not snap to the slowed rate, but both end at `top top`. The
-   * timeline spans COVER_EASE_VH + COVER_START_VH over exactly that many
-   * viewport fractions of scroll, so one timeline unit is one viewport height
-   * and the dim can sit at COVER_EASE_VH instead of carrying a second trigger.
-   */
-  const cover = coverTimeline(slow, next, atVh(COVER_START_VH + COVER_EASE_VH));
-  cover.fromTo(inner, { y: 0 }, {
-    y: () => roundedParallax(window.innerHeight).prePinLag,
-    ease: 'power2.in',
-    duration: COVER_EASE_VH,
-  });
-  cover.to(inner, {
-    y: () => roundedParallax(window.innerHeight).postPinEnd,
-    duration: COVER_START_VH,
-  });
-  dim(cover, overlay, heroText, { at: COVER_EASE_VH, duration: COVER_START_VH });
+  dim(cover, overlay, heroText, FULL_SPAN);
 }
