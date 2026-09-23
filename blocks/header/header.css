@@ -40,7 +40,9 @@
     align-items: center;
     gap: var(--s2a-spacing-sm, 0.75rem);
     box-sizing: border-box;
+    max-inline-size: var(--site-max-inline-size);
     min-block-size: var(--header-bar-height);
+    margin-inline: auto;
     padding-block: var(--s2a-spacing-sm, 0.75rem);
     padding-inline: var(--s2a-spacing-lg, 1.5rem) var(--s2a-spacing-md, 1rem);
     border-radius: var(--header-radius);
@@ -48,7 +50,7 @@
     background-color: var(--header-bg);
 
     @media (prefers-reduced-motion: no-preference) {
-      transition: background-color 0.25s ease;
+      transition: background-color 0.25s ease, box-shadow 0.25s ease;
     }
 
     @media (width >= 48rem) {
@@ -60,6 +62,10 @@
       background-color: color-mix(in srgb, var(--header-bg) 80%, transparent);
       backdrop-filter: blur(4rem);
     }
+  }
+
+  &.header--scrolled .header__bar {
+    box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 12%);
   }
 
   .header__brand {
@@ -375,6 +381,16 @@
   .header__cta {
     margin-inline-start: auto;
     flex-shrink: 0;
+  }
+
+  /* Once the frosted bar has a dark surface behind it, the solid-white CTA
+     becomes an outline button, like adobe.com. Same mechanism as the shared
+     `.button--outline` variant, recolored for the knockout surface. */
+  &.header--inverse.header--scrolled .header__cta {
+    --color-button-border: var(--s2a-color-button-border-primary-outlined-on-dark-default, #fff);
+    --color-button-background-primary: transparent;
+    --color-button-background-primary-hover: var(--s2a-color-button-background-primary-outlined-on-dark-hover, rgb(255 255 255 / 64%));
+    --color-button-text-primary: var(--s2a-color-button-content-primary-outlined-knockout, #fff);
   }
 
   .header__panel-link {

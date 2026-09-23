@@ -568,6 +568,7 @@ footer {
   --active-size-inline-ratio-down: 0.3333;
   --active-size-minimum-perspective-down: 1.5rem;
   --active-size-difference-down: -2px;
+  --color-button-border: transparent;
 
   display: inline-flex;
   align-items: center;
@@ -575,7 +576,7 @@ footer {
   inline-size: fit-content;
   block-size: var(--block-size-button);
   padding-inline: var(--s2a-spacing-lg);
-  border: var(--s2a-border-width-md) solid transparent;
+  border: var(--s2a-border-width-md) solid var(--color-button-border);
   border-radius: var(--border-radius-button);
   font-family: var(--body-font-family);
   font-size: var(--s2a-typography-font-size-label);
@@ -622,6 +623,18 @@ footer {
     background-color: var(--color-button-background-primary-disabled);
     color: var(--color-button-text-disabled);
     pointer-events: none;
+  }
+
+  &.button--outline {
+    --color-button-border: var(--s2a-color-gray-900);
+    --color-button-background-primary: rgb(0 0 0 / 0%);
+    --color-button-background-primary-hover: var(--s2a-color-gray-100);
+    --color-button-text-primary: var(--s2a-color-content-default);
+
+    :root[data-theme="dark"] & {
+      --color-button-border: var(--s2a-color-gray-300);
+      --color-button-background-primary-hover: var(--s2a-color-gray-800);
+    }
   }
 
   &.button--static-white {
