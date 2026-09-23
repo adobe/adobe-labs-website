@@ -45,7 +45,9 @@ const SMALL_MQ = '(width < 48rem)';
 const TOUCH_MQ = '(hover: none) and (pointer: coarse)';
 
 /**
- * @param {Element | null} el
+ * True when the section carries a `section-rounded-*` surface class.
+ *
+ * @param {Element | null} el Section to test
  * @returns {boolean}
  */
 export function isRounded(el) {
@@ -53,7 +55,9 @@ export function isRounded(el) {
 }
 
 /**
- * @param {Element | null} el
+ * True when the section contains a full-screen hero.
+ *
+ * @param {Element | null} el Section to test
  * @returns {boolean}
  */
 export function isFullScreenHero(el) {

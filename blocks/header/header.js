@@ -697,6 +697,12 @@ function bindOverlayChrome(block, signal) {
   let heroUnderNav = true;
   let contentUnderNav = false;
 
+  /**
+   * Inverse while the hero is under the nav and following content is not.
+   * `header--scrolled` follows content that has reached the bar.
+   *
+   * @returns {void}
+   */
   const sync = () => {
     setHeaderInverse(block, heroUnderNav && !contentUnderNav);
     block.classList.toggle('header--scrolled', contentUnderNav);
@@ -712,15 +718,17 @@ function bindOverlayChrome(block, signal) {
   });
   heroObserver.observe(hero);
 
-  /*
-   * `rootMargin` is fixed per observer but depends on the viewport, so the
-   * frost observer has to be rebuilt when that changes. Debounced: a resize
-   * drag fires per frame, and frost is cosmetic enough to settle late.
-   * The `aborted` check keeps a queued rebuild from outliving the header and
-   * leaving an observer nothing disconnects.
-   */
   /** @type {IntersectionObserver | null} */
   let frostObserver = null;
+  /**
+   * Rebuilds the frost observer. `rootMargin` is fixed per observer and depends
+   * on the viewport, so a resize has to recreate it. Debounced: a resize drag
+   * fires per frame, and frost is cosmetic enough to settle late. The aborted
+   * check keeps a queued rebuild from outliving the header and leaving an
+   * observer nothing disconnects.
+   *
+   * @returns {void}
+   */
   const connectFrost = () => {
     if (!next || signal.aborted) return;
     frostObserver?.disconnect();

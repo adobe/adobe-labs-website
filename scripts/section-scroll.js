@@ -78,6 +78,8 @@ let boundToTouch = false;
 let onHashClick = null;
 
 /**
+ * Whether the visitor has opted into motion.
+ *
  * @returns {boolean}
  */
 function prefersMotion() {
@@ -137,6 +139,12 @@ export function classifySectionScroll(root = document) {
   if (!main) return;
   boundToTouch = usesTouchScroll();
 
+  /**
+   * Classifies each cover pair, writes the CSS variables, and binds the footer
+   * and focus reveal. Runs inside the GSAP context once motion is attached.
+   *
+   * @returns {void}
+   */
   const decorate = () => {
     const sections = [...main.querySelectorAll(':scope > .section')];
     sections.forEach((section, index) => {
@@ -151,6 +159,12 @@ export function classifySectionScroll(root = document) {
       applySectionVars(section);
       if (started && motion) motion.bindPair(section, next);
     });
+    /**
+     * Scrolls by `delta` pixels. Lenis owns the position when it is attached.
+     *
+     * @param {number} delta Pixels to scroll; negative moves up
+     * @returns {void}
+     */
     const scrollBy = (delta) => {
       if (lenis) {
         lenis.scrollTo(lenis.scroll + delta, { immediate: true });
@@ -192,6 +206,8 @@ function onViewportChange() {
 }
 
 /**
+ * Advances Lenis from the GSAP ticker so scroll stays on the same clock as the tweens.
+ *
  * @param {number} time Seconds from the GSAP ticker
  * @returns {void}
  */
@@ -333,6 +349,8 @@ async function attach() {
 }
 
 /**
+ * Tears down Lenis, listeners, and classification, and restores GSAP lag smoothing.
+ *
  * @returns {void}
  */
 function stop() {
@@ -359,6 +377,8 @@ function stop() {
 }
 
 /**
+ * Loads the section-scroll CSS and motion bundles, then classifies sections.
+ *
  * @returns {Promise<void>}
  */
 async function start() {
@@ -379,6 +399,8 @@ async function start() {
 }
 
 /**
+ * Starts or stops section scroll when the reduced-motion preference changes.
+ *
  * @returns {void}
  */
 function onMotionChange() {
@@ -387,6 +409,8 @@ function onMotionChange() {
 }
 
 /**
+ * Stops section scroll and drops the motion-preference listener.
+ *
  * @returns {void}
  */
 export function teardownSectionScroll() {
@@ -398,6 +422,8 @@ export function teardownSectionScroll() {
 }
 
 /**
+ * Opts into section scroll when motion is allowed, and watches for later changes.
+ *
  * @returns {Promise<void>}
  */
 export async function initSectionScroll() {

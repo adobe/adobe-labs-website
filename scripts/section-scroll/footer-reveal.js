@@ -37,7 +37,9 @@ let syncNow = null;
 let raf = 0;
 
 /**
- * @param {number} delta
+ * Native page scroll used when section-scroll has not wired Lenis.
+ *
+ * @param {number} delta Pixels to scroll; negative moves up
  * @returns {void}
  */
 function defaultScrollBy(delta) {
@@ -86,8 +88,11 @@ export function refreshFooterReveal() {
 }
 
 /**
- * @param {HTMLElement} main
- * @param {ParentNode} root
+ * Garage-doors the footer menu behind the last rounded card, and scrolls that
+ * card off a focused menu control.
+ *
+ * @param {HTMLElement} main Page main
+ * @param {ParentNode} root Tree to classify; document in production
  * @param {object} [options]
  * @param {(delta: number) => void} [options.scrollBy] Page scroll used to
  *   uncover a focused control; Lenis when section-scroll has wired it
@@ -116,6 +121,12 @@ export function bindFooterReveal(main, root, options = {}) {
   let inner = null;
   let innerHeight = 0;
 
+  /**
+   * The footer menu element. `loadFooter` may not have built `.footer__inner`
+   * yet, so this retries until it exists and then caches its height.
+   *
+   * @returns {HTMLElement | null}
+   */
   const resolve = () => {
     if (!inner?.isConnected) {
       inner = footer.querySelector('.footer__inner');
@@ -125,6 +136,12 @@ export function bindFooterReveal(main, root, options = {}) {
     return inner;
   };
 
+  /**
+   * Writes `--section-scroll-inner-progress` and swaps in the logo sticky once
+   * the menu has fully risen.
+   *
+   * @returns {void}
+   */
   const sync = () => {
     const el = resolve();
     if (!el) return;
@@ -139,6 +156,12 @@ export function bindFooterReveal(main, root, options = {}) {
    * `.footer__inner` also uses `overflow: clip`, which cannot scroll. Jump the
    * page until the card's bottom sits at the menu's fully-in line. A zero
    * height means the measurement failed rather than that the menu is hidden.
+   */
+  /**
+   * Scrolls the last card off a focused menu control. Native scroll-into-view
+   * treats that control as on screen while the card still covers it.
+   *
+   * @returns {void}
    */
   const uncoverForFocus = () => {
     const el = resolve();
