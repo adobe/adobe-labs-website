@@ -233,6 +233,29 @@ function samePageHashTarget(target) {
 }
 
 /**
+ * Moves keyboard focus with an in-page jump. The hash-click capture listener
+ * swallows the pager's own click handler, so this is what keeps Tab inside the
+ * destination section instead of the control that was just activated.
+ *
+ * @param {HTMLElement} el
+ * @returns {void}
+ */
+function focusHashTarget(el) {
+  let target = el;
+  if (el.matches('main > .section')) {
+    const heading = el.querySelector('h1, h2, h3, h4, h5, h6');
+    if (heading instanceof HTMLElement) target = heading;
+  }
+  if (
+    !target.hasAttribute('tabindex')
+    && !target.matches('a[href], button, input, select, textarea, summary')
+  ) {
+    target.tabIndex = -1;
+  }
+  target.focus({ preventScroll: true });
+}
+
+/**
  * Native hash jumps set scrollTop; Lenis overwrites it on the next raf, so the
  * first click looks like a no-op and only the second (already-hashed) click
  * moves. Prevent the native jump and let Lenis own the scroll. Cancel any
@@ -261,6 +284,13 @@ function handleHashClick(event) {
   const top = layoutTop(dest.el) - (Number.isFinite(padding) ? padding : 0);
   lenis.scrollTo(top > 0 ? top : 0);
   if (window.location.hash !== dest.hash) history.pushState(null, '', dest.hash);
+  // After the click, the browser would keep focus on the pager. Move it in a
+  // microtask so that does not win, then drop any uncover the heading's focusin
+  // queued.
+  queueMicrotask(() => {
+    focusHashTarget(dest.el);
+    cancelFocusReveal();
+  });
 }
 
 /**
