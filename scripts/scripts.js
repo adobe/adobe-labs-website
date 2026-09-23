@@ -24,10 +24,14 @@ import {
   getMetadata,
 } from './aem.js';
 import {
+  buildArticleAuthorMeta,
+  buildArticleMetaActions,
   buildArticlePreFooter,
   debounce,
   ensureSkipLink,
+  decorateArticleMetaSections,
   decorateArticleSections,
+  decorateSectionMetadata,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -85,6 +89,8 @@ function buildWidgetAutoBlocks(main) {
  */
 function buildAutoBlocks(main) {
   try {
+    buildArticleAuthorMeta(main);
+    buildArticleMetaActions(main);
     buildArticlePreFooter(main);
     // auto load `*/fragments/*` references
     const fragments = [...main.querySelectorAll('a[href*="/fragments/"]')].filter((f) => !f.closest('.fragment'));
@@ -166,7 +172,9 @@ export function decorateMain(main) {
   decorateIcons(main);
   buildAutoBlocks(main);
   decorateSections(main);
+  decorateSectionMetadata(main);
   decorateArticleSections(main);
+  decorateArticleMetaSections(main);
   decorateBlocks(main);
   decorateButtons(main);
 }
