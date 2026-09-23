@@ -13,20 +13,17 @@
 import { gsap, ScrollTrigger } from '../../deps/gsap/dist/index.js';
 import {
   CLASS_FADE,
+  CLASS_OVERLAY,
   HERO_TEXT_SPEED,
   OVERLAY_DIM,
   coverStartPx,
   headerFadeVh,
   introLagPx,
   isFullScreenHero,
-  isRounded,
   roundedParallax,
   staysInFlow,
   usesTouchScroll,
 } from './sections.js';
-
-/** Dim layer on the outgoing card. */
-const CLASS_OVERLAY = 'section-scroll-overlay';
 
 /**
  * Shared ScrollTrigger for cover-driven tweens. `clamp()` keeps the start at
@@ -46,40 +43,6 @@ function scrub(trigger, startAt) {
     scrub: true,
     invalidateOnRefresh: true,
   };
-}
-
-/**
- * Host for the dim layer: the hero card when this section has one, otherwise
- * the section (rounded cards).
- *
- * @param {HTMLElement} section Outgoing section
- * @returns {HTMLElement}
- */
-function overlayHost(section) {
-  if (!isRounded(section)) {
-    const hero = section.querySelector('.hero');
-    if (hero instanceof HTMLElement) return hero;
-  }
-  return section;
-}
-
-/**
- * Dim layer on the outgoing card. A span so it is not styled as a
- * `main > .section > div` content column.
- *
- * @param {HTMLElement} section Outgoing section
- * @returns {HTMLElement}
- */
-function overlayFor(section) {
-  const host = overlayHost(section);
-  let overlay = host.querySelector(`:scope > .${CLASS_OVERLAY}`);
-  if (!(overlay instanceof HTMLElement)) {
-    overlay = document.createElement('span');
-    overlay.className = CLASS_OVERLAY;
-    overlay.setAttribute('aria-hidden', 'true');
-    host.append(overlay);
-  }
-  return overlay;
 }
 
 /**
@@ -194,7 +157,7 @@ function recedeHeroText(section) {
  * @returns {void}
  */
 export function bindPair(slow, next) {
-  const overlay = overlayFor(slow);
+  const overlay = slow.querySelector(`.${CLASS_OVERLAY}`);
   const heroText = slow.querySelector('.hero__content');
   const touch = usesTouchScroll();
 

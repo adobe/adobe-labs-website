@@ -194,6 +194,32 @@ describe('revealDelta', () => {
     expect(revealDelta(link, 1000)).toBe(-292);
   });
 
+  it('clears a later section that overlaps, without a hit test', () => {
+    document.body.innerHTML = `
+      <main>
+        <div class="section slow"><a href="/x">Buried</a></div>
+        <div class="section middle"></div>
+        <div class="section later"></div>
+      </main>
+    `;
+    const slow = document.querySelector('.slow');
+    const middle = document.querySelector('.middle');
+    const later = document.querySelector('.later');
+    const link = document.querySelector('a');
+    stick(slow, '-100px');
+    place(slow, { top: -100, bottom: 500 });
+    place(link, {
+      top: 400, bottom: 420, left: 10, right: 100,
+    });
+    place(middle, { top: 1100, bottom: 1400 });
+    place(later, { top: 300, bottom: 900 });
+    document.elementsFromPoint = () => {
+      throw new Error('hit test');
+    };
+
+    expect(revealDelta(link, 2500)).toBe(-132);
+  });
+
   it('leaves an in-flow overlap alone, since scrolling moves both sections together', () => {
     document.body.innerHTML = `
       <main>

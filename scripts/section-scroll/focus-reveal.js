@@ -17,6 +17,7 @@
  */
 import {
   CLASS_FADE,
+  CLASS_OVERLAY,
   coverStartPx,
 } from './sections.js';
 
@@ -46,6 +47,26 @@ let onFocusIn = null;
 let rafId = 0;
 /** @type {number} */
 let generation = 0;
+/** Layout tops measured for the in-flight uncover. Sibling heights do not change mid-reveal. */
+/** @type {Map<HTMLElement, number> | null} */
+let layoutCache = null;
+/** Stuck-ancestor answers for the in-flight uncover. */
+/** @type {Map<HTMLElement, boolean> | null} */
+let stuckCache = null;
+/** Parsed `--nav-height` for the in-flight uncover, or null outside one. */
+/** @type {number | null} */
+let revealNav = null;
+
+/**
+ * Drops geometry cached for one uncover.
+ *
+ * @returns {void}
+ */
+function dropRevealCache() {
+  layoutCache = null;
+  stuckCache = null;
+  revealNav = null;
+}
 
 /**
  * The skip link focuses `main` itself. That landmark is not a covered control,
@@ -68,15 +89,12 @@ function skipsReveal(el) {
 }
 
 /**
- * Document Y of `el` in layout. Chrome's `offsetTop` on a sticky card is the
- * pinned box (same lie as `getBoundingClientRect`), so a Previous pager would
- * stop short of the section top. Previous siblings' heights do not move when
- * those siblings stick.
+ * Document Y of `el` from in-flow sibling heights, ignoring a sticky offset.
  *
  * @param {HTMLElement} el
  * @returns {number}
  */
-export function layoutTop(el) {
+function measureLayoutTop(el) {
   let y = 0;
   /** @type {Element | null} */
   let node = el;
@@ -116,14 +134,43 @@ export function layoutTop(el) {
 }
 
 /**
+ * Document Y of `el` in layout. Chrome's `offsetTop` on a sticky card is the
+ * pinned box (same lie as `getBoundingClientRect`), so a Previous pager would
+ * stop short of the section top. Previous siblings' heights do not move when
+ * those siblings stick.
+ *
+ * Repeated calls during one uncover reuse the first measurement.
+ *
+ * @param {HTMLElement} el
+ * @returns {number}
+ */
+export function layoutTop(el) {
+  const cached = layoutCache?.get(el);
+  if (cached !== undefined) return cached;
+  const y = measureLayoutTop(el);
+  layoutCache?.set(el, y);
+  return y;
+}
+
+/**
  * Parsed `--nav-height`, or 0 when the custom property is missing.
  *
  * @returns {number}
  */
-function navHeight() {
+function readNavHeight() {
   const raw = getComputedStyle(document.documentElement).getPropertyValue('--nav-height');
   const value = parseFloat(raw);
   return Number.isFinite(value) ? value : 0;
+}
+
+/**
+ * Parsed `--nav-height` for the current uncover, measured once per reveal.
+ *
+ * @returns {number}
+ */
+function navHeight() {
+  if (revealNav !== null) return revealNav;
+  return readNavHeight();
 }
 
 /**
@@ -148,12 +195,19 @@ function isCurrentlyStuck(el) {
  * @returns {boolean}
  */
 function hasStuckAncestor(el) {
+  const cached = stuckCache?.get(el);
+  if (cached !== undefined) return cached;
   let node = el;
+  let stuck = false;
   while (node && node !== document.documentElement) {
-    if (node instanceof HTMLElement && isCurrentlyStuck(node)) return true;
+    if (node instanceof HTMLElement && isCurrentlyStuck(node)) {
+      stuck = true;
+      break;
+    }
     node = node.parentElement;
   }
-  return false;
+  stuckCache?.set(el, stuck);
+  return stuck;
 }
 
 /**
@@ -166,6 +220,20 @@ function hasStuckAncestor(el) {
 function overlaps(a, b) {
   return a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0
     && a.bottom > b.top && a.top < b.bottom && a.right > b.left && a.left < b.right;
+}
+
+/**
+ * Scroll position where `section` is no longer dimmed. Null when it has no
+ * following section. The dim eases in from `coverStartPx` and is gone once the
+ * next section sits at or below that line.
+ *
+ * @param {HTMLElement} section Outgoing section
+ * @returns {number | null}
+ */
+function coverClearScroll(section) {
+  const next = section.nextElementSibling;
+  if (!(next instanceof HTMLElement)) return null;
+  return layoutTop(next) - coverStartPx(section);
 }
 
 /**
@@ -189,7 +257,7 @@ function opacityDelta(el, scroll) {
       const covered = [...section.children].some((sibling) => (
         sibling instanceof HTMLElement
         && sibling !== fade
-        && !sibling.classList.contains('section-scroll-overlay')
+        && !sibling.classList.contains(CLASS_OVERLAY)
         && overlaps(sibling.getBoundingClientRect(), rect)
       ));
       if (covered) return -scroll;
@@ -202,9 +270,10 @@ function opacityDelta(el, scroll) {
     const opacity = parseFloat(getComputedStyle(node).opacity);
     if (Number.isFinite(opacity) && opacity < 1) {
       const section = node.closest('main > .section');
-      const next = section?.nextElementSibling;
-      if (!(section instanceof HTMLElement) || !(next instanceof HTMLElement)) return 0;
-      const delta = layoutTop(next) - coverStartPx(section) - scroll;
+      if (!(section instanceof HTMLElement)) return 0;
+      const clearAt = coverClearScroll(section);
+      if (clearAt === null) return 0;
+      const delta = clearAt - scroll;
       return delta < 0 ? delta : 0;
     }
     node = node.parentElement;
@@ -218,41 +287,22 @@ function opacityDelta(el, scroll) {
  *
  * @param {HTMLElement} el Focused control
  * @param {DOMRect} rect `el`'s visual box
+ * @param {number} nav Parsed `--nav-height`
+ * @param {boolean} stuck Whether a sticky ancestor is currently stuck
  * @returns {number}
  */
-function headerDelta(el, rect) {
-  const nav = navHeight();
+function headerDelta(el, rect, nav, stuck) {
   if (rect.top >= nav + RING) return 0;
   // A control parked against the nav by its own sticky cannot drop the ring
   // below the header; scrolling would repeat the same few pixels.
-  if (hasStuckAncestor(el) && rect.top >= nav - 1) return 0;
+  if (stuck && rect.top >= nav - 1) return 0;
   return rect.top - nav - RING;
 }
 
 /**
- * Points inside `rect` that are also inside the viewport, for hit-testing what
- * paints over the control.
- *
- * @param {DOMRect} rect Focused control's visual box
- * @returns {Array<[number, number]>}
- */
-function samplePoints(rect) {
-  const inset = 1;
-  const candidates = [
-    [rect.left + rect.width / 2, rect.top + rect.height / 2],
-    [rect.left + inset, rect.top + inset],
-    [rect.right - inset, rect.top + inset],
-    [rect.left + inset, rect.bottom - inset],
-    [rect.right - inset, rect.bottom - inset],
-  ];
-  return candidates.filter(([x, y]) => (
-    x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight
-  ));
-}
-
-/**
- * Sections painting over `el`. The next sibling is included even when only
- * the control's edge is covered, which a center hit-test would miss.
+ * Later sections whose boxes overlap the focused control, including the gap
+ * past the focus ring. A hit test would miss a cover that only clips the
+ * control's edge, and the dim layer is `pointer-events: none`.
  *
  * @param {HTMLElement} el
  * @param {DOMRect} rect
@@ -261,40 +311,23 @@ function samplePoints(rect) {
 function obscurers(el, rect) {
   /** @type {HTMLElement[]} */
   const list = [];
-  /**
-   * Records a section that paints over the focused control. Skips the control's
-   * own section, and the page header and footer.
-   *
-   * @param {Element | null} section
-   * @returns {void}
-   */
-  const add = (section) => {
-    if (!(section instanceof HTMLElement)) return;
-    if (section.contains(el) || el.contains(section)) return;
-    if (section.tagName === 'HEADER' || section.tagName === 'FOOTER') return;
-    if (!list.includes(section)) list.push(section);
-  };
-
-  const own = el.closest('main > .section');
-  const next = own?.nextElementSibling;
-  if (next instanceof HTMLElement && next.classList.contains('section')) {
-    const focus = new DOMRect(
-      rect.left - COVER_CLEARANCE,
-      rect.top - COVER_CLEARANCE,
-      rect.width + COVER_CLEARANCE * 2,
-      rect.height + COVER_CLEARANCE * 2,
-    );
-    if (overlaps(next.getBoundingClientRect(), focus)) add(next);
-  }
-
-  if (typeof document.elementsFromPoint === 'function') {
-    samplePoints(rect).forEach(([x, y]) => {
-      const hit = document.elementsFromPoint(x, y).find((node) => (
-        node instanceof Element && node !== el && !el.contains(node) && !node.contains(el)
-      ));
-      const section = hit?.closest('main > .section');
-      if (section instanceof HTMLElement) add(section);
-    });
+  const focus = new DOMRect(
+    rect.left - COVER_CLEARANCE,
+    rect.top - COVER_CLEARANCE,
+    rect.width + COVER_CLEARANCE * 2,
+    rect.height + COVER_CLEARANCE * 2,
+  );
+  let sibling = (el.closest('main > .section') || el).nextElementSibling;
+  while (sibling) {
+    if (
+      sibling instanceof HTMLElement
+      && sibling.classList.contains('section')
+      && !sibling.contains(el)
+      && overlaps(sibling.getBoundingClientRect(), focus)
+    ) {
+      list.push(sibling);
+    }
+    sibling = sibling.nextElementSibling;
   }
   return list;
 }
@@ -356,11 +389,12 @@ function deltaForSection(el, section, rect) {
  *
  * @param {DOMRect} rect
  * @param {number} delta
+ * @param {number} nav Parsed `--nav-height`
  * @returns {number}
  */
-function movementClamp(rect, delta) {
+function movementClamp(rect, delta, nav) {
   if (Math.abs(delta) < 1) return 0;
-  const minTop = navHeight() + RING;
+  const minTop = nav + RING;
   const maxBottom = Math.max(minTop + 1, window.innerHeight - RING);
   const minDelta = rect.bottom - maxBottom;
   const maxDelta = rect.top - minTop;
@@ -396,13 +430,12 @@ function intoViewDelta(rect) {
 export function undimmedScrollTop(el, scrollTop) {
   const section = el.matches('main > .section') ? el : el.closest('main > .section');
   if (!(section instanceof HTMLElement)) return scrollTop;
-  const overlay = section.querySelector('.section-scroll-overlay');
+  const overlay = section.querySelector(`.${CLASS_OVERLAY}`);
   if (!(overlay instanceof HTMLElement)) return scrollTop;
   const opacity = parseFloat(getComputedStyle(overlay).opacity);
   if (!Number.isFinite(opacity) || opacity <= 0) return scrollTop;
-  const next = section.nextElementSibling;
-  if (!(next instanceof HTMLElement)) return scrollTop;
-  const clearAt = layoutTop(next) - coverStartPx(section);
+  const clearAt = coverClearScroll(section);
+  if (clearAt === null) return scrollTop;
   return Math.min(scrollTop, clearAt);
 }
 
@@ -421,6 +454,8 @@ export function revealDelta(el, scroll) {
   const rect = el.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return 0;
 
+  const nav = navHeight();
+  const stuck = hasStuckAncestor(el);
   let delta = 0;
   const faded = opacityDelta(el, scroll);
   if (faded !== null && faded !== 0) delta = faded;
@@ -432,7 +467,7 @@ export function revealDelta(el, scroll) {
       const negatives = deltas.filter((entry) => entry < 0);
       delta = negatives.length ? Math.min(...negatives) : Math.max(...deltas);
     } else {
-      const header = headerDelta(el, rect);
+      const header = headerDelta(el, rect, nav, stuck);
       delta = header < -1 ? header : 0;
     }
   }
@@ -444,8 +479,8 @@ export function revealDelta(el, scroll) {
   // correction counts: a zero here means there is no visible overlay.
   const clearDim = undimmedScrollTop(el, scroll) - scroll;
   const undim = clearDim < 0;
-  if (hasStuckAncestor(el)) return undim && clearDim < delta ? clearDim : delta;
-  const clamped = movementClamp(rect, delta);
+  if (stuck) return undim && clearDim < delta ? clearDim : delta;
+  const clamped = movementClamp(rect, delta, nav);
   return undim && clearDim < clamped ? clearDim : clamped;
 }
 
@@ -459,6 +494,10 @@ export function revealDelta(el, scroll) {
  * @returns {void}
  */
 function reveal(el, scrollBy, getScroll) {
+  dropRevealCache();
+  layoutCache = new Map();
+  stuckCache = new Map();
+  revealNav = readNavHeight();
   generation += 1;
   const id = generation;
   let pass = 0;
@@ -472,8 +511,14 @@ function reveal(el, scrollBy, getScroll) {
    */
   const step = () => {
     rafId = 0;
-    if (id !== generation || !el.isConnected) return;
-    if (pass >= MAX_PASSES) return;
+    if (id !== generation || !el.isConnected) {
+      dropRevealCache();
+      return;
+    }
+    if (pass >= MAX_PASSES) {
+      dropRevealCache();
+      return;
+    }
     // Parallax can move the control after the uncover scroll. If that lands
     // it fully outside the viewport, bring it back and stop.
     if (pass > 0 && !hasStuckAncestor(el)) {
@@ -486,19 +531,29 @@ function reveal(el, scrollBy, getScroll) {
         const scroll = getScroll();
         const room = undimmedScrollTop(el, scroll + back) - scroll;
         if (back > 0) back = Math.min(back, room);
-        if (Math.abs(back) < 1) return;
+        if (Math.abs(back) < 1) {
+          dropRevealCache();
+          return;
+        }
         scrollBy(back);
+        dropRevealCache();
         return;
       }
     }
     const delta = revealDelta(el, getScroll());
-    if (Math.abs(delta) < 1) return;
+    if (Math.abs(delta) < 1) {
+      dropRevealCache();
+      return;
+    }
     // Pinned parallax moves the control with the scroll, so the first pass
     // clears only a fraction of the overlap. The same fraction finishes it.
     let stepDelta = delta;
     if (pass > 0) {
       const cleared = Math.abs(previous) - Math.abs(delta);
-      if (cleared < 0.5) return;
+      if (cleared < 0.5) {
+        dropRevealCache();
+        return;
+      }
       const scale = Math.abs(previous) / cleared;
       const sameWay = Math.sign(delta) === Math.sign(previous);
       if (sameWay && scale > 1 && scale < 8) stepDelta = delta * scale;
@@ -525,6 +580,7 @@ export function cancelFocusReveal() {
     rafId = 0;
   }
   generation += 1;
+  dropRevealCache();
 }
 
 /**

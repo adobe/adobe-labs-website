@@ -312,9 +312,15 @@ async function loadLazy(doc) {
     // GSAP is the largest asset these pages load and it sits two levels deep
     // behind `section-scroll.js`. Warm it here so it downloads alongside that
     // module's imports instead of after them. Lenis is small and is fetched in
-    // parallel with GSAP, so it needs no hint.
-    modulePreload('/deps/gsap/dist/index.js');
-    import('./section-scroll.js')
+    // parallel with GSAP, so it needs no hint. A coarse pointer that can fade
+    // in CSS never uses the bundle; `sections.js` knows that and is already a
+    // dependency of the module below, so the check does not add a request.
+    const sectionsReady = import('./section-scroll/sections.js');
+    const scrollReady = import('./section-scroll.js');
+    sectionsReady.then(({ usesCssCover }) => {
+      if (!usesCssCover()) modulePreload('/deps/gsap/dist/index.js');
+    }).catch(() => { /* the scroll import below reports the failure */ });
+    scrollReady
       .then((mod) => mod.initSectionScroll())
       .catch(() => { /* motion is optional: leave the static layout in place */ });
   }

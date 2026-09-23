@@ -20,14 +20,19 @@
 import { loadCSS } from './aem.js';
 import { debounce } from './utils/utils.js';
 import {
+  CLASS_CSS_COVER,
   CLASS_FADE,
   CLASS_INTRO,
   CLASS_NEXT,
+  CLASS_OVERLAY,
   CLASS_SLOW,
   coversPrevious,
+  dimEntryStart,
   introLagPx,
+  isRounded,
   pinTopPx,
   staysInFlow,
+  usesCssCover,
   usesTouchScroll,
 } from './section-scroll/sections.js';
 import {
@@ -50,6 +55,12 @@ const VAR_PIN_TOP = '--section-scroll-slow-top';
 
 /** Touch-only intro lag distance, consumed by a CSS view timeline. */
 const VAR_INTRO_LAG = '--section-scroll-intro-lag';
+
+/** View-timeline entry percentage where a touch cover starts to dim. */
+const VAR_DIM_START = '--section-scroll-dim-start';
+
+/** Named view timeline for one incoming section, inherited by its dim layer. */
+const VAR_DIM_TIMELINE = '--section-scroll-dim-timeline';
 
 /**
  * GSAP's stock ticker lag smoothing, restored on teardown. Driving Lenis from
@@ -75,6 +86,8 @@ let motion = null;
 let motionCtx = null;
 /** Touch state the current bindings were built for. */
 let boundToTouch = false;
+/** Whether those bindings fade with scroll-driven CSS instead of GSAP. */
+let boundToCssCover = false;
 /** @type {((event: MouseEvent) => void) | null} */
 let onHashClick = null;
 
@@ -105,6 +118,52 @@ function applySectionVars(section) {
 }
 
 /**
+ * Host for the dim layer: the hero card when this section has one, otherwise
+ * the section (rounded cards).
+ *
+ * @param {HTMLElement} section Outgoing section
+ * @returns {HTMLElement}
+ */
+function overlayHost(section) {
+  if (!isRounded(section)) {
+    const hero = section.querySelector('.hero');
+    if (hero instanceof HTMLElement) return hero;
+  }
+  return section;
+}
+
+/**
+ * Dim layer on the outgoing card. A span so it is not styled as a
+ * `main > .section > div` content column. Reuses one that is already there.
+ * Both the GSAP tweens and the touch CSS fades paint this same node.
+ *
+ * @param {HTMLElement} section Outgoing section
+ * @returns {HTMLElement}
+ */
+function ensureOverlay(section) {
+  const host = overlayHost(section);
+  let overlay = host.querySelector(`:scope > .${CLASS_OVERLAY}`);
+  if (!(overlay instanceof HTMLElement)) {
+    overlay = document.createElement('span');
+    overlay.className = CLASS_OVERLAY;
+    overlay.setAttribute('aria-hidden', 'true');
+    host.append(overlay);
+  }
+  return overlay;
+}
+
+/**
+ * Removes dim layers. Reverting a GSAP context restores inline styles, but
+ * not nodes appended here.
+ *
+ * @param {ParentNode} root
+ * @returns {void}
+ */
+function clearOverlays(root) {
+  root.querySelectorAll(`.${CLASS_OVERLAY}`).forEach((el) => el.remove());
+}
+
+/**
  * Reverts tweens and strips classification from a tree.
  *
  * @param {ParentNode} [root=document]
@@ -118,12 +177,26 @@ function clear(root = document) {
   // Reverting the GSAP context restores inline styles, not the overlay nodes
   // motion appended.
   motion?.clearMotionState(root);
+  clearOverlays(root);
+  root.querySelectorAll('.hero__content').forEach((el) => {
+    if (el instanceof HTMLElement) el.style.removeProperty('animation-timeline');
+  });
+  const mains = [...root.querySelectorAll('main')];
+  if (root instanceof Element && root.matches('main')) mains.unshift(root);
+  mains.forEach((main) => {
+    if (!(main instanceof HTMLElement)) return;
+    main.classList.remove(CLASS_CSS_COVER);
+    main.style.removeProperty('timeline-scope');
+  });
   root.querySelectorAll(`.${CLASS_SLOW}, .${CLASS_NEXT}, .${CLASS_INTRO}, .${CLASS_FADE}`)
     .forEach((el) => {
       el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE);
       if (el instanceof HTMLElement) {
         el.style.removeProperty(VAR_PIN_TOP);
         el.style.removeProperty(VAR_INTRO_LAG);
+        el.style.removeProperty(VAR_DIM_START);
+        el.style.removeProperty(VAR_DIM_TIMELINE);
+        el.style.removeProperty('view-timeline-name');
       }
     });
 }
@@ -139,6 +212,9 @@ export function classifySectionScroll(root = document) {
   const main = root.querySelector('main');
   if (!main) return;
   boundToTouch = usesTouchScroll();
+  boundToCssCover = usesCssCover();
+  /** @type {string[]} */
+  const coverNames = [];
 
   /**
    * Classifies each cover pair, writes the CSS variables, and binds the footer
@@ -158,8 +234,30 @@ export function classifySectionScroll(root = document) {
         section.querySelector(':scope > .page-header-wrapper')?.classList.add(CLASS_FADE);
       }
       applySectionVars(section);
-      if (started && motion) motion.bindPair(section, next);
+      if (!(section instanceof HTMLElement) || !(next instanceof HTMLElement)) return;
+      if (boundToCssCover) {
+        const name = `--section-scroll-cover-${index}`;
+        coverNames.push(name);
+        const overlay = ensureOverlay(section);
+        const dimStart = dimEntryStart(section);
+        next.style.setProperty('view-timeline-name', name);
+        section.style.setProperty(VAR_DIM_TIMELINE, name);
+        section.style.setProperty(VAR_DIM_START, dimStart);
+        // Inline, not only the custom property: `animation-timeline` needs a
+        // dashed-ident, and an unregistered variable is not one in every browser.
+        overlay.style.setProperty('animation-timeline', name);
+        section.querySelectorAll('.hero__content').forEach((node) => {
+          if (node instanceof HTMLElement) node.style.setProperty('animation-timeline', name);
+        });
+      } else if (started && motion) {
+        ensureOverlay(section);
+        motion.bindPair(section, next);
+      }
     });
+    if (boundToCssCover && coverNames.length) {
+      main.classList.add(CLASS_CSS_COVER);
+      main.style.setProperty('timeline-scope', coverNames.join(', '));
+    }
     /**
      * Scrolls by `delta` pixels. Lenis owns the position when it is attached.
      *
@@ -182,28 +280,8 @@ export function classifySectionScroll(root = document) {
     }
   };
 
-  if (started && gsap) motionCtx = gsap.context(decorate, main);
+  if (started && gsap && !boundToCssCover) motionCtx = gsap.context(decorate, main);
   else decorate();
-}
-
-/**
- * Resize handling. Every trigger uses function-based `start`/`end` with
- * `invalidateOnRefresh`, so a refresh is enough — reverting and rebinding the
- * whole context would also churn the overlay nodes on every resize. Only a
- * change in touch scrolling moves work between GSAP and CSS, so only that
- * needs a full reclassification.
- *
- * @returns {void}
- */
-function onViewportChange() {
-  lenis?.resize();
-  if (usesTouchScroll() !== boundToTouch) {
-    classifySectionScroll();
-    return;
-  }
-  document.querySelectorAll(`main > .${CLASS_SLOW}`).forEach((el) => applySectionVars(el));
-  refreshFooterReveal();
-  ScrollTrigger?.refresh();
 }
 
 /**
@@ -322,6 +400,10 @@ function handleHashClick(event) {
  * @returns {Promise<void>}
  */
 async function attach() {
+  // Touch fades are opacity. Scroll-driven CSS owns them when the browser
+  // can, so this page never downloads GSAP. Without that support, GSAP remains
+  // the fallback and Lenis stays off either way.
+  if (usesCssCover()) return;
   const needsLenis = !usesTouchScroll() && !lenis;
   const [lib, mod, lenisLib] = await Promise.all([
     gsap ? null : import('../deps/gsap/dist/index.js'),
@@ -348,6 +430,44 @@ async function attach() {
     onHashClick = handleHashClick;
     document.addEventListener('click', onHashClick, true);
   }
+}
+
+/**
+ * Resize handling. Every trigger uses function-based `start`/`end` with
+ * `invalidateOnRefresh`, so a refresh is enough — reverting and rebinding the
+ * whole context would also churn the overlay nodes on every resize. Only a
+ * change in touch scrolling, or in whether CSS can own the fades, moves work
+ * between GSAP and CSS, so only that needs a full reclassification.
+ *
+ * @returns {void}
+ */
+function onViewportChange() {
+  lenis?.resize();
+  const touch = usesTouchScroll();
+  const cssCover = usesCssCover();
+  if (touch !== boundToTouch || cssCover !== boundToCssCover) {
+    // A fine pointer still needs GSAP. A coarse pointer that can fade in CSS
+    // does not, including one that previously loaded the bundle. Loading the
+    // bundle is the only async step; reclassification itself stays sync so a
+    // resize does not paint a frame with neither path bound.
+    if (!cssCover && !motion) {
+      attach().then(() => {
+        if (!started) return;
+        classifySectionScroll();
+      });
+      return;
+    }
+    classifySectionScroll();
+    return;
+  }
+  document.querySelectorAll(`main > .${CLASS_SLOW}`).forEach((el) => {
+    applySectionVars(el);
+    if (boundToCssCover && el instanceof HTMLElement) {
+      el.style.setProperty(VAR_DIM_START, dimEntryStart(el));
+    }
+  });
+  refreshFooterReveal();
+  if (!boundToCssCover) ScrollTrigger?.refresh();
 }
 
 /**

@@ -118,6 +118,24 @@ describe('bindFooterReveal', () => {
     expect(footer).toHaveClass('section-scroll-under');
   });
 
+  it('writes the logo rise in the same frame as the menu', () => {
+    const { main, footer } = mountPage(
+      '<div class="section section-rounded-default"></div>',
+      MENU_AND_LOGO_HTML,
+    );
+    const inner = footer.querySelector('.footer__inner');
+    const logo = footer.querySelector('.footer__logo');
+    menuHeight(inner, 240);
+    menuHeight(logo, 100);
+    cardBottom(main.children[0], 680);
+    cardBottom(inner, 750);
+
+    bindFooterReveal(main, document);
+
+    expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-50');
+    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('-50');
+  });
+
   it('sets menu entry progress from the last card', () => {
     const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
     const inner = footer.querySelector('.footer__inner');
@@ -304,7 +322,8 @@ describe('bindFooterReveal', () => {
     footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 
     expect(scrollBy).toHaveBeenCalledWith(240);
-    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('');
+    // Pointer focus uncovers the menu only. The logo stays fully covered.
+    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('-100');
   });
 
   it('does not scroll when the menu is already fully in', () => {
@@ -385,6 +404,26 @@ describe('clearFooterReveal', () => {
     expect(footer).not.toHaveClass('section-scroll-under');
     expect(footer).not.toHaveClass('section-scroll-logo');
     expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('');
+  });
+
+  it('releases the logo progress when the garage door goes away', () => {
+    const { main, footer } = mountPage(
+      '<div class="section section-rounded-default"></div>',
+      MENU_AND_LOGO_HTML,
+    );
+    const inner = footer.querySelector('.footer__inner');
+    const logo = footer.querySelector('.footer__logo');
+    menuHeight(inner, 240);
+    menuHeight(logo, 100);
+    cardBottom(main.children[0], 680);
+    cardBottom(inner, 750);
+
+    bindFooterReveal(main, document);
+    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('-50');
+
+    clearFooterReveal(document);
+
+    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('');
   });
 
   it('stops uncovering on focus', () => {

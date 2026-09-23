@@ -1,5 +1,6 @@
 import { within } from '@testing-library/dom';
 import { getMetadata } from '../../scripts/aem.js';
+import { holdLogoEntry } from '../../scripts/utils/entry-progress.js';
 import { loadFragment } from '../fragment/fragment.js';
 import decorate from './footer.js';
 
@@ -257,6 +258,41 @@ describe('footer block', () => {
 
       expect(reads).toBe(2);
     } finally {
+      raf.mockRestore();
+      block.remove();
+    }
+  });
+
+  it('skips the logo measurement while section scroll owns the rise', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+    document.body.append(block);
+
+    await decorate(block);
+
+    const logo = block.querySelector('.footer__logo');
+    let reads = 0;
+    Object.defineProperty(logo, 'offsetHeight', {
+      configurable: true,
+      get() {
+        reads += 1;
+        return 240;
+      },
+    });
+    const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb();
+      return 1;
+    });
+    holdLogoEntry(true);
+    const before = logo.style.getPropertyValue('--footer-logo-entry-progress');
+
+    try {
+      window.dispatchEvent(new Event('scroll'));
+      window.dispatchEvent(new Event('resize'));
+      expect(reads).toBe(0);
+      expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe(before);
+    } finally {
+      holdLogoEntry(false);
       raf.mockRestore();
       block.remove();
     }
