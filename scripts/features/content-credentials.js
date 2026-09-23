@@ -402,20 +402,27 @@ const isPinOpen = (button) => button.getAttribute('aria-expanded') === 'true';
  *
  * @param {HTMLButtonElement} button The pin button controlling the panel.
  * @param {boolean} open Whether the panel should end up open.
- * @param {boolean} [restoreFocus=false] Move focus back to the button on close. Used for
- * Escape, where focus is inside the panel; not for an outside click, which has already
- * moved focus somewhere deliberate.
+ * @param {object} [options]
+ * @param {boolean} [options.moveFocus=false] Move focus into the panel on open. Only
+ * deliberate activation does this — a panel revealed by hover must not take focus away
+ * from wherever the visitor left it.
+ * @param {boolean} [options.restoreFocus=false] Move focus back to the button on close.
+ * Used for Escape; not for an outside click, which has already placed focus deliberately.
  */
-const setPinOpen = (button, open, restoreFocus = false) => {
+const setPinOpen = (button, open, { moveFocus = false, restoreFocus = false } = {}) => {
   const panel = document.getElementById(button.getAttribute('aria-controls'));
   if (!panel) return;
 
+  // Cleared on every transition. The hover handler sets it again straight afterwards, so
+  // a panel that is opened, or committed, by any other route is no longer hover-owned.
+  delete button.dataset.crHoverOpen;
   button.setAttribute('aria-expanded', open ? 'true' : 'false');
   panel.hidden = !open;
 
-  // A dialog role leads assistive tech to expect focus to follow it.
-  if (open) panel.focus();
-  else if (restoreFocus) button.focus();
+  // A dialog role leads assistive tech to expect focus to follow it. On close, focus is
+  // pulled back whenever it sits inside the panel, so it is never left on hidden content.
+  if (open && moveFocus) panel.focus();
+  else if (!open && (restoreFocus || panel.contains(document.activeElement))) button.focus();
 };
 
 /**
@@ -426,10 +433,19 @@ const setPinOpen = (button, open, restoreFocus = false) => {
  */
 const closeAllPins = (except, restoreFocus = false) => {
   document.querySelectorAll('.cr-pin-button[aria-expanded="true"]').forEach((button) => {
-    if (button !== except) setPinOpen(button, false, restoreFocus);
+    if (button !== except) setPinOpen(button, false, { restoreFocus });
   });
 };
 
+/**
+ * Grace period before a hover-revealed panel closes, so the pointer can travel from the
+ * pin to the panel across the gap between them.
+ */
+const HOVER_CLOSE_DELAY_MS = 500;
+
+/**
+ * Whether {@link bindPinDismissal} has already run.
+ */
 let pinDismissalBound = false;
 
 /**
@@ -682,10 +698,50 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl) => {
 
   bindPinDismissal();
 
-  button.addEventListener('click', () => {
-    const open = !isPinOpen(button);
+  // Hover reveals the panel, and only the pin and the panel itself count as hovered.
+  // Closing is deferred by a beat so the pointer can cross the gap between the two;
+  // WCAG 1.4.13 requires the revealed content to be reachable by pointer.
+  let hoverCloseTimer = null;
+  const cancelHoverClose = () => {
+    window.clearTimeout(hoverCloseTimer);
+    hoverCloseTimer = null;
+  };
+
+  // Mouse only: a touch tap also fires `pointerenter`, which would open the panel and
+  // then have the click close it again.
+  const onHoverEnter = (event) => {
+    if (event.pointerType !== 'mouse') return;
+    cancelHoverClose();
+    if (isPinOpen(button)) return;
     closeAllPins(button);
-    setPinOpen(button, open);
+    setPinOpen(button, true);
+    button.dataset.crHoverOpen = 'true';
+  };
+
+  const onHoverLeave = (event) => {
+    if (event.pointerType !== 'mouse' || button.dataset.crHoverOpen !== 'true') return;
+    cancelHoverClose();
+    hoverCloseTimer = window.setTimeout(() => {
+      // Re-checked because a click may have committed the panel in the meantime.
+      if (button.dataset.crHoverOpen === 'true') setPinOpen(button, false);
+    }, HOVER_CLOSE_DELAY_MS);
+  };
+
+  [button, popover].forEach((element) => {
+    element.addEventListener('pointerenter', onHoverEnter);
+    element.addEventListener('pointerleave', onHoverLeave);
+  });
+
+  button.addEventListener('click', () => {
+    // A hover-revealed panel is already open, so this click commits it rather than
+    // closing it — otherwise clicking what you are pointing at would dismiss it.
+    const committed = isPinOpen(button) && button.dataset.crHoverOpen !== 'true';
+    if (committed) {
+      setPinOpen(button, false);
+      return;
+    }
+    closeAllPins(button);
+    setPinOpen(button, true, { moveFocus: true });
   });
 
   // Non-modal, so focus is never trapped: leaving the panel by any route closes it.
