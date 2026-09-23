@@ -991,6 +991,7 @@ body.article main {
 
 .cr-pin-popover__group {
   padding-block: var(--s2a-spacing-md);
+  margin: 0;
 
   &:first-child {
     padding-block-start: 0;
@@ -1004,6 +1005,7 @@ body.article main {
 .cr-pin-popover__item {
   display: flex;
   gap: 0.625rem;
+  margin: 0;
 
   .cr-pin-popover__icon {
     flex-shrink: 0;
@@ -1016,30 +1018,21 @@ body.article main {
   font-weight: var(--s2a-font-weight-adobe-clean-bold, 700);
 }
 
-/* Verified identity badge, beside the name. */
 .cr-pin-popover__verified {
   display: flex;
   align-items: center;
+}
+
+.cr-pin-popover__dnt,
+.cr-pin-popover__verified {
   flex-shrink: 0;
 }
 
-/* Items whose content stacks rather than sitting beside an icon. */
-.cr-pin-popover__item--ai-notice {
-  flex-direction: column;
-  gap: 0.25rem;
-
-  & p {
-    margin: 0;
-  }
-}
-
-/* Social accounts connected to the credential. */
 .cr-pin-popover__socials {
   list-style: none;
-  margin: 0;
   padding-inline: 0;
 }
 
-.cr-pin-popover__name {
+.cr-pin-popover__author-name {
   flex-grow: 1;
 }
