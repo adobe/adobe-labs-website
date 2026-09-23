@@ -18,6 +18,12 @@ const MENU_HTML = `
   </div>
 `;
 
+/** Menu plus the Adobe logo that sits under it. */
+const MENU_AND_LOGO_HTML = `
+  ${MENU_HTML}
+  <div class="footer__logo"></div>
+`;
+
 /** @type {Array<FrameRequestCallback>} */
 let frames = [];
 
@@ -71,6 +77,17 @@ function cardBottom(card, bottom) {
  */
 function menuHeight(inner, height) {
   Object.defineProperty(inner, 'offsetHeight', { configurable: true, value: height });
+}
+
+/**
+ * Tab, then focus, the way a keyboard user enters the footer.
+ *
+ * @param {Element} el Control that receives focus
+ * @returns {void}
+ */
+function focusFromKeyboard(el) {
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+  el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 }
 
 beforeEach(() => {
@@ -234,6 +251,60 @@ describe('bindFooterReveal', () => {
 
     expect(scrollBy).toHaveBeenCalledWith(0, 240);
     scrollBy.mockRestore();
+  });
+
+  it('scrolls the Adobe logo fully into view on keyboard focus', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_AND_LOGO_HTML);
+    const inner = footer.querySelector('.footer__inner');
+    const logo = footer.querySelector('.footer__logo');
+    menuHeight(inner, 240);
+    menuHeight(logo, 100);
+    // Card and the stuck inner both sit on the viewport floor.
+    cardBottom(main.children[0], 800);
+    cardBottom(inner, 800);
+    const scrollBy = jest.fn();
+
+    bindFooterReveal(main, document, { scrollBy });
+    focusFromKeyboard(footer.querySelector('a'));
+
+    // Menu shortfall 240, plus the logo's own 100.
+    expect(scrollBy).toHaveBeenCalledWith(340);
+    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('0');
+  });
+
+  it('scrolls only the logo when the menu is already in', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_AND_LOGO_HTML);
+    const inner = footer.querySelector('.footer__inner');
+    const logo = footer.querySelector('.footer__logo');
+    menuHeight(inner, 240);
+    menuHeight(logo, 80);
+    cardBottom(main.children[0], 500);
+    cardBottom(inner, 760);
+    const scrollBy = jest.fn();
+
+    bindFooterReveal(main, document, { scrollBy });
+    focusFromKeyboard(footer.querySelector('a'));
+
+    // Logo fully-in line is 720. The inner still covers 40px of it.
+    expect(scrollBy).toHaveBeenCalledWith(40);
+    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('0');
+  });
+
+  it('does not pull the logo in when focus came from a pointer', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_AND_LOGO_HTML);
+    const inner = footer.querySelector('.footer__inner');
+    const logo = footer.querySelector('.footer__logo');
+    menuHeight(inner, 240);
+    menuHeight(logo, 100);
+    cardBottom(main.children[0], 800);
+    cardBottom(inner, 800);
+    const scrollBy = jest.fn();
+
+    bindFooterReveal(main, document, { scrollBy });
+    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    expect(scrollBy).toHaveBeenCalledWith(240);
+    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('');
   });
 
   it('does not scroll when the menu is already fully in', () => {

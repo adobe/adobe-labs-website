@@ -7,7 +7,9 @@
  * Uses no GSAP: this is one custom property driven from scroll, and the shared
  * entry math in `utils/entry-progress.js` is the same math `footer.js` uses for
  * the logo. The menu stays in the tab order; focusing a control that the card
- * still covers scrolls the card off it so the control is not hidden.
+ * still covers scrolls the card off it so the control is not hidden. The logo
+ * is not a tab stop, so a keyboard focus into the footer also scrolls until
+ * the logo has fully risen.
  */
 import { ENTRY_END, entryProgress } from '../utils/entry-progress.js';
 import { isRounded } from './sections.js';
@@ -26,10 +28,19 @@ const CLASS_LOGO = 'section-scroll-logo';
 
 const VAR_PROGRESS = '--section-scroll-inner-progress';
 
+/** Same property `footer.js` writes for the logo rise. */
+const VAR_LOGO = '--footer-logo-entry-progress';
+
 /** @type {(() => void) | null} */
 let onScroll = null;
 /** @type {((event: Event) => void) | null} */
 let onFocusIn = null;
+/** @type {((event: KeyboardEvent) => void) | null} */
+let onKeyDown = null;
+/** @type {(() => void) | null} */
+let onPointer = null;
+/** True after Tab, until a pointer press. Keyboard focus should reveal the logo. */
+let keyboardNav = false;
 /** @type {HTMLElement | null} */
 let boundFooter = null;
 /** @type {(() => void) | null} */
@@ -60,6 +71,15 @@ export function clearFooterReveal(root) {
   if (boundFooter && onFocusIn) {
     boundFooter.removeEventListener('focusin', onFocusIn);
   }
+  if (onKeyDown) {
+    window.removeEventListener('keydown', onKeyDown);
+    onKeyDown = null;
+  }
+  if (onPointer) {
+    window.removeEventListener('pointerdown', onPointer);
+    onPointer = null;
+  }
+  keyboardNav = false;
   boundFooter = null;
   onFocusIn = null;
   syncNow = null;
@@ -156,23 +176,49 @@ export function bindFooterReveal(main, root, options = {}) {
    * `.footer__inner` also uses `overflow: clip`, which cannot scroll. Jump the
    * page until the card's bottom sits at the menu's fully-in line. A zero
    * height means the measurement failed rather than that the menu is hidden.
+   *
+   * The logo sits past that line and is not a tab stop, so keyboard focus
+   * keeps going until the inner's bottom has risen by the logo's height.
+   * While the menu is still covered the inner is stuck to the viewport
+   * bottom, and that extra distance is on top of the menu shortfall.
    */
   /**
-   * Scrolls the last card off a focused menu control. Native scroll-into-view
-   * treats that control as on screen while the card still covers it.
+   * Scrolls the last card off a focused menu control. Keyboard focus also
+   * scrolls until the Adobe logo has fully risen.
    *
+   * @param {boolean} revealLogo Whether this focus came from the keyboard
    * @returns {void}
    */
-  const uncoverForFocus = () => {
+  const uncoverForFocus = (revealLogo) => {
     const el = resolve();
     if (!el || !innerHeight) return;
-    const progress = entryProgress(lastRounded, el, { height: innerHeight });
-    if (progress >= ENTRY_END) return;
-    const delta = lastRounded.getBoundingClientRect().bottom
-      - (window.innerHeight - innerHeight);
+
+    const menuProgress = entryProgress(lastRounded, el, { height: innerHeight });
+    let delta = 0;
+    if (menuProgress < ENTRY_END) {
+      delta = lastRounded.getBoundingClientRect().bottom
+        - (window.innerHeight - innerHeight);
+    }
+
+    const logo = footer.querySelector('.footer__logo');
+    const logoHeight = logo instanceof HTMLElement ? logo.offsetHeight : 0;
+    const cover = logo?.previousElementSibling;
+    let finishLogo = false;
+    if (revealLogo && logo instanceof HTMLElement && logoHeight && cover instanceof HTMLElement) {
+      const remaining = cover.getBoundingClientRect().bottom
+        - (window.innerHeight - logoHeight);
+      if (remaining > 0) {
+        delta += remaining;
+        finishLogo = true;
+      }
+    }
+
     if (delta <= 0) return;
     scrollByDelta(delta);
     sync();
+    // Lenis scrolls immediately and may not have run the footer's scroll
+    // listener yet. The delta lands on a fully risen logo, so rest it now.
+    if (finishLogo) logo.style.setProperty(VAR_LOGO, String(ENTRY_END));
   };
 
   syncNow = () => {
@@ -190,7 +236,19 @@ export function bindFooterReveal(main, root, options = {}) {
   window.addEventListener('scroll', onScroll, { passive: true });
 
   boundFooter = footer;
-  onFocusIn = uncoverForFocus;
+  onKeyDown = (event) => {
+    if (event.key === 'Tab') keyboardNav = true;
+  };
+  onPointer = () => {
+    keyboardNav = false;
+  };
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('pointerdown', onPointer);
+  onFocusIn = () => {
+    const fromKeyboard = keyboardNav;
+    keyboardNav = false;
+    uncoverForFocus(fromKeyboard);
+  };
   footer.addEventListener('focusin', onFocusIn);
   sync();
 }
