@@ -7,7 +7,7 @@ import {
   clearFocusReveal,
   layoutTop,
   revealDelta,
-} from './focus-reveal.js';
+} from './init.js';
 
 /** @type {Array<{ id: number, cb: FrameRequestCallback }>} */
 let frames = [];

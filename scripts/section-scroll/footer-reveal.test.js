@@ -6,7 +6,7 @@ import {
   bindFooterReveal,
   clearFooterReveal,
   refreshFooterReveal,
-} from './footer-reveal.js';
+} from './init.js';
 
 /** Footer menu with the controls the card covers: links and the newsletter field. */
 const MENU_HTML = `

@@ -98,7 +98,7 @@ function dim(timeline, overlay, heroText, span) {
   // `opacity`, not GSAP's `autoAlpha`: autoAlpha adds `visibility: hidden` at 0,
   // which would drop the hero's heading out of the accessibility tree once the
   // page has scrolled past it. A covered control stays in the tab order;
-  // `focus-reveal.js` scrolls it into view.
+  // `init.js` scrolls it into view.
   if (heroText) timeline.fromTo(heroText, { opacity: 1 }, { opacity: 0, duration }, at);
 }
 
