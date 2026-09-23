@@ -304,6 +304,7 @@ const withNamespacedIds = (svg, uid) => svg
  * @returns {{
  *   recordedBy: string|null,
  *   authorName: string|null,
+ *   authorUrl: string|null,
  *   nameIsVerified: boolean,
  *   socialAccounts: {
  *     provider: string, providerName: string, url: string|null,
@@ -356,6 +357,9 @@ const getManifestSummaryData = (manifest) => {
   return {
     recordedBy: getRecordedBy(manifest),
     authorName: verifiedName?.name ?? producer?.name ?? null,
+    // Profile the verifying provider vouched for. Only a CAWG document verification
+    // carries one; a CreativeWork producer has no URI.
+    authorUrl: verifiedName?.uri ?? null,
     // Only a CAWG document verification is vouched for; a CreativeWork producer is not.
     nameIsVerified: Boolean(verifiedName?.name),
     socialAccounts: verifiedSocialAccounts.length
@@ -400,7 +404,7 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest) => {
   // Build groups of items based on the CR data in the manifest.
   // Manifest values are third-party data: always set them as text, never as markup.
   const {
-    recordedBy, authorName, nameIsVerified, socialAccounts, doNotTrain,
+    recordedBy, authorName, authorUrl, nameIsVerified, socialAccounts, doNotTrain,
   } = getManifestSummaryData(manifest);
 
   // The tool that recorded the credentials, alongside the heading.
@@ -412,8 +416,9 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest) => {
   }
 
   /**
-   * Group holding the name of the credential's author and followed by the
-   * verified badge when an identity provider vouched for that name.
+   * Group holding the name of the credential's author, linked to the verified profile
+   * where the credential carries one, and followed by the verified badge when an
+   * identity provider vouched for that name.
    *
    * @returns {HTMLElement|null} The group, or null when the manifest names no author.
    */
@@ -430,9 +435,19 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest) => {
     label.classList.add('cr-pin-popover__label');
     label.textContent = 'Name ';
 
-    const nameText = document.createElement('span');
+    // Link the name to the profile the verifier vouched for, where there is one, as the
+    // legacy component does. Opening in a new tab follows this project's external-link
+    // convention and keeps the popover from being navigated away.
+    const profileUrl = toSafeHttpUrl(authorUrl);
+    const nameText = document.createElement(profileUrl ? 'a' : 'span');
     nameText.classList.add('cr-pin-popover__author-name');
     nameText.textContent = authorName;
+    if (profileUrl) {
+      nameText.href = profileUrl;
+      nameText.target = '_blank';
+      nameText.rel = 'noopener noreferrer';
+      nameText.setAttribute('aria-label', `${authorName} (opens in a new tab)`);
+    }
 
     item.append(label, nameText);
 
@@ -489,13 +504,19 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest) => {
         }
       }
 
+      // Opened in a new tab so the popover is not navigated away, matching both the
+      // legacy component and this project's external-link convention. Appended rather
+      // than assigned as text, so the icon or label already in the item survives.
       if (accountUrl) {
         const link = document.createElement('a');
         link.href = accountUrl;
         link.textContent = username;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.setAttribute('aria-label', `${username} (opens in a new tab)`);
         listItem.append(link);
       } else {
-        listItem.textContent = username;
+        listItem.append(username);
       }
 
       list.append(listItem);
