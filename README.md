@@ -282,7 +282,7 @@ Anything driven from `gsap.ticker` — Lenis is, in `scripts/section-scroll/init
 
 ### Updating the vendored c2pa-web library
 
-`@contentauth/c2pa-web` (used by [scripts/content-credentials.js](scripts/content-credentials.js)) is vendored this way. To rebuild it, e.g. after bumping the version in `package.json`:
+`@contentauth/c2pa-web` (used by [scripts/features/content-credentials.js](scripts/features/content-credentials.js)) is vendored this way. To rebuild it, e.g. after bumping the version in `package.json`:
 
 ```sh
 npm install
