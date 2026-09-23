@@ -13,12 +13,18 @@
  * Run `npm run build:c2pa` after bumping the version in package.json.
  */
 
-// Import the Content Authenticity Initiative (CAI) open-source SDK.
-import { createC2pa, Reader } from '../../deps/c2pa-web/index.js';
 import { toSafeHttpUrl } from '../utils/utils.js';
 
-// c2pa instance with the WASM binary.
+// c2pa instance with the WASM binary, and the reader class it is read through. Both come
+// from the Content Authenticity Initiative (CAI) open-source SDK, which is imported
+// dynamically so pages with no credentialed images never pay for the bundle.
 let c2pa = null;
+let Reader = null;
+
+// Images are read concurrently, so the setup is memoised as a promise rather than by
+// null-checking `c2pa`: that check is not atomic across an await, and every read racing
+// it would spin up its own worker and WASM instance.
+let c2paReady = null;
 
 /**
  * Selector(s) for image elements that should display a CR pin if they have CR data.
@@ -38,12 +44,19 @@ const readCredentials = async (img) => {
   // Make sure image exists and has a `src` value.
   if (!img?.src) return false;
 
-  // Create a c2pa instance with the WASM binary, if it has not been created yet.
-  if (!c2pa) {
-    c2pa = await createC2pa({
-      wasmSrc: new URL('../../deps/c2pa-web/resources/c2pa_bg.wasm', import.meta.url).href,
-    });
+  // Load the SDK and create a c2pa instance with the WASM binary, once per page.
+  // `import.meta.url` still resolves against this file, so the WASM sits alongside
+  // the bundle either way.
+  if (!c2paReady) {
+    c2paReady = (async () => {
+      const sdk = await import('../../deps/c2pa-web/index.js');
+      Reader = sdk.Reader;
+      c2pa = await sdk.createC2pa({
+        wasmSrc: new URL('../../deps/c2pa-web/resources/c2pa_bg.wasm', import.meta.url).href,
+      });
+    })();
   }
+  await c2paReady;
 
   // Fetch the image from its source.
   // Must use original image without optimized/resized parameters; resized versions
@@ -396,9 +409,10 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest) => {
  * @returns {Promise<void>} Resolves once every image has been read.
  */
 const addContentCredentials = async (crImageSelector) => {
-  // Get the image element(s) from the page
+  // Get the image element(s) from the page. Bailing here is what keeps a page with no
+  // candidate images from ever loading the c2pa bundle or its WASM.
   const images = document.querySelectorAll(crImageSelector);
-  if (!images) {
+  if (!images.length) {
     return;
   }
 
@@ -426,8 +440,7 @@ const addContentCredentials = async (crImageSelector) => {
  * Add content credentials to every relevant image on the page.
  *
  * Errors are caught so a failed read never breaks the page, and the c2pa instance is
- * always disposed of, releasing the worker and its WASM memory. Clearing the instance
- * lets a later call create a fresh one rather than reuse the disposed one.
+ * always disposed of, releasing the worker and its WASM memory.
  *
  * @returns {Promise<void>} Resolves once the page has been processed.
  */
@@ -442,5 +455,8 @@ export default async function initContentCredentials() {
       c2pa.dispose();
       c2pa = null;
     }
+    // Cleared alongside the instance so a later call sets up a fresh one, rather than
+    // resolving against the memoised promise for the disposed instance.
+    c2paReady = null;
   }
 }
