@@ -224,7 +224,7 @@ function decorateHeadline(heading, items) {
   syncHeadline(button, items, desktopQuery);
 }
 
-/** Same path as `icons/arrow-up-right.svg`. Inline so `currentColor` follows the link. */
+/** Same path as `icons/arrow-up-right.svg`, traced from the Figma ↗. */
 const EXTERNAL_ICON_PATH = 'M3.072 13.704L0.552 11.184L8.592 3.144H0L3.144 0L14.208.024V11.16L11.112 14.232V5.664L3.072 13.704Z';
 
 /**
@@ -242,7 +242,7 @@ function isExternalLink(link) {
 }
 
 /**
- * Appends the external-link icon. When the link opens a new tab, adds hidden text
+ * Appends the external-link arrow. When the link opens a new tab, adds hidden text
  * so the accessible name matches the social links.
  * @param {Element} link Menu anchor element
  */
