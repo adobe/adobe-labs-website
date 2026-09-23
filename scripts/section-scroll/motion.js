@@ -163,14 +163,16 @@ function fadeHeader(headerWrap) {
 }
 
 /**
- * Pushes full-screen hero headline and CTA up at half scroll speed. Only the
- * copy moves: the pinned hero card and its art stay in place.
+ * Pushes the full-screen hero copy block and CTA up at half scroll speed.
+ * The copy block is the category and headline together; moving only the
+ * headline leaves the category behind. The pinned hero card and its art stay
+ * in place.
  *
  * @param {HTMLElement} section Outgoing full-screen hero
  * @returns {void}
  */
 function recedeHeroText(section) {
-  const text = section.querySelectorAll('.hero__headline, .hero__cta-text');
+  const text = section.querySelectorAll('.hero__copy, .hero__cta-text');
   if (!text.length) return;
   gsap.fromTo(text, { y: 0 }, {
     y: () => -ScrollTrigger.maxScroll(window) * HERO_TEXT_SPEED,
