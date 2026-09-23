@@ -895,6 +895,7 @@ body.article main {
   --cr-pin-to-popover: 0rem;
   --cr-pin-popover-inset-inline: calc(var(--cr-pin-to-popover) + var(--cr-pin-button-size) + var(--cr-pin-button-inset));
   --cr-pin-popover-inset-block: 0.375rem;
+  --cr-pin-popover-divider-color: #e6e6e6;
 
   /* Transparent border included for high contrast mode. */
   --cr-pin-popover-border-width: 0.125rem;
@@ -903,8 +904,13 @@ body.article main {
 
   @media (width >= 48rem) {
     --cr-pin-button-inset: 0.375rem;
-    --cr-pin-to-popover: 0.25rem;
     --cr-pin-popover-inset-block: calc(1.0rem - var(--cr-pin-popover-border-width));
+  }
+}
+
+:root[data-theme="dark"] {
+  .cr-pin-image {
+    --cr-pin-popover-divider-color: #323232;
   }
 }
 
@@ -948,9 +954,19 @@ body.article main {
   border: 0.125rem solid transparent;
   color: var(--s2a-color-content-default);
   background: var(--s2a-color-background-default);
+  font-family: var(--body-font-family);
+  font-size: 0.875rem;
 
   & > * {
     flex-grow: 1;
+  }
+
+  & p,
+  & ol,
+  & ul {
+    font-family: var(--body-font-family);
+    font-size: 0.875rem;
+    line-height: 1.5;
   }
 }
 
@@ -965,8 +981,6 @@ body.article main {
 
 .cr-pin-popover__subheading {
   margin-block: 0.125rem 0;
-  font-size: 0.875rem;
-  font-family: var(--body-font-family);
 }
 
 .cr-pin-popover__group {
@@ -977,7 +991,7 @@ body.article main {
   }
 
   &:not(:last-child) {
-    border-block-end: 0.125rem solid #e6e6e6;
+    border-block-end: 0.063rem solid var(--cr-pin-popover-divider-color);
   }
 }
 
@@ -989,4 +1003,37 @@ body.article main {
     flex-shrink: 0;
     flex-grow: 0;
   }
+}
+
+/* Field label within a credential item, e.g. "Name". */
+.cr-pin-popover__label {
+  font-weight: var(--s2a-font-weight-adobe-clean-bold, 700);
+}
+
+/* Verified identity badge, beside the name. */
+.cr-pin-popover__verified {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Items whose content stacks rather than sitting beside an icon. */
+.cr-pin-popover__item--ai-notice {
+  flex-direction: column;
+  gap: 0.25rem;
+
+  & p {
+    margin: 0;
+  }
+}
+
+/* Social accounts connected to the credential. */
+.cr-pin-popover__socials {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cr-pin-popover__name {
+  flex-grow: 1;
 }

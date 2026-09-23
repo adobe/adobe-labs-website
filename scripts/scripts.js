@@ -286,11 +286,13 @@ async function loadLazy(doc) {
  * without impacting the user experience.
  */
 function loadDelayed() {
-  try {
-    import('./features/content-credentials.js');
-  } catch (error) {
-    // Ignore error.
-  }
+  // Content Credentials (CR Pin): Read images to look for content credentials,
+  // and add CR pins to any that have them.
+  import('./features/content-credentials.js')
+    .then(({ default: initContentCredentials }) => initContentCredentials())
+    .catch(() => {
+      // Ignore error.
+    });
 }
 
 async function loadPage() {
