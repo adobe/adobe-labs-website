@@ -689,6 +689,81 @@ footer {
   }
 }
 
+/* Fixed back-to-top control. Article pages only (injected in utils.js). */
+.back-to-top {
+  position: fixed;
+  z-index: 9;
+  inset-block-end: calc(var(--s2a-spacing-lg) + env(safe-area-inset-bottom, 0px));
+  inset-inline-end: calc(var(--s2a-spacing-lg) + env(safe-area-inset-right, 0px));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  inline-size: 2rem;
+  block-size: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--s2a-border-radius-6);
+  background-color: var(--s2a-color-gray-100);
+  color: var(--s2a-color-gray-1000);
+  text-decoration: none;
+  cursor: pointer;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition-timing-function: cubic-bezier(.45,0,.4,1);
+  transition-duration: .13s;
+  transition-property: outline, color, background-color;
+
+  &:hover {
+    background-color: var(--s2a-color-gray-400);
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+    outline-offset: var(--s2a-border-width-md);
+  }
+}
+
+@keyframes back-to-top-in {
+  from {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  to {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .back-to-top {
+    animation: back-to-top-in linear both;
+    animation-timeline: scroll(root);
+    animation-range: 100vh 100vh;
+  }
+}
+
+html.hero-intro .back-to-top {
+  animation: none;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.back-to-top__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+
+  & svg {
+    display: block;
+  }
+}
+
 /* Button group only. Alignment/width live on `.article-meta` /
    `.article-meta-section` from ADBLABS-130 — append this as the second
    child of `.article-meta`, do not add another centered wrapper. */

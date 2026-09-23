@@ -7,6 +7,7 @@ import {
   buildAuthorByline,
   buildPlayIcon,
   ensureSkipLink,
+  ensureArticleBackToTop,
   decorateArticleSections,
   decorateSectionMetadata,
   formatCardDate,
@@ -773,6 +774,59 @@ describe('ensureSkipLink', () => {
     ensureSkipLink(document);
 
     expect(document.querySelectorAll('.header__skip')).toHaveLength(1);
+  });
+});
+
+describe('ensureArticleBackToTop', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getMetadata.mockReturnValue('');
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('does not inject on non-article pages', () => {
+    document.body.innerHTML = '<main></main><footer></footer>';
+
+    ensureArticleBackToTop(document);
+
+    expect(document.querySelector('.back-to-top')).toBeNull();
+  });
+
+  it('does not inject when there is no body main', () => {
+    mockTemplate('article');
+    document.body.innerHTML = '<div></div>';
+
+    ensureArticleBackToTop(document);
+
+    expect(document.querySelector('.back-to-top')).toBeNull();
+  });
+
+  it('injects one control after main on article pages', () => {
+    mockTemplate('article');
+    document.body.innerHTML = '<main></main><footer></footer>';
+
+    ensureArticleBackToTop(document);
+
+    const control = document.querySelector('a.back-to-top');
+    expect(control).toHaveAccessibleName('Back to top');
+    expect(control).toHaveAttribute('href', '#top');
+    expect(document.querySelector('main').nextElementSibling).toBe(control);
+    expect(control.querySelector('.back-to-top__icon')).toHaveAttribute('aria-hidden', 'true');
+    expect(control.querySelector('svg')).toHaveAttribute('focusable', 'false');
+  });
+
+  it('does not add a second control', () => {
+    mockTemplate('article');
+    document.body.innerHTML = '<main></main>';
+
+    ensureArticleBackToTop(document);
+    ensureArticleBackToTop(document);
+
+    expect(document.querySelectorAll('.back-to-top')).toHaveLength(1);
   });
 });
 
