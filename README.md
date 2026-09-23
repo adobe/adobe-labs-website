@@ -219,7 +219,7 @@ That writes `deps/lenis/dist/index.js` and `deps/lenis/dist/lenis.css`. Commit t
 
 When a feature needs Lenis, import the committed dist file and load the stylesheet at that point. Do not add Lenis to `scripts.js` or `head.html`. Section overlays do this from `scripts/section-scroll.js` when motion is opted in, and skip it entirely on touch.
 
-Lenis sets `scrollTop` from its own loop, so it fights anything else that animates the scroll position. `styles/section-scroll.css` turns off the native `scroll-behavior: smooth` while Lenis is active, and programmatic scrolls that run before Lenis attaches — the hash deep link in `loadLazy` — jump instantly so Lenis cannot take over mid-flight and strand them short of the target.
+Lenis sets `scrollTop` from its own loop, so it fights anything else that animates the scroll position. `styles/section-scroll.css` turns off the native `scroll-behavior: smooth` while Lenis is active, and programmatic scrolls that run before Lenis attaches — the hash deep link in `loadLazy` — jump instantly so Lenis cannot take over mid-flight and strand them short of the target. In-page anchors (the skip link, content-grid pagers) are handled in capture: the native hash jump is prevented, Lenis smooth-scrolls to the target's in-flow offset (sticky `offsetTop` is the pinned box, so a Previous pager would stop short of the section top), and `history.pushState` updates the URL. A native hash click would otherwise be undone on the next animation frame, so the first click looks like a no-op.
 
 ```js
 import Lenis from '../../deps/lenis/dist/index.js';

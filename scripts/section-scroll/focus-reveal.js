@@ -48,7 +48,9 @@ let generation = 0;
 
 /**
  * The skip link focuses `main` itself. That landmark is not a covered control,
- * and scrolling it would fight the jump to the top of the page.
+ * and scrolling it would fight the jump to the top of the page. Same for
+ * in-page hash links (content-grid pagers): mousedown focuses the link, and
+ * uncovering it after the hash jump pulls the page back to the old section.
  *
  * @param {HTMLElement} el
  * @returns {boolean}
@@ -57,23 +59,50 @@ function skipsReveal(el) {
   return Boolean(
     el.closest('header')
     || el.closest('body > footer')
-    || el.matches('body > main'),
+    || el.matches('body > main')
+    || el.closest('a[href^="#"]'),
   );
 }
 
 /**
+ * Document Y of `el` in layout. Chrome's `offsetTop` on a sticky card is the
+ * pinned box (same lie as `getBoundingClientRect`), so a Previous pager would
+ * stop short of the section top. Previous siblings' heights do not move when
+ * those siblings stick.
+ *
  * @param {HTMLElement} el
  * @returns {number}
  */
-function layoutTop(el) {
+export function layoutTop(el) {
   let y = 0;
   /** @type {Element | null} */
   let node = el;
   const seen = new Set();
-  while (node instanceof HTMLElement && !seen.has(node)) {
+  while (
+    node instanceof HTMLElement
+    && node !== document.documentElement
+    && !seen.has(node)
+  ) {
     seen.add(node);
-    y += node.offsetTop;
-    node = node.offsetParent;
+    const parent = node.parentElement;
+    if (!(parent instanceof HTMLElement)) break;
+    const parentStyle = getComputedStyle(parent);
+    y += parseFloat(parentStyle.paddingTop) || 0;
+    y += parseFloat(parentStyle.borderTopWidth) || 0;
+    const gap = parseFloat(parentStyle.rowGap) || 0;
+    let skipped = 0;
+    for (const child of parent.children) {
+      if (child === node) break;
+      if (!(child instanceof HTMLElement)) continue;
+      const cs = getComputedStyle(child);
+      y += (parseFloat(cs.marginTop) || 0)
+        + child.offsetHeight
+        + (parseFloat(cs.marginBottom) || 0);
+      skipped += 1;
+    }
+    y += parseFloat(getComputedStyle(node).marginTop) || 0;
+    if (skipped) y += gap * skipped;
+    node = parent;
   }
   return y;
 }
@@ -399,18 +428,28 @@ function reveal(el, scrollBy, getScroll) {
 }
 
 /**
+ * Drops an in-flight uncover so a hash jump is not pulled back to the control
+ * that just received focus (the pager link on mousedown).
+ *
  * @returns {void}
  */
-export function clearFocusReveal() {
-  if (onFocusIn) {
-    document.removeEventListener('focusin', onFocusIn);
-    onFocusIn = null;
-  }
+export function cancelFocusReveal() {
   if (rafId) {
     cancelAnimationFrame(rafId);
     rafId = 0;
   }
   generation += 1;
+}
+
+/**
+ * @returns {void}
+ */
+export function clearFocusReveal() {
+  cancelFocusReveal();
+  if (onFocusIn) {
+    document.removeEventListener('focusin', onFocusIn);
+    onFocusIn = null;
+  }
 }
 
 /**
