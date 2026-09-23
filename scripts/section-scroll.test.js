@@ -729,7 +729,10 @@ describe('initSectionScroll', () => {
         <div class="hero-wrapper">
           <div class="hero hero-full-screen">
             <div class="hero__content">
-              <h2 class="hero__headline">Headline</h2>
+              <div class="hero__copy">
+                <p class="hero__category">Future of Creative Work</p>
+                <h2 class="hero__headline">Headline</h2>
+              </div>
               <p class="hero__cta-text">Read</p>
             </div>
           </div>
@@ -746,7 +749,7 @@ describe('initSectionScroll', () => {
       from?.y === 0 && to?.scrollTrigger?.end === 'max'
     ));
     expect([...heroY[0]]).toEqual([
-      main.querySelector('.hero__headline'),
+      main.querySelector('.hero__copy'),
       main.querySelector('.hero__cta-text'),
     ]);
     expect(heroY[2].y()).toBe(-1000 * HERO_TEXT_SPEED);
