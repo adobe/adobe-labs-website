@@ -174,24 +174,17 @@
 
   /* Play icon: placement and size overrides only. Construction lives in styles.css. */
   .play-icon {
-    --play-icon-size: 32px;
-    --play-icon-svg-size: 12px;
-    --play-icon-radius: 9.375px;
-    --play-icon-blur: 6.25px;
+    --play-icon-size: 2rem;
+    --play-icon-svg-size: 0.75rem;
+    --play-icon-radius: 0.5859rem;
+    --play-icon-blur: 0.3906rem;
 
     grid-area: play;
     place-self: start;
-    background:
-      linear-gradient(
-        0deg,
-        var(--s2a-color-transparent-white-16) 0%,
-        var(--s2a-color-transparent-white-16) 100%
-      ),
-      var(--s2a-color-transparent-black-24);
 
     @media (width >=48rem) {
-      --play-icon-size: 50px;
-      --play-icon-svg-size: 18.8px;
+      --play-icon-size: 3.125rem;
+      --play-icon-svg-size: 1.175rem;
     }
 
     /* Play glyph is left-heavy, inset it slightly to visually center it */
