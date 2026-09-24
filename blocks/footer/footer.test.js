@@ -103,7 +103,7 @@ describe('footer block', () => {
     expect(loadFragment).toHaveBeenCalledWith('/fragments/custom-footer');
   });
 
-  it('shows an authored button in the promo column', async () => {
+  it('shows an authored button in the newsletter column', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
 

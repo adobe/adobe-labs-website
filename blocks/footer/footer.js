@@ -57,7 +57,7 @@ async function loadFooterIcons(block) {
  */
 
 /**
- * Whether a menu column is the promo column (authored button, or the newsletter class).
+ * Whether a menu column is the newsletter column (authored button, or the newsletter class).
  * @param {Element} column Menu column element
  * @returns {boolean}
  */
@@ -68,7 +68,7 @@ function isNewsletterColumn(column) {
 }
 
 /**
- * Finds the promo column among menu columns, falling back to the first column.
+ * Finds the newsletter column among menu columns, falling back to the first column.
  * @param {Element[]} columns Menu column elements
  * @returns {Element|undefined}
  */
@@ -77,9 +77,9 @@ function findNewsletterColumn(columns) {
 }
 
 /**
- * Decorates the promo column with its heading, description, and authored button.
+ * Decorates the newsletter column with its heading, description, and authored button.
  * The button is the `a.button` that `decorateButtons` already produced.
- * @param {Element} column Authored promo column element
+ * @param {Element} column Authored newsletter column element
  * @returns {Element}
  */
 function decorateNewsletterColumn(column) {
@@ -116,7 +116,7 @@ function decorateNewsletterColumn(column) {
 }
 
 /**
- * Replaces the promo column in the menu columns list with a decorated button column.
+ * Replaces the newsletter column in the menu columns list with a decorated button column.
  * @param {Element[]|null|undefined} columns Menu column elements
  * @returns {Element[]|null|undefined}
  */
@@ -224,8 +224,11 @@ function decorateHeadline(heading, items) {
   syncHeadline(button, items, desktopQuery);
 }
 
-/** Same path as `icons/arrow-up-right.svg`, traced from the Figma ↗. */
-const EXTERNAL_ICON_PATH = 'M3.072 13.704L0.552 11.184L8.592 3.144H0L3.144 0L14.208.024V11.16L11.112 14.232V5.664L3.072 13.704Z';
+/**
+ * External-link arrow from the PR review. The ink stops near 8.3,
+ * so the viewBox matches the path and the arrow fills the icon box.
+ */
+const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V7.296L7.28 8.288V1.792L1.056 8.016Z';
 
 /**
  * Whether a link points at another origin.
@@ -250,7 +253,7 @@ function decorateExternalLink(link) {
   if (!isExternalLink(link)) return;
 
   link.append(fromHTML(`
-    <svg class="footer__external-icon" viewBox="0 0 15 15" aria-hidden="true" focusable="false">
+    <svg class="footer__external-icon" viewBox="0 0 8.288 8.288" aria-hidden="true" focusable="false">
       <path fill="currentColor" d="${EXTERNAL_ICON_PATH}"></path>
     </svg>
   `));

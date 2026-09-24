@@ -118,10 +118,10 @@
 
 .footer__external-icon {
   display: inline-block;
-  inline-size: 0.75rem;
-  block-size: 0.75rem;
-  margin-inline-start: 0.5rem;
-  vertical-align: middle;
+  inline-size: 0.53rem;
+  block-size: 0.53rem;
+  margin-inline-start: 0.5625rem;
+  vertical-align: 0.0625rem;
 }
 
 .footer__menu-link:hover,
