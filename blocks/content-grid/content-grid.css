@@ -2,6 +2,15 @@
   container: content-grid / inline-size;
 }
 
+/* Fixed pre-footer background/radius; `main` matches specificity to beat styles.css. */
+main .content-grid-container:has(.content-grid--related) {
+  border-radius: 0 0 var(--section-border-radius) var(--section-border-radius);
+  padding-block: 1.875rem 3.125rem;
+  background:
+    linear-gradient(0deg, rgb(0 123 255 / 7%) 0%, rgb(0 123 255 / 7%) 100%),
+    var(--s2a-color-background-default);
+}
+
 .content-grid {
   --content-grid-columns: 1;
 
