@@ -13,7 +13,7 @@
  * Run `npm run build:c2pa` after bumping the version in package.json.
  */
 
-import { toSafeHttpUrl } from '../utils/utils.js';
+import { toSafeHttpUrl } from '../../utils/utils.js';
 
 // c2pa instance with the WASM binary, and the reader class it is read through. Both come
 // from the Content Authenticity Initiative (CAI) open-source SDK, which is imported
@@ -69,10 +69,10 @@ const readCredentials = async (img) => {
   // the bundle either way.
   if (!c2paReady) {
     c2paReady = (async () => {
-      const sdk = await import('../../deps/c2pa-web/index.js');
+      const sdk = await import('../../../deps/c2pa-web/index.js');
       Reader = sdk.Reader;
       c2pa = await sdk.createC2pa({
-        wasmSrc: new URL('../../deps/c2pa-web/resources/c2pa_bg.wasm', import.meta.url).href,
+        wasmSrc: new URL('../../../deps/c2pa-web/resources/c2pa_bg.wasm', import.meta.url).href,
       });
     })();
   }

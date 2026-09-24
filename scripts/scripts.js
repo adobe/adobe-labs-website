@@ -293,7 +293,8 @@ function loadDelayed() {
   // interacts rather than running the moment lazy loading resolves.
   if (isArticleDetailPage()) {
     window.setTimeout(() => {
-      import('./features/content-credentials.js')
+      loadCSS(`${window.hlx.codeBasePath}/scripts/features/content-credentials/content-credentials.css`);
+      import('./features/content-credentials/content-credentials.js')
         .then(({ default: initContentCredentials }) => initContentCredentials())
         .catch(() => {
           // Ignore error.
