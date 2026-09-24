@@ -735,6 +735,15 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl) => {
     element.addEventListener('pointerleave', onHoverLeave);
   });
 
+  // Safari does not focus a button when it is clicked, so pressing the pin while its
+  // panel is open blurs the panel to nowhere: `focusout` sees no related target, closes
+  // the panel on mousedown, and the click that follows reads the panel as closed and
+  // reopens it. Suppressing the default focus change leaves focus inside the wrapper,
+  // where the click handler expects it — this component places focus itself anyway.
+  button.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+  });
+
   button.addEventListener('click', () => {
     // A hover-revealed panel is already open, so this click commits it rather than
     // closing it — otherwise clicking what you are pointing at would dismiss it.
