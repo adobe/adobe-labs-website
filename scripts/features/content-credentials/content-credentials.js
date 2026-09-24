@@ -575,6 +575,9 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl) => {
     const list = document.createElement('ul');
     list.classList.add(groupClass, 'cr-pin-popover__socials');
 
+    // Still have VoiceOver treat as a list, even though it uses `list-style: none`.
+    list.setAttribute('role', 'list');
+
     // Append each social account, led by its brand icon.
     socialAccounts.forEach((account) => {
       const { username, url } = account;
