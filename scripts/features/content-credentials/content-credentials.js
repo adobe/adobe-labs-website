@@ -15,15 +15,11 @@
 
 import { toSafeHttpUrl } from '../../utils/utils.js';
 
-// c2pa instance with the WASM binary, and the reader class it is read through. Both come
-// from the Content Authenticity Initiative (CAI) open-source SDK, which is imported
-// dynamically so pages with no credentialed images never pay for the bundle.
+// c2pa instance with the WASM binary, and the reader class.
 let c2pa = null;
 let Reader = null;
 
-// Images are read concurrently, so the setup is memoised as a promise rather than by
-// null-checking `c2pa`: that check is not atomic across an await, and every read racing
-// it would spin up its own worker and WASM instance.
+// Promise for the one-time c2pa setup, so concurrent reads share a single instance.
 let c2paReady = null;
 
 /**
