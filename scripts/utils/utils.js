@@ -139,20 +139,17 @@ export function parseCardDate(value) {
 }
 
 /**
- * Card subhead date: "Oct 21" in the current year, "Oct 21, 2027" otherwise.
+ * Card subhead date: "Oct 2026" (month + year, no day).
  * @param {string} [value] Publication date string
- * @param {Date} [now=new Date()] Reference date for the current-year check
  * @returns {string} Formatted label, or an empty string when unparseable
  */
-export function formatCardDate(value, now = new Date()) {
+export function formatCardDate(value) {
   const date = parseCardDate(value);
   if (!date) return '';
 
-  const sameYear = date.getFullYear() === now.getFullYear();
   return date.toLocaleDateString('en-US', {
     month: 'short',
-    day: 'numeric',
-    ...(sameYear ? {} : { year: 'numeric' }),
+    year: 'numeric',
   });
 }
 
