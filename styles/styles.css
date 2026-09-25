@@ -980,9 +980,10 @@ html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
 
 body.article main {
   --section-padding-block-end: var(--s2a-spacing-2xl);
+  --section-space-between: 5rem; /* 80px at 768px and below */
 
   /* Represents the max width of the default content column with regular authored text. */
-  --article-default-content-max-inline-size: min(100%, 30.125rem); 
+  --article-default-content-max-inline-size: min(100%, 30.125rem);
 
   @media (width >= 48rem) {
     --article-default-content-max-inline-size: min(calc(8 / 12 * 100%), 46.875rem);
@@ -990,10 +991,12 @@ body.article main {
 
   @media (width >= 64rem) {
     --article-default-content-max-inline-size: min(calc(6 / 12 * 100%), 46.875rem);
+    --section-space-between: 3.125rem; /* 50px at 1024px and up */
   }
 
   @media (width >= 90rem) {
     --section-padding-block-end: var(--s2a-spacing-4xl);
+    --section-space-between: 6.25rem; /* 100px at 1440px and up */
   }
 
   @media (width >= 120rem) {
