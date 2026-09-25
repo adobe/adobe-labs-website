@@ -899,6 +899,10 @@ main .section:not(.section-rounded-default) + .section-rounded-default {
   border-start-end-radius: var(--section-border-radius);
 }
 
+:root[data-theme="dark"] .article .section-rounded-default {
+  --color-section-surface-default: #131313;
+}
+
 /* Overlap only when a new section follows another rounded section.
    Full-screen hero overlap lives in hero.css. Do not pull up over a default hero. */
 main .section[class*="section-rounded-"]:not(.section-rounded-default) + [class*="section-rounded-"],
