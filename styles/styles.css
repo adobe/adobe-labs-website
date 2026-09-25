@@ -120,10 +120,10 @@
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
 
   &[data-theme="dark"] {
-    --color-section-surface-default: #262626;
     --color-section-surface-blue: #111f2f;
     --color-section-surface-pink: #301517;
     --color-section-surface-orange: #413b37;
+    --color-section-surface-default-variant: #262626;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
 }
@@ -906,6 +906,11 @@ main .section {
      over the adjacent-default-sections merge rule above. */
   &.section-rounded-default.section-rounded-related {
     padding-block: 1.875rem 3.125rem;
+  }
+
+  /* Dark mode variant for Sneaks has a lighter surface color. */
+  &.section-rounded-default-variant {
+    background: var(--color-section-surface-default-variant);
   }
 }
 
