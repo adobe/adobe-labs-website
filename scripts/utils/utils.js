@@ -340,6 +340,12 @@ export function isArticleDetailPage() {
  * No-op when `main` is detached (`loadFragment` also runs `decorateMain`)
  * or the page is not an article detail.
  *
+ * Inserted before the shared meta-action status output (if
+ * `buildArticleMetaActions` already created one) rather than appended blindly,
+ * so that non-`.section` element never lands between two `.section-rounded-*`
+ * siblings — that adjacency is what lets consecutive default sections merge
+ * into one seamless surface.
+ *
  * @param {Element} main The page's main element
  */
 export function buildArticlePreFooter(main) {
@@ -358,7 +364,13 @@ export function buildArticlePreFooter(main) {
   link.hidden = true;
   const section = document.createElement('div');
   section.append(buildBlock('fragment', { elems: [link] }));
-  main.append(section);
+
+  const status = main.querySelector(':scope > [data-meta-action-status]');
+  if (status) {
+    status.before(section);
+  } else {
+    main.append(section);
+  }
 }
 
 const DEFAULT_AUTHOR_NAME = 'Adobe Labs';
