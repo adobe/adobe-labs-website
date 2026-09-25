@@ -1,0 +1,213 @@
+/*
+ * Opt-in section slowdown. Nothing in this file applies unless
+ * prefers-reduced-motion: no-preference. See the README's section-surface notes
+ * for the authored behaviour.
+ *
+ * This file owns the parts that need no JS: sticky positioning, stacking order,
+ * the dim layer's box, and the touch-only intro lag. `scripts/section-scroll/init.js`
+ * classifies sections and sets the three custom properties read below —
+ * `--section-scroll-slow-top`, `--section-scroll-intro-lag`, and
+ * `--section-scroll-inner-progress`. On a coarse pointer that supports
+ * scroll-driven animations, it also owns the cover dim and the page-header
+ * fade, driven by `--section-scroll-dim-start` and a named view timeline.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /*
+   * Lenis drives scrollTop from its own rAF loop, so the native smooth scroll
+   * `styles.css` enables under this same query fights it on programmatic scrolls
+   * — the skip link, in-page anchors, and hash deep links. Lenis shipped this
+   * override in its own stylesheet until 1.3.26 dropped it. Keyed off Lenis's
+   * root class so touch, which skips Lenis, keeps native smooth scrolling.
+   */
+  html.lenis.lenis-smooth {
+    scroll-behavior: auto;
+  }
+
+  /* Covers that are not also outgoing, plus trailing cards like Coming Soon.
+     `:not(.section-scroll-slow)` keeps mid-chain sticky cards at z-index 0 so
+     they do not paint above the footer and show through the last end-radius. */
+  main > .section.section-scroll-next:not(.section-scroll-slow),
+  main > .section.section-scroll-next:not(.section-scroll-slow) ~ .section:not(.section-scroll-slow) {
+    z-index: 1;
+  }
+
+  main > .section.section-scroll-slow {
+    z-index: 0;
+  }
+
+  /* `align-self: flex-start` is required for sticky flex items on `main`. */
+  main > .section.section-scroll-slow:not(.section-scroll-intro) {
+    position: sticky;
+    top: var(--section-scroll-slow-top, 0);
+    align-self: flex-start;
+    inline-size: 100%;
+    overflow: clip;
+
+    /* The clip contains the lagging inner content; the margin is the default
+       focus ring (2px outline plus 2px offset) on a control at the card edge,
+       which would otherwise be cut off. */
+    overflow-clip-margin: 4px;
+  }
+
+  main > .section.section-scroll-intro {
+    position: relative;
+    overflow: visible;
+  }
+
+  /* Stick under the site header, behind the hero and the dim overlay. */
+  main > .section.section-scroll-intro > .section-scroll-fade {
+    position: sticky;
+    top: var(--nav-height);
+    z-index: 1;
+    align-self: flex-start;
+    inline-size: 100%;
+  }
+
+  /* Hero (and other intro blocks) slide over the page header. */
+  main > .section.section-scroll-intro > :not(.section-scroll-fade, .section-scroll-overlay) {
+    position: relative;
+    z-index: 2;
+  }
+
+  .section-scroll-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: block;
+    border-radius: inherit;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Intro overlay that is still a section child (no hero) fills the flex gap
+     plus the next card's start radius so white does not show through. */
+  main > .section.section-scroll-intro > .section-scroll-overlay {
+    z-index: 3;
+    bottom: calc(-1 * (var(--section-space-between) + var(--section-border-radius)));
+  }
+
+  /*
+   * Footer garage-door. Same recipe as `.footer__logo`: the last card stays in
+   * flow on top; `.footer__inner` sticks to the bottom, clips, and rises with
+   * `--section-scroll-inner-progress`. After the menu is in,
+   * `.section-scroll-logo` restores the logo sticky. Do not raise all of
+   * `main` or mid-chain sticky cards paint through the last end-radius.
+   */
+  main.section-scroll-reveal-main > .section.section-scroll-reveal {
+    position: relative;
+    z-index: 1;
+  }
+
+  body > footer.section-scroll-under {
+    position: relative;
+    z-index: 0;
+  }
+
+  body > footer.section-scroll-under:not(.section-scroll-logo) .footer__inner {
+    position: sticky;
+    inset-block-end: 0;
+    z-index: 0;
+
+    /* `clip`, not `hidden`: `hidden` is a scroll container, so focusing a menu
+       link part-way through the reveal lets the browser scroll it into view and
+       fight the transform below. `clip` cannot scroll, and it takes the focus
+       ring margin. The bleed sits behind the last card, so it never shows. */
+    overflow: clip;
+    overflow-clip-margin: 4px;
+  }
+
+  body > footer.section-scroll-under:not(.section-scroll-logo) .footer__content {
+    transform: translateY(calc((var(--section-scroll-inner-progress, -100) / 100) * 50%));
+  }
+
+  body > footer.section-scroll-under:not(.section-scroll-logo) .footer__logo {
+    position: relative;
+  }
+}
+
+/*
+ * Touch lag on the compositor. GSAP y on the same node as native iOS scroll
+ * jitters; a view timeline does not. `--section-scroll-intro-lag` is set in JS.
+ * `@supports` stays at the root: nesting it breaks adjacent styles in Safari
+ * 16.5 through 18.1.
+ */
+@supports (animation-timeline: view()) and (animation-range: entry) {
+  @keyframes section-scroll-intro-lag {
+    to {
+      transform: translateY(var(--section-scroll-intro-lag, 0));
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (hover: none) and (pointer: coarse) {
+    main > .section.section-scroll-intro {
+      view-timeline-name: --section-scroll-intro;
+      view-timeline-axis: block;
+    }
+
+    main > .section.section-scroll-intro > :not(.section-scroll-fade, .section-scroll-overlay) {
+      animation: section-scroll-intro-lag linear both;
+      animation-timeline: --section-scroll-intro;
+      animation-range: exit 0% exit 100%;
+    }
+  }
+}
+
+/*
+ * Touch fades on the compositor. Opacity does not fight native scroll the way
+ * a GSAP translate does, and these ranges match the GSAP fallback: the header
+ * fades across the first 17vh (40vh below 48rem), and a cover dims from
+ * `--section-scroll-dim-start` until the incoming section reaches the top.
+ * `0.8` matches `OVERLAY_DIM`. Named timelines are hoisted with `timeline-scope`
+ * because the dim layer is not a descendant of the incoming section.
+ * `@supports` stays at the root: nesting it breaks adjacent styles in Safari
+ * 16.5 through 18.1.
+ */
+@supports ((animation-timeline: view()) and (animation-range: entry)) and ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
+  @keyframes section-scroll-dim {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes section-scroll-fade-out {
+    from {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (hover: none) and (pointer: coarse) {
+    main.section-scroll-css-cover .section-scroll-overlay {
+      animation: section-scroll-dim linear both;
+      animation-timeline: var(--section-scroll-dim-timeline);
+      animation-range: entry var(--section-scroll-dim-start, 40%) entry 100%;
+    }
+
+    main.section-scroll-css-cover .hero__content {
+      animation: section-scroll-fade-out linear both;
+      animation-timeline: var(--section-scroll-dim-timeline);
+      animation-range: entry var(--section-scroll-dim-start, 40%) entry 100%;
+    }
+
+    main.section-scroll-css-cover > .section.section-scroll-intro > .section-scroll-fade {
+      animation: section-scroll-fade-out linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 17vh;
+    }
+
+    @media (width < 48rem) {
+      main.section-scroll-css-cover > .section.section-scroll-intro > .section-scroll-fade {
+        animation-range: 0 40vh;
+      }
+    }
+  }
+}

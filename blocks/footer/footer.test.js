@@ -1,5 +1,6 @@
 import { within } from '@testing-library/dom';
 import { getMetadata } from '../../scripts/aem.js';
+import { holdLogoEntry } from '../../scripts/utils/entry-progress.js';
 import { loadFragment } from '../fragment/fragment.js';
 import decorate from './footer.js';
 
@@ -178,7 +179,7 @@ describe('footer block', () => {
     privacyLinks.forEach((link) => expect(link).not.toHaveAttribute('title'));
   });
 
-  it('assembles the footer wrapper with parallax logo', async () => {
+  it('assembles the footer wrapper with the Adobe logo', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
 
@@ -190,7 +191,7 @@ describe('footer block', () => {
     expect(block.querySelector('.footer__logo')).toBeTruthy();
   });
 
-  it('registers scroll listeners for the parallax logo', async () => {
+  it('registers scroll listeners for the logo rise', async () => {
     const addSpy = jest.spyOn(window, 'addEventListener');
     const block = document.createElement('div');
     block.className = 'footer';
@@ -199,6 +200,102 @@ describe('footer block', () => {
 
     expect(addSpy).toHaveBeenCalledWith('scroll', expect.any(Function), { passive: true });
     addSpy.mockRestore();
+  });
+
+  it('sets logo entry progress from the footer inner', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+    document.body.append(block);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+
+    await decorate(block);
+
+    const logo = block.querySelector('.footer__logo');
+    const inner = block.querySelector('.footer__inner');
+    Object.defineProperty(logo, 'offsetHeight', { configurable: true, value: 240 });
+    inner.getBoundingClientRect = () => ({ bottom: 680 });
+    const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb();
+      return 1;
+    });
+
+    try {
+      window.dispatchEvent(new Event('scroll'));
+      expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('-50');
+    } finally {
+      raf.mockRestore();
+      block.remove();
+    }
+  });
+
+  it('measures the logo once per resize, not once per scroll frame', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+    document.body.append(block);
+
+    await decorate(block);
+
+    const logo = block.querySelector('.footer__logo');
+    let reads = 0;
+    Object.defineProperty(logo, 'offsetHeight', {
+      configurable: true,
+      get() {
+        reads += 1;
+        return 400;
+      },
+    });
+    const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb();
+      return 1;
+    });
+
+    try {
+      for (let i = 0; i < 5; i += 1) window.dispatchEvent(new Event('scroll'));
+
+      expect(reads).toBe(1);
+
+      window.dispatchEvent(new Event('resize'));
+
+      expect(reads).toBe(2);
+    } finally {
+      raf.mockRestore();
+      block.remove();
+    }
+  });
+
+  it('skips the logo measurement while section scroll owns the rise', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+    document.body.append(block);
+
+    await decorate(block);
+
+    const logo = block.querySelector('.footer__logo');
+    let reads = 0;
+    Object.defineProperty(logo, 'offsetHeight', {
+      configurable: true,
+      get() {
+        reads += 1;
+        return 240;
+      },
+    });
+    const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb();
+      return 1;
+    });
+    holdLogoEntry(true);
+    const before = logo.style.getPropertyValue('--footer-logo-entry-progress');
+
+    try {
+      window.dispatchEvent(new Event('scroll'));
+      window.dispatchEvent(new Event('resize'));
+      expect(reads).toBe(0);
+      expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe(before);
+    } finally {
+      holdLogoEntry(false);
+      raf.mockRestore();
+      block.remove();
+    }
   });
 
   it('toggles mobile accordion sections on toggle button click', async () => {
