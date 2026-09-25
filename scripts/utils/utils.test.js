@@ -1091,6 +1091,18 @@ describe('decorateSectionMetadata', () => {
     expect(section.contains(meta)).toBe(false);
   });
 
+  it('copies a Table of Contents metadata row onto section.dataset', () => {
+    const { section, meta } = createSectionMetadataFixture({ 'Table of Contents': 'Section 1' });
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(section.dataset.tableOfContents).toBe('Section 1');
+    expect(section.dataset.toc).toBeUndefined();
+    expect(section.contains(meta)).toBe(false);
+  });
+
   it('splits the style key into one or more section classes instead of a dataset entry', () => {
     const { section } = createSectionMetadataFixture({ Style: 'section-rounded-blue, highlight' });
     const main = document.createElement('main');
@@ -1110,5 +1122,6 @@ describe('decorateSectionMetadata', () => {
 
     expect(() => decorateSectionMetadata(main)).not.toThrow();
     expect(section.dataset.toc).toBeUndefined();
+    expect(section.dataset.tableOfContents).toBeUndefined();
   });
 });
