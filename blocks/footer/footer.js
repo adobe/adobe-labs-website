@@ -57,14 +57,14 @@ async function loadFooterIcons(block) {
  */
 
 /**
- * Whether a menu column is the newsletter column.
+ * Whether a menu column is the newsletter column (authored button, or the newsletter class).
  * @param {Element} column Menu column element
  * @returns {boolean}
  */
 function isNewsletterColumn(column) {
   return column.classList.contains('footer__menu-column--newsletter')
     || column.classList.contains('footer-newsletter')
-    || !!column.querySelector('a[href*="subscribe"], input[type="email"]');
+    || !!column.querySelector('a.button');
 }
 
 /**
@@ -77,50 +77,27 @@ function findNewsletterColumn(columns) {
 }
 
 /**
- * Decorates a newsletter column with heading, description, and subscribe form.
+ * Decorates the newsletter column with its heading, description, and authored button.
+ * The button is the `a.button` that `decorateButtons` already produced.
  * @param {Element} column Authored newsletter column element
  * @returns {Element}
  */
 function decorateNewsletterColumn(column) {
   const heading = column.querySelector('h2');
   const description = [...column.querySelectorAll('p')].find((p) => !p.querySelector('a'));
-  const subscribeLink = column.querySelector('a[href]');
-  const action = subscribeLink?.getAttribute('href') || '#';
-  const label = subscribeLink?.textContent?.trim() || 'Subscribe';
-  const descId = description ? `footer-newsletter-desc-${Date.now()}` : null;
+  const button = column.querySelector('a.button');
 
   if (heading) heading.classList.add('footer__menu-headline');
-  if (description) {
-    description.classList.add('footer__description');
-    description.id = descId;
+  if (description) description.classList.add('footer__description');
+  if (button) {
+    button.classList.add('button--static-white');
+    dropRedundantTitle(button);
   }
 
   const wrapper = fromHTML(`
     <div class="footer__menu-column footer__menu-column--newsletter">
       <div class="footer__menu-section">
-        <div class="footer__menu-items footer__menu-items--newsletter">
-          <form class="footer__form" action="${escapeAttr(action)}" method="post" aria-label="Newsletter sign up">
-            <label class="footer__label" for="footer-email">Your email address</label>
-            <input
-              id="footer-email"
-              class="footer__input"
-              type="email"
-              name="email"
-              required
-              placeholder="Your email address"
-              ${descId ? `aria-describedby="${escapeAttr(descId)}"` : ''}
-            >
-            <button type="submit" class="footer__submit" aria-label="${escapeAttr(label)}">
-              <svg class="footer__submit-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <circle class="footer__submit-circle" cx="12" cy="12" r="12" />
-                <path
-                  class="footer__submit-arrow"
-                  d="M11.707 7.29297C11.3165 6.90244 10.6835 6.90244 10.293 7.29297C9.90264 7.68352 9.9025 8.31657 10.293 8.70703L13.5859 12L10.293 15.293C9.90258 15.6835 9.90248 16.3165 10.293 16.707C10.6835 17.0973 11.3165 17.0973 11.707 16.707L15.707 12.707C16.0975 12.3166 16.0974 11.6835 15.707 11.293L11.707 7.29297Z"
-                />
-              </svg>
-            </button>
-          </form>
-        </div>
+        <div class="footer__menu-items footer__menu-items--newsletter"></div>
       </div>
     </div>
   `);
@@ -128,14 +105,18 @@ function decorateNewsletterColumn(column) {
   const section = wrapper.querySelector('.footer__menu-section');
   const items = wrapper.querySelector('.footer__menu-items');
   if (heading) section.prepend(heading);
-  if (description) items.prepend(description);
+  if (description) items.append(description);
+
+  const buttonWrapper = button?.closest('.button-wrapper');
+  if (buttonWrapper) items.append(buttonWrapper);
+  else if (button) items.append(button);
 
   column.replaceWith(wrapper);
   return wrapper;
 }
 
 /**
- * Replaces the newsletter column in the menu columns list with a decorated form.
+ * Replaces the newsletter column in the menu columns list with a decorated button column.
  * @param {Element[]|null|undefined} columns Menu column elements
  * @returns {Element[]|null|undefined}
  */
@@ -244,6 +225,45 @@ function decorateHeadline(heading, items) {
 }
 
 /**
+ * External-link arrow from the PR review. The ink stops near 8.3,
+ * so the viewBox matches the path and the arrow fills the icon box.
+ */
+const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V7.296L7.28 8.288V1.792L1.056 8.016Z';
+
+/**
+ * Whether a link points at another origin.
+ * @param {Element} link Anchor element
+ * @returns {boolean}
+ */
+function isExternalLink(link) {
+  try {
+    const url = new URL(link.getAttribute('href') || '', window.location.href);
+    return url.origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Appends the external-link arrow. When the link opens a new tab, adds hidden text
+ * so the accessible name matches the social links.
+ * @param {Element} link Menu anchor element
+ */
+function decorateExternalLink(link) {
+  if (!isExternalLink(link)) return;
+
+  link.append(fromHTML(`
+    <svg class="footer__external-icon" viewBox="0 0 8.288 8.288" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="${EXTERNAL_ICON_PATH}"></path>
+    </svg>
+  `));
+
+  if (link.target === '_blank') {
+    link.append(fromHTML('<span class="visually-hidden"> (opens in a new tab)</span>'));
+  }
+}
+
+/**
  * Decorates a single nav menu column with headline and links. The column is its own nav
  * landmark, labelled by its own heading, so each topic (Connect, Explore, ...) is a distinct,
  * self-labelled region rather than one generic "Footer" region covering every column.
@@ -271,6 +291,7 @@ function decorateColumn(column) {
     column.querySelectorAll('p a').forEach((link) => {
       link.classList.add('footer__menu-link');
       dropRedundantTitle(link);
+      decorateExternalLink(link);
       const item = fromHTML('<li></li>');
       item.append(link);
       items.append(item);
