@@ -225,7 +225,7 @@ html.hero-intro {
   }
 }
 
-html.hero-intro body {
+html.hero-intro:not(.hero-intro--scrolled) body {
   background-color: var(--s2a-color-background-knockout, #000);
 }
 
@@ -942,15 +942,15 @@ body.research main {
   }
 }
 
-/* Second section rises after the intro body step.
+/* Sections after the hero rise together after the intro body step.
    JavaScript does not add the hero animation when prefers-reduced-motion: reduce.
    These rules do not need a reduced-motion override. */
-html.hero-intro--body main > .section:nth-of-type(2) {
+html.hero-intro--body main > .section:nth-of-type(n+2) {
   animation: hero-intro-section-rise var(--hero-intro-settle-duration, 900ms)
     var(--hero-intro-easing-settle, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 
-html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
+html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(n+2) {
   transform: translateY(var(--hero-intro-section-offset));
   visibility: hidden;
 }

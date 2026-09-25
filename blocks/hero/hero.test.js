@@ -2,6 +2,7 @@ import { within } from '@testing-library/dom';
 import decorate, {
   clearHeroIntro,
   HERO_INTRO_DURATION_MS,
+  HERO_INTRO_FAST_MS,
   HERO_INTRO_FROST_ID,
   HERO_INTRO_NAV_DELAY_MS,
 } from './hero.js';
@@ -82,8 +83,21 @@ function flushPaintFrames() {
   });
 }
 
+/** jsdom does not lay out scroll, so tests set this value directly. */
+let scrollYValue = 0;
+
+function setScrollY(value) {
+  scrollYValue = value;
+}
+
+Object.defineProperty(window, 'scrollY', {
+  configurable: true,
+  get: () => scrollYValue,
+});
+
 afterEach(() => {
   clearHeroIntro();
+  setScrollY(0);
   document.body.classList.remove('appear');
   document.querySelector('a.header__skip')?.remove();
   document.querySelectorAll('main').forEach((main) => main.remove());
@@ -480,9 +494,10 @@ describe('hero block', () => {
       expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
     });
 
-    it('does not add hero-intro when the URL has a hash', async () => {
+    it('adds hero-intro when the URL has a hash and the page is at the top', async () => {
       window.history.replaceState({}, '', '/#section');
       try {
+        setScrollY(0);
         const block = createHeroBlock([
           ['<a href="/article">Headline</a>'],
         ]);
@@ -491,12 +506,149 @@ describe('hero block', () => {
 
         await decorate(block);
 
-        expect(document.documentElement).not.toHaveClass('hero-intro');
-        expect(document.documentElement).not.toHaveClass('hero-intro--body');
-        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+        expect(document.documentElement).toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--scrolled');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
       } finally {
         window.history.replaceState({}, '', '/');
       }
+    });
+
+    it('does not add hero-intro when the page is not at the top', async () => {
+      setScrollY(120);
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+
+      await decorate(block);
+
+      expect(block.closest('.section')).toHaveClass('hero-container--overlay');
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+      expect(document.documentElement).not.toHaveClass('hero-intro--scrolled');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+    });
+
+    it('settles the next section when the user scrolls during the intro', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+        ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+
+      await decorate(block);
+
+      expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--scrolled');
+
+      setScrollY(80);
+      window.dispatchEvent(new Event('scroll'));
+
+      expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.documentElement).toHaveClass('hero-intro--scrolled');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
+
+      setScrollY(0);
+      window.dispatchEvent(new Event('scroll'));
+
+      expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.documentElement).toHaveClass('hero-intro--scrolled');
+
+      clearHeroIntro();
+
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--scrolled');
+    });
+
+    it('fast-tracks every section rise together when the user scrolls', async () => {
+      jest.useFakeTimers();
+      const originalGetAnimations = document.getAnimations;
+      const sectionA = {
+        animationName: 'hero-intro-section-rise',
+        currentTime: 0,
+        playbackRate: 1,
+        effect: { getComputedTiming: () => ({ endTime: 2300 }) },
+      };
+      const sectionB = {
+        animationName: 'hero-intro-section-rise',
+        currentTime: 800,
+        playbackRate: 1,
+        effect: { getComputedTiming: () => ({ endTime: 2300 }) },
+      };
+      const heroZoom = {
+        animationName: 'hero-intro-media-zoom',
+        currentTime: 0,
+        playbackRate: 1,
+        effect: { getComputedTiming: () => ({ endTime: 2300 }) },
+      };
+      document.getAnimations = () => [sectionA, heroZoom, sectionB];
+
+      try {
+        const block = createHeroBlock([
+          ['<a href="/article">Headline</a>'],
+          ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+        ]);
+        block.classList.add('hero-full-screen');
+        mountInFirstSection(block);
+
+        await decorate(block);
+        await jest.advanceTimersByTimeAsync(32);
+
+        expect(document.documentElement).toHaveClass('hero-intro--body');
+        expect(document.documentElement).not.toHaveClass('hero-intro--scrolled');
+
+        setScrollY(80);
+        window.dispatchEvent(new Event('scroll'));
+        expect(sectionA.playbackRate).toBe(1);
+        expect(sectionB.playbackRate).toBe(1);
+
+        await jest.advanceTimersByTimeAsync(16);
+
+        const expectedRate = 2300 / HERO_INTRO_FAST_MS;
+        expect(sectionA.playbackRate).toBe(expectedRate);
+        expect(sectionB.playbackRate).toBe(sectionA.playbackRate);
+        expect(heroZoom.playbackRate).toBe(1);
+        expect(document.documentElement).toHaveClass('hero-intro');
+        expect(document.documentElement).toHaveClass('hero-intro--scrolled');
+        expect(document.documentElement).not.toHaveClass('hero-intro--nav');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeTruthy();
+
+        await jest.advanceTimersByTimeAsync(HERO_INTRO_DURATION_MS - 16 - 1);
+        expect(document.documentElement).toHaveClass('hero-intro');
+        expect(document.documentElement).toHaveClass('hero-intro--body');
+
+        await jest.advanceTimersByTimeAsync(1);
+        expect(document.documentElement).not.toHaveClass('hero-intro');
+        expect(document.documentElement).not.toHaveClass('hero-intro--body');
+        expect(document.documentElement).not.toHaveClass('hero-intro--scrolled');
+        expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+      } finally {
+        document.getAnimations = originalGetAnimations;
+        jest.useRealTimers();
+      }
+    });
+
+    it('settles the next section when the page leaves the top before the body step', async () => {
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+
+      await decorate(block);
+
+      expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--body');
+
+      setScrollY(40);
+      await flushPaintFrames();
+
+      expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.documentElement).toHaveClass('hero-intro--body');
+      expect(document.documentElement).toHaveClass('hero-intro--scrolled');
     });
 
     it('does not add hero-intro when reduced motion is preferred', async () => {
