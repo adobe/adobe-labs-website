@@ -6,13 +6,13 @@ const SECTION_SELECTOR = ':scope > .section[data-table-of-contents], :scope > .s
 
 /**
  * Label authored for a section. `Table of Contents` wins when both
- * Section Metadata rows are present.
+ * Section Metadata rows are present, including when that value is blank.
  *
  * @param {Element} section A section with `dataset.tableOfContents` or `dataset.toc`
  * @returns {string}
  */
 function sectionLabel(section) {
-  return section.dataset.tableOfContents || section.dataset.toc || '';
+  return section.dataset.tableOfContents ?? section.dataset.toc ?? '';
 }
 
 /**
