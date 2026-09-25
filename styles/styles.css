@@ -93,6 +93,12 @@
   --color-section-surface-pink: #fff4f2;
   --color-section-surface-orange: #faf4f0;
 
+  /* Blue wash over the theme background (e.g. the related content
+     pre-footer). Author with `Style: section-rounded-related`. No
+     dark-mode override needed: the nested background token already
+     switches per theme. */
+  --color-section-surface-related: linear-gradient(0deg, rgb(0 123 255 / 12%) 0%, rgb(0 123 255 / 12%) 100%), var(--s2a-color-background-default);
+
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, adobe-clean-fallback, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, adobe-clean-display-fallback, sans-serif;
@@ -888,6 +894,18 @@ main .section {
 
   &.section-rounded-orange {
     background: var(--color-section-surface-orange);
+  }
+
+  &.section-rounded-related {
+    background: var(--color-section-surface-related);
+  }
+
+  /* Related content pre-footer: tighter block padding than the default
+     rounded section. Always paired with `.section-rounded-default` (added
+     unconditionally to article sections), matched here so this padding wins
+     over the adjacent-default-sections merge rule above. */
+  &.section-rounded-default.section-rounded-related {
+    padding-block: 1.875rem 3.125rem;
   }
 }
 
