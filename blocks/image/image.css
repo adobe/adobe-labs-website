@@ -7,7 +7,7 @@
     --article-content-max-inline-size: var(--article-default-content-max-inline-size);
 
     @media (width >= 48rem) {
-      --article-content-max-inline-size: max(calc(8 / 12 * 100%), var(--article-default-content-max-inline-size, 100%));
+      --article-content-max-inline-size: min(max(calc(8 / 12 * 100%), var(--article-default-content-max-inline-size, 100%)), 77.875rem); /* 1246px max. */
     }
   }
 }
