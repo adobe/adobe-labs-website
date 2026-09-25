@@ -541,8 +541,8 @@ export function buildArticleAuthorMeta(main) {
  *
  * The `style` key is special-cased: it adds one or more (comma-separated)
  * classes to the section instead of a dataset entry. Every other key
- * (including `toc`, read by the Table of Contents block) becomes a plain
- * `section.dataset` entry.
+ * (including `Table of Contents`, read by the Table of Contents
+ * block) becomes a plain `section.dataset` entry.
  *
  * @param {Element} main The container element
  */

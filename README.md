@@ -304,6 +304,12 @@ Article pages show a "Words by:" byline built in JS from the `author` metadata (
 
 DA rewrites uploaded filenames to a hash on publish, but requesting the original filename redirects to the hashed asset once the file has been previewed — that's what makes the slug-based lookup work without a per-author authoring field.
 
+### Table of Contents
+
+Article pages can list opted-in sections. Insert an empty **Table of Contents** block where the list should appear. The table header is the block name.
+
+On each section that should appear, add a Section Metadata row named **Table of Contents**. The cell value is the label in the list. The block links that label to the section heading. If a section has both rows, the **Table of Contents** value is the label. If no section has either row, the block removes itself.
+
 ## Buttons
 
 The default `.button` class uses the Primary style. So far only the default/primary style is supported until others are needed.
