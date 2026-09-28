@@ -971,6 +971,13 @@ html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
   );
 }
 
+/* Article h2 uses heading-5. :where() lets block heading styles override. */
+:where(body.article main) h2 {
+  font-size: var(--s2a-typography-font-size-heading-5);
+  line-height: var(--s2a-typography-line-height-heading-5);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-5);
+}
+
 body.article main {
   --section-padding-block-end: var(--s2a-spacing-2xl);
 
@@ -1008,6 +1015,10 @@ body.article main {
     & > * + :is(h1, h2, h3, h4, h5, h6) {
       margin-block-start: calc(var(--s2a-spacing-lg) + var(--s2a-spacing-sm));
     }
+
+    & > p + h2 {
+      margin-block-start: var(--s2a-spacing-4xl);
+    }
   }
 
   .full-bleed .default-content-wrapper {
@@ -1024,13 +1035,7 @@ body.article main {
   line-height: var(--serif-body-line-height);
 }
 
-/* Article headings step down a level. :where() lets block heading styles override. */
-:where(body.article main) h2 {
-  font-size: var(--s2a-typography-font-size-heading-5);
-  line-height: var(--s2a-typography-line-height-heading-5);
-  letter-spacing: var(--s2a-typography-letter-spacing-heading-5);
-}
-
+/* Article h3–h6 use heading-6. :where() lets block heading styles override. */
 :where(body.article main) :is(h3, h4, h5, h6) {
   font-size: var(--s2a-typography-font-size-heading-6);
   line-height: var(--s2a-typography-line-height-heading-6);
