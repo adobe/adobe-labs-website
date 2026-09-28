@@ -83,6 +83,8 @@
       font-size: var(--s2a-typography-font-size-heading-2);
       font-style: normal;
       font-weight: var(--typography-font-weight-heading-2);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       line-height: var(--s2a-typography-line-height-heading-2);
       letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
 
