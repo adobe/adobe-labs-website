@@ -10,7 +10,7 @@
 }
 
 .grid-line-content {
-  --grid-line-color: light-dark(var(--s2a-color-border-subtle), var(--s2a-color-gray-700));
+  --grid-line-color: var(--s2a-color-border-subtle);
 
   position: relative;
   z-index: 0;
@@ -91,6 +91,10 @@
       text-box-edge: cap alphabetic;
     }
   }
+}
+
+:root[data-theme="dark"] .grid-line-content {
+  --grid-line-color: var(--s2a-color-gray-700);
 }
 
 @media (width >= 56.25rem) {
