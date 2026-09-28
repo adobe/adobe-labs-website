@@ -23,6 +23,7 @@ const FROST_DURATION_MS = 2100;
 export const HERO_INTRO_DURATION_MS = 2475;
 export const HERO_INTRO_FAST_MS = 400;
 const SECTION_RISE_ANIMATION = 'hero-intro-section-rise';
+const STACK_SECTION = '.hero-container:has(.hero-full-screen) + .section';
 const BLUR_START_PX = 18;
 const FROST_DISPLACE = 18;
 const FROST_GRAIN_SIZE = 160; // higher = larger crystals
@@ -292,16 +293,14 @@ function sectionRiseRate(anim) {
   return remaining / HERO_INTRO_FAST_MS;
 }
 
-/** Speeds every section rise to one shared rate. Hero animations stay unchanged. */
+/** Speeds the one section rise. Hero animations stay unchanged. */
 function fastForwardSectionRise() {
-  if (typeof document.getAnimations !== 'function') return;
-  const rises = document.getAnimations()
-    .filter((anim) => anim.animationName === SECTION_RISE_ANIMATION);
-  if (!rises.length) return;
-  const rate = sectionRiseRate(rises[0]);
-  rises.forEach((anim) => {
-    anim.playbackRate = rate;
-  });
+  const stack = document.querySelector(STACK_SECTION);
+  if (!stack || typeof stack.getAnimations !== 'function') return;
+  const rise = stack.getAnimations()
+    .find((anim) => anim.animationName === SECTION_RISE_ANIMATION);
+  if (!rise) return;
+  rise.playbackRate = sectionRiseRate(rise);
 }
 
 /**
@@ -322,7 +321,7 @@ function requestSectionFastTrack() {
 
 /**
  * Latches scroll during the intro.
- * Sections after the hero finish their rise together.
+ * The section after the hero finishes its rise on a short timer.
  * The hero media animation keeps its original duration.
  */
 function latchScrolledIntro() {

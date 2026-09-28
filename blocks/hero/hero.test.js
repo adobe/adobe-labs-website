@@ -563,18 +563,12 @@ describe('hero block', () => {
       expect(document.documentElement).not.toHaveClass('hero-intro--scrolled');
     });
 
-    it('fast-tracks every section rise together when the user scrolls', async () => {
+    it('fast-tracks the section after the hero when the user scrolls', async () => {
       jest.useFakeTimers();
       const originalGetAnimations = document.getAnimations;
-      const sectionA = {
+      const rise = {
         animationName: 'hero-intro-section-rise',
         currentTime: 0,
-        playbackRate: 1,
-        effect: { getComputedTiming: () => ({ endTime: 2300 }) },
-      };
-      const sectionB = {
-        animationName: 'hero-intro-section-rise',
-        currentTime: 800,
         playbackRate: 1,
         effect: { getComputedTiming: () => ({ endTime: 2300 }) },
       };
@@ -584,7 +578,9 @@ describe('hero block', () => {
         playbackRate: 1,
         effect: { getComputedTiming: () => ({ endTime: 2300 }) },
       };
-      document.getAnimations = () => [sectionA, heroZoom, sectionB];
+      document.getAnimations = () => {
+        throw new Error('document.getAnimations');
+      };
 
       try {
         const block = createHeroBlock([
@@ -593,6 +589,13 @@ describe('hero block', () => {
         ]);
         block.classList.add('hero-full-screen');
         mountInFirstSection(block);
+        const heroSection = block.closest('.section');
+        heroSection.classList.add('hero-container');
+        heroSection.getAnimations = () => [heroZoom];
+        const next = document.createElement('div');
+        next.className = 'section';
+        next.getAnimations = () => [rise];
+        heroSection.after(next);
 
         await decorate(block);
         await jest.advanceTimersByTimeAsync(32);
@@ -602,14 +605,11 @@ describe('hero block', () => {
 
         setScrollY(80);
         window.dispatchEvent(new Event('scroll'));
-        expect(sectionA.playbackRate).toBe(1);
-        expect(sectionB.playbackRate).toBe(1);
+        expect(rise.playbackRate).toBe(1);
 
         await jest.advanceTimersByTimeAsync(16);
 
-        const expectedRate = 2300 / HERO_INTRO_FAST_MS;
-        expect(sectionA.playbackRate).toBe(expectedRate);
-        expect(sectionB.playbackRate).toBe(sectionA.playbackRate);
+        expect(rise.playbackRate).toBe(2300 / HERO_INTRO_FAST_MS);
         expect(heroZoom.playbackRate).toBe(1);
         expect(document.documentElement).toHaveClass('hero-intro');
         expect(document.documentElement).toHaveClass('hero-intro--scrolled');

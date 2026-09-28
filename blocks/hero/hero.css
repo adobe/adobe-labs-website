@@ -344,11 +344,17 @@ html.hero-intro {
   }
 }
 
+html.hero-intro .hero-container:has(.hero-full-screen) {
+  overflow-x: clip;
+  background-color: var(--s2a-color-background-knockout, #000);
+}
+
 html.hero-intro .hero-full-screen {
   overflow: visible;
 }
 
 html.hero-intro .hero-full-screen .hero__media {
+  background-color: var(--s2a-color-background-knockout, #000);
   transform-origin: 50% var(--hero-intro-focal-y);
 }
 
