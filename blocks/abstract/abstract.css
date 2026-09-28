@@ -4,7 +4,6 @@
 
   display: grid;
   gap: var(--s2a-spacing-md);
-  padding-block-start: var(--s2a-spacing-sm);
 
   @media (width >= 64rem) {
     --abstract-item-inline-size: 5.125rem; /* 82px */
