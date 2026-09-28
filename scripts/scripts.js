@@ -118,6 +118,24 @@ function buildAutoBlocks(main) {
 }
 
 /**
+ * Intercepts clicks on any link whose href contains `/modals/` and opens
+ * that path as a modal instead of navigating. Listens on `doc` rather than
+ * `main` because header/footer CTAs (the nav Subscribe button, the footer
+ * Subscribe button) are built dynamically after `buildAutoBlocks` runs, so
+ * a build-time autoblock wouldn't see them.
+ * @param {Document} doc The document to listen on
+ */
+function bindModalLinks(doc) {
+  doc.addEventListener('click', async (event) => {
+    const link = event.target.closest('a[href*="/modals/"]');
+    if (!link) return;
+    event.preventDefault();
+    const { openModal } = await import(`${window.hlx.codeBasePath}/blocks/modal/modal.js`);
+    openModal(link.href);
+  });
+}
+
+/**
  * Decorates formatted links to style them as buttons.
  * @param {HTMLElement} main The main container element
  */
@@ -264,6 +282,7 @@ function setCalculatedPerspective() {
  */
 async function loadLazy(doc) {
   loadHeader(doc.querySelector('body > header'));
+  bindModalLinks(doc);
 
   const main = doc.querySelector('main');
   await loadSections(main);
