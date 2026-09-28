@@ -997,9 +997,9 @@ body.article main {
     /* Default content max width of regular authored text content. */
     --article-content-max-inline-size: var(--article-default-content-max-inline-size);
 
-    /* Space after a heading and between paragraphs. */
-    & > :is(h1, h2, h3, h4, h5, h6) + p,
-    & > p + p {
+    /* Space after a heading, and between paragraphs and lists. */
+    & > :is(h1, h2, h3, h4, h5, h6) + :is(p, ul, ol),
+    & > :is(p, ul, ol) + :is(p, ul, ol) {
       margin-block-start: var(--s2a-spacing-lg);
     }
 
@@ -1037,7 +1037,7 @@ body.article main {
   letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
 }
 
-body.article main [class*="section-rounded-"] > * > p:last-child {
+body.article main [class*="section-rounded-"] > * > :is(p, ul, ol):last-child {
   margin-block-end: 0;
 }
 
