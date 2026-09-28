@@ -122,7 +122,7 @@
   &[data-theme="dark"] {
     --color-section-surface-blue: #111f2f;
     --color-section-surface-pink: #301517;
-    --color-section-surface-orange: #413b37;
+    --color-section-surface-orange: #312b27;
     --color-section-surface-default-variant: #262626;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
