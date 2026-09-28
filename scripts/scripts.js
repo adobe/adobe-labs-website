@@ -118,11 +118,7 @@ function buildAutoBlocks(main) {
 }
 
 /**
- * Intercepts clicks on any link whose href contains `/modals/` and opens
- * that path as a modal instead of navigating. Listens on `doc` rather than
- * `main` because header/footer CTAs (the nav Subscribe button, the footer
- * Subscribe button) are built dynamically after `buildAutoBlocks` runs, so
- * a build-time autoblock wouldn't see them.
+ * Opens `/modals/` links as a modal; listens on `doc`, not `main`, for header/footer CTAs.
  * @param {Document} doc The document to listen on
  */
 function bindModalLinks(doc) {

@@ -1,12 +1,4 @@
-/**
- * @file Modal block. Not a traditional authored block — there is no block
- * table for authors to add. Instead, any link whose href contains
- * `/modals/` is intercepted (see `bindModalLinks` in `scripts.js`) and
- * routed through `openModal`, which loads that path as a fragment and
- * shows it in a native `<dialog>`.
- *
- * Ported from https://github.com/adobe/aem-block-collection/tree/main/blocks/modal
- */
+/** @file No block table — `/modals/` links open this via `openModal()`, wired in scripts.js. */
 import {
   buildBlock, decorateBlock, loadBlock, loadCSS,
 } from '../../scripts/aem.js';
