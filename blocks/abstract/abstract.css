@@ -59,6 +59,8 @@
     line-height: var(--s2a-typography-line-height-title-6, 1.125rem);
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
     flex-basis: var(--abstract-item-inline-size);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   .abstract__body {

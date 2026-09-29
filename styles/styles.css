@@ -241,6 +241,8 @@ h1, h2, h3, h4, h5, h6, [class*="heading-"] {
   font-family: var(--heading-font-family);
   font-weight: var(--s2a-font-weight-heading);
   line-height: 1.25;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 
   strong {
     font-weight: inherit;
@@ -321,6 +323,8 @@ h6, .heading-6 {
   font-size: var(--s2a-typography-font-size-label);
   line-height: var(--s2a-typography-line-height-label);
   letter-spacing: var(--s2a-typography-letter-spacing-label);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .caption, [class*="caption-"] {
@@ -558,6 +562,8 @@ footer {
   font-family: var(--heading-font-family);
   font-size: var(--s2a-typography-font-size-heading-6);
   font-weight: 900;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   line-height: var(--s2a-typography-line-height-title-6, 1.125rem); /* 112.5% */
   letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
 }

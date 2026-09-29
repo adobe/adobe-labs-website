@@ -182,6 +182,37 @@ npm test
 
 ## Code Guidelines
 
+### Typography
+
+Three font stacks live on `:root` in `styles/styles.css`.
+
+| Use | Custom property | Face |
+| --- | --- | --- |
+| Headings | `--heading-font-family` | Adobe Clean Display Black |
+| UI and default body | `--body-font-family` | Adobe Clean |
+| Article body | `--serif-font-family` | Adobe Clean Spectrum Serif |
+
+`h1`–`h6` and any class that contains `heading-` take size, line height, letter spacing, and weight from the s2a heading tokens in `styles/styles.css`. Use those elements or a `heading-*` class when the design calls for a heading. Article pages keep that heading scale. Serif applies to `p`, `ul`, and `ol` inside `body.article .default-content-wrapper` (16px/20px below 64rem, then 20px/26px).
+
+#### Grayscale font smoothing
+
+Display Black and other heavy weights (700–900) render thicker than the design frames on macOS when the browser uses subpixel antialiasing. Grayscale smoothing matches the frames:
+
+```css
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+```
+
+Both properties inherit. The shared heading rule and `.label` already set them, so a heading element or `heading-*` class needs no extra declarations.
+
+Add both declarations on the same rule that sets the heavy face when that element sits outside `h1`–`h6`, `[class*="heading-"]`, and `.label`:
+
+- `--heading-font-family`, `--s2a-font-weight-heading`, or `--typography-font-weight-heading-2` (Display Black, 900). See the manifesto paragraphs in `grid-line-content`, abstract numbers, the hero, and lead-in headlines.
+- `--s2a-font-weight-adobe-clean-black` (900) on `--body-font-family`. See the header wordmark.
+- Label and button text: `--s2a-font-weight-label`, `.button`, and `.action-button`.
+
+Regular body copy (`--s2a-font-weight-body`, 400) and article serif paragraphs and lists keep the browser’s subpixel smoothing.
+
 ### CSS
 
 For blocks and other custom classes, the preference is to use BEM style classes where possible.
@@ -257,7 +288,7 @@ See [AEM bulk metadata docs](https://www.aem.live/docs/bulk-metadata) for more i
 
 Article detail pages (`/research/*`, `/workflows/*`, `/sneaks/*`, `/playground/*`) get `template: article` from that spreadsheet. The article pre-footer autoblock keys off this metadata, not a hardcoded path list. A page-level metadata block can still add or omit `article` for an exception.
 
-Article headings keep the site `h1`–`h6` / `heading-*` tokens (s2a heading-1 through heading-6). Default-content paragraphs and lists use Adobe Clean Spectrum Serif at 16px/20px below 64rem (1024px), then 20px/26px.
+Article headings keep the site `h1`–`h6` / `heading-*` tokens (s2a heading-1 through heading-6). Default-content paragraphs and lists use Adobe Clean Spectrum Serif at 16px/20px below 64rem (1024px), then 20px/26px. Font stacks and grayscale smoothing rules are in [Typography](#typography).
 
 Individual pages can then set metadata values via a `metadata` block, including overriding any of those default values.
 See [AEM metadata block docs](https://www.aem.live/developer/block-collection/metadata) for more info.

@@ -11,6 +11,8 @@
   line-height: var(--hero-line-height);
   letter-spacing: var(--hero-letter-spacing);
   font-weight: var(--hero-font-weight);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   border-radius: var(--s2a-border-radius-xs);
   aspect-ratio: 3 / 2;
 
