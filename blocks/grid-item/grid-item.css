@@ -4,6 +4,9 @@
   gap: var(--s2a-spacing-xs);
   max-width: 50ch; /* In the unlikely event this is outside of a grid. */
 
+  --grid-item-underline-transition-duration: 0.3s;
+  --grid-item-underline-transition-easing: ease;
+
   &[data-content-type="research"] {
     --grid-item-content-type-color: var(--color-content-type-research);
   }
@@ -60,6 +63,28 @@
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
     color: var(--s2a-color-content-subtle);
+
+    /* Underline sweeps in left-to-right on hover/focus. A background bar
+       (not text-decoration) so it paints per wrapped line. */
+    background-image: linear-gradient(currentcolor, currentcolor);
+    background-repeat: no-repeat;
+    background-position: 0% 100%;
+    background-size: 0% var(--s2a-border-width-sm);
+    transition: background-size var(--grid-item-underline-transition-duration) var(--grid-item-underline-transition-easing);
+
+    :dir(rtl) & {
+      background-position: 100% 100%;
+    }
+  }
+
+  .grid-item__content-type:focus-visible .grid-item__content-type-name {
+    background-size: 100% var(--s2a-border-width-sm);
+  }
+
+  @media (hover: hover) {
+    .grid-item__content-type:hover .grid-item__content-type-name {
+      background-size: 100% var(--s2a-border-width-sm);
+    }
   }
 
   .grid-item__image {
@@ -117,5 +142,11 @@
   .grid-item__subhead {
     margin: 0;
     color: var(--s2a-color-content-subtle);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-item {
+    --grid-item-underline-transition-duration: 0s;
   }
 }
