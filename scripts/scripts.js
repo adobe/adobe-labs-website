@@ -264,7 +264,7 @@ function setCalculatedPerspective() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return;
   }
-  const elements = document.querySelectorAll('.button, .filter-group__button');
+  const elements = document.querySelectorAll('.button, .filter-group__button, .grid-item__main');
   elements.forEach((el) => {
     if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
     el.style.setProperty('--active-downstate-inline-size', `${el.offsetWidth}px`);
