@@ -57,6 +57,37 @@ describe('createModal', () => {
     expect(dialog.querySelector('p')).toHaveTextContent('Dolor sit amet.');
   });
 
+  it('labels the dialog via aria-labelledby, reusing an existing heading id', async () => {
+    const content = fragmentFrom('<h2 id="subscribe-heading">Subscribe</h2><p>Lorem ipsum.</p>');
+
+    const { block } = await createModal([...content.childNodes]);
+
+    const dialog = block.querySelector('dialog');
+    expect(dialog).toHaveAttribute('aria-labelledby', 'subscribe-heading');
+    expect(dialog).not.toHaveAttribute('aria-label');
+  });
+
+  it('assigns a heading id when the fragment heading has none', async () => {
+    const content = fragmentFrom('<h2>Subscribe</h2><p>Lorem ipsum.</p>');
+
+    const { block } = await createModal([...content.childNodes]);
+
+    const dialog = block.querySelector('dialog');
+    const heading = dialog.querySelector('h2');
+    expect(heading.id).not.toBe('');
+    expect(dialog).toHaveAttribute('aria-labelledby', heading.id);
+  });
+
+  it('falls back to a generic aria-label when the fragment has no heading', async () => {
+    const content = fragmentFrom('<p>Lorem ipsum with no heading.</p>');
+
+    const { block } = await createModal([...content.childNodes]);
+
+    const dialog = block.querySelector('dialog');
+    expect(dialog).toHaveAttribute('aria-label', 'Dialog');
+    expect(dialog).not.toHaveAttribute('aria-labelledby');
+  });
+
   it('shows the dialog and locks body scroll on showModal()', async () => {
     const { block, showModal } = await createModal([document.createElement('p')]);
     const dialog = block.querySelector('dialog');
