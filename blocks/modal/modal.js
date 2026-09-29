@@ -22,20 +22,34 @@ function ensureHeadingId(heading) {
 }
 
 /**
- * Gives the dialog an accessible name: the fragment's first heading via
- * `aria-labelledby`, or a generic `aria-label` when it has none.
+ * Gives the dialog an accessible name from the visible fragment content.
+ * A hidden heading is skipped so success and error panels are not announced
+ * while the form is showing. Falls back to the visible message, then a
+ * generic label, when there is no heading.
  *
  * @param {Element} dialog Dialog element
  * @param {Element} dialogContent `.modal-content` holding the fragment
  * @returns {void}
  */
 function labelDialog(dialog, dialogContent) {
-  const heading = dialogContent.querySelector('h1, h2, h3, h4, h5, h6');
+  const isVisible = (node) => !node.closest('[hidden]');
+  const heading = [...dialogContent.querySelectorAll('h1, h2, h3, h4, h5, h6')].find(isVisible);
+  const description = [...dialogContent.querySelectorAll('p')]
+    .find((node) => isVisible(node) && !node.closest('form') && !node.querySelector('button, a'));
+
   if (heading) {
     dialog.setAttribute('aria-labelledby', ensureHeadingId(heading));
-  } else {
-    dialog.setAttribute('aria-label', 'Dialog');
+    dialog.removeAttribute('aria-label');
+    if (description) {
+      if (!description.id) description.id = 'modal-description';
+      dialog.setAttribute('aria-describedby', description.id);
+    }
+    return;
   }
+
+  dialog.removeAttribute('aria-labelledby');
+  dialog.removeAttribute('aria-describedby');
+  dialog.setAttribute('aria-label', description?.textContent.trim() || 'Dialog');
 }
 
 /**
@@ -60,23 +74,6 @@ export async function createModal(contentNodes) {
   const dialogContent = dialog.querySelector('.modal-content');
   dialogContent.append(...contentNodes);
   labelDialog(dialog, dialogContent);
-
-  const visibleText = (selector) => [...dialogContent.querySelectorAll(selector)]
-    .find((node) => !node.closest('[hidden]') && !node.querySelector('button, a'));
-  const heading = [...dialogContent.querySelectorAll('h1, h2, h3, h4, h5, h6')]
-    .find((node) => !node.closest('[hidden]'));
-  if (heading) {
-    if (!heading.id) heading.id = 'modal-heading';
-    dialog.setAttribute('aria-labelledby', heading.id);
-    const description = visibleText('p');
-    if (description && !description.closest('form')) {
-      if (!description.id) description.id = 'modal-description';
-      dialog.setAttribute('aria-describedby', description.id);
-    }
-  } else {
-    const label = visibleText('p')?.textContent.trim();
-    if (label) dialog.setAttribute('aria-label', label);
-  }
 
   dialog.querySelector('.close-button').addEventListener('click', () => dialog.close());
 

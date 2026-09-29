@@ -78,10 +78,18 @@ describe('createModal', () => {
     expect(dialog).toHaveAttribute('aria-labelledby', heading.id);
   });
 
-  it('falls back to a generic aria-label when the fragment has no heading', async () => {
+  it('names the dialog from the visible message when the fragment has no heading', async () => {
     const content = fragmentFrom('<p>Lorem ipsum with no heading.</p>');
 
     const { block } = await createModal([...content.childNodes]);
+
+    const dialog = block.querySelector('dialog');
+    expect(dialog).toHaveAttribute('aria-label', 'Lorem ipsum with no heading.');
+    expect(dialog).not.toHaveAttribute('aria-labelledby');
+  });
+
+  it('falls back to a generic aria-label when the fragment has no name', async () => {
+    const { block } = await createModal([document.createElement('div')]);
 
     const dialog = block.querySelector('dialog');
     expect(dialog).toHaveAttribute('aria-label', 'Dialog');

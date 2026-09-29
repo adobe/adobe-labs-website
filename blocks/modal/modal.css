@@ -7,8 +7,6 @@ body.modal-open {
 }
 
 .modal dialog {
-  background-color: var(--s2a-color-background-default);
-  color: var(--s2a-color-content-default);
   overscroll-behavior: none;
   overflow-y: hidden;
   width: calc(100vw - var(--s2a-spacing-3xl));
