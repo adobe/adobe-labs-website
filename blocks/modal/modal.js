@@ -92,14 +92,18 @@ export async function createModal(contentNodes) {
     }
   });
 
+  // decorateBlock() tags the block's own parent with `modal-wrapper`, so it
+  // gets a disposable wrapper here rather than landing on <main> itself.
   const block = buildBlock('modal', '');
-  document.querySelector('main').append(block);
+  const wrapper = document.createElement('div');
+  wrapper.append(block);
+  document.querySelector('main').append(wrapper);
   decorateBlock(block);
   await loadBlock(block);
 
   dialog.addEventListener('close', () => {
     document.body.classList.remove('modal-open');
-    block.remove();
+    wrapper.remove();
   });
 
   block.textContent = '';
