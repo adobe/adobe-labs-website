@@ -5,6 +5,39 @@ import {
 import { fromHTML } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
+let modalHeadingId = 0;
+
+/**
+ * Existing heading id, or a freshly assigned one — EDS already slugs
+ * authored heading ids, so this only runs for content that lacks one.
+ *
+ * @param {Element} heading Heading element
+ * @returns {string}
+ */
+function ensureHeadingId(heading) {
+  if (heading.id) return heading.id;
+  modalHeadingId += 1;
+  heading.id = `modal-heading-${modalHeadingId}`;
+  return heading.id;
+}
+
+/**
+ * Gives the dialog an accessible name: the fragment's first heading via
+ * `aria-labelledby`, or a generic `aria-label` when it has none.
+ *
+ * @param {Element} dialog Dialog element
+ * @param {Element} dialogContent `.modal-content` holding the fragment
+ * @returns {void}
+ */
+function labelDialog(dialog, dialogContent) {
+  const heading = dialogContent.querySelector('h1, h2, h3, h4, h5, h6');
+  if (heading) {
+    dialog.setAttribute('aria-labelledby', ensureHeadingId(heading));
+  } else {
+    dialog.setAttribute('aria-label', 'Dialog');
+  }
+}
+
 /**
  * Builds a `.modal` block containing a dialog around `contentNodes`, and
  * loads it onto the page. The dialog stays closed until `showModal()` is
@@ -26,6 +59,7 @@ export async function createModal(contentNodes) {
   `);
   const dialogContent = dialog.querySelector('.modal-content');
   dialogContent.append(...contentNodes);
+  labelDialog(dialog, dialogContent);
 
   const visibleText = (selector) => [...dialogContent.querySelectorAll(selector)]
     .find((node) => !node.closest('[hidden]') && !node.querySelector('button, a'));
