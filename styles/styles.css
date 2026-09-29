@@ -929,6 +929,12 @@ main .section.section-rounded-default + [class*="section-rounded-"]:not(.section
   margin-block-start: var(--section-margin-negative-offset);
 }
 
+/* An unrounded last section does not overlap the footer, so it needs the
+   same end padding the last rounded section already uses. */
+main > .section:last-child:not([class*="section-rounded-"]) {
+  padding-block-end: var(--section-padding-block-end-last);
+}
+
 /* -- Page-specific section spacing overrides --- */
 main .section.grid-line-content-container {
   padding-block-end: 0;

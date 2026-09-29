@@ -168,7 +168,7 @@ A `section-rounded-*` section gets vertical padding and `z-index: 1`.
 - Adjacent default sections appear as one continuous card. The next section cancels the flex gap and start padding. The last default section before a different surface keeps an end radius.
 - The last rounded section on the page gets an end radius and uses `--section-padding-block-end-last`. A page with one rounded section gets all four corners.
 - After a full-screen hero, the next rounded section overlaps the hero by `-(radius + --section-space-between)`.
-- The last rounded section overlaps the footer by the section radius. Footer inner padding grows by that amount so links stay clickable (`.footer` uses `z-index: 0`). Footer start padding increases at 64rem and above.
+- The footer overlaps the last section by the section radius only when that section is rounded (`section-rounded-*`). Footer inner padding grows by that amount so links stay clickable (`.footer` uses `z-index: 0`). Footer start padding increases at 64rem and above. When the last section is not rounded, it uses `--section-padding-block-end-last` and the footer sits below it.
 - The research index (`template: research`, `body.research`) uses a larger `--section-space-between`, then a larger value at 48rem and above. Set that template on the research index only.
 - Article pages (`template: article`) use the default surface only. `--section-padding-block-end` is `--s2a-spacing-2xl`, then `--s2a-spacing-4xl` at 90rem (1440px). The last rounded section still uses `--section-padding-block-end-last`.
 
