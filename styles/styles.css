@@ -118,6 +118,13 @@
   --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
   --color-button-background-primary-hover: var(--s2a-color-gray-800);
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
+  
+  /* article section spacing */
+  --article-section-gap: var(--s2a-spacing-2xl);
+
+  @media (width >= 64rem) {
+    --article-section-gap: var(--s2a-spacing-4xl);
+  }
 
   &[data-theme="dark"] {
     --color-section-surface-blue: #111f2f;
@@ -508,7 +515,6 @@ footer {
   align-items: center;
   justify-content: space-between;
   gap: var(--s2a-spacing-sm);
-  margin-block-end: var(--s2a-spacing-lg);
 }
 
 .article-meta__authors {
@@ -928,6 +934,11 @@ main .section:not(.section-rounded-default) + .section-rounded-default {
   border-start-end-radius: var(--section-border-radius);
 }
 
+/* Article rounded sections use a wider stack gap than the default section. */
+body.article main [class*="section-rounded-"] {
+  gap: var(--article-section-gap);
+}
+
 /* Overlap only when a new section follows another rounded section.
    Full-screen hero overlap lives in hero.css. Do not pull up over a default hero. */
 main .section[class*="section-rounded-"]:not(.section-rounded-default) + [class*="section-rounded-"],
@@ -995,6 +1006,13 @@ html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
   );
 }
 
+/* Article h2 uses heading-5. :where() lets block heading styles override. */
+:where(body.article main) h2 {
+  font-size: var(--s2a-typography-font-size-heading-5);
+  line-height: var(--s2a-typography-line-height-heading-5);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-5);
+}
+
 body.article main {
   --section-padding-block-end: var(--s2a-spacing-2xl);
   --section-space-between: 5rem; /* 80px at 768px and below */
@@ -1023,6 +1041,22 @@ body.article main {
   .default-content-wrapper {
     /* Default content max width of regular authored text content. */
     --article-content-max-inline-size: var(--article-default-content-max-inline-size);
+
+    /* Space after a heading, and between paragraphs and lists. */
+    & > :is(h1, h2, h3, h4, h5, h6) + :is(p, ul, ol),
+    & > :is(p, ul, ol) + :is(p, ul, ol) {
+      margin-block-start: var(--s2a-spacing-lg);
+    }
+
+    /* Space before a heading that follows other content.
+       24px + 12px; no spacing token is 36px. */
+    & > * + :is(h1, h2, h3, h4, h5, h6) {
+      margin-block-start: calc(var(--s2a-spacing-lg) + var(--s2a-spacing-sm));
+    }
+
+    & > p + h2 {
+      margin-block-start: var(--s2a-spacing-4xl);
+    }
   }
 
   .full-bleed .default-content-wrapper {
@@ -1032,10 +1066,31 @@ body.article main {
 }
 
 /* Article body: serif paragraphs and lists. :where() keeps this a default
-   so headings, captions, and block styles can override. Heading sizes already
-   follow s2a heading-1 through heading-6; no article heading overrides. */
+   so headings, captions, and block styles can override. */
 :where(body.article .default-content-wrapper) :where(p, ul, ol) {
   font-family: var(--serif-font-family);
   font-size: var(--serif-body-font-size);
   line-height: var(--serif-body-line-height);
+}
+
+/* Article h3–h6 use heading-6. :where() lets block heading styles override. */
+:where(body.article main) :is(h3, h4, h5, h6) {
+  font-size: var(--s2a-typography-font-size-heading-6);
+  line-height: var(--s2a-typography-line-height-heading-6);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+}
+
+body.article main [class*="section-rounded-"] > * > :is(p, ul, ol):last-child {
+  margin-block-end: 0;
+}
+
+/* First .article-meta-section in the article (the top byline). */
+body.article main > [class*="section-rounded-"]:not(
+  :has(> .article-meta-section) ~ [class*="section-rounded-"]
+) > .article-meta-section:nth-child(1 of .article-meta-section) {
+  margin-block-end: calc(-1 * (var(--s2a-spacing-2xl) - var(--s2a-spacing-xl)));
+
+  @media (width >= 64rem) {
+    margin-block-end: calc(-1 * (var(--s2a-spacing-4xl) - var(--s2a-spacing-2xl)));
+  }
 }
