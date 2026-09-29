@@ -100,7 +100,6 @@ describe('createModal', () => {
 
   it('removes the block and unlocks body scroll when the close button is clicked', async () => {
     const { block, showModal } = await createModal([document.createElement('p')]);
-    document.body.append(block);
     showModal();
 
     within(block).getByRole('button', { name: 'Close' }).click();
@@ -109,10 +108,19 @@ describe('createModal', () => {
     expect(document.querySelector('.modal')).not.toBeInTheDocument();
   });
 
+  it('does not leave a modal-wrapper class on <main> after the modal closes', async () => {
+    const { block, showModal } = await createModal([document.createElement('p')]);
+    showModal();
+
+    within(block).getByRole('button', { name: 'Close' }).click();
+
+    expect(document.querySelector('main')).not.toHaveClass('modal-wrapper');
+    expect(document.querySelector('main').children).toHaveLength(0);
+  });
+
   it('closes when clicking outside the dialog box', async () => {
     const { block, showModal } = await createModal([document.createElement('p')]);
     const dialog = block.querySelector('dialog');
-    document.body.append(block);
     showModal();
 
     jest.spyOn(dialog, 'getBoundingClientRect').mockReturnValue({
@@ -128,7 +136,6 @@ describe('createModal', () => {
   it('does not close when clicking inside the dialog box', async () => {
     const { block, showModal } = await createModal([document.createElement('p')]);
     const dialog = block.querySelector('dialog');
-    document.body.append(block);
     showModal();
 
     jest.spyOn(dialog, 'getBoundingClientRect').mockReturnValue({
