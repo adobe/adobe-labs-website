@@ -197,8 +197,19 @@ async function fetchCountries() {
 }
 
 /**
- * @param {string} clientId
- * @returns {Promise<any>}
+ * @typedef {object} ImsToken
+ * @property {string} [token] Guest access token
+ */
+
+/**
+ * @typedef {object} ImsGuestClient
+ * @property {function(): (ImsToken|Promise<ImsToken>)} getAccessToken
+ */
+
+/**
+ * Loads Adobe IMS and resolves with a client that can mint a guest token.
+ * @param {string} clientId IMS client id from page metadata `ims-client-id`
+ * @returns {Promise<ImsGuestClient>}
  */
 function loadImsGuest(clientId) {
   if (window.adobeIMS?.getAccessToken) return Promise.resolve(window.adobeIMS);
@@ -368,6 +379,7 @@ function messageNode(panel) {
  * Points the parent dialog at the visible panel. A hidden heading would
  * leave the dialog unnamed after success or error.
  * @param {Element|undefined} panel
+ * @returns {void}
  */
 function nameDialog(panel) {
   const dialog = panel?.closest('dialog');
@@ -397,6 +409,7 @@ function nameDialog(panel) {
 /**
  * Moves focus to the visible message so the result is announced.
  * @param {Element|undefined} panel
+ * @returns {void}
  */
 function focusMessage(panel) {
   const target = panel && messageNode(panel);
@@ -406,9 +419,11 @@ function focusMessage(panel) {
 }
 
 /**
+ * Shows one panel and hides the others. Success and error receive focus.
  * @param {{ form: Element, success: Element|undefined, error: Element|undefined }} panels
- * @param {HTMLElement} status
+ * @param {HTMLElement} status Live region. Cleared so the focused message is not announced twice.
  * @param {'form'|'success'|'error'} state
+ * @returns {void}
  */
 function showState(panels, status, state) {
   Object.entries(panels).forEach(([name, panel]) => {
@@ -424,6 +439,7 @@ function showState(panels, status, state) {
  * Names and focuses the open dialog. Decorate runs before the dialog exists.
  * @param {Element} node
  * @param {(dialog: HTMLDialogElement) => void} onOpen
+ * @returns {void}
  */
 function whenDialogReady(node, onOpen) {
   const attach = (dialog) => {
@@ -450,9 +466,11 @@ function whenDialogReady(node, onOpen) {
 }
 
 /**
+ * Turns `#close-form` and `#show-form` links into buttons.
  * @param {Element} panel
  * @param {(button: HTMLButtonElement) => void} onClose
  * @param {() => void} [onShowForm]
+ * @returns {void}
  */
 function wireMessageLinks(panel, onClose, onShowForm) {
   const closeLink = findHashLink(panel, 'close-form');
@@ -507,7 +525,9 @@ async function postSubscription(config, consentId, clientId, form) {
 }
 
 /**
+ * Builds the mailing-list form from the block rows and section metadata.
  * @param {Element} block
+ * @returns {Promise<void>}
  */
 export default async function decorate(block) {
   const rows = [...block.children];
