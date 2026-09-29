@@ -1,15 +1,15 @@
 /**
  * Section cover classification and the motion opt-in lifecycle.
  *
- * Predicates and geometry are covered in `section-scroll/config-and-utils.test.js`, the
- * garage door in `section-scroll/footer-reveal.test.js`, focus reveal in
- * `section-scroll/focus-reveal.test.js`, and the shared entry math in
- * `utils/entry-progress.test.js`. What is left here is which sections get
+ * Predicates and geometry are covered in `config-and-utils.test.js`, the
+ * garage door in `footer-reveal.test.js`, focus reveal in
+ * `focus-reveal.test.js`, and the shared entry math in
+ * `../utils/entry-progress.test.js`. What is left here is which sections get
  * paired, and what GSAP is asked to do once motion starts.
  */
-import { loadCSS } from './aem.js';
-import { gsap, ScrollTrigger } from '../deps/gsap/dist/index.js';
-import Lenis from '../deps/lenis/dist/index.js';
+import { loadCSS } from '../aem.js';
+import { gsap, ScrollTrigger } from '../../deps/gsap/dist/index.js';
+import Lenis from '../../deps/lenis/dist/index.js';
 import {
   COVER_START_VH,
   HEADER_FADE_VH,
@@ -18,18 +18,18 @@ import {
   INTRO_LAG,
   OVERLAY_DIM,
   roundedParallax,
-} from './section-scroll/config-and-utils.js';
+} from './config-and-utils.js';
 import {
   classifySectionScroll,
   initSectionScroll,
   teardownSectionScroll,
-} from './section-scroll/init.js';
+} from './init.js';
 
-jest.mock('./aem.js', () => ({
+jest.mock('../aem.js', () => ({
   loadCSS: jest.fn(() => Promise.resolve()),
 }));
 
-jest.mock('../deps/gsap/dist/index.js', () => {
+jest.mock('../../deps/gsap/dist/index.js', () => {
   const motionCtx = { revert: jest.fn() };
   const mockGsap = {
     context: jest.fn((fn) => {
@@ -57,7 +57,7 @@ jest.mock('../deps/gsap/dist/index.js', () => {
   return { __esModule: true, gsap: mockGsap, ScrollTrigger: mockScrollTrigger };
 });
 
-jest.mock('../deps/lenis/dist/index.js', () => {
+jest.mock('../../deps/lenis/dist/index.js', () => {
   const instance = {
     on: jest.fn(),
     off: jest.fn(),
@@ -388,7 +388,7 @@ describe('initSectionScroll', () => {
 
     await initSectionScroll();
 
-    expect(loadCSS).toHaveBeenCalledWith('/styles/section-scroll.css');
+    expect(loadCSS).toHaveBeenCalledWith('/styles/features/section-scroll.css');
     expect(loadCSS).toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
     expect(Lenis).toHaveBeenCalledWith({ autoRaf: false, anchors: true });
     expect(Lenis.mock.results[0].value.on).toHaveBeenCalledWith('scroll', ScrollTrigger.update);
@@ -692,7 +692,7 @@ describe('initSectionScroll', () => {
     expect(timelineTweening(heroWrap)).toBeUndefined();
     expect(Lenis).not.toHaveBeenCalled();
     expect(gsap.ticker.add).not.toHaveBeenCalled();
-    expect(loadCSS).toHaveBeenCalledWith('/styles/section-scroll.css');
+    expect(loadCSS).toHaveBeenCalledWith('/styles/features/section-scroll.css');
     expect(loadCSS).not.toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
     expect(main.children[0].style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
 
@@ -971,7 +971,7 @@ describe('initSectionScroll', () => {
     expect(gsap.timeline).not.toHaveBeenCalled();
     expect(gsap.context).not.toHaveBeenCalled();
     expect(Lenis).not.toHaveBeenCalled();
-    expect(loadCSS).toHaveBeenCalledWith('/styles/section-scroll.css');
+    expect(loadCSS).toHaveBeenCalledWith('/styles/features/section-scroll.css');
     expect(main).toHaveClass('section-scroll-css-cover');
     expect(main.style.getPropertyValue('timeline-scope')).toBe('--section-scroll-cover-0');
     expect(main.children[1].style.getPropertyValue('view-timeline-name')).toBe('--section-scroll-cover-0');

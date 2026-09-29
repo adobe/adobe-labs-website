@@ -14,7 +14,7 @@
  * (last rounded card over the menu, then the Adobe logo) lives here too.
  *
  * See the README's section-surface notes for the authored behaviour, and
- * `styles/section-scroll.css` for the parts CSS owns (sticky, stacking, and the
+ * `styles/features/section-scroll.css` for the parts CSS owns (sticky, stacking, and the
  * touch-only intro lag).
  *
  * Exports beyond `initSectionScroll` exist for tests.
@@ -1388,7 +1388,7 @@ async function start() {
   started = true;
   const base = window.hlx?.codeBasePath || '';
   const assets = [
-    loadCSS(`${base}/styles/section-scroll.css`),
+    loadCSS(`${base}/styles/features/section-scroll.css`),
     attach(),
   ];
   if (!usesTouchScroll()) {

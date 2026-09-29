@@ -29,7 +29,7 @@ export const CLASS_CSS_COVER = 'section-scroll-css-cover';
 /**
  * Feature query for the touch fade path. `animation-range` is part of the
  * check so a browser with a partial implementation does not match. Keep this
- * in sync with the `@supports` block in `styles/section-scroll.css`.
+ * in sync with the `@supports` block in `styles/features/section-scroll.css`.
  */
 export const CSS_COVER_SUPPORT = '(animation-timeline: view()) and (animation-range: entry) and (animation-timeline: scroll()) and (animation-range: 0% 100%)';
 
