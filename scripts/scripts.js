@@ -118,6 +118,20 @@ function buildAutoBlocks(main) {
 }
 
 /**
+ * Opens `/modals/` links as a modal; listens on `doc`, not `main`, for header/footer CTAs.
+ * @param {Document} doc The document to listen on
+ */
+function bindModalLinks(doc) {
+  doc.addEventListener('click', async (event) => {
+    const link = event.target.closest('a[href*="/modals/"]');
+    if (!link) return;
+    event.preventDefault();
+    const { openModal } = await import(`${window.hlx.codeBasePath}/blocks/modal/modal.js`);
+    openModal(link.href);
+  });
+}
+
+/**
  * Decorates formatted links to style them as buttons.
  * @param {HTMLElement} main The main container element
  */
@@ -283,6 +297,7 @@ function modulePreload(path) {
  */
 async function loadLazy(doc) {
   loadHeader(doc.querySelector('body > header'));
+  bindModalLinks(doc);
 
   const main = doc.querySelector('main');
   await loadSections(main);
