@@ -1,8 +1,14 @@
 .grid-item {
+  --grid-item-transition-duration: 250ms;
+  --grid-item-transition-easing: ease-in-out;
   display: flex;
   flex-direction: column;
   gap: var(--s2a-spacing-xs);
   max-width: 50ch; /* In the unlikely event this is outside of a grid. */
+
+  @media (prefers-reduced-motion: reduce) {
+    --grid-item-transition-duration: 0s;
+  }
 
   &[data-content-type="research"] {
     --grid-item-content-type-color: var(--color-content-type-research);
@@ -60,6 +66,17 @@
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
     color: var(--s2a-color-content-subtle);
+    transition: color var(--grid-item-transition-duration) var(--grid-item-transition-easing);
+  }
+
+  .grid-item__content-type:is(:focus-visible, :active) .grid-item__content-type-name {
+    color: var(--s2a-color-content-default);
+  }
+
+  @media (hover: hover) {
+    .grid-item__content-type:hover .grid-item__content-type-name {
+      color: var(--s2a-color-content-default);
+    }
   }
 
   .grid-item__image {
