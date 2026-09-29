@@ -310,6 +310,32 @@ Article pages can list opted-in sections. Insert an empty **Table of Contents** 
 
 On each section that should appear, add a Section Metadata row named **Table of Contents**. The cell value is the label in the list. The block links that label to the section heading. If a section has both rows, the **Table of Contents** value is the label. If no section has either row, the block removes itself.
 
+## Email collection
+
+The Subscribe buttons in the header and footer open `/modals/subscribe`. That fragment holds an **Email collection** block with the `mailing-list` option: `email-collection (mailing-list)`.
+
+The block needs three rows and a Section Metadata table in the same section.
+
+1. Form. A heading, a short description, a blank line, then a bold link whose href is `#submit`. The live AI Research modal uses the label Subscribe.
+2. Success. The success sentence and a link whose href is `#close-form`. An optional `#show-form` link returns to an empty form.
+3. Error. The error sentence and a `#close-form` link.
+
+Section Metadata (not shown in the modal):
+
+| Name | Value |
+| --- | --- |
+| email | Email address |
+| country | Country |
+| mps-sname | adbe_ml_ai_research |
+| subscription-name | AI Research |
+| sign-in | off |
+
+`email`, `mps-sname`, and `subscription-name` are required. `sign-in` set to `off` lets a visitor submit without an Adobe ID. That submit still needs an IMS guest token. Set page metadata `ims-client-id` to a client id that allows guest tokens. Until that id is set, a submit shows the error row.
+
+Consent text and the “required” / “valid email” messages are loaded from federal content. Authors do not write them. `subscription-name` is inserted into the consent sentence.
+
+On preview hosts, `?email-collection-show=success` or `?email-collection-show=error` opens the modal on that state.
+
 ## Buttons
 
 The default `.button` class uses the Primary style. So far only the default/primary style is supported until others are needed.

@@ -27,6 +27,23 @@ export async function createModal(contentNodes) {
   const dialogContent = dialog.querySelector('.modal-content');
   dialogContent.append(...contentNodes);
 
+  const visibleText = (selector) => [...dialogContent.querySelectorAll(selector)]
+    .find((node) => !node.closest('[hidden]') && !node.querySelector('button, a'));
+  const heading = [...dialogContent.querySelectorAll('h1, h2, h3, h4, h5, h6')]
+    .find((node) => !node.closest('[hidden]'));
+  if (heading) {
+    if (!heading.id) heading.id = 'modal-heading';
+    dialog.setAttribute('aria-labelledby', heading.id);
+    const description = visibleText('p');
+    if (description && !description.closest('form')) {
+      if (!description.id) description.id = 'modal-description';
+      dialog.setAttribute('aria-describedby', description.id);
+    }
+  } else {
+    const label = visibleText('p')?.textContent.trim();
+    if (label) dialog.setAttribute('aria-label', label);
+  }
+
   dialog.querySelector('.close-button').addEventListener('click', () => dialog.close());
 
   // Close on click outside the dialog's own box (the ::backdrop isn't a
