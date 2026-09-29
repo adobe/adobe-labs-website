@@ -54,6 +54,12 @@ body.modal-open {
   background-color: transparent;
   color: var(--s2a-color-content-default);
   line-height: 0;
+
+  /* Inward ring — an outward one gets clipped by the dialog's overflow-y: hidden. */
+  &:focus-visible {
+    outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
+    outline-offset: calc(-1 * var(--s2a-border-width-md));
+  }
 }
 
 .modal .close-button .icon.icon-close {
