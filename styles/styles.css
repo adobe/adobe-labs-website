@@ -224,15 +224,19 @@ html.hero-intro {
      the knockout background never shows between them. */
   --hero-intro-section-offset: calc(100lvh - min(86lvh, 75rem));
 
-  /* Clip the intro zoom on the inline axis. Keep vertical scroll. */
-  overflow: clip auto;
-
   @media (width < 48rem) {
     --hero-intro-section-offset: calc(100svh - 60lvh);
   }
 }
 
+/* Clip the intro zoom on the inline axis. Leave overflow-y visible.
+   `overflow: clip auto` computes clip to hidden and opens a horizontal scroll container. */
+html.hero-intro,
 html.hero-intro body {
+  overflow-x: clip;
+}
+
+html.hero-intro:not(.hero-intro--scrolled) body {
   background-color: var(--s2a-color-background-knockout, #000);
 }
 
@@ -965,26 +969,30 @@ body.research main {
   }
 }
 
-/* Second section rises after the intro body step.
+/* The section after the hero carries the stack.
+   Its margin moves every following section in normal flow.
    JavaScript does not add the hero animation when prefers-reduced-motion: reduce.
    These rules do not need a reduced-motion override. */
-html.hero-intro--body main > .section:nth-of-type(2) {
+html.hero-intro--body .hero-container:has(.hero-full-screen) + .section {
   animation: hero-intro-section-rise var(--hero-intro-settle-duration, 900ms)
     var(--hero-intro-easing-settle, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 
-html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
-  transform: translateY(var(--hero-intro-section-offset));
+html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(n+2) {
   visibility: hidden;
+}
+
+html.hero-intro:not(.hero-intro--body) .hero-container:has(.hero-full-screen) + .section {
+  margin-block-start: calc(var(--hero-margin-negative-offset, 0) + var(--hero-intro-section-offset));
 }
 
 @keyframes hero-intro-section-rise {
   from {
-    transform: translateY(var(--hero-intro-section-offset));
+    margin-block-start: calc(var(--hero-margin-negative-offset, 0) + var(--hero-intro-section-offset));
   }
 
   to {
-    transform: translateY(0);
+    margin-block-start: var(--hero-margin-negative-offset, 0);
   }
 }
 
