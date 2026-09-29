@@ -21,6 +21,9 @@ export const HERO_INTRO_NAV_DELAY_MS = 375;
 const BLUR_DURATION_MS = 750;
 const FROST_DURATION_MS = 2100;
 export const HERO_INTRO_DURATION_MS = 2475;
+export const HERO_INTRO_FAST_MS = 400;
+const SECTION_RISE_ANIMATION = 'hero-intro-section-rise';
+const STACK_SECTION = '.hero-container:has(.hero-full-screen) + .section';
 const BLUR_START_PX = 18;
 const FROST_DISPLACE = 18;
 const FROST_GRAIN_SIZE = 160; // higher = larger crystals
@@ -43,6 +46,12 @@ let frostDisplace;
 let mediaEl;
 /** @type {((event: Event) => void)|undefined} */
 let skipIntroHandler;
+/** @type {((event: Event) => void)|undefined} */
+let introScrollHandler;
+/** @type {number|undefined} */
+let fastTrackRaf;
+/** True after the section-rise playback rate is scheduled. */
+let sectionRiseFastTracked = false;
 
 /**
  * Whether this hero sits in the first section of `main`.
@@ -257,6 +266,81 @@ function unbindSkipClear() {
   skipIntroHandler = undefined;
 }
 
+/** Page load and scroll restoration are at the top when scrollY is 0. */
+function isPageAtTop() {
+  return window.scrollY <= 0;
+}
+
+function unbindIntroScroll() {
+  if (!introScrollHandler) return;
+  window.removeEventListener('scroll', introScrollHandler);
+  introScrollHandler = undefined;
+}
+
+/**
+ * Playback rate that finishes the remaining section rise in HERO_INTRO_FAST_MS.
+ * A rate of 1 keeps the original timing when little time remains.
+ *
+ * @param {Animation} anim Section rise animation
+ * @returns {number}
+ */
+function sectionRiseRate(anim) {
+  const timing = anim.effect?.getComputedTiming();
+  const end = Number(timing?.endTime) || 0;
+  const current = typeof anim.currentTime === 'number' ? anim.currentTime : 0;
+  const remaining = end - current;
+  if (remaining <= HERO_INTRO_FAST_MS) return 1;
+  return remaining / HERO_INTRO_FAST_MS;
+}
+
+/** Speeds the one section rise. Hero animations stay unchanged. */
+function fastForwardSectionRise() {
+  const stack = document.querySelector(STACK_SECTION);
+  if (!stack || typeof stack.getAnimations !== 'function') return;
+  const rise = stack.getAnimations()
+    .find((anim) => anim.animationName === SECTION_RISE_ANIMATION);
+  if (!rise) return;
+  rise.playbackRate = sectionRiseRate(rise);
+}
+
+/**
+ * Schedules one fast-track after the body step and the scroll latch are both set.
+ * A second call does not write a new rate.
+ */
+function requestSectionFastTrack() {
+  const root = document.documentElement;
+  if (sectionRiseFastTracked) return;
+  if (!root.classList.contains('hero-intro--body')) return;
+  if (!root.classList.contains('hero-intro--scrolled')) return;
+  sectionRiseFastTracked = true;
+  fastTrackRaf = window.requestAnimationFrame(() => {
+    fastTrackRaf = undefined;
+    fastForwardSectionRise();
+  });
+}
+
+/**
+ * Latches scroll during the intro.
+ * The section after the hero finishes its rise on a short timer.
+ * The hero media animation keeps its original duration.
+ */
+function latchScrolledIntro() {
+  document.documentElement.classList.add('hero-intro--scrolled');
+  unbindIntroScroll();
+  requestSectionFastTrack();
+}
+
+function onIntroScroll() {
+  if (isPageAtTop()) return;
+  latchScrolledIntro();
+}
+
+function bindIntroScroll() {
+  unbindIntroScroll();
+  introScrollHandler = onIntroScroll;
+  window.addEventListener('scroll', introScrollHandler, { passive: true });
+}
+
 /** Eases blur and displacement after the black hold. */
 function tickFrost(now) {
   if (!frostDisplace && !mediaEl) return;
@@ -340,15 +424,22 @@ export function clearHeroIntro() {
     window.cancelAnimationFrame(paintRaf);
     paintRaf = undefined;
   }
+  if (fastTrackRaf !== undefined) {
+    window.cancelAnimationFrame(fastTrackRaf);
+    fastTrackRaf = undefined;
+  }
+  sectionRiseFastTracked = false;
   frostStartTs = undefined;
   frostDisplace = undefined;
   mediaEl?.style.removeProperty('filter');
   mediaEl = undefined;
   unbindSkipClear();
+  unbindIntroScroll();
   document.documentElement.classList.remove(
     'hero-intro',
     'hero-intro--nav',
     'hero-intro--body',
+    'hero-intro--scrolled',
   );
   frostSvg?.remove();
   frostSvg = undefined;
@@ -364,12 +455,14 @@ function bindSkipClear() {
 
 function beginBodyIntro(root) {
   if (!root.classList.contains('hero-intro')) return;
+  if (!isPageAtTop()) latchScrolledIntro();
   root.classList.add('hero-intro--body');
   introTimers.forEach((id) => window.clearTimeout(id));
   introTimers = [
     window.setTimeout(() => root.classList.add('hero-intro--nav'), HERO_INTRO_NAV_DELAY_MS),
     window.setTimeout(clearHeroIntro, HERO_INTRO_DURATION_MS),
   ];
+  requestSectionFastTrack();
 }
 
 /**
@@ -401,6 +494,7 @@ function startHeroIntro(block, section) {
   injectFrost();
   if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
   bindSkipClear();
+  bindIntroScroll();
   waitForBodyIntro(root, section);
 }
 
@@ -422,7 +516,7 @@ export default async function decorate(block) {
   if (
     reduce
     || document.documentElement.classList.contains('hero-intro')
-    || window.location.hash
+    || !isPageAtTop()
   ) return;
   startHeroIntro(block, section);
 }

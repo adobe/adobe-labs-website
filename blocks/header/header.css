@@ -331,6 +331,8 @@
     font-family: var(--body-font-family);
     font-size: var(--s2a-typography-font-size-heading-2);
     font-weight: var(--s2a-font-weight-adobe-clean-black, 900);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     line-height: var(--s2a-typography-line-height-heading-2);
     letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
     text-decoration: none;
@@ -481,13 +483,3 @@
   }
 }
 
-.header-scroll-sentinel {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  inline-size: 1px;
-  block-size: 1px;
-  overflow: hidden;
-  pointer-events: none;
-  visibility: hidden;
-}

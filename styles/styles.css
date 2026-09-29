@@ -93,6 +93,12 @@
   --color-section-surface-pink: #fff4f2;
   --color-section-surface-orange: #faf4f0;
 
+  /* Blue wash over the theme background (e.g. the related content
+     pre-footer). Author with `Style: section-rounded-related`. No
+     dark-mode override needed: the nested background token already
+     switches per theme. */
+  --color-section-surface-related: linear-gradient(0deg, rgb(0 123 255 / 12%) 0%, rgb(0 123 255 / 12%) 100%), var(--s2a-color-background-default);
+
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, adobe-clean-fallback, "Trebuchet MS", sans-serif;
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, adobe-clean-display-fallback, sans-serif;
@@ -112,12 +118,19 @@
   --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
   --color-button-background-primary-hover: var(--s2a-color-gray-800);
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
+  
+  /* article section spacing */
+  --article-section-gap: var(--s2a-spacing-2xl);
+
+  @media (width >= 64rem) {
+    --article-section-gap: var(--s2a-spacing-4xl);
+  }
 
   &[data-theme="dark"] {
-    --color-section-surface-default: #262626;
     --color-section-surface-blue: #111f2f;
     --color-section-surface-pink: #301517;
-    --color-section-surface-orange: #413b37;
+    --color-section-surface-orange: #312b27;
+    --color-section-surface-default-variant: #262626;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
 }
@@ -211,15 +224,19 @@ html.hero-intro {
      the knockout background never shows between them. */
   --hero-intro-section-offset: calc(100lvh - min(86lvh, 75rem));
 
-  /* Clip the intro zoom on the inline axis. Keep vertical scroll. */
-  overflow: clip auto;
-
   @media (width < 48rem) {
     --hero-intro-section-offset: calc(100svh - 60lvh);
   }
 }
 
+/* Clip the intro zoom on the inline axis. Leave overflow-y visible.
+   `overflow: clip auto` computes clip to hidden and opens a horizontal scroll container. */
+html.hero-intro,
 html.hero-intro body {
+  overflow-x: clip;
+}
+
+html.hero-intro:not(.hero-intro--scrolled) body {
   background-color: var(--s2a-color-background-knockout, #000);
 }
 
@@ -235,6 +252,8 @@ h1, h2, h3, h4, h5, h6, [class*="heading-"] {
   font-family: var(--heading-font-family);
   font-weight: var(--s2a-font-weight-heading);
   line-height: 1.25;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 
   strong {
     font-weight: inherit;
@@ -315,6 +334,8 @@ h6, .heading-6 {
   font-size: var(--s2a-typography-font-size-label);
   line-height: var(--s2a-typography-line-height-label);
   letter-spacing: var(--s2a-typography-letter-spacing-label);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .caption, [class*="caption-"] {
@@ -498,7 +519,6 @@ footer {
   align-items: center;
   justify-content: space-between;
   gap: var(--s2a-spacing-sm);
-  margin-block-end: var(--s2a-spacing-lg);
 }
 
 .article-meta__authors {
@@ -552,6 +572,8 @@ footer {
   font-family: var(--heading-font-family);
   font-size: var(--s2a-typography-font-size-heading-6);
   font-weight: 900;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   line-height: var(--s2a-typography-line-height-title-6, 1.125rem); /* 112.5% */
   letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
 }
@@ -889,6 +911,23 @@ main .section {
   &.section-rounded-orange {
     background: var(--color-section-surface-orange);
   }
+
+  &.section-rounded-related {
+    background: var(--color-section-surface-related);
+  }
+
+  /* Related content pre-footer: tighter block padding than the default
+     rounded section. Always paired with `.section-rounded-default` (added
+     unconditionally to article sections), matched here so this padding wins
+     over the adjacent-default-sections merge rule above. */
+  &.section-rounded-default.section-rounded-related {
+    padding-block: 1.875rem 3.125rem;
+  }
+
+  /* Dark mode variant for Sneaks has a lighter surface color. */
+  &.section-rounded-default-variant {
+    background: var(--color-section-surface-default-variant);
+  }
 }
 
 /* Start radius on a section: every color section, and the first default-color section in a set. */
@@ -899,11 +938,22 @@ main .section:not(.section-rounded-default) + .section-rounded-default {
   border-start-end-radius: var(--section-border-radius);
 }
 
+/* Article rounded sections use a wider stack gap than the default section. */
+body.article main [class*="section-rounded-"] {
+  gap: var(--article-section-gap);
+}
+
 /* Overlap only when a new section follows another rounded section.
    Full-screen hero overlap lives in hero.css. Do not pull up over a default hero. */
 main .section[class*="section-rounded-"]:not(.section-rounded-default) + [class*="section-rounded-"],
 main .section.section-rounded-default + [class*="section-rounded-"]:not(.section-rounded-default) {
   margin-block-start: var(--section-margin-negative-offset);
+}
+
+/* An unrounded last section does not overlap the footer, so it needs the
+   same end padding the last rounded section already uses. */
+main > .section:last-child:not([class*="section-rounded-"]) {
+  padding-block-end: var(--section-padding-block-end-last);
 }
 
 /* -- Page-specific section spacing overrides --- */
@@ -919,26 +969,30 @@ body.research main {
   }
 }
 
-/* Second section rises after the intro body step.
+/* The section after the hero carries the stack.
+   Its margin moves every following section in normal flow.
    JavaScript does not add the hero animation when prefers-reduced-motion: reduce.
    These rules do not need a reduced-motion override. */
-html.hero-intro--body main > .section:nth-of-type(2) {
+html.hero-intro--body .hero-container:has(.hero-full-screen) + .section {
   animation: hero-intro-section-rise var(--hero-intro-settle-duration, 900ms)
     var(--hero-intro-easing-settle, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
 
-html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
-  transform: translateY(var(--hero-intro-section-offset));
+html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(n+2) {
   visibility: hidden;
+}
+
+html.hero-intro:not(.hero-intro--body) .hero-container:has(.hero-full-screen) + .section {
+  margin-block-start: calc(var(--hero-margin-negative-offset, 0) + var(--hero-intro-section-offset));
 }
 
 @keyframes hero-intro-section-rise {
   from {
-    transform: translateY(var(--hero-intro-section-offset));
+    margin-block-start: calc(var(--hero-margin-negative-offset, 0) + var(--hero-intro-section-offset));
   }
 
   to {
-    transform: translateY(0);
+    margin-block-start: var(--hero-margin-negative-offset, 0);
   }
 }
 
@@ -960,11 +1014,19 @@ html.hero-intro:not(.hero-intro--body) main > .section:nth-of-type(2) {
   );
 }
 
+/* Article h2 uses heading-5. :where() lets block heading styles override. */
+:where(body.article main) h2 {
+  font-size: var(--s2a-typography-font-size-heading-5);
+  line-height: var(--s2a-typography-line-height-heading-5);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-5);
+}
+
 body.article main {
   --section-padding-block-end: var(--s2a-spacing-2xl);
+  --section-space-between: 5rem; /* 80px at 768px and below */
 
   /* Represents the max width of the default content column with regular authored text. */
-  --article-default-content-max-inline-size: min(100%, 30.125rem); 
+  --article-default-content-max-inline-size: min(100%, 30.125rem);
 
   @media (width >= 48rem) {
     --article-default-content-max-inline-size: min(calc(8 / 12 * 100%), 46.875rem);
@@ -972,10 +1034,12 @@ body.article main {
 
   @media (width >= 64rem) {
     --article-default-content-max-inline-size: min(calc(6 / 12 * 100%), 46.875rem);
+    --section-space-between: 3.125rem; /* 50px at 1024px and up */
   }
 
   @media (width >= 90rem) {
     --section-padding-block-end: var(--s2a-spacing-4xl);
+    --section-space-between: 6.25rem; /* 100px at 1440px and up */
   }
 
   @media (width >= 120rem) {
@@ -985,6 +1049,22 @@ body.article main {
   .default-content-wrapper {
     /* Default content max width of regular authored text content. */
     --article-content-max-inline-size: var(--article-default-content-max-inline-size);
+
+    /* Space after a heading, and between paragraphs and lists. */
+    & > :is(h1, h2, h3, h4, h5, h6) + :is(p, ul, ol),
+    & > :is(p, ul, ol) + :is(p, ul, ol) {
+      margin-block-start: var(--s2a-spacing-lg);
+    }
+
+    /* Space before a heading that follows other content.
+       24px + 12px; no spacing token is 36px. */
+    & > * + :is(h1, h2, h3, h4, h5, h6) {
+      margin-block-start: calc(var(--s2a-spacing-lg) + var(--s2a-spacing-sm));
+    }
+
+    & > p + h2 {
+      margin-block-start: var(--s2a-spacing-4xl);
+    }
   }
 
   .full-bleed .default-content-wrapper {
@@ -994,10 +1074,31 @@ body.article main {
 }
 
 /* Article body: serif paragraphs and lists. :where() keeps this a default
-   so headings, captions, and block styles can override. Heading sizes already
-   follow s2a heading-1 through heading-6; no article heading overrides. */
+   so headings, captions, and block styles can override. */
 :where(body.article .default-content-wrapper) :where(p, ul, ol) {
   font-family: var(--serif-font-family);
   font-size: var(--serif-body-font-size);
   line-height: var(--serif-body-line-height);
+}
+
+/* Article h3–h6 use heading-6. :where() lets block heading styles override. */
+:where(body.article main) :is(h3, h4, h5, h6) {
+  font-size: var(--s2a-typography-font-size-heading-6);
+  line-height: var(--s2a-typography-line-height-heading-6);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+}
+
+body.article main [class*="section-rounded-"] > * > :is(p, ul, ol):last-child {
+  margin-block-end: 0;
+}
+
+/* First .article-meta-section in the article (the top byline). */
+body.article main > [class*="section-rounded-"]:not(
+  :has(> .article-meta-section) ~ [class*="section-rounded-"]
+) > .article-meta-section:nth-child(1 of .article-meta-section) {
+  margin-block-end: calc(-1 * (var(--s2a-spacing-2xl) - var(--s2a-spacing-xl)));
+
+  @media (width >= 64rem) {
+    margin-block-end: calc(-1 * (var(--s2a-spacing-4xl) - var(--s2a-spacing-2xl)));
+  }
 }
