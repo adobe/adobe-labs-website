@@ -118,7 +118,7 @@
     span {
       background-image: linear-gradient(currentcolor, currentcolor);
       background-repeat: no-repeat;
-      background-position: 0% calc(100% - 0.08em);
+      background-position: 0% calc(100% - 0.1em);
       background-size: 0% var(--hero-underline-height);
       transition: background-size var(--hero-underline-transition-duration) var(--hero-underline-transition-easing);
 
