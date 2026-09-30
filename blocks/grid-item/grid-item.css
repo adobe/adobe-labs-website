@@ -117,12 +117,8 @@
     color: var(--s2a-color-content-default);
   }
 
-  /* Two copies of the title stacked via grid so they share the exact same
-     wrapping. The visible text never has an underline. The aria-hidden copy
-     underneath is transparent but keeps a real text-decoration underline, so
-     the browser positions it and skips ink around descenders (g/y/p/q)
-     correctly — something a CSS background bar can't do. A mask reveals
-     that underline left-to-right on hover/focus. */
+  /* Two stacked copies share wrapping. Ghost's real underline gets
+     correct position and skip-ink; mask reveals it on hover. */
   .grid-item__title-stack {
     display: inline-grid;
     grid-template-columns: 1fr;
@@ -134,8 +130,8 @@
   }
 
   .grid-item__title-underline {
-    /* Sits on top in paint order (later in DOM); without this it would
-       intercept clicks/selection meant for the real text underneath. */
+    /* Painted on top; without this it would intercept clicks and
+       selection meant for the real text. */
     pointer-events: none;
     user-select: none;
     color: transparent;
