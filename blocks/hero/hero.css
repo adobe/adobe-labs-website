@@ -182,7 +182,10 @@
       position: absolute;
       inset: 0;
       background-color: var(--hero-scrim-regular);
-      transition: background-color 250ms;
+
+      @media (prefers-reduced-motion: no-preference) {
+        transition: background-color 250ms;
+      }
     }
   }
 
