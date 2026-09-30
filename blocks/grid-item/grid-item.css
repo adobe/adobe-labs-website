@@ -118,12 +118,12 @@
     color: var(--s2a-color-content-default);
 
     /* Underline sweeps in left-to-right on hover/focus. A background bar
-       (not text-decoration) so it paints per wrapped line. No text-box-trim
-       here, so the line's own leading already clears descenders like g/y/p. */
+       (not text-decoration) so it paints per wrapped line, pulled up to
+       cross the lower part of descenders like g/y/p, matching hover-list. */
     span {
       background-image: linear-gradient(currentcolor, currentcolor);
       background-repeat: no-repeat;
-      background-position: 0% 100%;
+      background-position: 0% calc(100% - 0.08em);
       background-size: 0% var(--grid-item-underline-height);
       transition: background-size var(--grid-item-underline-transition-duration) var(--grid-item-underline-transition-easing);
 

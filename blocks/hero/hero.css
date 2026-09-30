@@ -113,13 +113,12 @@
     font-weight: var(--hero-font-weight);
 
     /* Underline sweeps in left-to-right on hover/focus. A background bar
-       (not text-decoration) so it paints per wrapped line. Unlike the
-       grid-item badge, this text has no text-box-trim, so the line's own
-       leading already clears descenders like g/y/p without extra offset. */
+       (not text-decoration) so it paints per wrapped line, pulled up to
+       cross the lower part of descenders like g/y/p, matching hover-list. */
     span {
       background-image: linear-gradient(currentcolor, currentcolor);
       background-repeat: no-repeat;
-      background-position: 0% 100%;
+      background-position: 0% calc(100% - 0.08em);
       background-size: 0% var(--hero-underline-height);
       transition: background-size var(--hero-underline-transition-duration) var(--hero-underline-transition-easing);
 
