@@ -4,6 +4,9 @@
   gap: var(--s2a-spacing-xs);
   max-width: 50ch; /* In the unlikely event this is outside of a grid. */
 
+  --grid-item-underline-transition-duration: 0.3s;
+  --grid-item-underline-transition-easing: ease;
+
   &[data-content-type="research"] {
     --grid-item-content-type-color: var(--color-content-type-research);
   }
@@ -114,8 +117,55 @@
     color: var(--s2a-color-content-default);
   }
 
+  /* Two stacked copies share wrapping. Ghost's real underline gets
+     correct position and skip-ink; mask reveals it on hover. */
+  .grid-item__title-stack {
+    display: inline-grid;
+    grid-template-columns: 1fr;
+  }
+
+  .grid-item__title-text,
+  .grid-item__title-underline {
+    grid-area: 1 / 1;
+  }
+
+  .grid-item__title-underline {
+    /* Painted on top; without this it would intercept clicks and
+       selection meant for the real text. */
+    pointer-events: none;
+    user-select: none;
+    color: transparent;
+    text-decoration-line: underline;
+    text-decoration-color: var(--s2a-color-content-default);
+    mask-image: linear-gradient(to right, black, black);
+    mask-repeat: no-repeat;
+    mask-position: left;
+    mask-size: 0% 100%;
+    transition: mask-size var(--grid-item-underline-transition-duration) var(--grid-item-underline-transition-easing);
+
+    :dir(rtl) & {
+      mask-position: right;
+    }
+  }
+
+  .grid-item__main:focus-visible .grid-item__title-underline {
+    mask-size: 100% 100%;
+  }
+
+  @media (hover: hover) {
+    .grid-item__main:hover .grid-item__title-underline {
+      mask-size: 100% 100%;
+    }
+  }
+
   .grid-item__subhead {
     margin: 0;
     color: var(--s2a-color-content-subtle);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-item {
+    --grid-item-underline-transition-duration: 0s;
   }
 }

@@ -3,6 +3,8 @@
   --hero-line-height: var(--s2a-typography-line-height-heading-2);
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
+  --hero-underline-transition-duration: 0.3s;
+  --hero-underline-transition-easing: ease;
 
   position: relative;
   isolation: isolate;
@@ -108,6 +110,47 @@
     line-height: var(--hero-line-height);
     letter-spacing: var(--hero-letter-spacing);
     font-weight: var(--hero-font-weight);
+  }
+
+  /* Two stacked copies share wrapping. Ghost's real underline gets
+     correct position and skip-ink; mask reveals it on hover. */
+  .hero__headline-stack {
+    display: inline-grid;
+    grid-template-columns: 1fr;
+  }
+
+  .hero__headline-text,
+  .hero__headline-underline {
+    grid-area: 1 / 1;
+  }
+
+  .hero__headline-underline {
+    /* Painted on top; without this it would intercept clicks and
+       selection meant for the real text. */
+    pointer-events: none;
+    user-select: none;
+    color: transparent;
+    text-decoration-line: underline;
+    text-decoration-color: var(--s2a-color-gray-25, #fff);
+    mask-image: linear-gradient(to right, black, black);
+    mask-repeat: no-repeat;
+    mask-position: left;
+    mask-size: 0% 100%;
+    transition: mask-size var(--hero-underline-transition-duration) var(--hero-underline-transition-easing);
+
+    :dir(rtl) & {
+      mask-position: right;
+    }
+  }
+
+  .hero__link-wrap:focus-visible .hero__headline-underline {
+    mask-size: 100% 100%;
+  }
+
+  @media (hover: hover) {
+    .hero__link-wrap:hover .hero__headline-underline {
+      mask-size: 100% 100%;
+    }
   }
 
   .hero__category {
@@ -316,6 +359,12 @@ main > .section.hero-container--overlay {
 /* Dark mode */
 [data-theme="dark"] .hero__link-wrap:focus-visible {
   outline-color: var(--s2a-color-focus-ring-knockout);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    --hero-underline-transition-duration: 0s;
+  }
 }
 
 /* --- Full-screen hero animation ---
