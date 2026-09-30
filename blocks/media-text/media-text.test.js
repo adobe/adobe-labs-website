@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { within } from '@testing-library/dom';
 import decorate, { getMediaTextData } from './media-text.js';
 
@@ -188,6 +190,45 @@ describe('media-text block', () => {
       expect(block.querySelector('.media-text__content')).toBeTruthy();
     },
   );
+
+  it('clears the edge margins on the content and sets block margins', () => {
+    const css = readFileSync(join(process.cwd(), 'blocks/media-text/media-text.css'), 'utf8');
+    const block = createBlock({
+      Image: PICTURE,
+      Text: '<h2>Lorem ipsum</h2><p>Dolor sit amet.</p>',
+    });
+
+    decorate(block);
+
+    const content = block.querySelector('.media-text__content');
+    expect(content.firstElementChild.tagName).toBe('H2');
+    expect(content.lastElementChild.tagName).toBe('P');
+    expect(css).toMatch(/\.media-text__content > :first-child \{\s*margin-block-start: 0;/);
+    expect(css).toMatch(/\.media-text__content > :last-child \{\s*margin-block-end: 0;/);
+    expect(css).toMatch(/margin-block: var\(--article-section-gap\)/);
+  });
+
+  it('keeps a blockquote beside the image', () => {
+    const css = readFileSync(join(process.cwd(), 'blocks/media-text/media-text.css'), 'utf8');
+    const block = createBlock({
+      Image: PICTURE,
+      Caption: 'Image: Bernardo Ramoning',
+      Text: '<blockquote>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</blockquote>',
+    });
+    block.classList.add('media-text');
+
+    decorate(block);
+
+    const content = block.querySelector('.media-text__content');
+    const quote = within(content).getByRole('blockquote');
+    expect(quote.tagName).toBe('BLOCKQUOTE');
+    expect(quote.textContent).toBe('Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+    expect(content.firstElementChild).toBe(quote);
+    expect(content.lastElementChild).toBe(quote);
+    expect(block.querySelector('.media-text__media img')).toHaveAttribute('alt', 'A red rock canyon');
+    expect(within(block).getByText('Image: Bernardo Ramoning').tagName).toBe('FIGCAPTION');
+    expect(css).toMatch(/\.media-text__content blockquote \{\s*margin-inline: 0;/);
+  });
 
   it('reads image and content elements via getMediaTextData', () => {
     const block = createBlock({

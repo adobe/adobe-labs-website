@@ -2,11 +2,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--s2a-spacing-xl, 2rem);
+  margin-block: var(--article-section-gap);
 }
 
 @media (width >= 64rem) {
   .media-text {
     display: grid;
+
     /* 6/10 of the block, capped at the article text column (750px). */
     grid-template-columns: minmax(0, min(60%, 46.875rem)) minmax(0, 1fr);
     grid-template-areas: "media content";
@@ -68,6 +70,18 @@
   font-weight: 700;
   line-height: var(--s2a-typography-line-height-caption);
   letter-spacing: var(--s2a-typography-letter-spacing-caption);
+}
+
+.media-text__content > :first-child {
+  margin-block-start: 0;
+}
+
+.media-text__content > :last-child {
+  margin-block-end: 0;
+}
+
+.media-text__content blockquote {
+  margin-inline: 0;
 }
 
 .media-text__media picture,
