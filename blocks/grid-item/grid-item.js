@@ -74,7 +74,7 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
     <${mainTag} class="grid-item__main">
       <div class="grid-item__image"></div>
       <div class="grid-item__body">
-        ${title ? '<p class="grid-item__title heading-6"><span></span></p>' : ''}
+        ${title ? '<p class="grid-item__title heading-6"><span class="grid-item__title-stack"><span class="grid-item__title-text"></span><span class="grid-item__title-underline" aria-hidden="true"></span></span></p>' : ''}
         ${subhead ? '<p class="grid-item__subhead body-md"></p>' : ''}
       </div>
     </${mainTag}>
@@ -105,7 +105,11 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
     root.dataset.contentType = contentType.slug;
   }
 
-  if (title) fragment.querySelector('.grid-item__title span').textContent = title;
+  if (title) {
+    const titleEl = fragment.querySelector('.grid-item__title');
+    titleEl.querySelector('.grid-item__title-text').textContent = title;
+    titleEl.querySelector('.grid-item__title-underline').textContent = title;
+  }
   if (subhead) fragment.querySelector('.grid-item__subhead').textContent = subhead;
 
   root.classList.add('grid-item');

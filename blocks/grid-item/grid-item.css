@@ -4,7 +4,6 @@
   gap: var(--s2a-spacing-xs);
   max-width: 50ch; /* In the unlikely event this is outside of a grid. */
 
-  --grid-item-underline-height: 0.08em;
   --grid-item-underline-transition-duration: 0.3s;
   --grid-item-underline-transition-easing: ease;
 
@@ -116,30 +115,50 @@
   .grid-item__title {
     margin: 0;
     color: var(--s2a-color-content-default);
+  }
 
-    /* Underline sweeps in left-to-right on hover/focus. A background bar
-       (not text-decoration) so it paints per wrapped line, pulled up to
-       cross the lower part of descenders like g/y/p, matching hover-list. */
-    span {
-      background-image: linear-gradient(currentcolor, currentcolor);
-      background-repeat: no-repeat;
-      background-position: 0% calc(100% - 0.08em);
-      background-size: 0% var(--grid-item-underline-height);
-      transition: background-size var(--grid-item-underline-transition-duration) var(--grid-item-underline-transition-easing);
+  /* Two copies of the title stacked via grid so they share the exact same
+     wrapping. The visible text never has an underline. The aria-hidden copy
+     underneath is transparent but keeps a real text-decoration underline, so
+     the browser positions it and skips ink around descenders (g/y/p/q)
+     correctly — something a CSS background bar can't do. A mask reveals
+     that underline left-to-right on hover/focus. */
+  .grid-item__title-stack {
+    display: inline-grid;
+    grid-template-columns: 1fr;
+  }
 
-      :dir(rtl) & {
-        background-position-x: 100%;
-      }
+  .grid-item__title-text,
+  .grid-item__title-underline {
+    grid-area: 1 / 1;
+  }
+
+  .grid-item__title-underline {
+    /* Sits on top in paint order (later in DOM); without this it would
+       intercept clicks/selection meant for the real text underneath. */
+    pointer-events: none;
+    user-select: none;
+    color: transparent;
+    text-decoration-line: underline;
+    text-decoration-color: var(--s2a-color-content-default);
+    mask-image: linear-gradient(to right, black, black);
+    mask-repeat: no-repeat;
+    mask-position: left;
+    mask-size: 0% 100%;
+    transition: mask-size var(--grid-item-underline-transition-duration) var(--grid-item-underline-transition-easing);
+
+    :dir(rtl) & {
+      mask-position: right;
     }
   }
 
-  .grid-item__main:focus-visible .grid-item__title span {
-    background-size: 100% var(--grid-item-underline-height);
+  .grid-item__main:focus-visible .grid-item__title-underline {
+    mask-size: 100% 100%;
   }
 
   @media (hover: hover) {
-    .grid-item__main:hover .grid-item__title span {
-      background-size: 100% var(--grid-item-underline-height);
+    .grid-item__main:hover .grid-item__title-underline {
+      mask-size: 100% 100%;
     }
   }
 

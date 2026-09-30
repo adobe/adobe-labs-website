@@ -154,7 +154,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
       <div class="hero__date" aria-hidden="true"></div>
       <div class="hero__copy">
         <p class="hero__category"></p>
-        <h2 class="hero__headline"><span></span></h2>
+        <h2 class="hero__headline"><span class="hero__headline-stack"><span class="hero__headline-text"></span><span class="hero__headline-underline" aria-hidden="true"></span></span></h2>
       </div>
       <p class="hero__cta-text"></p>
     </div>
@@ -191,11 +191,11 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   else pageCategoryEl.remove();
 
   const h2 = fragment.querySelector('.hero__headline');
-  const headlineSpan = h2.querySelector('span');
   if (!headline) {
     h2.remove();
   } else {
-    headlineSpan.textContent = headline;
+    h2.querySelector('.hero__headline-text').textContent = headline;
+    h2.querySelector('.hero__headline-underline').textContent = headline;
   }
 
   const copy = fragment.querySelector('.hero__copy');
