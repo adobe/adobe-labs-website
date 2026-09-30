@@ -38,8 +38,10 @@
       outline-offset: var(--s2a-border-width-md);
     }
 
-    &:hover .hero__media::after {
-      background-color: var(--hero-scrim-hover);
+    @media (hover: hover) {
+      &:hover .hero__media::after {
+        background-color: var(--hero-scrim-hover);
+      }
     }
 
     &:active .hero__media::after {
