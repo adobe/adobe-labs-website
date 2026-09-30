@@ -179,7 +179,7 @@ input, button, textarea, select {
 }
 
 /* Avoid text overflows. */
-p, h1, h2, h3, h4, h5, h6 {
+p, h1, h2, h3, h4, h5, h6, blockquote {
   overflow-wrap: break-word;
 }
 
@@ -272,7 +272,7 @@ h1, .heading-1 {
   letter-spacing: var(--s2a-typography-letter-spacing-heading-1);
 }
 
-h2, .heading-2, blockquote {
+h2, .heading-2 {
   font-size: var(--s2a-typography-font-size-heading-2);
   line-height: var(--s2a-typography-line-height-heading-2);
   letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
@@ -350,9 +350,68 @@ p,
 dl,
 ol,
 ul,
-pre,
-blockquote {
+pre {
   margin-block: 1.0rem;
+}
+
+/* Authored quote. The user agent indents blockquote. */
+blockquote {
+  margin-block: var(--s2a-spacing-lg);
+  margin-inline: 0;
+  padding: 0;
+  color: var(--s2a-color-content-default);
+  font-family: var(--heading-font-family);
+  font-size: var(--s2a-typography-font-size-heading-3);
+  font-weight: var(--s2a-font-weight-heading);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-3);
+  line-height: var(--s2a-typography-line-height-heading-3);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  & :is(p, ul, ol) {
+    margin-block: 0;
+  }
+
+  /* Authors often mark the whole quote italic or bold. The design is upright display type. */
+  & :is(em, i, strong, b) {
+    font-style: inherit;
+    font-weight: inherit;
+  }
+}
+
+/* Hang only the opening mark, and only the first line of the quote. */
+.blockquote-hanging {
+  > * {
+    text-indent: 0;
+  }
+
+  > :first-child {
+    text-indent: -0.25rem;
+  }
+
+  @media (width >= 64rem) {
+    > :first-child {
+      text-indent: -0.6875rem;
+    }
+  }
+}
+
+.blockquote-author {
+  margin-block: var(--s2a-spacing-lg);
+  color: var(--s2a-color-content-default);
+  font-family: var(--heading-font-family);
+  font-size: var(--s2a-typography-font-size-heading-6);
+  font-style: normal;
+  font-weight: var(--s2a-font-weight-heading);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+  line-height: var(--s2a-typography-line-height-heading-6);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  & :is(em, i, strong, b) {
+    font-style: inherit;
+    font-weight: inherit;
+  }
 }
 
 img {
@@ -1079,6 +1138,16 @@ body.article main {
   font-family: var(--serif-font-family);
   font-size: var(--serif-body-font-size);
   line-height: var(--serif-body-line-height);
+}
+
+/* Quote copy stays heading-3. The serif rule above would otherwise win on inner paragraphs. */
+body.article .default-content-wrapper blockquote :is(p, ul, ol) {
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
 }
 
 /* Article h3–h6 use heading-6. :where() lets block heading styles override. */

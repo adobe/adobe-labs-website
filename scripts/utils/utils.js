@@ -1007,6 +1007,214 @@ export function decorateArticleMetaSections(main) {
   });
 }
 
+/** Em dash, en dash, or hyphen-minus. */
+const AUTHOR_DASHES = '\u2014\u2013-';
+
+/** Straight, curly, and guillemet quotation marks. */
+const OPENING_QUOTES = '"\u201C\u201D\'\u2018\u2019\u00AB\u00BB\u2039\u203A';
+
+/**
+ * First text node that contains something other than whitespace.
+ * @param {Element} element
+ * @returns {Text|null}
+ */
+function firstBlockquoteTextNode(element) {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  while (node) {
+    if (node.textContent.trim()) return node;
+    node = walker.nextNode();
+  }
+  return null;
+}
+
+/**
+ * @param {string} [char]
+ * @returns {boolean}
+ */
+function isBlockquoteWordChar(char) {
+  return typeof char === 'string' && /[\p{L}\p{N}]/u.test(char);
+}
+
+/**
+ * A straight quote here starts a quotation: the beginning of the text, or after
+ * whitespace, an opening bracket, or a dash.
+ * @param {string} [char]
+ * @returns {boolean}
+ */
+function isBlockquoteQuoteBoundary(char) {
+  return char === undefined || /[\s\u00A0([{\u2014\u2013-]/.test(char);
+}
+
+/**
+ * Straight double and single quotes become curly quotes. Contractions and
+ * possessives (`don't`, `authors'`) use ’, and a quotation that opens after a
+ * space or dash uses ‘ or “.
+ * @param {string} text
+ * @returns {string}
+ */
+function curlBlockquoteQuotes(text) {
+  let result = '';
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const prev = i > 0 ? text[i - 1] : undefined;
+    const next = i + 1 < text.length ? text[i + 1] : undefined;
+    if (char === '"') {
+      result += isBlockquoteQuoteBoundary(prev) ? '\u201C' : '\u201D';
+    } else if (char === "'") {
+      const apostrophe = isBlockquoteWordChar(prev) || (next !== undefined && /\p{N}/u.test(next));
+      result += !apostrophe && isBlockquoteQuoteBoundary(prev) ? '\u2018' : '\u2019';
+    } else {
+      result += char;
+    }
+  }
+  return result;
+}
+
+/**
+ * @param {Element} element
+ */
+function replaceBlockquoteStraightQuotes(element) {
+  const nodes = [];
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  while (node) {
+    nodes.push(node);
+    node = walker.nextNode();
+  }
+  if (!nodes.length) return;
+
+  const original = nodes.map((textNode) => textNode.textContent);
+  const converted = curlBlockquoteQuotes(original.join(''));
+  let offset = 0;
+  nodes.forEach((textNode, index) => {
+    const { length } = original[index];
+    textNode.textContent = converted.slice(offset, offset + length);
+    offset += length;
+  });
+}
+
+/**
+ * @param {string} text
+ * @param {string} chars
+ * @returns {boolean}
+ */
+function blockquoteTextStartsWith(text, chars) {
+  const trimmed = text.trim();
+  return trimmed.length > 0 && chars.includes(trimmed[0]);
+}
+
+/**
+ * @param {Node} node
+ * @returns {boolean}
+ */
+function isBlockquoteAuthorParagraph(node) {
+  return node?.nodeType === Node.ELEMENT_NODE
+    && node.tagName === 'P'
+    && blockquoteTextStartsWith(node.textContent, AUTHOR_DASHES);
+}
+
+/**
+ * Rewrites a leading em dash, en dash, or hyphen as an em dash plus one space.
+ * A doubled dash (`--`, `——`, `––`) is removed entirely and replaced by that
+ * single em dash, so the second mark is not left behind.
+ * @param {HTMLElement} element
+ */
+function normalizeBlockquoteAuthorDash(element) {
+  const textNode = firstBlockquoteTextNode(element);
+  if (!textNode) return;
+  textNode.textContent = textNode.textContent.replace(
+    /^\s*[\u2014\u2013-]{1,2}\s*/,
+    '\u2014 ',
+  );
+}
+
+/**
+ * Marks an author paragraph and normalizes its dash and quotes. The paragraph
+ * stays a `p`; the class distinguishes it from body copy.
+ * @param {HTMLParagraphElement} paragraph
+ * @returns {HTMLParagraphElement}
+ */
+function markBlockquoteAuthor(paragraph) {
+  paragraph.classList.add('blockquote-author');
+  normalizeBlockquoteAuthorDash(paragraph);
+  replaceBlockquoteStraightQuotes(paragraph);
+  return paragraph;
+}
+
+/**
+ * @param {Node[]} nodes
+ * @returns {boolean}
+ */
+function blockquoteHasVisibleContent(nodes) {
+  return nodes.some((node) => (
+    node.nodeType === Node.ELEMENT_NODE
+    || (node.nodeType === Node.TEXT_NODE && node.textContent.trim())
+  ));
+}
+
+/**
+ * Curls straight quotes, then hangs the first line when the text opens with a
+ * quotation mark.
+ * @param {HTMLQuoteElement} quote
+ * @returns {HTMLQuoteElement}
+ */
+function finishBlockquote(quote) {
+  replaceBlockquoteStraightQuotes(quote);
+  if (blockquoteTextStartsWith(quote.textContent, OPENING_QUOTES)) {
+    quote.classList.add('blockquote-hanging');
+  }
+  return quote;
+}
+
+/**
+ * @param {Node[]} nodes
+ * @returns {HTMLQuoteElement}
+ */
+function blockquoteFromNodes(nodes) {
+  const block = document.createElement('blockquote');
+  block.append(...nodes);
+  return finishBlockquote(block);
+}
+
+/**
+ * Styles authored blockquotes. An opening quotation mark hangs. A paragraph
+ * that starts with an em dash, en dash, or hyphen — inside the quote, where
+ * Document Authoring puts it, or as the quote's next sibling — is marked
+ * `blockquote-author` and moved outside the blockquote when it was inside.
+ * The dash is always an em dash plus one space.
+ * Several quote-and-author pairs in one blockquote split into one pair each.
+ * Straight quotes in the quote and the author become curly quotes.
+ * @param {Element} main The container element
+ */
+export function decorateBlockquotes(main) {
+  [...main.querySelectorAll('blockquote')].forEach((quote) => {
+    const following = quote.nextElementSibling;
+    const authorsInside = [...quote.children].some(isBlockquoteAuthorParagraph);
+
+    if (authorsInside) {
+      const fragment = document.createDocumentFragment();
+      let pending = [];
+      [...quote.childNodes].forEach((node) => {
+        if (!isBlockquoteAuthorParagraph(node)) {
+          pending.push(node);
+          return;
+        }
+        if (blockquoteHasVisibleContent(pending)) fragment.append(blockquoteFromNodes(pending));
+        pending = [];
+        fragment.append(markBlockquoteAuthor(node));
+      });
+      if (blockquoteHasVisibleContent(pending)) fragment.append(blockquoteFromNodes(pending));
+      quote.replaceWith(fragment);
+    } else {
+      finishBlockquote(quote);
+    }
+
+    if (!isBlockquoteAuthorParagraph(following)) return;
+    markBlockquoteAuthor(following);
+  });
+}
+
 /**
  * Authored cell that flags a video article.
  * Canonical authoring name is **Is Video**; **Show Video Icon** is an alias.
