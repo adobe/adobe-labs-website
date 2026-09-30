@@ -19,8 +19,8 @@
      of the other 3 — i.e. flex-grow 2 vs the default 1. Figma: "Use this
      formula for every breakpoint." */
   --elastic-router-grow: 2;
-  --elastic-router-transition-duration: 0.5s;
-  --elastic-router-transition-easing: cubic-bezier(0.65, 0, 0.35, 1);
+  --elastic-router-transition-duration: 0.3s;
+  --elastic-router-transition-easing: cubic-bezier(0.42, 0, 0, 1);
 
   @media (width >= 48rem) {
     --elastic-router-gap: 0.5rem;
