@@ -13,11 +13,6 @@
   --grid-item-underline-transition-duration: 0.3s;
   --grid-item-underline-transition-easing: ease;
 
-  @media (prefers-reduced-motion: reduce) {
-    --grid-item-transition-duration: 0s;
-    --grid-item-image-transform-duration: 0s;
-  }
-
   &[data-content-type="research"] {
     --grid-item-content-type-color: var(--color-content-type-research);
   }
@@ -46,24 +41,18 @@
   }
 
   .grid-item__main {
-    --active-size-inline-ratio-down: 0.3333;
-    --active-size-minimum-perspective-down: 1.5rem;
-    --active-size-difference-down: -2px;
-
     display: flex;
     flex-direction: column;
     gap: var(--s2a-spacing-xs);
     border-radius: var(--s2a-border-radius-xs);
-    transition:
-      transform var(--grid-item-image-transform-duration) var(--grid-item-image-transform-easing);
 
-    &:active {
-      transform:
-        perspective(max(
-          var(--active-downstate-block-size),
-          var(--active-downstate-inline-size) * var(--active-size-inline-ratio-down)))
-        translateZ(var(--active-size-difference-down))
-        scale(0.95);
+    @media (prefers-reduced-motion: no-preference) {
+      transition:
+        transform var(--grid-item-image-transform-duration) var(--grid-item-image-transform-easing);
+
+      &:active {
+        transform: scale(0.95);
+      }
     }
   }
 
