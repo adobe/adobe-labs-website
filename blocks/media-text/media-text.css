@@ -27,6 +27,18 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, min(40%, 31.25rem));
   }
 
+  .media-text.align-top {
+    align-items: start;
+  }
+
+  .media-text.align-middle {
+    align-items: center;
+  }
+
+  .media-text.align-bottom {
+    align-items: end;
+  }
+
   .media-text__media {
     grid-area: media;
   }

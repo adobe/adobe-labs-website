@@ -173,6 +173,22 @@ describe('media-text block', () => {
     expect(block).not.toHaveClass('small');
   });
 
+  it.each(['align-top', 'align-middle', 'align-bottom'])(
+    'keeps %s on the block',
+    (alignClass) => {
+      const block = createBlock({
+        Image: PICTURE,
+        Text: '<p>Dolor sit amet.</p>',
+      });
+      block.classList.add('media-text', alignClass);
+
+      decorate(block);
+
+      expect(block).toHaveClass(alignClass);
+      expect(block.querySelector('.media-text__content')).toBeTruthy();
+    },
+  );
+
   it('reads image and content elements via getMediaTextData', () => {
     const block = createBlock({
       Image: PICTURE,
