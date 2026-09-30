@@ -5,7 +5,6 @@
   max-width: 50ch; /* In the unlikely event this is outside of a grid. */
 
   --grid-item-underline-height: 0.08em;
-  --grid-item-underline-offset: 0.2em;
   --grid-item-underline-transition-duration: 0.3s;
   --grid-item-underline-transition-easing: ease;
 
@@ -65,30 +64,6 @@
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
     color: var(--s2a-color-content-subtle);
-
-    /* Underline sweeps in left-to-right on hover/focus. padding-block-end
-       gives the background room to clear descenders like g/y/p; on an
-       inline element it doesn't affect line-height. */
-    padding-block-end: var(--grid-item-underline-offset);
-    background-image: linear-gradient(currentcolor, currentcolor);
-    background-repeat: no-repeat;
-    background-position: 0% 100%;
-    background-size: 0% var(--grid-item-underline-height);
-    transition: background-size var(--grid-item-underline-transition-duration) var(--grid-item-underline-transition-easing);
-
-    :dir(rtl) & {
-      background-position-x: 100%;
-    }
-  }
-
-  .grid-item__content-type:focus-visible .grid-item__content-type-name {
-    background-size: 100% var(--grid-item-underline-height);
-  }
-
-  @media (hover: hover) {
-    .grid-item__content-type:hover .grid-item__content-type-name {
-      background-size: 100% var(--grid-item-underline-height);
-    }
   }
 
   .grid-item__image {
@@ -141,6 +116,31 @@
   .grid-item__title {
     margin: 0;
     color: var(--s2a-color-content-default);
+
+    /* Underline sweeps in left-to-right on hover/focus. A background bar
+       (not text-decoration) so it paints per wrapped line. No text-box-trim
+       here, so the line's own leading already clears descenders like g/y/p. */
+    span {
+      background-image: linear-gradient(currentcolor, currentcolor);
+      background-repeat: no-repeat;
+      background-position: 0% 100%;
+      background-size: 0% var(--grid-item-underline-height);
+      transition: background-size var(--grid-item-underline-transition-duration) var(--grid-item-underline-transition-easing);
+
+      :dir(rtl) & {
+        background-position-x: 100%;
+      }
+    }
+  }
+
+  .grid-item__main:focus-visible .grid-item__title span {
+    background-size: 100% var(--grid-item-underline-height);
+  }
+
+  @media (hover: hover) {
+    .grid-item__main:hover .grid-item__title span {
+      background-size: 100% var(--grid-item-underline-height);
+    }
   }
 
   .grid-item__subhead {
