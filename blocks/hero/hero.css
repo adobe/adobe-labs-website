@@ -184,7 +184,7 @@
       background-color: var(--hero-scrim-regular);
 
       @media (prefers-reduced-motion: no-preference) {
-        transition: background-color 250ms;
+        transition: background-color 250ms ease-in-out;
       }
     }
   }
