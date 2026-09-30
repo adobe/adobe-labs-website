@@ -250,11 +250,15 @@ function setCalculatedPerspective() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return;
   }
-  const elements = document.querySelectorAll('.button, .filter-group__button');
+  const elements = document.querySelectorAll('.button, .filter-group__button, .grid-item__image');
   elements.forEach((el) => {
     if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
     el.style.setProperty('--active-downstate-inline-size', `${el.offsetWidth}px`);
     el.style.setProperty('--active-downstate-block-size', `${el.offsetHeight}px`);
+    if (el.classList.contains('grid-item__image')) {
+      el.parentElement?.style.setProperty('--grid-item-image-block-size', `${el.offsetHeight}px`);
+      el.parentElement?.style.setProperty('--grid-item-image-inline-size', `${el.offsetWidth}px`);
+    }
   });
 }
 

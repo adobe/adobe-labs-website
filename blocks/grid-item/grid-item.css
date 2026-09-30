@@ -1,8 +1,13 @@
 .grid-item {
   --grid-item-transition-duration: 250ms;
   --grid-item-transition-easing: ease-in-out;
-
+  --grid-item-image-transform-duration: 0.13s;
+  --grid-item-image-transform-easing: cubic-bezier(0.45, 0, 0.4, 1);
   --grid-item-image-overlay: var(--s2a-color-transparent-black-16);
+  --grid-item-image-press-scale: 0.95;
+  --active-size-inline-ratio-down: 0.3333;
+  --active-size-minimum-perspective-down: 1.5rem;
+  --active-size-difference-down: -2px;
 
   display: flex;
   flex-direction: column;
@@ -11,6 +16,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     --grid-item-transition-duration: 0s;
+    --grid-item-image-transform-duration: 0s;
   }
 
   &[data-content-type="research"] {
@@ -45,7 +51,6 @@
     flex-direction: column;
     gap: var(--s2a-spacing-xs);
     border-radius: var(--s2a-border-radius-xs);
-    transition: transform var(--grid-item-transition-duration) var(--grid-item-transition-easing);
   }
 
   .grid-item__content-type {
@@ -93,6 +98,8 @@
     border-radius: var(--s2a-border-radius-xs);
     aspect-ratio: 1;
     background-color: var(--s2a-color-background-subtle);
+    transition:
+      transform var(--grid-item-image-transform-duration) var(--grid-item-image-transform-easing);
 
     & :is(picture, img) {
       position: absolute;
@@ -136,6 +143,15 @@
     aspect-ratio: 2 / 3;
   }
 
+  .grid-item__main:active .grid-item__image {
+    transform:
+      perspective(max(
+        var(--active-downstate-block-size),
+        var(--active-downstate-inline-size) * var(--active-size-inline-ratio-down)))
+      translateZ(var(--active-size-difference-down))
+      scale(var(--grid-item-image-press-scale));
+  }
+
   .play-icon {
     position: absolute;
     z-index: 1;
@@ -147,6 +163,26 @@
     display: flex;
     flex-direction: column;
     gap: var(--s2a-spacing-3xs);
+    transition:
+      transform var(--grid-item-image-transform-duration) var(--grid-item-image-transform-easing);
+  }
+
+  /* Scale is centered, and the perspective downstate shrinks the image
+     a little more. Move the text up and in so it stays flush with the
+     left edge and the gap under the image stays the same. The text
+     itself does not scale. */
+  .grid-item__main:active .grid-item__body {
+    --grid-item-press-perspective: max(
+      var(--grid-item-image-block-size, 0px),
+      var(--grid-item-image-inline-size, 0px) * var(--active-size-inline-ratio-down)
+    );
+    --grid-item-press-scale: var(--grid-item-image-press-scale) * var(--grid-item-press-perspective)
+      / (var(--grid-item-press-perspective) - var(--active-size-difference-down));
+
+    transform: translate(
+      calc(0.5 * (var(--grid-item-image-inline-size, 0px) - var(--grid-item-image-inline-size, 0px) * var(--grid-item-press-scale))),
+      calc(-0.5 * (var(--grid-item-image-block-size, 0px) - var(--grid-item-image-block-size, 0px) * var(--grid-item-press-scale)))
+    );
   }
 
   .grid-item__title {
