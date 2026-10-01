@@ -1,4 +1,10 @@
 .grid-item {
+  --grid-item-transition-duration: 250ms;
+  --grid-item-transition-easing: ease-in-out;
+  --grid-item-image-transform-duration: 0.13s;
+  --grid-item-image-transform-easing: cubic-bezier(0.45, 0, 0.4, 1);
+  --grid-item-image-overlay: var(--s2a-color-transparent-black-16);
+
   display: flex;
   flex-direction: column;
   gap: var(--s2a-spacing-xs);
@@ -39,6 +45,15 @@
     flex-direction: column;
     gap: var(--s2a-spacing-xs);
     border-radius: var(--s2a-border-radius-xs);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition:
+        transform var(--grid-item-image-transform-duration) var(--grid-item-image-transform-easing);
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
   }
 
   .grid-item__content-type {
@@ -63,6 +78,21 @@
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
     color: var(--s2a-color-content-subtle);
+    transition: color var(--grid-item-transition-duration) var(--grid-item-transition-easing);
+  }
+
+  .grid-item__content-type:is(:focus-visible, :active) .grid-item__content-type-name {
+    color: var(--s2a-color-content-default);
+  }
+
+  @media (hover: hover) {
+    .grid-item__content-type:hover .grid-item__content-type-name {
+      color: var(--s2a-color-content-default);
+    }
+
+    .grid-item__main:hover .grid-item__image::after {
+      opacity: 1;
+    }
   }
 
   .grid-item__image {
@@ -82,6 +112,20 @@
     & img {
       object-fit: cover;
     }
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--grid-item-image-overlay);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--grid-item-transition-duration) var(--grid-item-transition-easing);
+    }
+  }
+
+  .grid-item__main:is(:focus-visible, :active) .grid-item__image::after {
+    opacity: 1;
   }
 
   &.aspect-1-1 .grid-item__image {
@@ -102,6 +146,7 @@
 
   .play-icon {
     position: absolute;
+    z-index: 1;
     inset-block-end: var(--s2a-spacing-xs);
     inset-inline-start: var(--s2a-spacing-xs);
   }
