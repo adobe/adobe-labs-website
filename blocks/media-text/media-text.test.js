@@ -86,7 +86,7 @@ describe('media-text block', () => {
     expect(block.querySelector('.media-text__content')).toBeTruthy();
   });
 
-  it('keeps media before text in the DOM when media-right is set', () => {
+  it('puts text before media in the DOM when media-right is set', () => {
     const block = createBlock({
       Image: PICTURE,
       Text: '<p>Dolor sit amet.</p>',
@@ -96,9 +96,17 @@ describe('media-text block', () => {
     decorate(block);
 
     expect(block).toHaveClass('media-right');
-    const figure = block.querySelector('.media-text__media');
     const content = block.querySelector('.media-text__content');
-    expect(figure.compareDocumentPosition(content)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    const figure = block.querySelector('.media-text__media');
+    expect(content.compareDocumentPosition(figure)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('does not use CSS to move the image left or right', () => {
+    const css = readFileSync(join(process.cwd(), 'blocks/media-text/media-text.css'), 'utf8');
+
+    expect(css).not.toMatch(/grid-template-areas/);
+    expect(css).not.toMatch(/grid-area/);
+    expect(css).not.toMatch(/\border\s*:/);
   });
 
   it('keeps media on the left when the block has no media-right class', () => {
@@ -191,7 +199,7 @@ describe('media-text block', () => {
     },
   );
 
-  it('clears the edge margins on the content and sets block margins', () => {
+  it('clears the edge margins on the content', () => {
     const css = readFileSync(join(process.cwd(), 'blocks/media-text/media-text.css'), 'utf8');
     const block = createBlock({
       Image: PICTURE,
@@ -205,7 +213,6 @@ describe('media-text block', () => {
     expect(content.lastElementChild.tagName).toBe('P');
     expect(css).toMatch(/\.media-text__content > :first-child \{\s*margin-block-start: 0;/);
     expect(css).toMatch(/\.media-text__content > :last-child \{\s*margin-block-end: 0;/);
-    expect(css).toMatch(/margin-block: var\(--article-section-gap\)/);
   });
 
   it('keeps a blockquote beside the image', () => {
