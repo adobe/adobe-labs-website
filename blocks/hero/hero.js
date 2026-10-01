@@ -123,7 +123,8 @@ function getHeadlineTag(cell) {
 }
 
 /**
- * Headline at the authored level, with the text in a span.
+ * Headline at the authored level. The visible text and an aria-hidden
+ * underline copy share wrapping inside `.hero__headline-stack`.
  *
  * @param {string} tag `h1`–`h6` or `p`
  * @param {string} text Headline text
@@ -132,9 +133,17 @@ function getHeadlineTag(cell) {
 function createHeadline(tag, text) {
   const el = document.createElement(HEADLINE_TAGS.has(tag) ? tag : 'p');
   el.className = 'hero__headline';
-  const span = document.createElement('span');
-  span.textContent = text;
-  el.append(span);
+  const stack = document.createElement('span');
+  stack.className = 'hero__headline-stack';
+  const textEl = document.createElement('span');
+  textEl.className = 'hero__headline-text';
+  textEl.textContent = text;
+  const underline = document.createElement('span');
+  underline.className = 'hero__headline-underline';
+  underline.setAttribute('aria-hidden', 'true');
+  underline.textContent = text;
+  stack.append(textEl, underline);
+  el.append(stack);
   return el;
 }
 

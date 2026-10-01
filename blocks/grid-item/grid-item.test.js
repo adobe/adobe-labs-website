@@ -49,7 +49,7 @@ describe('grid-item block', () => {
 
     expect(main).toHaveClass('grid-item__main');
     expect(main).toHaveAttribute('href', 'https://labs.adobe.com/example');
-    expect(view.getByText('Lab project')).toHaveClass('grid-item__title');
+    expect(block.querySelector('.grid-item__title')).toHaveTextContent('Lab project');
     expect(view.getByText('A short description')).toHaveClass('grid-item__subhead');
     expect(view.getByRole('link', { name: 'Research' })).toHaveAttribute(
       'href',
