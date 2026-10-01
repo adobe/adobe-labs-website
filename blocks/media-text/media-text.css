@@ -19,7 +19,7 @@
     grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
 
     &.small {
-      grid-template-columns: minmax(0, 3fr) minmax(0, 8fr);
+      grid-template-columns: minmax(0, 3fr) minmax(0, 5fr);
     }
   }
 
@@ -35,7 +35,7 @@
     }
 
     &.small.media-right {
-      grid-template-columns: minmax(0, 8fr) minmax(0, 3fr);
+      grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
     }
   }
 
@@ -97,6 +97,41 @@
   font-weight: 700;
   line-height: var(--s2a-typography-line-height-caption);
   letter-spacing: var(--s2a-typography-letter-spacing-caption);
+}
+
+/* Typography.
+   Normal article prose elements sit in .default-content-wrapper, but these are not covered by those styles.
+   Authored headings use the article body scale.
+   An h2 is heading-5. h3–h6 are heading-6. An h1 stays heading-1. */
+.media-text__content :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  font-family: var(--heading-font-family);
+  font-weight: var(--s2a-font-weight-heading);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.media-text__content h2 {
+  font-size: var(--s2a-typography-font-size-heading-5);
+  line-height: var(--s2a-typography-line-height-heading-5);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-5);
+  font-weight: var(--typography-font-weight-heading-2);
+}
+
+.media-text__content :is(h3, h4, h5, h6) {
+  font-size: var(--s2a-typography-font-size-heading-6);
+  line-height: var(--s2a-typography-line-height-heading-6);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+}
+
+.media-text__content > :is(h1, h2, h3, h4, h5, h6) + :is(p, ul, ol) {
+  margin-block-start: var(--s2a-spacing-lg);
+}
+
+.media-text__content > :is(p, ul, ol) {
+  font-family: var(--serif-font-family);
+  font-size: var(--serif-body-font-size);
+  line-height: var(--serif-body-line-height);
 }
 
 /* Remove excess block spacing */
