@@ -68,11 +68,12 @@ const PRODUCTION_HOSTS = new Set(['labs.adobe.com', 'www.labs.adobe.com']);
  */
 const AEM_HOST_SUFFIX = /--adobe-labs-website--adobe\.aem\.(?:page|live)$/;
 
+/** Screen-reader text appended when a link opens in a new tab. */
 const NEW_TAB_HINT = '(opens in a new tab)';
 
 /**
  * Hostname without a trailing dot, lowercased.
- * @param {string} hostname
+ * @param {string} hostname Host to normalize
  * @returns {string}
  */
 function normalizeHostname(hostname) {
@@ -82,7 +83,7 @@ function normalizeHostname(hostname) {
 /**
  * Whether `hostname` is this site: the current host, labs.adobe.com, or an
  * AEM preview/live host for this project.
- * @param {string} hostname
+ * @param {string} hostname Hostname to test
  * @returns {boolean}
  */
 function isInternalHostname(hostname) {
@@ -117,6 +118,7 @@ export function isExternalLink(link) {
 /**
  * Keeps an existing `rel` and adds `noopener` and `noreferrer`.
  * @param {Element} link Anchor element
+ * @returns {void}
  */
 function setExternalRel(link) {
   const tokens = (link.getAttribute('rel') || '').split(/\s+/).filter(Boolean);
@@ -130,6 +132,7 @@ function setExternalRel(link) {
  * Tells assistive tech the link opens a new tab, without replacing an
  * existing accessible name. Matches the footer social and menu links.
  * @param {Element} link Anchor element
+ * @returns {void}
  */
 function ensureNewTabHint(link) {
   const ariaLabel = link.getAttribute('aria-label');
@@ -152,6 +155,7 @@ function ensureNewTabHint(link) {
 /**
  * Marks one external link so it opens in a new tab.
  * @param {Element} link Anchor element
+ * @returns {void}
  */
 export function markExternalLink(link) {
   if (!isExternalLink(link)) return;
@@ -162,7 +166,8 @@ export function markExternalLink(link) {
 
 /**
  * Marks every external link under `root`.
- * @param {ParentNode} [root=document]
+ * @param {ParentNode} [root=document] Tree to search
+ * @returns {void}
  */
 export function markExternalLinks(root = document) {
   root.querySelectorAll('a[href]').forEach(markExternalLink);
@@ -174,7 +179,7 @@ let externalLinksObserver;
 /**
  * Marks external links already in the document, and links added later
  * (header, footer, fragments, blocks).
- * @param {Document} [doc=document]
+ * @param {Document} [doc=document] Document to watch
  * @returns {MutationObserver}
  */
 export function watchExternalLinks(doc = document) {

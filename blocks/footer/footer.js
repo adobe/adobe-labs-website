@@ -241,6 +241,7 @@ const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V
  * Appends the external-link arrow. When the link opens a new tab, adds hidden text
  * so the accessible name matches the social links.
  * @param {Element} link Menu anchor element
+ * @returns {void}
  */
 function decorateExternalLink(link) {
   if (!isExternalLink(link)) return;
