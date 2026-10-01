@@ -33,6 +33,7 @@ import {
   ensureArticleBackToTop,
   decorateArticleSections,
   decorateSectionMetadata,
+  decorateBlockquotes,
   watchExternalLinks,
 } from './utils/utils.js';
 
@@ -193,6 +194,7 @@ export function decorateMain(main) {
   decorateArticleMetaSections(main);
   decorateBlocks(main);
   decorateButtons(main);
+  decorateBlockquotes(main);
 }
 
 /**

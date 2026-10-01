@@ -3,6 +3,9 @@
   --hero-line-height: var(--s2a-typography-line-height-heading-2);
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
+  --hero-scrim-regular: rgb(0 0 0 / 42%);
+  --hero-scrim-hover: rgb(0 0 0 / 57%);
+  --hero-scrim-pressed: var(--s2a-color-transparent-black-72);
   --hero-underline-transition-duration: 0.3s;
   --hero-underline-transition-easing: ease;
 
@@ -35,6 +38,16 @@
     &:focus-visible {
       outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
       outline-offset: var(--s2a-border-width-md);
+    }
+
+    @media (hover: hover) {
+      &:hover .hero__media::after {
+        background-color: var(--hero-scrim-hover);
+      }
+    }
+
+    &:active .hero__media::after {
+      background-color: var(--hero-scrim-pressed);
     }
   }
 
@@ -211,9 +224,11 @@
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(109deg,
-          var(--s2a-color-transparent-black-64) 0%,
-          var(--s2a-color-transparent-black-00) 55.15%);
+      background-color: var(--hero-scrim-regular);
+
+      @media (prefers-reduced-motion: no-preference) {
+        transition: background-color 250ms ease-in-out;
+      }
     }
   }
 
@@ -290,6 +305,14 @@
       max-height: var(--hero-full-screen-max-block-size);
     }
 
+    /* Full-screen hero never links, so its gradient can't collide with card hover/pressed states. */
+    /* stylelint-disable-next-line no-descending-specificity */
+    .hero__media::after {
+      background: linear-gradient(109deg,
+          var(--s2a-color-transparent-black-64) 0%,
+          var(--s2a-color-transparent-black-00) 55.15%);
+    }
+
     .hero__link-wrap {
       position: relative;
       display: grid;
@@ -344,9 +367,9 @@
   padding: 0;
 }
 
-/* Article hero has a darker, continuous scrim. */
-.article .hero__media::after {
-  background: linear-gradient(0deg, var(--s2a-color-transparent-black-48) 0%, var(--s2a-color-transparent-black-48) 100%);
+/* Article full-screen hero uses the flat card scrim, not the gradient */
+.article .hero.hero-full-screen .hero__media::after {
+  background: var(--hero-scrim-regular);
 }
 
 /* Full-screen hero at the top of the page sits under the sticky header.
