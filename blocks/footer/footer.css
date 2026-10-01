@@ -15,9 +15,12 @@
   z-index: 0;
 }
 
-body:has(main > .section:last-child[class*="section-rounded-"]) .footer {
+/* Article pages append a visually-hidden <output> after the last section, so
+   :last-child never sees the rounded card and the hero shows through its
+   end radius. Match the last section instead. */
+body:has(main > .section:nth-last-child(1 of .section)[class*="section-rounded-"]) .footer {
   --footer-margin-offset: var(--section-border-radius);
-  
+
   margin-block-start: calc(-1 * var(--footer-margin-offset));
 }
 
