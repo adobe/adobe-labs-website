@@ -33,6 +33,7 @@ import {
   ensureArticleBackToTop,
   decorateArticleSections,
   decorateSectionMetadata,
+  decorateBlockquotes,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -192,6 +193,7 @@ export function decorateMain(main) {
   decorateArticleMetaSections(main);
   decorateBlocks(main);
   decorateButtons(main);
+  decorateBlockquotes(main);
 }
 
 /**
