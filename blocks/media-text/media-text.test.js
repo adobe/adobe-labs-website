@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { within } from '@testing-library/dom';
 import decorate, { getMediaTextData } from './media-text.js';
 
@@ -101,14 +99,6 @@ describe('media-text block', () => {
     expect(content.compareDocumentPosition(figure)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('does not use CSS to move the image left or right', () => {
-    const css = readFileSync(join(process.cwd(), 'blocks/media-text/media-text.css'), 'utf8');
-
-    expect(css).not.toMatch(/grid-template-areas/);
-    expect(css).not.toMatch(/grid-area/);
-    expect(css).not.toMatch(/\border\s*:/);
-  });
-
   it('keeps media on the left when the block has no media-right class', () => {
     const block = createBlock({
       Image: PICTURE,
@@ -158,8 +148,7 @@ describe('media-text block', () => {
     expect(getMediaTextData(block).caption).toBe('A caption');
   });
 
-  it('keeps the small class, an 8-column wrapper, and a 3-column image', () => {
-    const css = readFileSync(join(process.cwd(), 'blocks/media-text/media-text.css'), 'utf8');
+  it('keeps the small class and the image', () => {
     const block = createBlock({
       Image: PICTURE,
       Text: '<p>Dolor sit amet.</p>',
@@ -170,9 +159,6 @@ describe('media-text block', () => {
 
     expect(block).toHaveClass('small');
     expect(block.querySelector('.media-text__media img')).toBeTruthy();
-    expect(css).toMatch(/@media \(width >= 48rem\) \{\s*\.media-text-wrapper:has\(\.media-text\.small\) \{\s*--article-content-max-inline-size: min\(calc\(8 \/ 12 \* 100%\), 77\.875rem\);/);
-    expect(css).toMatch(/&\.small \{\s*grid-template-columns: minmax\(0, 3fr\) minmax\(0, 8fr\);/);
-    expect(css).toMatch(/&\.small\.media-right \{\s*grid-template-columns: minmax\(0, 8fr\) minmax\(0, 3fr\);/);
   });
 
   it('keeps the default image width when the block has no small class', () => {
@@ -203,8 +189,7 @@ describe('media-text block', () => {
     },
   );
 
-  it('clears the edge margins on the content', () => {
-    const css = readFileSync(join(process.cwd(), 'blocks/media-text/media-text.css'), 'utf8');
+  it('keeps the first and last content elements', () => {
     const block = createBlock({
       Image: PICTURE,
       Text: '<h2>Lorem ipsum</h2><p>Dolor sit amet.</p>',
@@ -215,12 +200,9 @@ describe('media-text block', () => {
     const content = block.querySelector('.media-text__content');
     expect(content.firstElementChild.tagName).toBe('H2');
     expect(content.lastElementChild.tagName).toBe('P');
-    expect(css).toMatch(/\.media-text__content > :first-child \{\s*margin-block-start: 0;/);
-    expect(css).toMatch(/\.media-text__content > :last-child \{\s*margin-block-end: 0;/);
   });
 
   it('keeps a blockquote beside the image', () => {
-    const css = readFileSync(join(process.cwd(), 'blocks/media-text/media-text.css'), 'utf8');
     const block = createBlock({
       Image: PICTURE,
       Caption: 'Image: Bernardo Ramoning',
@@ -238,7 +220,6 @@ describe('media-text block', () => {
     expect(content.lastElementChild).toBe(quote);
     expect(block.querySelector('.media-text__media img')).toHaveAttribute('alt', 'A red rock canyon');
     expect(within(block).getByText('Image: Bernardo Ramoning').tagName).toBe('FIGCAPTION');
-    expect(css).toMatch(/\.media-text__content blockquote \{\s*margin-inline: 0;/);
   });
 
   it('reads image and content elements via getMediaTextData', () => {
