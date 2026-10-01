@@ -158,7 +158,8 @@ describe('media-text block', () => {
     expect(getMediaTextData(block).caption).toBe('A caption');
   });
 
-  it('keeps the small class so the image column uses the small width', () => {
+  it('keeps the small class, an 8-column wrapper, and a 3-column image', () => {
+    const css = readFileSync(join(process.cwd(), 'blocks/media-text/media-text.css'), 'utf8');
     const block = createBlock({
       Image: PICTURE,
       Text: '<p>Dolor sit amet.</p>',
@@ -169,6 +170,9 @@ describe('media-text block', () => {
 
     expect(block).toHaveClass('small');
     expect(block.querySelector('.media-text__media img')).toBeTruthy();
+    expect(css).toMatch(/@media \(width >= 48rem\) \{\s*\.media-text-wrapper:has\(\.media-text\.small\) \{\s*--article-content-max-inline-size: min\(calc\(8 \/ 12 \* 100%\), 77\.875rem\);/);
+    expect(css).toMatch(/&\.small \{\s*grid-template-columns: minmax\(0, 3fr\) minmax\(0, 8fr\);/);
+    expect(css).toMatch(/&\.small\.media-right \{\s*grid-template-columns: minmax\(0, 8fr\) minmax\(0, 3fr\);/);
   });
 
   it('keeps the default image width when the block has no small class', () => {
