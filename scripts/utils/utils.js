@@ -1130,16 +1130,40 @@ function normalizeBlockquoteAuthorDash(element) {
 }
 
 /**
- * Marks an author paragraph and normalizes its dash and quotes. The paragraph
- * stays a `p`; the class distinguishes it from body copy.
- * @param {HTMLParagraphElement} paragraph
- * @returns {HTMLParagraphElement}
+ * Marks an attribution and normalizes its dash and quotes.
+ * @param {HTMLElement} element
+ * @returns {HTMLElement}
  */
-function markBlockquoteAuthor(paragraph) {
-  paragraph.classList.add('blockquote-author');
-  normalizeBlockquoteAuthorDash(paragraph);
-  replaceBlockquoteStraightQuotes(paragraph);
-  return paragraph;
+function markBlockquoteAuthor(element) {
+  element.classList.add('blockquote-author');
+  normalizeBlockquoteAuthorDash(element);
+  replaceBlockquoteStraightQuotes(element);
+  return element;
+}
+
+/**
+ * The attribution becomes a figcaption so it is announced as the figure's caption.
+ * @param {HTMLParagraphElement} paragraph
+ * @returns {HTMLElement}
+ */
+function blockquoteAuthorCaption(paragraph) {
+  const caption = document.createElement('figcaption');
+  caption.append(...paragraph.childNodes);
+  return markBlockquoteAuthor(caption);
+}
+
+/**
+ * Groups a quote and its attribution. The attribution stays outside the
+ * blockquote, and the figure connects the two for assistive technology.
+ * @param {HTMLQuoteElement} quote
+ * @param {HTMLParagraphElement} author
+ * @returns {HTMLElement}
+ */
+function wrapBlockquoteFigure(quote, author) {
+  const figure = document.createElement('figure');
+  figure.className = 'blockquote-figure';
+  figure.append(quote, blockquoteAuthorCaption(author));
+  return figure;
 }
 
 /**
@@ -1179,39 +1203,38 @@ function blockquoteFromNodes(nodes) {
 
 /**
  * Styles authored blockquotes. An opening quotation mark hangs. A paragraph
- * that starts with an em dash, en dash, or hyphen — inside the quote, where
- * Document Authoring puts it, or as the quote's next sibling — is marked
- * `blockquote-author` and moved outside the blockquote when it was inside.
+ * inside the quote that starts with an em dash, en dash, or hyphen — where
+ * Document Authoring puts the attribution — becomes the figcaption of a figure
+ * that wraps that quote. A dash-led paragraph outside the quote is left alone.
+ * A quote with no attribution stays a blockquote on its own.
  * The dash is always an em dash plus one space.
- * Several quote-and-author pairs in one blockquote split into one pair each.
+ * Several quote-and-author pairs in one blockquote split into one figure each.
  * Straight quotes in the quote and the author become curly quotes.
  * @param {Element} main The container element
  */
 export function decorateBlockquotes(main) {
   [...main.querySelectorAll('blockquote')].forEach((quote) => {
-    const following = quote.nextElementSibling;
-    const authorsInside = [...quote.children].some(isBlockquoteAuthorParagraph);
-
-    if (authorsInside) {
-      const fragment = document.createDocumentFragment();
-      let pending = [];
-      [...quote.childNodes].forEach((node) => {
-        if (!isBlockquoteAuthorParagraph(node)) {
-          pending.push(node);
-          return;
-        }
-        if (blockquoteHasVisibleContent(pending)) fragment.append(blockquoteFromNodes(pending));
-        pending = [];
-        fragment.append(markBlockquoteAuthor(node));
-      });
-      if (blockquoteHasVisibleContent(pending)) fragment.append(blockquoteFromNodes(pending));
-      quote.replaceWith(fragment);
-    } else {
+    if (![...quote.children].some(isBlockquoteAuthorParagraph)) {
       finishBlockquote(quote);
+      return;
     }
 
-    if (!isBlockquoteAuthorParagraph(following)) return;
-    markBlockquoteAuthor(following);
+    const fragment = document.createDocumentFragment();
+    let pending = [];
+    [...quote.childNodes].forEach((node) => {
+      if (!isBlockquoteAuthorParagraph(node)) {
+        pending.push(node);
+        return;
+      }
+      if (blockquoteHasVisibleContent(pending)) {
+        fragment.append(wrapBlockquoteFigure(blockquoteFromNodes(pending), node));
+      } else {
+        fragment.append(markBlockquoteAuthor(node));
+      }
+      pending = [];
+    });
+    if (blockquoteHasVisibleContent(pending)) fragment.append(blockquoteFromNodes(pending));
+    quote.replaceWith(fragment);
   });
 }
 

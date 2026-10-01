@@ -380,10 +380,6 @@ blockquote {
     font-style: inherit;
     font-weight: inherit;
   }
-
-  &:has(+ .blockquote-author) {
-    margin-block-end: var(--s2a-spacing-lg);
-  }
 }
 
 /* Hang only the opening mark, and only the first line of the quote. */
@@ -405,6 +401,8 @@ blockquote {
 
 .blockquote-author {
   margin-block: var(--s2a-spacing-lg) var(--s2a-spacing-4xl);
+  overflow-wrap: break-word;
+  text-wrap: pretty;
   color: var(--s2a-color-content-default);
   font-family: var(--heading-font-family);
   font-size: var(--s2a-typography-font-size-heading-6);
@@ -418,6 +416,20 @@ blockquote {
   & :is(em, i, strong, b) {
     font-style: inherit;
     font-weight: inherit;
+  }
+}
+
+/* Quote plus attribution. Resets the user agent's 40px inline figure margin. */
+.blockquote-figure {
+  margin-block: var(--s2a-spacing-4xl);
+  margin-inline: 0;
+
+  > blockquote {
+    margin-block: 0;
+  }
+
+  > .blockquote-author {
+    margin-block: var(--s2a-spacing-lg) 0;
   }
 }
 

@@ -12,16 +12,18 @@ describe('decorateBlockquotes', () => {
     ['em dash', '— Jessica Walsh'],
     ['en dash', '– Jessica Walsh'],
     ['hyphen', '- Jessica Walsh'],
-  ])('marks a following %s paragraph as the author', (_label, authored) => {
-    const main = decorateHtml(`<blockquote><p>Quote</p></blockquote><p>${authored}</p>`);
+  ])('marks a %s paragraph inside the quote as the author', (_label, authored) => {
+    const main = decorateHtml(`<blockquote><p>Quote</p><p>${authored}</p></blockquote>`);
 
-    const author = main.querySelector('blockquote + .blockquote-author');
-    expect(author.tagName).toBe('P');
+    const figure = main.querySelector('.blockquote-figure');
+    const author = figure.querySelector(':scope > .blockquote-author');
+    expect(figure.querySelector(':scope > blockquote')).not.toBeNull();
+    expect(author.tagName).toBe('FIGCAPTION');
     expect(author.textContent).toBe('— Jessica Walsh');
   });
 
   it('renders a missing space after the dash as an em dash plus one space', () => {
-    const main = decorateHtml('<blockquote><p>Quote</p></blockquote><p>—Jessica</p>');
+    const main = decorateHtml('<blockquote><p>Quote</p><p>—Jessica</p></blockquote>');
 
     expect(main.querySelector('.blockquote-author').textContent).toBe('— Jessica');
   });
@@ -32,19 +34,19 @@ describe('decorateBlockquotes', () => {
     ['double em dash', '—— Jessica'],
     ['double en dash', '––Jessica'],
   ])('replaces a %s with one em dash', (_label, authored) => {
-    const main = decorateHtml(`<blockquote><p>Quote</p></blockquote><p>${authored}</p>`);
+    const main = decorateHtml(`<blockquote><p>Quote</p><p>${authored}</p></blockquote>`);
 
     expect(main.querySelector('.blockquote-author').textContent).toBe('— Jessica');
   });
 
   it('collapses extra spaces after the dash to one space', () => {
-    const main = decorateHtml('<blockquote><p>Quote</p></blockquote><p>-  Jessica</p>');
+    const main = decorateHtml('<blockquote><p>Quote</p><p>-  Jessica</p></blockquote>');
 
     expect(main.querySelector('.blockquote-author').textContent).toBe('— Jessica');
   });
 
   it('keeps markup after the dash', () => {
-    const main = decorateHtml('<blockquote><p>Quote</p></blockquote><p>– <strong>Jessica Walsh</strong></p>');
+    const main = decorateHtml('<blockquote><p>Quote</p><p>– <strong>Jessica Walsh</strong></p></blockquote>');
 
     const author = main.querySelector('.blockquote-author');
     expect(author.textContent).toBe('— Jessica Walsh');
@@ -69,6 +71,15 @@ describe('decorateBlockquotes', () => {
     const main = decorateHtml('<p>— Jessica Walsh</p>');
 
     expect(main.querySelector('.blockquote-author')).toBeNull();
+  });
+
+  it('leaves a following paragraph that starts with a dash', () => {
+    const main = decorateHtml('<blockquote><p>“Quote”</p></blockquote><p>- Not an author</p>');
+
+    expect(main.querySelector('.blockquote-author')).toBeNull();
+    expect(main.querySelector('figure')).toBeNull();
+    expect(main.querySelector('blockquote')).toHaveClass('blockquote-hanging');
+    expect(main.querySelector('blockquote + p').textContent).toBe('- Not an author');
   });
 
   it.each(['"', '“', '”', "'", '‘', '’', '«', '»', '‹', '›'])(
@@ -107,7 +118,7 @@ describe('decorateBlockquotes', () => {
   });
 
   it('curls an apostrophe in the author name', () => {
-    const main = decorateHtml('<blockquote><p>"Quote."</p></blockquote><p>- O\'Brien</p>');
+    const main = decorateHtml('<blockquote><p>"Quote."</p><p>- O\'Brien</p></blockquote>');
 
     expect(main.querySelector('.blockquote-author').textContent).toBe('— O’Brien');
   });
@@ -116,6 +127,7 @@ describe('decorateBlockquotes', () => {
     const main = decorateHtml('<blockquote><p>Quote</p></blockquote>');
 
     expect(main.querySelector('blockquote')).not.toHaveClass('blockquote-hanging');
+    expect(main.querySelector('figure')).toBeNull();
   });
 
   it('moves an author paragraph inside the blockquote out beside it', () => {
@@ -130,7 +142,9 @@ describe('decorateBlockquotes', () => {
     expect(quote).toHaveClass('blockquote-hanging');
     expect(quote.textContent).toContain('What takes talent.');
     expect(quote.querySelector('p')?.textContent).not.toContain('Graphic artist');
-    expect(quote.nextElementSibling.tagName).toBe('P');
+    expect(quote.parentElement.tagName).toBe('FIGURE');
+    expect(quote.parentElement).toHaveClass('blockquote-figure');
+    expect(quote.nextElementSibling.tagName).toBe('FIGCAPTION');
     expect(quote.nextElementSibling).toHaveClass('blockquote-author');
     expect(quote.nextElementSibling.textContent).toBe('— Graphic artist');
   });
@@ -151,12 +165,14 @@ describe('decorateBlockquotes', () => {
     expect(quotes).toHaveLength(2);
     expect(authors).toHaveLength(2);
     expect(quotes[0]).toHaveClass('blockquote-hanging');
+    expect(quotes[0].parentElement.tagName).toBe('FIGURE');
     expect(quotes[0].nextElementSibling).toBe(authors[0]);
-    expect(authors[0].tagName).toBe('P');
+    expect(authors[0].tagName).toBe('FIGCAPTION');
     expect(authors[0].textContent).toBe('— Creative director');
+    expect(quotes[1].parentElement.tagName).toBe('FIGURE');
     expect(quotes[1].textContent).toContain('Second quote.');
     expect(authors[1].textContent).toBe('— Designer');
-    expect(main.querySelector('blockquote + .blockquote-author + blockquote + .blockquote-author + p').textContent).toBe('After');
+    expect(main.querySelector('.blockquote-figure + .blockquote-figure + p').textContent).toBe('After');
   });
 
   it('leaves a non-author paragraph inside the blockquote', () => {
@@ -170,6 +186,8 @@ describe('decorateBlockquotes', () => {
 
     const quotes = [...main.querySelectorAll('blockquote')];
     expect(quotes).toHaveLength(2);
+    expect(quotes[0].parentElement.tagName).toBe('FIGURE');
+    expect(quotes[1].parentElement.tagName).not.toBe('FIGURE');
     expect(quotes[1]).not.toHaveClass('blockquote-hanging');
     expect(quotes[1].textContent).toContain('Commentary that stays in the quote.');
   });
@@ -188,8 +206,9 @@ describe('decorateBlockquotes', () => {
 
     const quote = main.querySelector('blockquote');
     expect(quote).toHaveClass('blockquote-hanging');
+    expect(main.querySelector('figure')).toBeNull();
     expect(quote.nextElementSibling.tagName).toBe('P');
-    expect(quote.nextElementSibling).toHaveClass('blockquote-author');
-    expect(quote.nextElementSibling.textContent).toBe('— Ada Lovelace');
+    expect(quote.nextElementSibling).not.toHaveClass('blockquote-author');
+    expect(quote.nextElementSibling.textContent).toBe('- Ada Lovelace');
   });
 });
