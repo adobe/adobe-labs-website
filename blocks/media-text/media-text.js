@@ -46,16 +46,18 @@ export function getMediaTextData(block) {
 /**
  * Builds media-text markup from data and writes it into `root`.
  * The block element is the root, so header classes stay on it.
+ * `media-right` writes the text before the image.
  *
  * @param {MediaTextData} [data]
  * @param {Element} [root] Element to fill; a new `div` if omitted
  * @returns {Element} The filled root
  */
 export function buildMediaText(data = {}, root = document.createElement('div')) {
-  const parts = [];
+  let figure = null;
+  let content = null;
 
   if (data.image || data.caption) {
-    const figure = document.createElement('figure');
+    figure = document.createElement('figure');
     figure.className = 'media-text__media';
     if (data.image) figure.append(data.image);
 
@@ -65,18 +67,17 @@ export function buildMediaText(data = {}, root = document.createElement('div')) 
       figcaption.textContent = data.caption;
       figure.append(figcaption);
     }
-
-    parts.push(figure);
   }
 
   if (data.content?.length) {
-    const content = document.createElement('div');
+    content = document.createElement('div');
     content.className = 'media-text__content';
     content.append(...data.content);
-    parts.push(content);
   }
 
-  root.replaceChildren(...parts);
+  const mediaRight = root.classList.contains('media-right');
+  const parts = mediaRight ? [content, figure] : [figure, content];
+  root.replaceChildren(...parts.filter(Boolean));
   return root;
 }
 
