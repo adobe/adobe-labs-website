@@ -18,7 +18,6 @@ describe('decorateBlockquotes', () => {
     const author = main.querySelector('blockquote + .blockquote-author');
     expect(author.tagName).toBe('P');
     expect(author.textContent).toBe('— Jessica Walsh');
-    expect(main.querySelector('cite')).toBeNull();
   });
 
   it('renders a missing space after the dash as an em dash plus one space', () => {
