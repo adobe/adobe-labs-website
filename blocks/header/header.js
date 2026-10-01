@@ -169,6 +169,20 @@ function toNavHref(value) {
 }
 
 /**
+ * Whether the current page is the site home.
+ * `/`, a trailing slash, and `index` / `index.html` count, including a
+ * `codeBasePath` prefix.
+ *
+ * @returns {boolean}
+ */
+function isHomePage() {
+  const base = (window.hlx?.codeBasePath || '').replace(/\/$/, '');
+  const path = window.location.pathname.replace(/\/$/, '') || '/';
+  if (path === (base || '/')) return true;
+  return path === `${base}/index` || path === `${base}/index.html`;
+}
+
+/**
  * Whether `href` is the current page (or an ancestor path).
  *
  * @param {string} href Link href
@@ -504,6 +518,7 @@ function brandMediaMarkup(brand, logoDesktopSvg, logoMobileSvg) {
 
 /**
  * Builds the header bar from parsed nav data and inlined icons.
+ * On the homepage the brand logo is the page `h1`. Other pages keep it a link.
  *
  * @param {HeaderNavData} data Parsed fragment
  * @param {HeaderIcons} icons Inlined SVGs
@@ -513,6 +528,10 @@ function buildHeaderBar(data, icons) {
   const brandName = escapeAttr(data.brand.label || 'Adobe Labs');
   const brandHref = escapeAttr(data.brand.href || '/');
   const brandMedia = brandMediaMarkup(data.brand, icons.logoDesktopSvg, icons.logoMobileSvg);
+  const home = isHomePage();
+  const brand = home
+    ? `<h1 class="header__site-title"><a class="header__brand" href="${brandHref}"><span class="visually-hidden">${brandName}</span>${brandMedia}</a></h1>`
+    : `<a class="header__brand" href="${brandHref}" aria-label="${brandName}">${brandMedia}</a>`;
   const items = data.items.map((item, index) => itemMarkup(item, index, icons.chevronSvg)).join('');
   const cta = data.cta?.href
     ? `<a class="header__cta button" href="${escapeAttr(data.cta.href)}">${escapeAttr(data.cta.label)}</a>`
@@ -520,9 +539,7 @@ function buildHeaderBar(data, icons) {
 
   return fromHTML(`
     <div class="header__bar">
-      <a class="header__brand" href="${brandHref}" aria-label="${brandName}">
-        ${brandMedia}
-      </a>
+      ${brand}
       <button type="button" class="header__toggle" aria-expanded="false" aria-controls="header-nav">
         ${icons.menuSvg}
         <span class="visually-hidden">Menu</span>
