@@ -16,6 +16,10 @@ import {
   getSectionFromPath,
   isArticleDetailPage,
   isAuthoredVideo,
+  isExternalLink,
+  markExternalLink,
+  markExternalLinks,
+  watchExternalLinks,
 } from './utils.js';
 
 jest.mock('../aem.js', () => ({
@@ -1123,5 +1127,116 @@ describe('decorateSectionMetadata', () => {
     expect(() => decorateSectionMetadata(main)).not.toThrow();
     expect(section.dataset.toc).toBeUndefined();
     expect(section.dataset.tableOfContents).toBeUndefined();
+  });
+});
+
+describe('external links', () => {
+  /** @type {MutationObserver|undefined} */
+  let observer;
+
+  /**
+   * @param {string} href
+   * @param {Object<string, string>} [attrs]
+   * @returns {HTMLAnchorElement}
+   */
+  function makeLink(href, attrs = {}) {
+    const link = document.createElement('a');
+    link.setAttribute('href', href);
+    link.textContent = 'Example';
+    Object.entries(attrs).forEach(([name, value]) => link.setAttribute(name, value));
+    return link;
+  }
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    observer?.disconnect();
+    observer = undefined;
+    document.body.innerHTML = '';
+  });
+
+  it('treats root-relative, production, and AEM preview links as internal', () => {
+    const { hostname } = window.location;
+    const internal = [
+      '/research',
+      'research/foo',
+      '#section',
+      '?q=1',
+      `https://${hostname}/research`,
+      'https://labs.adobe.com/research',
+      'https://www.labs.adobe.com/workflows',
+      'https://main--adobe-labs-website--adobe.aem.page/research',
+      'https://feature--adobe-labs-website--adobe.aem.live/sneaks',
+      'mailto:labs@adobe.com',
+      'tel:+15551212',
+    ];
+
+    internal.forEach((href) => {
+      expect(isExternalLink(makeLink(href))).toBe(false);
+    });
+  });
+
+  it('treats other websites as external', () => {
+    [
+      'https://www.adobe.com/privacy',
+      'https://research.adobe.com/',
+      'https://example.com/subscribe',
+      '//example.com/path',
+    ].forEach((href) => {
+      expect(isExternalLink(makeLink(href))).toBe(true);
+    });
+  });
+
+  it('adds target, rel, and a new-tab hint on external links only', () => {
+    const external = makeLink('https://research.adobe.com/');
+    const internal = makeLink('https://labs.adobe.com/research');
+    const root = makeLink('/research');
+    document.body.append(external, internal, root);
+
+    markExternalLinks(document.body);
+
+    expect(external).toHaveAttribute('target', '_blank');
+    expect(external).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(external.querySelector('.visually-hidden')).toHaveTextContent('(opens in a new tab)');
+    expect(internal).not.toHaveAttribute('target');
+    expect(internal).not.toHaveAttribute('rel');
+    expect(internal.querySelector('.visually-hidden')).toBeNull();
+    expect(root).not.toHaveAttribute('target');
+  });
+
+  it('keeps an existing rel and does not repeat the new-tab hint', () => {
+    const link = makeLink('https://example.com/', { rel: 'nofollow' });
+    const hint = document.createElement('span');
+    hint.className = 'visually-hidden';
+    hint.textContent = ' (opens in a new tab)';
+    link.append(hint);
+
+    markExternalLink(link);
+    markExternalLink(link);
+
+    expect(link).toHaveAttribute('rel', 'nofollow noopener noreferrer');
+    expect(link.querySelectorAll('.visually-hidden')).toHaveLength(1);
+  });
+
+  it('extends an aria-label instead of adding a second hint', () => {
+    const link = makeLink('https://example.com/', { 'aria-label': 'Adobe Research' });
+
+    markExternalLink(link);
+
+    expect(link).toHaveAttribute('aria-label', 'Adobe Research (opens in a new tab)');
+    expect(link.querySelector('.visually-hidden')).toBeNull();
+  });
+
+  it('marks external links inserted after the watcher starts', async () => {
+    observer = watchExternalLinks(document);
+    const link = makeLink('https://www.adobe.com/');
+    document.body.append(link);
+
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 });
