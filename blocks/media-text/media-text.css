@@ -12,7 +12,7 @@
 
   @media (width >= 64rem) {
     column-gap: calc(var(--s2a-spacing-lg) + var(--s2a-spacing-xs));
-    margin-block: var(s2a-spacing-2xl);
+    margin-block: var(--s2a-spacing-2xl);
   }
 
   @media (width >= 80rem) {
