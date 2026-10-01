@@ -12,19 +12,30 @@
 
   @media (width >= 64rem) {
     column-gap: calc(var(--s2a-spacing-lg) + var(--s2a-spacing-xs));
+    margin-block: var(s2a-spacing-2xl);
   }
 
   @media (width >= 80rem) {
     grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+
+    &.small {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 8fr);
+    }
   }
 
-  &.media-right {
-    @media (width >= 48rem) {
+  @media (width >= 48rem) {
+    &.media-right {
       grid-template-columns: minmax(0, 8fr) minmax(0, 3fr);
     }
+  }
 
-    @media (width >= 80rem) {
+  @media (width >= 80rem) {
+    &.media-right {
       grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+    }
+
+    &.small.media-right {
+      grid-template-columns: minmax(0, 8fr) minmax(0, 3fr);
     }
   }
 
@@ -33,18 +44,16 @@
   }
 }
 
+/* Small variant */
+.media-text-wrapper:has(.media-text.small) {
+  @media (width >=48rem) {
+    --article-content-max-inline-size: min(calc(8 / 12 * 100%), 77.875rem);
+    /* 1246px max. */
+  }
+}
 
-
+/* Alignment options */
 @media (width >= 64rem) {
-  .media-text.small {
-    /* 4/10 of the block, capped at 500px. */
-    grid-template-columns: minmax(0, min(40%, 31.25rem)) minmax(0, 1fr);
-  }
-
-  .media-text.small.media-right {
-    grid-template-columns: minmax(0, 1fr) minmax(0, min(40%, 31.25rem));
-  }
-
   .media-text.align-top {
     align-items: start;
   }
@@ -58,6 +67,7 @@
   }
 }
 
+/* Media */
 .media-text__media {
   margin: 0;
   display: flex;
@@ -66,8 +76,18 @@
   gap: var(--s2a-spacing-2xs);
   width: 100%;
   max-width: 100%;
+
+  picture,
+  img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--s2a-border-radius-xs);
+  }
 }
 
+/* Caption */
 .media-text__caption {
   max-width: 100%;
   color: var(--s2a-color-content-subtle);
@@ -80,6 +100,7 @@
   letter-spacing: var(--s2a-typography-letter-spacing-caption);
 }
 
+/* Remove excess block spacing */
 .media-text__content > :first-child {
   margin-block-start: 0;
 }
@@ -90,13 +111,4 @@
 
 .media-text__content blockquote {
   margin-inline: 0;
-}
-
-.media-text__media picture,
-.media-text__media img {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  height: auto;
-  border-radius: var(--s2a-border-radius-xs);
 }
