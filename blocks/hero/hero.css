@@ -1,6 +1,6 @@
 .hero {
-  --hero-font-size: var(--s2a-typography-font-size-heading-2);
-  --hero-line-height: var(--s2a-typography-line-height-heading-2);
+  --hero-font-size: var(--s2a-typography-font-size-heading-4);
+  --hero-line-height: var(--s2a-typography-line-height-heading-4);
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
   --hero-scrim-regular: rgb(0 0 0 / 42%);
@@ -22,6 +22,9 @@
   aspect-ratio: 3 / 2;
 
   @media (width >=48rem) {
+    --hero-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-line-height: var(--s2a-typography-line-height-heading-2);
+
     aspect-ratio: 2 / 1;
   }
 
@@ -98,7 +101,7 @@
 
     display: flex;
     flex-direction: column;
-    grid-area: bottom-left / bottom-left / bottom-right / bottom-right;
+    grid-area: bottom-left;
     align-self: last baseline;
     max-inline-size: var(--hero-headline-max-inline-size);
     color: var(--s2a-color-gray-25, #fff);
@@ -106,14 +109,18 @@
 
     @media (width >=31.25rem) {
       --hero-headline-max-inline-size: 20ch;
-
-      grid-area: bottom-left;
     }
 
     @media (width >=48rem) {
       --hero-headline-max-inline-size: 25ch;
+    }
+  }
 
-      grid-area: bottom-left;
+  /* Without a CTA sharing the row, the headline can use the full row width
+     below 31.25rem. With a CTA, spanning into bottom-right overlaps "Read". */
+  .hero__content:not(:has(.hero__cta-text)) .hero__copy {
+    @media (width <31.25rem) {
+      grid-area: bottom-left / bottom-left / bottom-right / bottom-right;
     }
   }
 
@@ -187,6 +194,10 @@
     font-weight: var(--hero-font-weight);
     place-items: center;
 
+    /* Grid/flex items default to a content-based min-width; without this,
+       long category text overflows into the date column instead of wrapping. */
+    min-inline-size: 0;
+
     @media (width >=48rem) {
       --hero-category-circle-gap: var(--s2a-spacing-sm);
     }
@@ -200,7 +211,13 @@
 
       height: var(--hero-category-circle-size);
       width: var(--hero-category-circle-size);
+      flex-shrink: 0;
     }
+  }
+
+  .hero__eyebrow-text {
+    min-inline-size: 0;
+    overflow-wrap: break-word;
   }
 
   /* Image */
@@ -257,8 +274,9 @@
   .hero__date {
     grid-area: top-right;
     justify-self: end;
+    max-inline-size: 9ch;
     color: var(--s2a-color-gray-25, #fff);
-    white-space: nowrap;
+    text-align: end;
   }
 
   /* CTA label (not a button — the whole card is the link) */
@@ -272,6 +290,10 @@
 
   /* --- Full-Screen variant --- */
   &.hero-full-screen {
+    /* Full-screen keeps the larger title at every width (see ADBLABS-211). */
+    --hero-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-line-height: var(--s2a-typography-line-height-heading-2);
+
     /* Figma's spacing differs from s2a tokens.
     Full-screen variant has custom vertical padding to account for overlapping content. */
     --hero-padding-block-start: 5.625rem;
