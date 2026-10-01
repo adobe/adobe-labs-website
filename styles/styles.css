@@ -367,7 +367,7 @@ blockquote {
   font-size: var(--s2a-typography-font-size-heading-3);
   font-weight: var(--s2a-font-weight-heading);
   letter-spacing: var(--s2a-typography-letter-spacing-heading-3);
-line-height: var(--s2a-typography-line-height-title-6, 1rem);
+  line-height: var(--s2a-typography-line-height-heading-3);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
@@ -652,7 +652,7 @@ footer {
   font-weight: 900;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: var(--s2a-typography-line-height-title-6, 1.125rem); /* 112.5% */
+  line-height: var(--s2a-typography-line-height-heading-6);
   letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
 }
 
