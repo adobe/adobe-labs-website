@@ -104,10 +104,13 @@
 
   .hero__headline {
     display: inline-block;
+    margin: 0;
+    font-family: var(--heading-font-family);
     font-size: var(--hero-font-size);
     line-height: var(--hero-line-height);
     letter-spacing: var(--hero-letter-spacing);
     font-weight: var(--hero-font-weight);
+    text-wrap: balance;
   }
 
   .hero__category {
