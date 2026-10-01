@@ -48,7 +48,6 @@
 .media-text-wrapper:has(.media-text.small) {
   @media (width >=48rem) {
     --article-content-max-inline-size: min(calc(8 / 12 * 100%), 77.875rem);
-    /* 1246px max. */
   }
 }
 
