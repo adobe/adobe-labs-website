@@ -201,6 +201,9 @@ describe('header block', () => {
     const block = await decorateHeader();
 
     expect(block.querySelector('.header__logo-desktop')).toHaveAttribute('alt', '');
+    const heading = within(block).getByRole('heading', { level: 1, name: 'Adobe Labs' });
+    expect(heading).toHaveClass('header__site-title');
+    expect(heading.querySelector('.header__brand')).toHaveAttribute('href', '/');
     expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
     expect(within(document.body).getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main');
     expect(within(block).getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
@@ -210,6 +213,27 @@ describe('header block', () => {
     expect(within(block).getByRole('button', { name: 'Products' })).not.toHaveAttribute('aria-haspopup');
     expect(within(block).getByRole('button', { name: 'Products' }).querySelector('.header__chevron')).toHaveAttribute('aria-hidden', 'true');
     expect(within(block).getByRole('link', { name: 'Research' }).querySelector('.header__chevron')).toBeNull();
+  });
+
+  it.each(['/', '/index', '/index.html'])(
+    'makes the brand logo the page heading at %s',
+    async (path) => {
+      window.history.pushState({}, '', path);
+
+      const block = await decorateHeader();
+
+      expect(within(block).getByRole('heading', { level: 1, name: 'Adobe Labs' })).toBeInTheDocument();
+      expect(block.querySelector('h1 .header__brand')).not.toHaveAttribute('aria-label');
+    },
+  );
+
+  it('keeps the brand logo out of the heading outline on other pages', async () => {
+    window.history.pushState({}, '', '/research');
+
+    const block = await decorateHeader();
+
+    expect(block.querySelector('h1')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toHaveAttribute('aria-label', 'Adobe Labs');
   });
 
   it('marks the matching path with aria-current', async () => {
