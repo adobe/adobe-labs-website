@@ -1,0 +1,148 @@
+.media-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2a-spacing-lg);
+
+  @media (width >= 48rem) {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 8fr);
+    align-items: start;
+    column-gap: var(--s2a-spacing-lg);
+  }
+
+  @media (width >= 64rem) {
+    column-gap: calc(var(--s2a-spacing-lg) + var(--s2a-spacing-xs));
+    margin-block: var(--s2a-spacing-2xl);
+  }
+
+  @media (width >= 80rem) {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+
+    &.small {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 5fr);
+    }
+  }
+
+  @media (width >= 48rem) {
+    &.media-right {
+      grid-template-columns: minmax(0, 8fr) minmax(0, 3fr);
+    }
+  }
+
+  @media (width >= 80rem) {
+    &.media-right {
+      grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+    }
+
+    &.small.media-right {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
+    }
+  }
+
+  blockquote p:first-child {
+    margin-block-start: 0;
+  }
+}
+
+/* Small variant */
+.media-text-wrapper:has(.media-text.small) {
+  @media (width >=48rem) {
+    --article-content-max-inline-size: min(calc(8 / 12 * 100%), 77.875rem);
+  }
+}
+
+/* Alignment options */
+@media (width >= 64rem) {
+  .media-text.align-top {
+    align-items: start;
+  }
+
+  .media-text.align-middle {
+    align-items: center;
+  }
+
+  .media-text.align-bottom {
+    align-items: end;
+  }
+}
+
+/* Media */
+.media-text__media {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2a-spacing-2xs);
+  width: 100%;
+  max-width: 100%;
+
+  picture,
+  img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--s2a-border-radius-xs);
+  }
+}
+
+/* Caption */
+.media-text__caption {
+  max-width: 100%;
+  color: var(--s2a-color-content-subtle);
+  text-align: center;
+  font-family: var(--body-font-family);
+  font-size: var(--s2a-typography-font-size-caption);
+  font-style: normal;
+  font-weight: 700;
+  line-height: var(--s2a-typography-line-height-caption);
+  letter-spacing: var(--s2a-typography-letter-spacing-caption);
+}
+
+/* Typography.
+   Normal article prose elements sit in .default-content-wrapper, but these are not covered by those styles.
+   Authored headings use the article body scale.
+   An h2 is heading-5. h3–h6 are heading-6. An h1 stays heading-1. */
+.media-text__content :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  font-family: var(--heading-font-family);
+  font-weight: var(--s2a-font-weight-heading);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.media-text__content h2 {
+  font-size: var(--s2a-typography-font-size-heading-5);
+  line-height: var(--s2a-typography-line-height-heading-5);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-5);
+  font-weight: var(--typography-font-weight-heading-2);
+}
+
+.media-text__content :is(h3, h4, h5, h6) {
+  font-size: var(--s2a-typography-font-size-heading-6);
+  line-height: var(--s2a-typography-line-height-heading-6);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+}
+
+.media-text__content > :is(h1, h2, h3, h4, h5, h6) + :is(p, ul, ol) {
+  margin-block-start: var(--s2a-spacing-lg);
+}
+
+.media-text__content > :is(p, ul, ol) {
+  font-family: var(--serif-font-family);
+  font-size: var(--serif-body-font-size);
+  line-height: var(--serif-body-line-height);
+}
+
+/* Remove excess block spacing */
+.media-text__content > :first-child {
+  margin-block-start: 0;
+}
+
+.media-text__content > :last-child {
+  margin-block-end: 0;
+}
+
+.media-text__content blockquote {
+  margin-inline: 0;
+}
