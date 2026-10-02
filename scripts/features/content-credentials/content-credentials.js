@@ -404,8 +404,11 @@ const isPinOpen = (button) => button.getAttribute('aria-expanded') === 'true';
  * from wherever the visitor left it.
  * @param {boolean} [options.restoreFocus=false] Move focus back to the button on close.
  * Used for Escape; not for an outside click, which has already placed focus deliberately.
+ * @param {boolean} [options.focusVisible] Option for the native focus() method.
  */
-const setPinOpen = (button, open, { moveFocus = false, restoreFocus = false } = {}) => {
+const setPinOpen = (button, open, {
+  moveFocus = false, restoreFocus = false, focusVisible,
+} = {}) => {
   const panel = document.getElementById(button.getAttribute('aria-controls'));
   if (!panel) return;
 
@@ -417,8 +420,10 @@ const setPinOpen = (button, open, { moveFocus = false, restoreFocus = false } = 
 
   // A dialog role leads assistive tech to expect focus to follow it. On close, focus is
   // pulled back whenever it sits inside the panel, so it is never left on hidden content.
-  if (open && moveFocus) panel.focus();
-  else if (!open && (restoreFocus || panel.contains(document.activeElement))) button.focus();
+  if (open && moveFocus) panel.focus({ focusVisible });
+  else if (!open && (restoreFocus || panel.contains(document.activeElement))) {
+    button.focus({ focusVisible });
+  }
 };
 
 /**
@@ -740,16 +745,20 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl) => {
     event.preventDefault();
   });
 
-  button.addEventListener('click', () => {
+  button.addEventListener('click', (event) => {
+    // Show focus ring only for keyboard activation. Enter and Space dispatch a
+    // click with `detail` 0, a pointer click counts its presses from 1.
+    const focusVisible = event.detail === 0;
+
     // A hover-revealed panel is already open, so this click commits it rather than
     // closing it — otherwise clicking what you are pointing at would dismiss it.
     const committed = isPinOpen(button) && button.dataset.crHoverOpen !== 'true';
     if (committed) {
-      setPinOpen(button, false);
+      setPinOpen(button, false, { focusVisible });
       return;
     }
     closeAllPins(button);
-    setPinOpen(button, true, { moveFocus: true });
+    setPinOpen(button, true, { moveFocus: true, focusVisible });
   });
 
   // Non-modal, so focus is never trapped: leaving the panel by any route closes it.
