@@ -75,7 +75,7 @@ const readCredentials = async (img) => {
   await c2paReady;
 
   // Fetch the image from its original source.
-  const response = await fetch(getOriginalImageUrl(img));
+  const response = await fetch(getOriginalImageUrl(img), { priority: 'low' });
 
   // Read the response body as a Blob.
   const blob = await response.blob();
