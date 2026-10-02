@@ -236,7 +236,10 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (!showCategory) {
     eyebrow.remove();
   } else {
-    eyebrow.append(document.createTextNode(category));
+    const eyebrowText = document.createElement('span');
+    eyebrowText.className = 'hero__eyebrow-text';
+    eyebrowText.textContent = category;
+    eyebrow.append(eyebrowText);
   }
 
   if (isVideo) {
