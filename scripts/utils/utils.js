@@ -146,10 +146,9 @@ function ensureNewTabHint(link) {
     .some((node) => node.textContent.includes(NEW_TAB_HINT));
   if (hinted) return;
 
-  const hint = document.createElement('span');
-  hint.className = 'visually-hidden';
-  hint.textContent = ` ${NEW_TAB_HINT}`;
-  link.append(hint);
+const text = link.textContent.replace(NEW_TAB_HINT, '').replace(/\s+/g, ' ').trim();
+  if (!text) return;
+  link.setAttribute('aria-label', `${text} ${NEW_TAB_HINT}`);
 }
 
 /**
