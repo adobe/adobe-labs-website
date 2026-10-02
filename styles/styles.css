@@ -1267,6 +1267,7 @@ body.article main > [class*="section-rounded-"]:not(
   color: var(--s2a-color-content-default);
   font-family: var(--body-font-family);
   font-size: 0.875rem;
+  z-index: 9;
 
   & > * {
     flex-grow: 1;
