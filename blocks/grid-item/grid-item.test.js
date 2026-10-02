@@ -165,6 +165,20 @@ describe('grid-item block', () => {
 
     expect(block.querySelector('img')).toHaveAttribute('alt', 'original');
   });
+
+  it('leaves the image as the only visual on a device without a fine pointer (ADBLABS-182)', () => {
+    const block = createBlock({
+      Title: 'Lab project',
+      Image: PICTURE,
+    });
+
+    decorate(block);
+
+    // jsdom has no fine-pointer match and no WebGL, so the chromatic hover
+    // never mounts; this guards against it ever touching the real <img>.
+    expect(block.querySelector('canvas')).toBeNull();
+    expect(block.querySelector('img')).toHaveAttribute('alt', 'original');
+  });
 });
 
 describe('buildGridItem', () => {

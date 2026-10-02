@@ -1,4 +1,5 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
+import initChromaticHover from '../../scripts/utils/chromatic-hover.js';
 import {
   buildPlayIcon,
   getAuthoredCells,
@@ -114,6 +115,14 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
 
   root.classList.add('grid-item');
   root.replaceChildren(fragment);
+
+  // Video cards already show a play icon over the image; skip the crossfade there.
+  if (mediaElement && !isVideo) {
+    const img = root.querySelector('.grid-item__image img');
+    const trigger = root.querySelector('.grid-item__main');
+    if (img) initChromaticHover(trigger, img);
+  }
+
   return root;
 }
 
