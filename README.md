@@ -145,6 +145,8 @@ The page already loads the first image in the first section right away, and AEM 
 
 In Document Authoring, insert a section break after the hero table. Paste the hero image as a normal picture — you do not need to set `loading` or `fetchpriority`. Adding `fetchpriority="high"` or a preload usually makes Lighthouse scores worse on Edge Delivery; see Adobe’s [keeping-it-100](https://www.aem.live/developer/keeping-it-100) guidance.
 
+Set the headline's heading level in Document Authoring. The hero keeps that element: Heading 1, Heading 2, or the default paragraph. Articles that need a single page title use Heading 1. A page with more than one hero, such as Sneaks, should not use Heading 1 for each one.
+
 #### AEM editing
 
 1. Insert a **section break** after the previous section.

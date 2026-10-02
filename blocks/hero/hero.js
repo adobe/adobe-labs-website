@@ -13,6 +13,8 @@ import {
 
 const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const HEADLINE_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']);
+const HEADLINE_RICH_SELECTOR = 'a[href], h1, h2, h3, h4, h5, h6';
 
 export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 
@@ -69,7 +71,7 @@ function firstSection(block) {
 
 /**
  * Data used to decorate a hero. Parsed from the positional AEM table:
- * row 1 is category, date, headline (link or heading), link label; row 2 is the image.
+ * row 1 is category, date, headline (link, heading, or paragraph), link label; row 2 is the image.
  * An optional key/value row (`Is Video` | `true`) adds a play icon.
  * `Show Video Icon` is an alias for that flag.
  *
@@ -79,10 +81,71 @@ function firstSection(block) {
  * @property {string} [pageCategory] Category metadata string (article detail only)
  * @property {string} date
  * @property {string} headline
+ * @property {string} headlineTag `h1`–`h6`, or `p` for default text
  * @property {string} href Article URL from the headline link
  * @property {string} linkLabel
  * @property {boolean} [isVideo]
  */
+
+/**
+ * Headline cell. A heading or link wins.
+ * `wrapTextNodes` turns category, date, and the link label into paragraphs
+ * before decorate, so a paragraph is the headline only when no heading or
+ * link is present. Several paragraphs means the positional headline: the
+ * third cell (category, date, headline, link label).
+ *
+ * @param {Element[]} cells Authored cells, video row removed
+ * @returns {Element|undefined}
+ */
+function findHeadlineCell(cells) {
+  const rich = cells.find((cell) => cell.querySelector(HEADLINE_RICH_SELECTOR));
+  if (rich) return rich;
+
+  const paragraphs = cells.filter((cell) => cell.querySelector('p'));
+  if (paragraphs.length === 1) return paragraphs[0];
+
+  const positional = cells[2];
+  if (positional?.querySelector('p')) return positional;
+  return undefined;
+}
+
+/**
+ * Heading level from the headline cell.
+ * An authored heading keeps its level. Default text (a paragraph or a bare link) is `p`.
+ *
+ * @param {Element} [cell] Headline cell
+ * @returns {string}
+ */
+function getHeadlineTag(cell) {
+  const tag = cell?.querySelector('h1, h2, h3, h4, h5, h6')?.tagName.toLowerCase();
+  if (tag && HEADLINE_TAGS.has(tag)) return tag;
+  return 'p';
+}
+
+/**
+ * Headline at the authored level. The visible text and an aria-hidden
+ * underline copy share wrapping inside `.hero__headline-stack`.
+ *
+ * @param {string} tag `h1`–`h6` or `p`
+ * @param {string} text Headline text
+ * @returns {HTMLElement}
+ */
+function createHeadline(tag, text) {
+  const el = document.createElement(HEADLINE_TAGS.has(tag) ? tag : 'p');
+  el.className = 'hero__headline';
+  const stack = document.createElement('span');
+  stack.className = 'hero__headline-stack';
+  const textEl = document.createElement('span');
+  textEl.className = 'hero__headline-text';
+  textEl.textContent = text;
+  const underline = document.createElement('span');
+  underline.className = 'hero__headline-underline';
+  underline.setAttribute('aria-hidden', 'true');
+  underline.textContent = text;
+  stack.append(textEl, underline);
+  el.append(stack);
+  return el;
+}
 
 /**
  * Reads authored cells from a hero block.
@@ -105,12 +168,13 @@ export function getHeroData(block) {
   const cells = [...block.querySelectorAll(':scope > div > div')]
     .filter((cell) => !skip.has(cell));
   const imageCell = cells.find((cell) => getCellMedia(cell));
-  const headlineCell = cells.find((cell) => cell.querySelector('a[href], h1, h2, h3'));
+  const headlineCell = findHeadlineCell(cells);
   const textCells = cells.filter((cell) => cell !== imageCell && cell !== headlineCell);
   const image = getCellMedia(imageCell);
   const category = getCellText(textCells[0]) || undefined;
   const date = getCellText(textCells[1]);
   const headline = getCellText(headlineCell);
+  const headlineTag = getHeadlineTag(headlineCell);
   const href = getCellLinkHref(headlineCell);
   const linkLabel = getCellText(textCells[2]) || 'Read';
 
@@ -119,6 +183,7 @@ export function getHeroData(block) {
     category,
     date,
     headline,
+    headlineTag,
     href,
     linkLabel,
     isVideo,
@@ -138,6 +203,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   const pageCategory = data.pageCategory || '';
   const date = data.date || '';
   const headline = data.headline || '';
+  const headlineTag = data.headlineTag || 'p';
   const linkLabel = data.linkLabel || '';
   const isVideo = Boolean(data.isVideo);
   const showCategory = Boolean(category) && Boolean(firstSection(root));
@@ -154,7 +220,6 @@ export function buildHero(data = {}, root = document.createElement('div')) {
       <div class="hero__date" aria-hidden="true"></div>
       <div class="hero__copy">
         <p class="hero__category"></p>
-        <h2 class="hero__headline"><span class="hero__headline-stack"><span class="hero__headline-text"></span><span class="hero__headline-underline" aria-hidden="true"></span></span></h2>
       </div>
       <p class="hero__cta-text"></p>
     </div>
@@ -186,19 +251,12 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (date) dateEl.textContent = date;
   else dateEl.remove();
 
-  const pageCategoryEl = fragment.querySelector('.hero__category');
+  const copy = fragment.querySelector('.hero__copy');
+  const pageCategoryEl = copy.querySelector('.hero__category');
   if (pageCategory) pageCategoryEl.textContent = pageCategory;
   else pageCategoryEl.remove();
 
-  const h2 = fragment.querySelector('.hero__headline');
-  if (!headline) {
-    h2.remove();
-  } else {
-    h2.querySelector('.hero__headline-text').textContent = headline;
-    h2.querySelector('.hero__headline-underline').textContent = headline;
-  }
-
-  const copy = fragment.querySelector('.hero__copy');
+  if (headline) copy.append(createHeadline(headlineTag, headline));
   if (!copy.querySelector('.hero__category, .hero__headline')) copy.remove();
 
   const ctaText = fragment.querySelector('.hero__cta-text');
