@@ -614,10 +614,6 @@ footer {
     align-items: flex-start;
   }
 
-  .article-meta--top .article-meta__actions {
-    display: none;
-  }
-
   .article-meta--top {
     margin-block-end: 0;
     margin-top: 6px;
@@ -641,6 +637,15 @@ footer {
     flex-direction: column;
     gap: var(--s2a-spacing-2xl);
     align-items: flex-start;
+  }
+}
+
+/* ADBLABS-188: top actions (copy/download/feedback) are hidden across the
+   full mobile and tablet range, not just the narrow sub-375px breakpoint
+   above — they only reappear at desktop (64rem/1024px and up). */
+@media (width < 64rem) {
+  .article-meta--top .article-meta__actions {
+    display: none;
   }
 }
 
