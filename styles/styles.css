@@ -1039,10 +1039,8 @@ main .section.grid-line-content-container {
   padding-block-end: 0;
 }
 
-/* page-header leads the page on index templates (Research, Workflows, Sneaks,
-   Policy); give it breathing room below the sticky header on mobile. */
 @media (width < 48rem) {
-  main > .section.page-header-container:first-of-type {
+  main > .section:first-of-type:not([class*="section-rounded-"], .hero-container:has(.hero-full-screen)) {
     padding-block-start: var(--s2a-spacing-md, 1rem);
   }
 }
