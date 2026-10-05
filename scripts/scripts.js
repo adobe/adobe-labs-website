@@ -24,6 +24,7 @@ import {
   getMetadata,
 } from './aem.js';
 import {
+  addStructuredData,
   buildArticleAuthorMeta,
   buildArticleMetaActions,
   buildArticlePreFooter,
@@ -37,7 +38,6 @@ import {
   isArticleDetailPage,
   watchExternalLinks,
 } from './utils/utils.js';
-import { addStructuredData } from './utils/structured-data.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
   const innerTT = window.trustedTypes.createPolicy('tt-inner', {

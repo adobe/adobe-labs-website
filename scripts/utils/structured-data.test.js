@@ -1,4 +1,4 @@
-import { addStructuredData } from './structured-data.js';
+import { addStructuredData } from './utils.js';
 
 const ORG_ID = 'https://labs.adobe.com/#organization';
 
