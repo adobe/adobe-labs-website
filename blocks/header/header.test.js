@@ -14,6 +14,21 @@ jest.mock('../fragment/fragment.js', () => ({
   loadFragment: jest.fn(),
 }));
 
+/** jsdom does not lay out scroll, so tests set this value directly. */
+let scrollYValue = 0;
+
+/**
+ * @param {number} value
+ */
+function setScrollY(value) {
+  scrollYValue = value;
+}
+
+Object.defineProperty(window, 'scrollY', {
+  configurable: true,
+  get: () => scrollYValue,
+});
+
 /**
  * Labs-shaped nav fragment: brand, links (one with nested menu), Subscribe.
  * @type {string}
@@ -175,11 +190,13 @@ describe('header block', () => {
     loadFragment.mockResolvedValue(createFragment(NAV_HTML));
     global.fetch = mockHeaderFetch();
     window.history.pushState({}, '', '/');
+    setScrollY(0);
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
     document.documentElement.classList.remove('header-scroll-lock');
+    setScrollY(0);
   });
 
   it('loads the default nav fragment when nav metadata is empty', async () => {
@@ -476,6 +493,32 @@ describe('header block', () => {
     expect(block).not.toHaveClass('header--scrolled');
     expect(observerInstances.find(isFrostObserver)).toBeUndefined();
     expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('button--static-white');
+  });
+
+  it('applies the drop shadow once a page without a hero scrolls', async () => {
+    const block = await decorateHeader();
+
+    expect(block).not.toHaveClass('header--scrolled');
+
+    setScrollY(1);
+    window.dispatchEvent(new Event('scroll'));
+
+    expect(block).toHaveClass('header--scrolled');
+    expect(block).not.toHaveClass('header--inverse');
+
+    setScrollY(0);
+    window.dispatchEvent(new Event('scroll'));
+
+    expect(block).not.toHaveClass('header--scrolled');
+  });
+
+  it('keeps the drop shadow when a page without a hero loads already scrolled', async () => {
+    setScrollY(40);
+
+    const block = await decorateHeader();
+
+    expect(block).toHaveClass('header--scrolled');
+    expect(block).not.toHaveClass('header--inverse');
   });
 
   it('drops inverse when the full-screen hero scrolls away', async () => {
