@@ -736,7 +736,7 @@ export function decorateSectionMetadata(main) {
  *
  * @returns {string}
  */
-function getShareUrl() {
+export function getShareUrl() {
   const canonical = document.querySelector('link[rel="canonical"]')?.href;
   const raw = canonical || window.location.href;
   try {
