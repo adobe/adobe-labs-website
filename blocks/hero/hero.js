@@ -8,6 +8,7 @@ import {
   getCellText,
   isArticleDetailPage,
   isAuthoredTrue,
+  isExternalLink,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
@@ -216,6 +217,18 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     wrapperLink.href = href;
     wrapperLink.classList.add('hero__link-wrap');
     blockChildren.forEach((child) => wrapperLink.appendChild(child));
+    // A visually-hidden hint inside this card is clipped out of the
+    // accessibility tree. The name is the visible text, once, so the
+    // external-link pass can append "(opens in a new tab)" to it.
+    if (isExternalLink(wrapperLink)) {
+      const name = [
+        isVideo ? 'Video article' : '',
+        pageCategory,
+        headline,
+        linkLabel,
+      ].filter(Boolean).join(' • ');
+      if (name) wrapperLink.setAttribute('aria-label', name);
+    }
     wrappedContent = wrapperLink;
   } else {
     wrappedContent = document.createDocumentFragment();

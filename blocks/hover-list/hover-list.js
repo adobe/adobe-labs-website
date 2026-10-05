@@ -1,5 +1,5 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
-import { toSafeHttpUrl } from '../../scripts/utils/utils.js';
+import { getCellText, isExternalLink, toSafeHttpUrl } from '../../scripts/utils/utils.js';
 
 /**
  * Hover-list block.
@@ -77,7 +77,7 @@ function getHoverListItems(block) {
   return [...block.children].flatMap((row) => {
     const link = row.querySelector('a[href]');
     const href = toSafeHttpUrl(link?.href);
-    const headline = link?.textContent.trim() || '';
+    const headline = getCellText(link);
     if (!href || !headline) return [];
 
     const mediaSrcs = [...row.querySelectorAll('img')]
@@ -122,6 +122,10 @@ function buildHoverListItem(data, index) {
   const link = document.createElement('a');
   link.className = 'hover-list__link';
   link.href = data.href;
+  // The new-tab hint is already on the authored link. Copying that text
+  // paints it in the headline. The name stays the headline so the
+  // external-link pass can append "(opens in a new tab)" without the number.
+  if (isExternalLink(link)) link.setAttribute('aria-label', data.headline);
 
   const number = document.createElement('span');
   number.className = 'hover-list__number body-lg';

@@ -1,4 +1,5 @@
 import { within } from '@testing-library/dom';
+import { markExternalLink } from '../../scripts/utils/utils.js';
 import decorate, {
   clearHeroIntro,
   HERO_INTRO_DURATION_MS,
@@ -346,6 +347,30 @@ describe('hero block', () => {
     } finally {
       main.remove();
     }
+  });
+
+  it('keeps a new-tab hint out of the visible headline', async () => {
+    const block = createHeroBlock([
+      [
+        'ResearchTest',
+        '5.24.26',
+        '<a href="https://www.adobe.com/">External link test<span class="visually-hidden"> (opens in a new tab)</span>s</a>',
+        'Read',
+      ],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+
+    await decorate(block);
+
+    const link = block.querySelector('.hero__link-wrap');
+    markExternalLink(link);
+
+    expect(block.querySelector('.hero__headline-text')).toHaveTextContent(/^External link tests$/);
+    expect(block.querySelector('.hero__headline-underline')).toHaveTextContent(/^External link tests$/);
+    expect(link).toHaveAttribute('aria-label', 'External link tests • Read (opens in a new tab)');
+    expect(link.querySelector('.visually-hidden')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'External link tests • Read (opens in a new tab)' }))
+      .toBe(link);
   });
 
   it('does not link the headline or CTA when the URL is not http(s)', async () => {

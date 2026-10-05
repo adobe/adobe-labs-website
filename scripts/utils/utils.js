@@ -146,9 +146,10 @@ function ensureNewTabHint(link) {
     .some((node) => node.textContent.includes(NEW_TAB_HINT));
   if (hinted) return;
 
-const text = link.textContent.replace(NEW_TAB_HINT, '').replace(/\s+/g, ' ').trim();
-  if (!text) return;
-  link.setAttribute('aria-label', `${text} ${NEW_TAB_HINT}`);
+  const hint = document.createElement('span');
+  hint.className = 'visually-hidden';
+  hint.textContent = ` ${NEW_TAB_HINT}`;
+  link.append(hint);
 }
 
 /**
@@ -217,13 +218,30 @@ export function getAuthoredCells(block) {
 }
 
 /**
+ * Text of `node`, skipping `.visually-hidden` subtrees.
+ * Those nodes are screen-reader hints. `textContent` would copy them into
+ * visible block text (the hero headline stacks the string twice).
+ *
+ * @param {Node} node
+ * @returns {string}
+ */
+function textExcludingVisuallyHidden(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  if (node.nodeType !== Node.ELEMENT_NODE) return '';
+  if (node.classList.contains('visually-hidden')) return '';
+  return [...node.childNodes].map(textExcludingVisuallyHidden).join('');
+}
+
+/**
  * Returns trimmed text from an authored cell, or an empty string if missing.
+ * Ignores `.visually-hidden` hints such as "(opens in a new tab)".
  *
  * @param {Element} [cell] The value cell
  * @returns {string}
  */
 export function getCellText(cell) {
-  return cell?.textContent.trim() || '';
+  if (!cell) return '';
+  return textExcludingVisuallyHidden(cell).trim();
 }
 
 /**
