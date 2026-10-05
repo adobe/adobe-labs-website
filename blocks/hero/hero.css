@@ -191,8 +191,6 @@
     letter-spacing: var(--hero-letter-spacing);
     font-weight: var(--hero-font-weight);
     place-items: center;
-
-    /* Prevents long category text from overflowing into the date column. */
     min-inline-size: 0;
 
     @media (width >=48rem) {
