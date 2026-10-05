@@ -640,9 +640,6 @@ footer {
   }
 }
 
-/* ADBLABS-188: top actions (copy/download/feedback) are hidden across the
-   full mobile and tablet range, not just the narrow sub-375px breakpoint
-   above — they only reappear at desktop (64rem/1024px and up). */
 @media (width < 64rem) {
   .article-meta--top .article-meta__actions {
     display: none;
