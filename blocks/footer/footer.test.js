@@ -27,6 +27,8 @@ const FOOTER_FRAGMENT = `
     <div><div>
       <h2>Explore</h2>
       <p><a href="/research" title="Research">Research</a></p>
+      <p><a href="https://labs.adobe.com/research">Labs</a></p>
+      <p><a href="https://main--adobe-labs-website--adobe.aem.page/research">Preview</a></p>
       <p><a href="https://research.adobe.com/" target="_blank">Adobe Research</a></p>
     </div></div>
   </div>
@@ -146,6 +148,8 @@ describe('footer block', () => {
     expect(external.querySelector('.visually-hidden')).toHaveTextContent('(opens in a new tab)');
     expect(block.querySelectorAll('.footer__external-icon')).toHaveLength(1);
     expect(within(block).getByRole('link', { name: 'Research' }).querySelector('.footer__external-icon')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Labs' }).querySelector('.footer__external-icon')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Preview' }).querySelector('.footer__external-icon')).toBeNull();
     expect(within(block).getByRole('link', { name: 'Subscribe' }).querySelector('.footer__external-icon')).toBeNull();
   });
 

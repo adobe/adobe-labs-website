@@ -59,6 +59,146 @@ export function toSafeHttpUrl(value) {
   return '';
 }
 
+/** Published hosts. Authors paste these absolute URLs on preview and local. */
+const PRODUCTION_HOSTS = new Set(['labs.adobe.com', 'www.labs.adobe.com']);
+
+/**
+ * This project's preview and live hosts:
+ * `{ref}--adobe-labs-website--adobe.aem.page` and `.aem.live`.
+ */
+const AEM_HOST_SUFFIX = /--adobe-labs-website--adobe\.aem\.(?:page|live)$/;
+
+/** Screen-reader text appended when a link opens in a new tab. */
+const NEW_TAB_HINT = '(opens in a new tab)';
+
+/**
+ * Hostname without a trailing dot, lowercased.
+ * @param {string} hostname Host to normalize
+ * @returns {string}
+ */
+function normalizeHostname(hostname) {
+  return String(hostname || '').toLowerCase().replace(/\.$/, '');
+}
+
+/**
+ * Whether `hostname` is this site: the current host, labs.adobe.com, or an
+ * AEM preview/live host for this project.
+ * @param {string} hostname Hostname to test
+ * @returns {boolean}
+ */
+function isInternalHostname(hostname) {
+  const host = normalizeHostname(hostname);
+  if (!host) return false;
+  if (host === normalizeHostname(window.location.hostname)) return true;
+  if (PRODUCTION_HOSTS.has(host)) return true;
+  return AEM_HOST_SUFFIX.test(host);
+}
+
+/**
+ * Whether an anchor points at another website.
+ * Root-relative links, labs.adobe.com, and this project's `.aem.page` /
+ * `.aem.live` URLs are on-site. mailto, tel, and other non-http(s) links are not.
+ *
+ * @param {Element} link Anchor element
+ * @returns {boolean}
+ */
+export function isExternalLink(link) {
+  const href = link?.getAttribute?.('href');
+  if (!href) return false;
+  let url;
+  try {
+    url = new URL(href, window.location.href);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  return !isInternalHostname(url.hostname);
+}
+
+/**
+ * Keeps an existing `rel` and adds `noopener` and `noreferrer`.
+ * @param {Element} link Anchor element
+ * @returns {void}
+ */
+function setExternalRel(link) {
+  const tokens = (link.getAttribute('rel') || '').split(/\s+/).filter(Boolean);
+  ['noopener', 'noreferrer'].forEach((token) => {
+    if (!tokens.includes(token)) tokens.push(token);
+  });
+  link.setAttribute('rel', tokens.join(' '));
+}
+
+/**
+ * Tells assistive tech the link opens a new tab, without replacing an
+ * existing accessible name. Matches the footer social and menu links.
+ * @param {Element} link Anchor element
+ * @returns {void}
+ */
+function ensureNewTabHint(link) {
+  const ariaLabel = link.getAttribute('aria-label');
+  if (ariaLabel) {
+    if (!ariaLabel.includes(NEW_TAB_HINT)) {
+      link.setAttribute('aria-label', `${ariaLabel} ${NEW_TAB_HINT}`);
+    }
+    return;
+  }
+  const hinted = [...link.querySelectorAll('.visually-hidden')]
+    .some((node) => node.textContent.includes(NEW_TAB_HINT));
+  if (hinted) return;
+
+  const hint = document.createElement('span');
+  hint.className = 'visually-hidden';
+  hint.textContent = ` ${NEW_TAB_HINT}`;
+  link.append(hint);
+}
+
+/**
+ * Marks one external link so it opens in a new tab.
+ * @param {Element} link Anchor element
+ * @returns {void}
+ */
+export function markExternalLink(link) {
+  if (!isExternalLink(link)) return;
+  link.setAttribute('target', '_blank');
+  setExternalRel(link);
+  ensureNewTabHint(link);
+}
+
+/**
+ * Marks every external link under `root`.
+ * @param {ParentNode} [root=document] Tree to search
+ * @returns {void}
+ */
+export function markExternalLinks(root = document) {
+  root.querySelectorAll('a[href]').forEach(markExternalLink);
+}
+
+/** @type {MutationObserver|undefined} */
+let externalLinksObserver;
+
+/**
+ * Marks external links already in the document, and links added later
+ * (header, footer, fragments, blocks).
+ * @param {Document} [doc=document] Document to watch
+ * @returns {MutationObserver}
+ */
+export function watchExternalLinks(doc = document) {
+  const root = doc.body || doc.documentElement;
+  markExternalLinks(root);
+  externalLinksObserver?.disconnect();
+  externalLinksObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.matches('a[href]')) markExternalLink(node);
+        markExternalLinks(node);
+      });
+    });
+  });
+  externalLinksObserver.observe(root, { childList: true, subtree: true });
+  return externalLinksObserver;
+}
+
 /**
  * Builds a lookup of authored field names to their value cells.
  * Key/value block content is a table: each row is [label, value].
@@ -78,13 +218,30 @@ export function getAuthoredCells(block) {
 }
 
 /**
+ * Text of `node`, skipping `.visually-hidden` subtrees.
+ * Those nodes are screen-reader hints. `textContent` would copy them into
+ * visible block text (the hero headline stacks the string twice).
+ *
+ * @param {Node} node
+ * @returns {string}
+ */
+function textExcludingVisuallyHidden(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  if (node.nodeType !== Node.ELEMENT_NODE) return '';
+  if (node.classList.contains('visually-hidden')) return '';
+  return [...node.childNodes].map(textExcludingVisuallyHidden).join('');
+}
+
+/**
  * Returns trimmed text from an authored cell, or an empty string if missing.
+ * Ignores `.visually-hidden` hints such as "(opens in a new tab)".
  *
  * @param {Element} [cell] The value cell
  * @returns {string}
  */
 export function getCellText(cell) {
-  return cell?.textContent.trim() || '';
+  if (!cell) return '';
+  return textExcludingVisuallyHidden(cell).trim();
 }
 
 /**
