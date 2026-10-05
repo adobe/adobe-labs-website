@@ -1,8 +1,6 @@
 .hero {
   --hero-font-size: var(--s2a-typography-font-size-heading-4);
   --hero-line-height: var(--s2a-typography-line-height-heading-4);
-
-  /* Eyebrow/date stay heading-2 on full-screen hero; otherwise tied to headline size. */
   --hero-meta-font-size: var(--hero-font-size);
   --hero-meta-line-height: var(--hero-line-height);
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
@@ -120,7 +118,6 @@
     }
   }
 
-  /* Without a CTA, headline spans the full row below 31.25rem. */
   .hero__content:not(:has(.hero__cta-text)) .hero__copy {
     @media (width <31.25rem) {
       grid-area: bottom-left / bottom-left / bottom-right / bottom-right;
