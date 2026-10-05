@@ -121,7 +121,7 @@ describe('hero block', () => {
 
       const view = within(block);
       const eyebrowText = view.getByText('ResearchTest');
-      expect(eyebrowText).toHaveClass('hero__eyebrow-text');
+      expect(eyebrowText).toHaveClass('hero__category-label');
       const eyebrow = eyebrowText.closest('.hero__eyebrow');
       expect(eyebrow).toHaveAttribute('aria-hidden', 'true');
       const mark = eyebrow.querySelector('svg');
@@ -223,7 +223,7 @@ describe('hero block', () => {
 
     try {
       await decorate(block);
-      expect(within(block).getByText('Sneaks')).toHaveClass('hero__eyebrow-text');
+      expect(within(block).getByText('Sneaks')).toHaveClass('hero__category-label');
     } finally {
       main.remove();
       window.history.replaceState({}, '', '/');

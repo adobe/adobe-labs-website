@@ -171,10 +171,10 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (!showCategory) {
     eyebrow.remove();
   } else {
-    const eyebrowText = document.createElement('span');
-    eyebrowText.className = 'hero__eyebrow-text';
-    eyebrowText.textContent = category;
-    eyebrow.append(eyebrowText);
+    const categoryLabel = document.createElement('span');
+    categoryLabel.className = 'hero__category-label';
+    categoryLabel.textContent = category;
+    eyebrow.append(categoryLabel);
   }
 
   if (isVideo) {

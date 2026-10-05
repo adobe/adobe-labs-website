@@ -1,6 +1,11 @@
 .hero {
   --hero-font-size: var(--s2a-typography-font-size-heading-4);
   --hero-line-height: var(--s2a-typography-line-height-heading-4);
+
+  /* Eyebrow/date: heading-2 on full-screen hero (homepage, articles) at every
+     width; tied to the headline's own size everywhere else (see ADBLABS-211). */
+  --hero-meta-font-size: var(--hero-font-size);
+  --hero-meta-line-height: var(--hero-line-height);
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
   --hero-scrim-regular: rgb(0 0 0 / 42%);
@@ -188,8 +193,6 @@
     flex-flow: row nowrap;
     gap: var(--hero-category-circle-gap);
     color: var(--s2a-color-gray-25, #fff);
-    font-size: var(--hero-font-size);
-    line-height: var(--hero-line-height);
     letter-spacing: var(--hero-letter-spacing);
     font-weight: var(--hero-font-weight);
     place-items: center;
@@ -205,7 +208,7 @@
     svg {
       --hero-category-circle-size: clamp(
         0rem,
-        calc(var(--hero-font-size) * 0.825),
+        calc(var(--hero-meta-font-size) * 0.825),
         2.375rem
       );
 
@@ -215,7 +218,10 @@
     }
   }
 
-  .hero__eyebrow-text {
+  .hero__category-label {
+    color: var(--s2a-color-gray-25, #fff);
+    font-size: var(--hero-meta-font-size);
+    line-height: var(--hero-meta-line-height);
     min-inline-size: 0;
     overflow-wrap: break-word;
   }
@@ -276,6 +282,8 @@
     justify-self: end;
     max-inline-size: 9ch;
     color: var(--s2a-color-gray-25, #fff);
+    font-size: var(--hero-meta-font-size);
+    line-height: var(--hero-meta-line-height);
     text-align: end;
   }
 
@@ -290,6 +298,10 @@
 
   /* --- Full-Screen variant --- */
   &.hero-full-screen {
+    /* Eyebrow/date stay heading-2 at every width on homepage/article hero (see ADBLABS-211). */
+    --hero-meta-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-meta-line-height: var(--s2a-typography-line-height-heading-2);
+
     /* Figma's spacing differs from s2a tokens.
     Full-screen variant has custom vertical padding to account for overlapping content. */
     --hero-padding-block-start: 5.625rem;
