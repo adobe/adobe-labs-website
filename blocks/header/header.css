@@ -44,7 +44,10 @@
     max-inline-size: var(--site-max-inline-size);
     min-block-size: var(--header-bar-height);
     margin-inline: auto;
-    padding-block: var(--s2a-spacing-sm, 0.75rem);
+
+    /* Sized so the 2.75rem (44px) touch targets inside it fit without
+       overflowing `--header-bar-height`, matching the sticky wrapper's height. */
+    padding-block: calc((var(--header-bar-height) - 2.75rem - 0.0625rem) / 2);
     padding-inline: var(--s2a-spacing-lg, 1.5rem) var(--s2a-spacing-md, 1rem);
     border-radius: var(--header-radius);
     border-block-end: 1px solid var(--header-rule);
@@ -143,7 +146,6 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    margin-block: -0.125rem;
     margin-inline: 0;
     padding: 0;
     border: 0;

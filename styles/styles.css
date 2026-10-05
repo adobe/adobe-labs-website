@@ -1070,6 +1070,12 @@ main .section.grid-line-content-container {
   padding-block-end: 0;
 }
 
+@media (width < 48rem) {
+  main > .section:first-of-type:not([class*="section-rounded-"], .hero-container:has(.hero-full-screen)) {
+    padding-block-start: var(--s2a-spacing-md, 1rem);
+  }
+}
+
 body.research main {
   --section-space-between: var(--s2a-spacing-xl);
 
