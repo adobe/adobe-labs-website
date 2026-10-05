@@ -290,10 +290,6 @@
 
   /* --- Full-Screen variant --- */
   &.hero-full-screen {
-    /* Full-screen keeps the larger title at every width (see ADBLABS-211). */
-    --hero-font-size: var(--s2a-typography-font-size-heading-2);
-    --hero-line-height: var(--s2a-typography-line-height-heading-2);
-
     /* Figma's spacing differs from s2a tokens.
     Full-screen variant has custom vertical padding to account for overlapping content. */
     --hero-padding-block-start: 5.625rem;
