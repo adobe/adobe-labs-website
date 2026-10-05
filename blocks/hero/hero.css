@@ -218,7 +218,7 @@
     }
   }
 
-  .hero__category-label {
+  .hero__content-type {
     color: var(--s2a-color-gray-25, #fff);
     font-size: var(--hero-meta-font-size);
     line-height: var(--hero-meta-line-height);
