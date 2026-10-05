@@ -146,12 +146,14 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   template.innerHTML = `
     <div class="hero__media" aria-hidden="true"></div>
     <div class="hero__content">
-      <div class="hero__eyebrow" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
-          <circle cx="19" cy="19" r="19" fill="white"/>
-        </svg>
+      <div class="hero__top-row">
+        <div class="hero__eyebrow" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
+            <circle cx="19" cy="19" r="19" fill="white"/>
+          </svg>
+        </div>
+        <div class="hero__date" aria-hidden="true"></div>
       </div>
-      <div class="hero__date" aria-hidden="true"></div>
       <div class="hero__copy">
         <p class="hero__category"></p>
         <h2 class="hero__headline"><span class="hero__headline-stack"><span class="hero__headline-text"></span><span class="hero__headline-underline" aria-hidden="true"></span></span></h2>
@@ -180,7 +182,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (isVideo) {
     const { label, icon } = buildPlayIcon();
     const content = fragment.querySelector('.hero__content');
-    const insertBefore = content.querySelector('.hero__copy, .hero__date, .hero__cta-text');
+    const insertBefore = content.querySelector('.hero__top-row, .hero__copy, .hero__cta-text');
     content.insertBefore(label, insertBefore);
     content.insertBefore(icon, insertBefore);
   }
@@ -188,6 +190,9 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   const dateEl = fragment.querySelector('.hero__date');
   if (date) dateEl.textContent = date;
   else dateEl.remove();
+
+  const topRow = fragment.querySelector('.hero__top-row');
+  if (!topRow.querySelector('.hero__eyebrow, .hero__date')) topRow.remove();
 
   const pageCategoryEl = fragment.querySelector('.hero__category');
   if (pageCategory) pageCategoryEl.textContent = pageCategory;

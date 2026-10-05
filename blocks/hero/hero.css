@@ -77,7 +77,7 @@
     grid-template:
       "top-left top-right" min-content
       "bottom-left bottom-right" min-content
-      / minmax(0, 1fr) max-content;
+      / minmax(0, 1fr) minmax(0, max-content);
     column-gap: var(--s2a-spacing-xs);
     align-content: space-between;
     align-items: start;
@@ -180,18 +180,25 @@
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
   }
 
+  .hero__top-row {
+    grid-area: top-left / top-left / top-right / top-right;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--s2a-spacing-xs);
+  }
+
   .hero__eyebrow {
     --hero-category-circle-gap: var(--s2a-spacing-xs);
 
-    grid-area: top-left;
     display: flex;
     flex-flow: row nowrap;
+    flex-shrink: 0;
     gap: var(--hero-category-circle-gap);
     color: var(--s2a-color-gray-25, #fff);
     letter-spacing: var(--hero-letter-spacing);
     font-weight: var(--hero-font-weight);
     place-items: center;
-    min-inline-size: 0;
 
     @media (width >=48rem) {
       --hero-category-circle-gap: var(--s2a-spacing-sm);
@@ -214,7 +221,6 @@
     color: var(--s2a-color-gray-25, #fff);
     font-size: var(--hero-meta-font-size);
     line-height: var(--hero-meta-line-height);
-    min-inline-size: 0;
     overflow-wrap: break-word;
   }
 
@@ -270,9 +276,7 @@
 
   /* Date */
   .hero__date {
-    grid-area: top-right;
-    justify-self: end;
-    max-inline-size: 9ch;
+    margin-inline-start: auto;
     color: var(--s2a-color-gray-25, #fff);
     font-size: var(--hero-meta-font-size);
     line-height: var(--hero-meta-line-height);
