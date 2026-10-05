@@ -2,8 +2,7 @@
   --hero-font-size: var(--s2a-typography-font-size-heading-4);
   --hero-line-height: var(--s2a-typography-line-height-heading-4);
 
-  /* Eyebrow/date: heading-2 on full-screen hero (homepage, articles) at every
-     width; tied to the headline's own size everywhere else (see ADBLABS-211). */
+  /* Eyebrow/date stay heading-2 on full-screen hero; otherwise tied to headline size. */
   --hero-meta-font-size: var(--hero-font-size);
   --hero-meta-line-height: var(--hero-line-height);
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
@@ -121,8 +120,7 @@
     }
   }
 
-  /* Without a CTA sharing the row, the headline can use the full row width
-     below 31.25rem. With a CTA, spanning into bottom-right overlaps "Read". */
+  /* Without a CTA, headline spans the full row below 31.25rem. */
   .hero__content:not(:has(.hero__cta-text)) .hero__copy {
     @media (width <31.25rem) {
       grid-area: bottom-left / bottom-left / bottom-right / bottom-right;
@@ -197,8 +195,7 @@
     font-weight: var(--hero-font-weight);
     place-items: center;
 
-    /* Grid/flex items default to a content-based min-width; without this,
-       long category text overflows into the date column instead of wrapping. */
+    /* Prevents long category text from overflowing into the date column. */
     min-inline-size: 0;
 
     @media (width >=48rem) {
@@ -298,7 +295,6 @@
 
   /* --- Full-Screen variant --- */
   &.hero-full-screen {
-    /* Eyebrow/date stay heading-2 at every width on homepage/article hero (see ADBLABS-211). */
     --hero-meta-font-size: var(--s2a-typography-font-size-heading-2);
     --hero-meta-line-height: var(--s2a-typography-line-height-heading-2);
 
