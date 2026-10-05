@@ -1,6 +1,5 @@
 /**
  * Schema.org JSON-LD from published meta tags.
- * One script in head. No network. The visible page stays the same.
  */
 import { getMetadata, toClassName } from '../aem.js';
 import { getShareUrl, isArticleDetailPage, parseCardDate } from './utils.js';
@@ -19,9 +18,7 @@ function normalizeHostname(hostname) {
 }
 
 /**
- * Absolute http(s) image URL. A relative path on localhost or an AEM preview
- * host is resolved against https://labs.adobe.com. An authored absolute URL
- * stays as written.
+ * Absolute http(s) image URL.
  * @param {string} value
  * @param {string} baseHref
  * @returns {string}
@@ -61,7 +58,7 @@ function toIsoDate(value) {
 }
 
 /**
- * Adobe Labs on every indexable page.
+ * Set Organization node: Adobe Labs on every indexable page.
  * @returns {object}
  */
 function buildOrganization() {
@@ -105,7 +102,7 @@ function buildPeople(doc) {
 }
 
 /**
- * Article author: one person id, a list of person ids, or the Organization.
+ * Article author: one person id, a list of person ids, or the Organization id.
  * @param {object[]} people
  * @returns {object|object[]}
  */
