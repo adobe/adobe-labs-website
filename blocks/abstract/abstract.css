@@ -55,9 +55,10 @@
   .abstract__number {
     font-family: var(--heading-font-family);
     font-size: var(--s2a-typography-font-size-heading-6);
-    line-height: var(--s2a-typography-line-height-title-6, 1.125rem);
+    line-height: var(--s2a-typography-line-height-heading-6);
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
     flex-basis: var(--abstract-item-inline-size);
+    flex-shrink: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -80,6 +81,7 @@
 
   .abstract__item {
     display: flex;
+    align-items: baseline;
     gap: var(--s2a-spacing-2xs);
     padding-block: var(--s2a-spacing-lg);
     border-block-start: 1px solid var(--abstract-divider-color);
