@@ -385,7 +385,7 @@ Section Metadata (not shown in the modal):
 | subscription-name | AI Research |
 | sign-in | off |
 
-`email`, `mps-sname`, and `subscription-name` are required. `sign-in` set to `off` lets a visitor submit without an Adobe ID. That submit still needs an IMS guest token. Set page metadata `ims-client-id` to a client id that allows guest tokens. Until that id is set, a submit shows the error row.
+`email`, `mps-sname`, and `subscription-name` are required. `sign-in` set to `off` lets a visitor submit without an Adobe ID. That submit requests an IMS guest token with the `spectrumhub` client id.
 
 Consent text and the “required” / “valid email” messages are loaded from federal content. Authors do not write them. `subscription-name` is inserted into the consent sentence.
 

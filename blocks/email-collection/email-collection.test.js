@@ -1,9 +1,8 @@
 import { waitFor, within } from '@testing-library/dom';
-import { getMetadata } from '../../scripts/aem.js';
+import { loadScript } from '../../scripts/aem.js';
 import decorate from './email-collection.js';
 
 jest.mock('../../scripts/aem.js', () => ({
-  getMetadata: jest.fn(() => ''),
   loadScript: jest.fn(() => Promise.resolve()),
 }));
 
@@ -99,7 +98,6 @@ beforeEach(() => {
   document.body.innerHTML = '';
   window.history.pushState({}, '', '/');
   delete window.adobeIMS;
-  getMetadata.mockReturnValue('');
   mockFetch();
 });
 
@@ -159,7 +157,6 @@ describe('email-collection', () => {
   });
 
   it('posts a guest subscription and shows the success message', async () => {
-    getMetadata.mockReturnValue('labs-ims-client');
     window.adobeIMS = { getAccessToken: () => ({ token: 'guest-token' }) };
     const postBody = {};
     mockFetch({ postBody });
@@ -182,32 +179,66 @@ describe('email-collection', () => {
       mpsSname: 'adbe_ml_ai_research',
       consentId: 'cs4;ve1;en',
       isGuest: true,
-      appClientId: 'labs-ims-client',
+      appClientId: 'spectrumhub',
       countryCode: 'US',
     });
     expect(within(block).getByText('We’ve received your response.')).toBeVisible();
   });
 
-  it('shows the error message when the IMS client id is missing', async () => {
-    const block = createBlock();
+  it('posts when IMS issues a guest token during startup', async () => {
+    const postBody = {};
+    mockFetch({ postBody });
+    loadScript.mockImplementation(() => {
+      window.adobeIMS = { getAccessToken: () => ({ token: 'guest-token' }) };
+      window.adobeid.onAccessToken({ token: 'guest-token' });
+      window.adobeid.onReady();
+      return Promise.resolve();
+    });
+    const block = createBlock({ country: '' });
     await decorate(block);
 
     const email = within(block).getByRole('textbox', { name: /email address/i });
     email.value = 'ada@adobe.com';
-    within(block).getByRole('combobox', { name: /country/i }).value = 'US';
     email.closest('form').requestSubmit();
-    await Promise.resolve();
 
-    expect(block.querySelector('.email-collection__panel--error')).not.toHaveAttribute('hidden');
-    expect(within(block).getByText('Something went wrong')).toBeVisible();
-    const submit = block.querySelector('.email-collection__submit');
-    expect(submit.disabled).toBe(false);
-    expect(submit).not.toHaveAttribute('aria-busy');
-    expect(submit).not.toHaveAttribute('aria-disabled');
+    await waitFor(() => {
+      expect(block.querySelector('.email-collection__panel--success')).not.toHaveAttribute('hidden');
+    });
+    expect(window.adobeid.client_id).toBe('spectrumhub');
+    expect(window.adobeid.enableGuestBotDetection).toBe(true);
+    expect(window.adobeid.guestBotDetectionProvider).toBe('bfp');
+    expect(window.adobeid.api_parameters).toEqual({ check_token: { guest_allowed: true } });
+    expect(postBody.current.options.headers.Authorization).toBe('Bearer guest-token');
+  });
+
+  it('logs the IMS refusal when no guest token is issued', async () => {
+    const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+    loadScript.mockImplementation(() => {
+      window.adobeIMS = { getAccessToken: () => null };
+      window.adobeid.onAccessTokenHasExpired({ exception: new Error('access_denied') });
+      window.adobeid.onReady();
+      return Promise.resolve();
+    });
+    const block = createBlock({ country: '' });
+    await decorate(block);
+
+    const email = within(block).getByRole('textbox', { name: /email address/i });
+    email.value = 'ada@adobe.com';
+    email.closest('form').requestSubmit();
+
+    await waitFor(() => {
+      expect(block.querySelector('.email-collection__panel--error')).not.toHaveAttribute('hidden');
+    });
+    expect(errorLog).toHaveBeenCalledWith(
+      '[email-collection]',
+      'IMS refused a guest token',
+      expect.objectContaining({ message: 'access_denied', clientId: 'spectrumhub' }),
+    );
     expect(window.fetch).not.toHaveBeenCalledWith(
       expect.stringContaining('/form-submit'),
       expect.anything(),
     );
+    errorLog.mockRestore();
   });
 
   it('closes the dialog from Back to the website and returns to the form', async () => {

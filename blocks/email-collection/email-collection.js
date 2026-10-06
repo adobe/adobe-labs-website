@@ -3,10 +3,11 @@
  * plus section metadata (`email`, `mps-sname`, `subscription-name`, `sign-in`).
  * Consent copy and field errors come from federal content.
  */
-import { getMetadata, loadScript } from '../../scripts/aem.js';
+import { loadScript } from '../../scripts/aem.js';
 
 const FEDERAL_ROOT = 'https://main--federal--adobecom.aem.page/federal/email-collection';
 const IMS_LIB = 'https://auth.services.adobe.com/imslib/imslib.min.js';
+const IMS_CLIENT_ID = 'spectrumhub';
 const API = {
   stage: 'https://www.stage.adobe.com/milo-email-collection-api',
   prod: 'https://www.adobe.com/milo-email-collection-api',
@@ -32,6 +33,29 @@ function isNonProd() {
     || hostname.endsWith('.aem.live')
     || hostname.endsWith('.hlx.page')
     || hostname.endsWith('.hlx.live');
+}
+
+/**
+ * Submit diagnostics. Filter the console for `[email-collection]`.
+ * Never log the address or the bearer token.
+ * @param {string} step
+ * @param {unknown} [detail]
+ * @returns {void}
+ */
+function reportFailure(step, detail) {
+  if (detail === undefined) console.error('[email-collection]', step);
+  else console.error('[email-collection]', step, detail);
+}
+
+/**
+ * @param {string} step
+ * @param {unknown} [detail]
+ * @returns {void}
+ */
+function reportStep(step, detail) {
+  if (!isNonProd()) return;
+  if (detail === undefined) console.info('[email-collection]', step);
+  else console.info('[email-collection]', step, detail);
 }
 
 /**
@@ -109,7 +133,8 @@ function replaceWithButton(anchor, type) {
  * Section metadata is already on `section.dataset` when decorate runs.
  * @param {Element} block
  * @returns {{ fields: { email?: string, country?: string }, mpsSname: string,
- *   subscriptionName: string, signIn: string, consentId: string, runtimeEndpoint: string }}
+ *   subscriptionName: string, signIn: string, consentId: string,
+ *   runtimeEndpoint: string }}
  */
 function readConfig(block) {
   const data = block.closest('.section')?.dataset || {};
@@ -207,37 +232,184 @@ async function fetchCountries() {
  */
 
 /**
- * Loads Adobe IMS and resolves with a client that can mint a guest token.
- * @param {string} clientId IMS client id from page metadata `ims-client-id`
- * @returns {Promise<ImsGuestClient>}
+ * @param {unknown} value Token object from IMS, or a raw token string
+ * @returns {string}
+ */
+function accessTokenValue(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && 'token' in value) return value.token || '';
+  return '';
+}
+
+/**
+ * @param {ImsGuestClient|undefined} ims
+ * @returns {Promise<string>}
+ */
+function readStoredToken(ims) {
+  try {
+    const result = ims?.getAccessToken?.();
+    if (result && typeof result.then === 'function') {
+      return result.then(accessTokenValue).catch(() => '');
+    }
+    return Promise.resolve(accessTokenValue(result));
+  } catch {
+    return Promise.resolve('');
+  }
+}
+
+/**
+ * IMS wraps a failed guest `checkToken` as an expired-token exception.
+ * @param {unknown} error
+ * @returns {Record<string, unknown>}
+ */
+function imsErrorDetail(error) {
+  const source = error && typeof error === 'object' && 'exception' in error
+    ? error.exception
+    : error;
+  if (!source) return { message: 'no details' };
+  if (typeof source === 'string') return { message: source };
+  if (source instanceof Error) return { message: source.message };
+  if (typeof source === 'object') {
+    const { message, error: code, error_description: description, status, statusCode, data } = source;
+    return {
+      message: message || description || code,
+      status: status || statusCode,
+      error: code,
+      data: typeof data === 'string' ? data.slice(0, 300) : data,
+    };
+  }
+  return { message: String(source) };
+}
+
+/**
+ * Loads Adobe IMS and resolves with a guest access token.
+ * A guest token arrives in `onAccessToken` before `onReady`. If startup
+ * finishes without one, IMS already refused the client.
+ * @param {string} clientId IMS client id
+ * @returns {Promise<string>}
  */
 function loadImsGuest(clientId) {
-  if (window.adobeIMS?.getAccessToken) return Promise.resolve(window.adobeIMS);
+  const existing = window.adobeIMS;
+  if (existing?.getAccessToken) {
+    return readStoredToken(existing).then((token) => token || requestGuestToken(clientId));
+  }
+  return requestGuestToken(clientId);
+}
+
+/**
+ * @param {string} clientId
+ * @returns {Promise<string>}
+ */
+function requestGuestToken(clientId) {
   return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => reject(new Error('IMS timeout')), 8000);
+    let settled = false;
+    const timeout = window.setTimeout(() => {
+      reportFailure('IMS timed out before a guest token', {
+        clientId,
+        environment: isNonProd() ? 'stg1' : 'prod',
+      });
+      fail(new Error('IMS timeout'));
+    }, 8000);
+
+    /**
+     * @param {string} token
+     * @returns {void}
+     */
+    function succeed(token) {
+      if (settled || !token) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      resolve(token);
+    }
+
+    /**
+     * @param {Error} error
+     * @returns {void}
+     */
+    function fail(error) {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      reject(error);
+    }
+
+    const environment = isNonProd() ? 'stg1' : 'prod';
+    let refusal = null;
+
+    /**
+     * @param {unknown} [hint] Token from `onAccessToken`, if IMS passed one
+     * @returns {void}
+     */
+    function consider(hint) {
+      const hinted = accessTokenValue(hint);
+      if (hinted) {
+        reportStep('IMS onAccessToken', { token: true });
+        succeed(hinted);
+        return;
+      }
+      readStoredToken(window.adobeIMS).then((token) => {
+        if (token) {
+          reportStep('IMS onAccessToken', { token: true });
+          succeed(token);
+          return;
+        }
+        reportStep('IMS onAccessToken', { token: false });
+      });
+    }
+
     window.adobeid = {
       client_id: clientId,
       scope: 'AdobeID,openid',
       locale: 'en_US',
-      environment: isNonProd() ? 'stg1' : 'prod',
+      environment,
       useLocalStorage: false,
       autoValidateToken: true,
+      logsEnabled: isNonProd(),
       enableGuestAccounts: true,
       enableGuestTokenForceRefresh: true,
+      enableGuestBotDetection: true,
+      guestBotDetectionProvider: 'bfp',
       api_parameters: { check_token: { guest_allowed: true } },
-      onReady: () => {
-        window.clearTimeout(timeout);
-        if (window.adobeIMS) resolve(window.adobeIMS);
-        else reject(new Error('IMS unavailable'));
+      onAccessToken: consider,
+      onAccessTokenHasExpired: (error) => {
+        refusal = imsErrorDetail(error);
+        reportFailure('IMS refused a guest token', { clientId, environment, ...refusal });
       },
-      onError: () => {
-        window.clearTimeout(timeout);
-        reject(new Error('IMS error'));
+      onReady: () => {
+        if (!window.adobeIMS) {
+          reportFailure('IMS onReady without adobeIMS');
+          fail(new Error('IMS unavailable'));
+          return;
+        }
+        readStoredToken(window.adobeIMS).then((token) => {
+          if (token) {
+            reportStep('IMS onReady', { token: true });
+            succeed(token);
+            return;
+          }
+          if (!refusal) {
+            reportFailure('IMS onReady without a guest token', {
+              clientId,
+              environment,
+              hint: 'This client did not return a guest access token. It has to be onboarded for guest tokens in this IMS environment.',
+            });
+          }
+          fail(new Error('IMS did not return a guest token'));
+        });
+      },
+      onError: (...args) => {
+        reportFailure('IMS onError', args);
+        fail(new Error('IMS error'));
       },
     };
+    reportStep('loading IMS', {
+      clientId,
+      environment: window.adobeid.environment,
+    });
     loadScript(IMS_LIB).catch((error) => {
-      window.clearTimeout(timeout);
-      reject(error);
+      reportFailure('IMS script failed to load', error);
+      fail(error);
     });
   });
 }
@@ -490,17 +662,15 @@ function wireMessageLinks(panel, onClose, onShowForm) {
 /**
  * @param {ReturnType<typeof readConfig>} config
  * @param {string} consentId
- * @param {string} clientId
  * @param {HTMLFormElement} form
  * @returns {Promise<boolean>} True when the API accepts the submission
  */
-async function postSubscription(config, consentId, clientId, form) {
-  const ims = await loadImsGuest(clientId);
-  const tokenResult = ims.getAccessToken();
-  const token = (tokenResult && typeof tokenResult.then === 'function'
-    ? await tokenResult
-    : tokenResult)?.token || '';
-  if (!token) return false;
+async function postSubscription(config, consentId, form) {
+  const token = await loadImsGuest(IMS_CLIENT_ID);
+  if (!token) {
+    reportFailure('no guest token');
+    return false;
+  }
 
   const email = form.querySelector('input[name="email"]')?.value.trim() || '';
   const country = form.querySelector('select[name="country"]')?.value || '';
@@ -509,11 +679,18 @@ async function postSubscription(config, consentId, clientId, form) {
     mpsSname: config.mpsSname,
     consentId,
     isGuest: true,
-    appClientId: clientId,
+    appClientId: IMS_CLIENT_ID,
     ...(country && { countryCode: country }),
   };
   const base = (isNonProd() && config.runtimeEndpoint) || (isNonProd() ? API.stage : API.prod);
-  const resp = await fetch(`${base}/form-submit`, {
+  const endpoint = `${base}/form-submit`;
+  reportStep('POST', {
+    endpoint,
+    mpsSname: config.mpsSname,
+    consentId,
+    hasCountry: Boolean(country),
+  });
+  const resp = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -521,7 +698,17 @@ async function postSubscription(config, consentId, clientId, form) {
     },
     body: JSON.stringify(body),
   });
-  return resp.ok;
+  if (!resp.ok) {
+    const responseText = await resp.text().catch(() => '');
+    reportFailure('form-submit rejected', {
+      status: resp.status,
+      endpoint,
+      body: responseText.slice(0, 500),
+    });
+    return false;
+  }
+  reportStep('form-submit accepted', { status: resp.status });
+  return true;
 }
 
 /**
@@ -647,16 +834,16 @@ export default async function decorate(block) {
       return;
     }
 
-    const clientId = getMetadata('ims-client-id');
     submitting = true;
     status.textContent = 'Submitting';
     submitButton.setAttribute('aria-busy', 'true');
     submitButton.setAttribute('aria-disabled', 'true');
     try {
-      if (!clientId) throw new Error('Missing IMS client id');
-      const ok = await postSubscription(config, consent.consentId, clientId, form);
+      reportStep('submit', { clientId: IMS_CLIENT_ID, consentId: consent.consentId });
+      const ok = await postSubscription(config, consent.consentId, form);
       reveal(ok ? 'success' : 'error');
-    } catch {
+    } catch (error) {
+      reportFailure('submit failed', error);
       reveal('error');
     } finally {
       submitting = false;
