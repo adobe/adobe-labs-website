@@ -127,7 +127,7 @@ function getAuthoredPosterMedia(block, urlCell) {
  */
 export function getVideoData(block) {
   const cells = getAuthoredCells(block);
-  const urlCell = cells['youtube-url'];
+  const urlCell = cells['video-url'] ?? cells['youtube-url'];
   const href = getCellLinkHref(urlCell) || toSafeHttpUrl(getCellText(urlCell));
   const videoId = getYoutubeId(href);
   return {
@@ -347,7 +347,7 @@ function buildVideo(data, block) {
  */
 function discardBrokenBlock(block, href) {
   // eslint-disable-next-line no-console
-  console.log(`video: broken YouTube link${href ? ` (${href})` : ''}`);
+  console.warn(`Video block: contains a broken video link${href ? ` (${href})` : ''}. Skipped rendering of the block.`);
   const wrapper = block.parentElement;
   block.remove();
   if (wrapper?.classList.contains('video-wrapper') && !wrapper.children.length) {
