@@ -1,10 +1,6 @@
 /**
  * Cursor-driven chromatic aberration on hero and grid-item hover.
  *
- * The shader and easing model are ported from Randy Oest's CodePen demo,
- * which Clement approved for this effect — behavior is intentionally kept
- * close to that approval rather than redesigned.
- *
  * Mounts only on a fine pointer (never on touch/mobile) and only when a
  * WebGL context can be created, so unsupported browsers fall back to the
  * plain `<img>` with no effect at all (progressive enhancement). The real
