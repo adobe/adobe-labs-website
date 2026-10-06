@@ -18,7 +18,7 @@
 const FINE_POINTER_MQ = '(hover: hover) and (pointer: fine)';
 const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
 
-/** Matches the values Clement approved in the CodePen demo. */
+/** Matches the values tuned in the approved CodePen demo. */
 const SETTINGS = {
   strength: 180, // how far the colour fringe reaches
   size: 2.7, // width of the Gaussian falloff around the cursor
@@ -99,6 +99,8 @@ void main() {
 }`;
 
 /**
+ * Compiles one shader stage, throwing with the driver's log on failure.
+ *
  * @param {WebGLRenderingContext} gl
  * @param {number} type
  * @param {string} source
@@ -117,6 +119,9 @@ function compileShader(gl, type, source) {
 }
 
 /**
+ * Links the vertex and fragment shaders into one program, throwing with the
+ * driver's log on failure.
+ *
  * @param {WebGLRenderingContext} gl
  * @returns {WebGLProgram}
  */
@@ -136,7 +141,11 @@ function createProgram(gl) {
 /** Memoized: creating/discarding real WebGL contexts just to feature-test is not free. */
 let cachedWebglSupport;
 
-/** @returns {boolean} */
+/**
+ * Whether a WebGL context can actually be created on this device.
+ *
+ * @returns {boolean}
+ */
 function canCreateWebgl() {
   if (cachedWebglSupport !== undefined) return cachedWebglSupport;
   try {
@@ -166,7 +175,11 @@ export function resetWebglSupportCache() {
   cachedWebglSupport = undefined;
 }
 
-/** @returns {boolean} */
+/**
+ * Whether the user has asked for reduced motion.
+ *
+ * @returns {boolean}
+ */
 function prefersReducedMotion() {
   return typeof window.matchMedia === 'function'
     && window.matchMedia(REDUCED_MOTION_MQ).matches;
@@ -198,7 +211,11 @@ const liveInstances = new Set();
 let tickerRafId;
 let lastTickTime;
 
-/** @param {number} now */
+/**
+ * Advances every mounted instance by one frame, then reschedules itself.
+ *
+ * @param {number} now
+ */
 function runTicker(now) {
   const dt = lastTickTime === undefined ? 0 : Math.max(0, (now - lastTickTime) / 1000);
   lastTickTime = now;
@@ -206,7 +223,11 @@ function runTicker(now) {
   tickerRafId = window.requestAnimationFrame(runTicker);
 }
 
-/** @param {ChromaticHover} instance */
+/**
+ * Adds an instance to the shared ticker, starting it if it was idle.
+ *
+ * @param {ChromaticHover} instance
+ */
 function registerInstance(instance) {
   liveInstances.add(instance);
   if (!tickerRafId) {
@@ -215,7 +236,11 @@ function registerInstance(instance) {
   }
 }
 
-/** @param {ChromaticHover} instance */
+/**
+ * Removes an instance from the shared ticker, stopping it once empty.
+ *
+ * @param {ChromaticHover} instance
+ */
 function unregisterInstance(instance) {
   liveInstances.delete(instance);
   if (!liveInstances.size && tickerRafId) {
@@ -231,6 +256,8 @@ function unregisterInstance(instance) {
  */
 class ChromaticHover {
   /**
+   * Sets up initial state only; nothing is created until `mount` runs.
+   *
    * @param {Element} trigger Element that receives pointer/focus events
    *   (the whole clickable card, matching the existing hover/pressed CSS)
    * @param {HTMLImageElement} img Real image this crossfades over
@@ -265,7 +292,13 @@ class ChromaticHover {
     this.mountAsync();
   }
 
-  /** @returns {Promise<void>} */
+  /**
+   * Waits for the image, then creates the canvas, GL context, and texture.
+   * Bails cleanly if `unmount` runs before the image resolves, or if WebGL
+   * setup fails partway through.
+   *
+   * @returns {Promise<void>}
+   */
   async mountAsync() {
     const ready = await whenImageReady(this.img);
     // Scrolled back out of the intersection margin while the image loaded.
@@ -302,7 +335,12 @@ class ChromaticHover {
     registerInstance(this);
   }
 
-  /** @param {WebGLRenderingContext} gl */
+  /**
+   * Builds the program, geometry, and texture, and uploads the current
+   * `img` as the texture source.
+   *
+   * @param {WebGLRenderingContext} gl
+   */
   initGl(gl) {
     const program = createProgram(gl);
     gl.useProgram(program);
@@ -335,6 +373,7 @@ class ChromaticHover {
     gl.uniform1f(uniforms.uStep, SETTINGS.step);
   }
 
+  /** Wires pointer/focus listeners on `trigger` that drive the hover easing. */
   bindEvents() {
     this.abortController = new AbortController();
     const { signal } = this.abortController;
@@ -369,6 +408,7 @@ class ChromaticHover {
     }, { signal });
   }
 
+  /** Syncs the canvas backing size and the `uCanvasSize` uniform to `container`. */
   resize() {
     if (!this.gl || !this.canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
