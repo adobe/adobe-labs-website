@@ -16,7 +16,6 @@
  */
 
 const FINE_POINTER_MQ = '(hover: hover) and (pointer: fine)';
-const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
 
 /** Matches the values tuned in the approved CodePen demo. */
 const SETTINGS = {
@@ -182,7 +181,7 @@ export function resetWebglSupportCache() {
  */
 function prefersReducedMotion() {
   return typeof window.matchMedia === 'function'
-    && window.matchMedia(REDUCED_MOTION_MQ).matches;
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /**
