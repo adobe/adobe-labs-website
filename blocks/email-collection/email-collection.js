@@ -271,7 +271,14 @@ function imsErrorDetail(error) {
   if (typeof source === 'string') return { message: source };
   if (source instanceof Error) return { message: source.message };
   if (typeof source === 'object') {
-    const { message, error: code, error_description: description, status, statusCode, data } = source;
+    const {
+      message,
+      error: code,
+      error_description: description,
+      status,
+      statusCode,
+      data,
+    } = source;
     return {
       message: message || description || code,
       status: status || statusCode,
@@ -283,34 +290,13 @@ function imsErrorDetail(error) {
 }
 
 /**
- * Loads Adobe IMS and resolves with a guest access token.
- * A guest token arrives in `onAccessToken` before `onReady`. If startup
- * finishes without one, IMS already refused the client.
- * @param {string} clientId IMS client id
- * @returns {Promise<string>}
- */
-function loadImsGuest(clientId) {
-  const existing = window.adobeIMS;
-  if (existing?.getAccessToken) {
-    return readStoredToken(existing).then((token) => token || requestGuestToken(clientId));
-  }
-  return requestGuestToken(clientId);
-}
-
-/**
  * @param {string} clientId
  * @returns {Promise<string>}
  */
 function requestGuestToken(clientId) {
   return new Promise((resolve, reject) => {
     let settled = false;
-    const timeout = window.setTimeout(() => {
-      reportFailure('IMS timed out before a guest token', {
-        clientId,
-        environment: isNonProd() ? 'stg1' : 'prod',
-      });
-      fail(new Error('IMS timeout'));
-    }, 8000);
+    let timeout;
 
     /**
      * @param {string} token
@@ -333,6 +319,14 @@ function requestGuestToken(clientId) {
       window.clearTimeout(timeout);
       reject(error);
     }
+
+    timeout = window.setTimeout(() => {
+      reportFailure('IMS timed out before a guest token', {
+        clientId,
+        environment: isNonProd() ? 'stg1' : 'prod',
+      });
+      fail(new Error('IMS timeout'));
+    }, 8000);
 
     const environment = isNonProd() ? 'stg1' : 'prod';
     let refusal = null;
@@ -412,6 +406,21 @@ function requestGuestToken(clientId) {
       fail(error);
     });
   });
+}
+
+/**
+ * Loads Adobe IMS and resolves with a guest access token.
+ * A guest token arrives in `onAccessToken` before `onReady`. If startup
+ * finishes without one, IMS already refused the client.
+ * @param {string} clientId IMS client id
+ * @returns {Promise<string>}
+ */
+function loadImsGuest(clientId) {
+  const existing = window.adobeIMS;
+  if (existing?.getAccessToken) {
+    return readStoredToken(existing).then((token) => token || requestGuestToken(clientId));
+  }
+  return requestGuestToken(clientId);
 }
 
 /**
