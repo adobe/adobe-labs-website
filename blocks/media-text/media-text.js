@@ -1,10 +1,10 @@
-import { getAuthoredCells, getCellMedia, getCellText } from '../../scripts/utils/utils.js';
+import { getCellMedia, getCellText } from '../../scripts/utils/utils.js';
 
 /**
- * Element children of the Text cell, unchanged.
+ * Element children of a content cell, unchanged.
  * A cell with only text nodes becomes one paragraph.
  *
- * @param {Element} [cell] The Text value cell
+ * @param {Element} [cell] The content cell
  * @returns {Element[]}
  */
 function getContentElements(cell) {
@@ -23,23 +23,30 @@ function getContentElements(cell) {
  * Data used to decorate a media-text block.
  *
  * @typedef {object} MediaTextData
- * @property {Element|null} image `<picture>` or `<img>` from AEM
- * @property {string} [caption] Optional plain text under the image
+ * @property {Element|null} image `<picture>` or `<img>` from the image cell
+ * @property {string} [caption] Optional plain text in the image cell
  * @property {Element[]} content Authored text elements, tags unchanged
+ * @property {boolean} mediaRight True when the image cell is not the first cell
  */
 
 /**
- * Reads authored key/value rows from a media-text block.
+ * Reads the first authored row of a media-text block.
+ * The cell that contains a picture is the image. Its index sets the side.
  *
  * @param {Element} block The media-text block element
  * @returns {MediaTextData}
  */
 export function getMediaTextData(block) {
-  const cells = getAuthoredCells(block);
+  const cells = [...(block?.firstElementChild?.children || [])];
+  const mediaIndex = cells.findIndex((cell) => getCellMedia(cell));
+  const mediaCell = mediaIndex >= 0 ? cells[mediaIndex] : null;
+  const contentCell = cells.find((cell, index) => index !== mediaIndex);
+
   return {
-    image: getCellMedia(cells.image),
-    caption: getCellText(cells.caption),
-    content: getContentElements(cells.text),
+    image: getCellMedia(mediaCell),
+    caption: mediaCell ? getCellText(mediaCell) : '',
+    content: getContentElements(contentCell),
+    mediaRight: mediaIndex > 0,
   };
 }
 
@@ -75,7 +82,8 @@ export function buildMediaText(data = {}, root = document.createElement('div')) 
     content.append(...data.content);
   }
 
-  const mediaRight = root.classList.contains('media-right');
+  const mediaRight = Boolean(data.mediaRight);
+  root.classList.toggle('media-right', mediaRight);
   const parts = mediaRight ? [content, figure] : [figure, content];
   root.replaceChildren(...parts.filter(Boolean));
   return root;
