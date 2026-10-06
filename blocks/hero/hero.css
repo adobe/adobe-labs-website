@@ -39,6 +39,13 @@
     --hero-meta-line-height: var(--s2a-font-line-height-2xl);
   }
 
+  @media (width >64rem) {
+    --hero-font-size: var(--s2a-font-size-7xl);
+    --hero-line-height: var(--s2a-font-line-height-3xl);
+    --hero-meta-font-size: var(--s2a-font-size-7xl);
+    --hero-meta-line-height: var(--s2a-font-line-height-3xl);
+  }
+
   /* The inline link wraps the entire component,
      Entire component is clickable. */
   .hero__link-wrap {
@@ -187,6 +194,10 @@
     font-size: var(--s2a-typography-font-size-heading-6);
     line-height: var(--s2a-typography-line-height-heading-6);
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+
+    @media (width >64rem) {
+      font-size: var(--s2a-font-size-lg);
+    }
   }
 
   .hero__top-row {
@@ -309,6 +320,11 @@
     @media (width >48rem) and (width <64rem) {
       --hero-meta-font-size: var(--s2a-font-size-6xl);
       --hero-meta-line-height: var(--s2a-font-line-height-2xl);
+    }
+
+    @media (width >64rem) {
+      --hero-meta-font-size: var(--s2a-font-size-7xl);
+      --hero-meta-line-height: var(--s2a-font-line-height-3xl);
     }
 
     /* Figma's spacing differs from s2a tokens.
