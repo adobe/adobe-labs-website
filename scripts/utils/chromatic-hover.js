@@ -269,6 +269,14 @@ class ChromaticHover {
     this.mouse = [0.5, 0.5];
     this.targetMouse = [0.5, 0.5];
     this.dirty = true;
+
+    // Canvas opacity tracked separately from `hover` (which only drives the
+    // shader's distortion strength). Opacity snaps to 1 on enter and eases
+    // back to 0 on leave; `hover` always eases toward targetHover. Keeping
+    // them apart means a leave never has to read `hover`'s partway-ramped
+    // value — re-entering mid-fade-out can't leave opacity and hover out of
+    // step with each other, which is what caused a visible jump on re-hover.
+    this.opacity = 0;
   }
 
   /** Starts the async mount if idle; safe to call repeatedly. */
@@ -379,16 +387,17 @@ class ChromaticHover {
       // Snap in rather than crossfade: a fading canvas over the sharp real
       // <img> briefly shows two versions of the image at once (ghosting).
       // The shader's own distortion still eases in via uHover below.
+      // Always re-snapping (not just from a fully faded-out state) keeps
+      // this in sync with `opacity`, which a leave always eases down from
+      // exactly 1 — so re-entering mid-fade can't leave the two mismatched.
+      this.opacity = 1;
       this.canvas.style.opacity = '1';
+      this.dirty = true;
     }, { signal });
     this.trigger.addEventListener('pointermove', (event) => {
       this.targetMouse = toUv(event);
     }, { signal });
-    // Position freezes on leave; only the hover amount fades out. `dirty`
-    // guarantees at least one more tick even when hover and targetHover
-    // already match (a leave that lands before hover ever left 0, e.g. the
-    // cursor just passing over the card) — otherwise opacity would stay
-    // snapped at 1 forever with nothing left to ease it back down.
+    // Position freezes on leave; only opacity (and the distortion) fade out.
     this.trigger.addEventListener('pointerleave', () => {
       this.targetHover = 0;
       this.dirty = true;
@@ -397,7 +406,9 @@ class ChromaticHover {
       this.targetMouse = [0.5, 0.5];
       if (this.hover < 0.01) this.mouse = [0.5, 0.5];
       this.targetHover = 1;
+      this.opacity = 1;
       this.canvas.style.opacity = '1';
+      this.dirty = true;
     }, { signal });
     this.trigger.addEventListener('blur', () => {
       this.targetHover = 0;
@@ -448,8 +459,9 @@ class ChromaticHover {
     const dx = this.targetMouse[0] - this.mouse[0];
     const dy = this.targetMouse[1] - this.mouse[1];
     const dHover = this.targetHover - this.hover;
+    const leaving = this.targetHover < 0.5;
     const chasing = this.targetHover > 0.5 && (Math.abs(dx) > 1e-4 || Math.abs(dy) > 1e-4);
-    const busy = chasing || Math.abs(dHover) > 1e-4;
+    const busy = chasing || Math.abs(dHover) > 1e-4 || (leaving && this.opacity > 1e-4);
     if (!busy && !this.dirty) return;
 
     if (this.targetHover > 0.5) {
@@ -458,6 +470,14 @@ class ChromaticHover {
     }
     this.hover += dHover * hoverEase;
     if (Math.abs(this.targetHover - this.hover) < 1e-4) this.hover = this.targetHover;
+    // Opacity snaps to 1 on enter (see bindEvents) and only eases here on
+    // the way back out, independently of `hover` — so re-entering mid-fade
+    // can't leave opacity stuck wherever `hover` happened to be.
+    if (leaving && this.opacity > 0) {
+      this.opacity -= this.opacity * hoverEase;
+      if (this.opacity < 1e-4) this.opacity = 0;
+      this.canvas.style.opacity = String(this.opacity);
+    }
     this.dirty = false;
 
     const { gl } = this;
@@ -466,9 +486,6 @@ class ChromaticHover {
     gl.uniform2f(this.uniforms.uMouse, this.mouse[0], this.mouse[1]);
     gl.uniform1f(this.uniforms.uHover, this.hover);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    // Opacity already snapped to 1 on enter (see bindEvents); only the fade
-    // back out on leave tracks the eased value, so leaving still feels soft.
-    if (this.targetHover < 0.5) this.canvas.style.opacity = String(this.hover);
   }
 
   /** Tears down GL/canvas/listeners and frees the WebGL context slot. */
@@ -492,6 +509,7 @@ class ChromaticHover {
     this.canvas = null;
     this.hover = 0;
     this.targetHover = 0;
+    this.opacity = 0;
     this.dirty = true;
   }
 }

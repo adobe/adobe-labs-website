@@ -232,6 +232,47 @@ describe('initChromaticHover', () => {
       expect(Number(canvas.style.opacity)).toBeCloseTo(0, 2);
     });
 
+    it('re-entering mid-fade-out resnaps to opaque and still fades smoothly on the next leave', async () => {
+      const { trigger, container } = mountedCard();
+      const [observer] = observerInstances;
+      observer.callback([{ isIntersecting: true }]);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const canvas = container.querySelector('canvas');
+      const [resizeObserver] = global.ResizeObserver.mock.instances;
+      resizeObserver.callback();
+
+      trigger.dispatchEvent(new window.MouseEvent('pointerenter', { clientX: 10, clientY: 10 }));
+      trigger.dispatchEvent(new window.MouseEvent('pointerleave'));
+      // Let the fade-out run partway, so opacity is neither 1 nor 0 — this is
+      // the mid-fade state a fast re-hover used to desync from `hover`.
+      for (let i = 0; i < 6; i += 1) {
+        // eslint-disable-next-line no-await-in-loop -- easing needs successive frames
+        await new Promise((resolve) => { requestAnimationFrame(resolve); });
+      }
+      const midFade = Number(canvas.style.opacity);
+      expect(midFade).toBeGreaterThan(0);
+      expect(midFade).toBeLessThan(1);
+
+      // Re-entering mid-fade must resnap cleanly to 1, not leave it at
+      // whatever `hover` had drifted to.
+      trigger.dispatchEvent(new window.MouseEvent('pointerenter', { clientX: 12, clientY: 12 }));
+      expect(canvas.style.opacity).toBe('1');
+
+      // The very next leave must fade smoothly from 1, not jump down to a
+      // stale value — no frame should ever read back above 1.
+      trigger.dispatchEvent(new window.MouseEvent('pointerleave'));
+      let maxOpacitySeen = 0;
+      for (let i = 0; i < 40; i += 1) {
+        // eslint-disable-next-line no-await-in-loop -- easing needs successive frames
+        await new Promise((resolve) => { requestAnimationFrame(resolve); });
+        maxOpacitySeen = Math.max(maxOpacitySeen, Number(canvas.style.opacity));
+      }
+      expect(maxOpacitySeen).toBeLessThanOrEqual(1);
+      expect(Number(canvas.style.opacity)).toBeCloseTo(0, 2);
+    });
+
     it('tears down the canvas and loses the GL context when it leaves the viewport', async () => {
       const { container } = mountedCard();
       const [observer] = observerInstances;
