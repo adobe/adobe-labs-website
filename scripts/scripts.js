@@ -24,6 +24,7 @@ import {
   getMetadata,
 } from './aem.js';
 import {
+  addStructuredData,
   buildArticleAuthorMeta,
   buildArticleMetaActions,
   buildArticlePreFooter,
@@ -237,6 +238,7 @@ async function loadFonts() {
  */
 async function loadEager(doc) {
   document.documentElement.lang = 'en';
+  addStructuredData(doc);
   decorateDarkMode();
   decorateTemplateAndTheme();
   const main = doc.querySelector('main');
