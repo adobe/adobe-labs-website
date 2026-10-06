@@ -397,6 +397,13 @@
   background: var(--hero-scrim-regular);
 }
 
+.article .hero.hero-full-screen {
+  @media (width <=48rem) {
+    --hero-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-line-height: var(--s2a-typography-line-height-heading-2);
+  }
+}
+
 /* Full-screen hero at the top of the page sits under the sticky header.
    Must beat `main > .section:first-of-type { margin-top: 0 }` in styles.css. */
 main > .section.hero-container:first-of-type:has(.hero-full-screen),
