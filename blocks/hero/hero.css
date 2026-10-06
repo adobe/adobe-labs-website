@@ -23,7 +23,7 @@
   border-radius: var(--s2a-border-radius-xs);
   aspect-ratio: 3 / 2;
 
-  @media (width >375px) {
+  @media (width >23.4375rem) {
     --hero-font-size: var(--s2a-typography-font-size-heading-2);
     --hero-line-height: var(--s2a-typography-line-height-heading-2);
   }
