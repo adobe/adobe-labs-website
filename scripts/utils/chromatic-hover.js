@@ -1,5 +1,5 @@
 /**
- * Cursor-driven chromatic aberration on hero and grid-item hover (ADBLABS-182).
+ * Cursor-driven chromatic aberration on hero and grid-item hover.
  *
  * The shader and easing model are ported from Randy Oest's CodePen demo,
  * which Clement approved for this effect — behavior is intentionally kept

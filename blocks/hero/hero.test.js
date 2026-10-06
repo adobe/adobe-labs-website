@@ -348,7 +348,7 @@ describe('hero block', () => {
     }
   });
 
-  it('leaves the image as the only visual on a device without a fine pointer (ADBLABS-182)', async () => {
+  it('leaves the image as the only visual on a device without a fine pointer', async () => {
     const block = createHeroBlock([
       ['<a href="/research/example">Headline</a>'],
       ['<picture><img src="hero.jpg" alt="hero"></picture>'],

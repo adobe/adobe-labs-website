@@ -580,10 +580,9 @@ footer {
 }
 
 /* --- Chromatic hover ---
-   Decorative canvas crossfaded over the real <img> on hero/grid-item hover
-   (ADBLABS-182). Mounted by scripts/utils/chromatic-hover.js only on a fine
-   pointer with WebGL available; the <img> underneath is untouched and is
-   what shows when this canvas is absent or fully faded out. */
+   Decorative canvas crossfaded over the real <img> on hero/grid-item hover.
+   The <img> underneath is untouched and is what shows when this canvas is
+   absent or fully faded out. */
 .chromatic-hover-canvas {
   position: absolute;
   inset: 0;

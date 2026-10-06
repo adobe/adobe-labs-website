@@ -166,7 +166,7 @@ describe('grid-item block', () => {
     expect(block.querySelector('img')).toHaveAttribute('alt', 'original');
   });
 
-  it('leaves the image as the only visual on a device without a fine pointer (ADBLABS-182)', () => {
+  it('leaves the image as the only visual on a device without a fine pointer', () => {
     const block = createBlock({
       Title: 'Lab project',
       Image: PICTURE,
