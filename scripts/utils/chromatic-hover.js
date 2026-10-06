@@ -4,9 +4,9 @@
  * Mounts only on a fine pointer (never on touch/mobile) and only when a
  * WebGL context can be created, so unsupported browsers fall back to the
  * plain `<img>` with no effect at all (progressive enhancement). The real
- * `<img>` is never touched or replaced: a decorative canvas crossfades over
- * it on hover and fades back out, so alt text and the accessibility tree
- * stay exactly as the block already built them.
+ * `<img>` is never touched or replaced: a decorative canvas snaps on top of
+ * it on hover and fades back out on leave, so alt text and the accessibility
+ * tree stay exactly as the block already built them.
  *
  * A grid can hold many cards, and browsers cap how many WebGL contexts can
  * stay alive at once. Each card's canvas is created only while its image is
@@ -25,9 +25,6 @@ const SETTINGS = {
   follow: 0.2, // cursor chase per 60fps frame
   fade: 0.15, // hover in/out ease per 60fps frame
 };
-
-/** Reduced-motion still shows the effect, just dampened, matching the approved demo. */
-const REDUCED_MOTION_STRENGTH_SCALE = 0.35;
 
 const MAX_TAPS = 34;
 
@@ -158,13 +155,15 @@ function canCreateWebgl() {
 /**
  * Whether this device/browser should get the chromatic hover at all.
  * Fine-pointer gate covers both "no pointer" and "never on mobile" (AC);
- * the WebGL + IntersectionObserver checks are the browser-support AC.
+ * the WebGL + IntersectionObserver checks are the browser-support AC. Users
+ * who prefer reduced motion never get the effect, not even a dampened one.
  *
  * @returns {boolean}
  */
 export function supportsChromaticHover() {
   if (typeof window.matchMedia !== 'function') return false;
   if (!window.matchMedia(FINE_POINTER_MQ).matches) return false;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
   if (typeof IntersectionObserver !== 'function') return false;
   return canCreateWebgl();
 }
@@ -172,16 +171,6 @@ export function supportsChromaticHover() {
 /** Test-only: clears the memoized WebGL probe between test cases. */
 export function resetWebglSupportCache() {
   cachedWebglSupport = undefined;
-}
-
-/**
- * Whether the user has asked for reduced motion.
- *
- * @returns {boolean}
- */
-function prefersReducedMotion() {
-  return typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /**
@@ -275,8 +264,6 @@ class ChromaticHover {
     this.resizeObserver = null;
     this.abortController = null;
 
-    this.strength = SETTINGS.strength
-      * (prefersReducedMotion() ? REDUCED_MOTION_STRENGTH_SCALE : 1);
     this.hover = 0;
     this.targetHover = 0;
     this.mouse = [0.5, 0.5];
@@ -367,7 +354,7 @@ class ChromaticHover {
 
     gl.uniform1i(uniforms.uMap, 0);
     gl.uniform2f(uniforms.uImageSize, this.img.naturalWidth || 1, this.img.naturalHeight || 1);
-    gl.uniform1f(uniforms.uStrength, this.strength);
+    gl.uniform1f(uniforms.uStrength, SETTINGS.strength);
     gl.uniform1f(uniforms.uSize, SETTINGS.size);
     gl.uniform1f(uniforms.uStep, SETTINGS.step);
   }
@@ -389,6 +376,10 @@ class ChromaticHover {
       this.targetMouse = toUv(event);
       if (this.hover < 0.01) this.mouse = this.targetMouse.slice();
       this.targetHover = 1;
+      // Snap in rather than crossfade: a fading canvas over the sharp real
+      // <img> briefly shows two versions of the image at once (ghosting).
+      // The shader's own distortion still eases in via uHover below.
+      this.canvas.style.opacity = '1';
     }, { signal });
     this.trigger.addEventListener('pointermove', (event) => {
       this.targetMouse = toUv(event);
@@ -401,6 +392,7 @@ class ChromaticHover {
       this.targetMouse = [0.5, 0.5];
       if (this.hover < 0.01) this.mouse = [0.5, 0.5];
       this.targetHover = 1;
+      this.canvas.style.opacity = '1';
     }, { signal });
     this.trigger.addEventListener('blur', () => {
       this.targetHover = 0;
@@ -458,7 +450,9 @@ class ChromaticHover {
     gl.uniform2f(this.uniforms.uMouse, this.mouse[0], this.mouse[1]);
     gl.uniform1f(this.uniforms.uHover, this.hover);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    this.canvas.style.opacity = String(this.hover);
+    // Opacity already snapped to 1 on enter (see bindEvents); only the fade
+    // back out on leave tracks the eased value, so leaving still feels soft.
+    if (this.targetHover < 0.5) this.canvas.style.opacity = String(this.hover);
   }
 
   /** Tears down GL/canvas/listeners and frees the WebGL context slot. */

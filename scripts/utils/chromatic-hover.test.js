@@ -125,6 +125,15 @@ describe('supportsChromaticHover', () => {
 
     expect(supportsChromaticHover()).toBe(false);
   });
+
+  it('is false when the user prefers reduced motion, even with a fine pointer', () => {
+    window.matchMedia = jest.fn((query) => ({
+      matches: String(query).includes('pointer: fine') || String(query).includes('prefers-reduced-motion'),
+      media: query,
+    }));
+
+    expect(supportsChromaticHover()).toBe(false);
+  });
 });
 
 describe('initChromaticHover', () => {
@@ -197,7 +206,7 @@ describe('initChromaticHover', () => {
       expect(container.contains(img)).toBe(true);
     });
 
-    it('fades the canvas in on pointerenter and back out on pointerleave', async () => {
+    it('snaps the canvas to opaque immediately on pointerenter, then fades back out on pointerleave', async () => {
       const { trigger, container } = mountedCard();
       const [observer] = observerInstances;
       observer.callback([{ isIntersecting: true }]);
@@ -208,15 +217,12 @@ describe('initChromaticHover', () => {
       const [resizeObserver] = global.ResizeObserver.mock.instances;
       resizeObserver.callback();
 
+      // No crossfade on entry — a gradual opacity ramp here would briefly
+      // show the real <img> and the distorting canvas at once (ghosting).
       trigger.dispatchEvent(new window.MouseEvent('pointerenter', {
         clientX: 10, clientY: 10,
       }));
-      // Advance the shared ticker a few frames via its own rAF registration.
-      for (let i = 0; i < 20; i += 1) {
-        // eslint-disable-next-line no-await-in-loop -- easing needs successive frames
-        await new Promise((resolve) => { requestAnimationFrame(resolve); });
-      }
-      expect(Number(canvas.style.opacity)).toBeGreaterThan(0);
+      expect(canvas.style.opacity).toBe('1');
 
       trigger.dispatchEvent(new window.MouseEvent('pointerleave'));
       for (let i = 0; i < 40; i += 1) {
