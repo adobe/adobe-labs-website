@@ -384,9 +384,14 @@ class ChromaticHover {
     this.trigger.addEventListener('pointermove', (event) => {
       this.targetMouse = toUv(event);
     }, { signal });
-    // Position freezes on leave; only the hover amount fades out.
+    // Position freezes on leave; only the hover amount fades out. `dirty`
+    // guarantees at least one more tick even when hover and targetHover
+    // already match (a leave that lands before hover ever left 0, e.g. the
+    // cursor just passing over the card) — otherwise opacity would stay
+    // snapped at 1 forever with nothing left to ease it back down.
     this.trigger.addEventListener('pointerleave', () => {
       this.targetHover = 0;
+      this.dirty = true;
     }, { signal });
     this.trigger.addEventListener('focus', () => {
       this.targetMouse = [0.5, 0.5];
@@ -396,10 +401,20 @@ class ChromaticHover {
     }, { signal });
     this.trigger.addEventListener('blur', () => {
       this.targetHover = 0;
+      this.dirty = true;
     }, { signal });
   }
 
-  /** Syncs the canvas backing size and the `uCanvasSize` uniform to `container`. */
+  /**
+   * Syncs the canvas backing size and the `uCanvasSize` uniform to
+   * `container`, then redraws immediately. Reassigning `canvas.width`/
+   * `height` clears the WebGL drawing buffer (spec behavior, not a bug),
+   * so a container that keeps resizing — e.g. the hero's own load-in
+   * animation, which resizes `.hero__media` for ~2s — would otherwise
+   * leave the canvas blank for a frame on every single resize, racing the
+   * next tick() on the shared ticker and often losing, which reads as a
+   * sustained black flash rather than a one-frame blip.
+   */
   resize() {
     if (!this.gl || !this.canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -414,6 +429,7 @@ class ChromaticHover {
     }
     this.gl.uniform2f(this.uniforms.uCanvasSize, Math.max(cw, 1), Math.max(ch, 1));
     this.dirty = true;
+    this.tick(0);
   }
 
   /**
