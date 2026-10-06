@@ -30,6 +30,13 @@
     aspect-ratio: 2 / 1;
   }
 
+  @media (width >48rem) and (width <64rem) {
+    --hero-font-size: var(--s2a-font-size-6xl);
+    --hero-line-height: var(--s2a-font-line-height-2xl);
+    --hero-meta-font-size: var(--s2a-font-size-6xl);
+    --hero-meta-line-height: var(--s2a-font-line-height-2xl);
+  }
+
   /* The inline link wraps the entire component,
      Entire component is clickable. */
   .hero__link-wrap {
@@ -296,6 +303,11 @@
   &.hero-full-screen {
     --hero-meta-font-size: var(--s2a-typography-font-size-heading-2);
     --hero-meta-line-height: var(--s2a-typography-line-height-heading-2);
+
+    @media (width >48rem) and (width <64rem) {
+      --hero-meta-font-size: var(--s2a-font-size-6xl);
+      --hero-meta-line-height: var(--s2a-font-line-height-2xl);
+    }
 
     /* Figma's spacing differs from s2a tokens.
     Full-screen variant has custom vertical padding to account for overlapping content. */
