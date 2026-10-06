@@ -28,7 +28,7 @@
   "devDependencies": {
     "@babel/core": "7.29.7",
     "@babel/eslint-parser": "7.29.9",
-    "@contentauth/c2pa-web": "0.15.1",
+    "@contentauth/c2pa-web": "0.15.3",
     "@babel/preset-env": "7.29.7",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "7.0.1",
