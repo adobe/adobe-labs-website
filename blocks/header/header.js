@@ -702,13 +702,25 @@ function syncViewport(block) {
  * scrolled past the nav still counts as “under it”. Otherwise inverse returns
  * on long pages and knockout type vanishes on a light surface.
  *
+ * Pages with no full-screen hero have no transparent overlay. The drop shadow
+ * (`header--scrolled`) stays off while the page is still at the top, and turns
+ * on once scroll leaves 0. A load that restores a scrolled position counts.
+ *
  * @param {Element} block Header block
  * @param {AbortSignal} signal Listener abort signal
  * @returns {void}
  */
 function bindOverlayChrome(block, signal) {
   const hero = firstSectionFullScreenHero();
-  if (!hero || typeof IntersectionObserver !== 'function') return;
+  if (!hero) {
+    const syncScrolled = () => {
+      block.classList.toggle('header--scrolled', window.scrollY > 0);
+    };
+    syncScrolled();
+    window.addEventListener('scroll', syncScrolled, { passive: true, signal });
+    return;
+  }
+  if (typeof IntersectionObserver !== 'function') return;
 
   const next = sectionAfterHero(hero);
   let heroUnderNav = true;
