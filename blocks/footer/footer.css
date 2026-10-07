@@ -15,6 +15,10 @@
   z-index: 0;
 }
 
+.footer:has(.footer__skip:focus-visible) {
+  z-index: 2;
+}
+
 /* Article pages append a visually-hidden <output> after the last section, so
    :last-child never sees the rounded card and the hero shows through its
    end radius. Match the last section instead. */
