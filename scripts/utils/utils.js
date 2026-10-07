@@ -480,10 +480,11 @@ const copyRevertTimers = new WeakMap();
  * Whether a page is an article detail.
  * True when bulk or page-level `template` metadata includes `article`.
  *
+ * @param {Document} [doc]
  * @returns {boolean}
  */
-export function isArticleDetailPage() {
-  const templates = getMetadata('template')
+export function isArticleDetailPage(doc = document) {
+  const templates = getMetadata('template', doc)
     .split(',')
     .map((value) => toClassName(value.trim()))
     .filter(Boolean);
@@ -1681,6 +1682,51 @@ function buildArticleGraph(doc) {
   article.author = authorReference(people);
 
   return [...people, article];
+}
+
+/**
+ * Root-relative path of this page's markdown twin.
+ * Directory URLs map to `index.md` (`/` → `/index.md`), which is how Edge
+ * Delivery serves the markdown source. Extension URLs (`.plain.html` and
+ * similar) are not public pages and return an empty string.
+ *
+ * @param {string} pathname
+ * @returns {string}
+ */
+export function markdownAlternatePath(pathname) {
+  if (!pathname || pathname.endsWith('.md')) return pathname || '';
+  if (pathname.endsWith('/')) return `${pathname}index.md`;
+  const last = pathname.slice(pathname.lastIndexOf('/') + 1);
+  if (last.includes('.')) return '';
+  return `${pathname}.md`;
+}
+
+/**
+ * Points article pages at their markdown twin with
+ * `<link rel="alternate" type="text/markdown">`.
+ *
+ * Listing pages are skipped: their markdown omits query-index content such
+ * as the article cards. An existing markdown alternate is left in place.
+ * `rel="canonical"` is not touched; the HTML pipeline already emits a
+ * self-reference, and this link uses a different relation.
+ *
+ * @param {Document} [doc]
+ * @returns {void}
+ */
+export function addMarkdownAlternate(doc = document) {
+  const { head } = doc;
+  if (!head || !isArticleDetailPage(doc)) return;
+  if (head.querySelector('link[rel="alternate"][type="text/markdown"]')) return;
+
+  const pathname = doc.defaultView?.location?.pathname || '';
+  const href = markdownAlternatePath(pathname);
+  if (!href) return;
+
+  const link = doc.createElement('link');
+  link.rel = 'alternate';
+  link.type = 'text/markdown';
+  link.href = href;
+  head.append(link);
 }
 
 /**
