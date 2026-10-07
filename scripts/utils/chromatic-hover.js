@@ -269,14 +269,8 @@ class ChromaticHover {
     this.mouse = [0.5, 0.5];
     this.targetMouse = [0.5, 0.5];
     this.dirty = true;
-
-    // Canvas opacity tracked separately from `hover` (which only drives the
-    // shader's distortion strength). Opacity snaps to 1 on enter and eases
-    // back to 0 on leave; `hover` always eases toward targetHover. Keeping
-    // them apart means a leave never has to read `hover`'s partway-ramped
-    // value — re-entering mid-fade-out can't leave opacity and hover out of
-    // step with each other, which is what caused a visible jump on re-hover.
     this.opacity = 0;
+    this.undistortedHeld = false;
   }
 
   /** Starts the async mount if idle; safe to call repeatedly. */
@@ -384,20 +378,14 @@ class ChromaticHover {
       this.targetMouse = toUv(event);
       if (this.hover < 0.01) this.mouse = this.targetMouse.slice();
       this.targetHover = 1;
-      // Snap in rather than crossfade: a fading canvas over the sharp real
-      // <img> briefly shows two versions of the image at once (ghosting).
-      // The shader's own distortion still eases in via uHover below.
-      // Always re-snapping (not just from a fully faded-out state) keeps
-      // this in sync with `opacity`, which a leave always eases down from
-      // exactly 1 — so re-entering mid-fade can't leave the two mismatched.
       this.opacity = 1;
+      this.undistortedHeld = false;
       this.canvas.style.opacity = '1';
       this.dirty = true;
     }, { signal });
     this.trigger.addEventListener('pointermove', (event) => {
       this.targetMouse = toUv(event);
     }, { signal });
-    // Position freezes on leave; only opacity (and the distortion) fade out.
     this.trigger.addEventListener('pointerleave', () => {
       this.targetHover = 0;
       this.dirty = true;
@@ -407,6 +395,7 @@ class ChromaticHover {
       if (this.hover < 0.01) this.mouse = [0.5, 0.5];
       this.targetHover = 1;
       this.opacity = 1;
+      this.undistortedHeld = false;
       this.canvas.style.opacity = '1';
       this.dirty = true;
     }, { signal });
@@ -470,13 +459,19 @@ class ChromaticHover {
     }
     this.hover += dHover * hoverEase;
     if (Math.abs(this.targetHover - this.hover) < 1e-4) this.hover = this.targetHover;
-    // Opacity snaps to 1 on enter (see bindEvents) and only eases here on
-    // the way back out, independently of `hover` — so re-entering mid-fade
-    // can't leave opacity stuck wherever `hover` happened to be.
-    if (leaving && this.opacity > 0) {
-      this.opacity -= this.opacity * hoverEase;
-      if (this.opacity < 1e-4) this.opacity = 0;
-      this.canvas.style.opacity = String(this.opacity);
+    if (this.targetHover > 0.5) {
+      this.undistortedHeld = false;
+    } else if (this.opacity > 0 || this.undistortedHeld) {
+      const distortionGone = this.hover <= 1e-4;
+      if (!distortionGone || !this.undistortedHeld) {
+        this.undistortedHeld = distortionGone;
+        this.opacity = 1;
+        this.canvas.style.opacity = '1';
+      } else if (this.opacity > 0) {
+        this.opacity -= this.opacity * hoverEase;
+        if (this.opacity < 1e-4) this.opacity = 0;
+        this.canvas.style.opacity = String(this.opacity);
+      }
     }
     this.dirty = false;
 
@@ -510,6 +505,7 @@ class ChromaticHover {
     this.hover = 0;
     this.targetHover = 0;
     this.opacity = 0;
+    this.undistortedHeld = false;
     this.dirty = true;
   }
 }
