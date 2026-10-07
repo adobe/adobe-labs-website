@@ -60,6 +60,17 @@ describe('video block', () => {
     expect(status).toHaveAttribute('aria-atomic', 'true');
   });
 
+  it('leaves an authored size variant class untouched', () => {
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+    });
+    block.classList.add('lg');
+
+    decorate(block);
+
+    expect(block).toHaveClass('video', 'lg');
+  });
+
   it('extracts an ID from a youtu.be URL', () => {
     const block = createBlock({
       'YouTube URL': youtubeLink(`https://youtu.be/${VIDEO_ID}`),
