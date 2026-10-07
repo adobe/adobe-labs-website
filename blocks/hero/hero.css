@@ -39,9 +39,6 @@
       outline-offset: var(--s2a-border-width-md);
     }
 
-    /* No hover darkening: a dark overlay here would compete with the
-       chromatic hover effect, which should read as clearly as possible.
-       The press state is unaffected. */
     &:active .hero__media::after {
       background-color: var(--hero-scrim-pressed);
     }

@@ -17,7 +17,6 @@
 
 const FINE_POINTER_MQ = '(hover: hover) and (pointer: fine)';
 
-/** Matches the values tuned in the approved CodePen demo. */
 const SETTINGS = {
   strength: 180, // how far the colour fringe reaches
   size: 2.7, // width of the Gaussian falloff around the cursor
