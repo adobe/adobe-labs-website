@@ -429,8 +429,10 @@ function bindIntroScroll() {
 }
 
 /**
- * On Safari and on all browsers on iPhones, the frost SVG filter uses a lot of processing power (it runs on the CPU, not the graphics card).
- * To avoid slowing down these devices, we don't use the filter on them. The filter is only used on desktop Chrome and Firefox.
+ * On Safari and on all browsers on iPhones, the frost SVG filter
+ * uses a lot of processing power (it runs on the CPU).
+ * To avoid slowing down these devices, we don't use the filter
+ * on them. The filter is only used on desktop Chrome and Firefox.
  *
  * @returns {boolean}
  */
