@@ -9,7 +9,12 @@ import {
 
 const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const YOUTUBE_POSTER_PLACEHOLDER_WIDTH = 120;
-const DEFAULT_PLAY_LABEL = 'Play YouTube video';
+const ADOBE_VIDEO_ORIGIN = 'https://video.tv.adobe.com';
+const ADOBE_VIDEO_HOST = 'video.tv.adobe.com';
+const ADOBE_POSTER_HOST = 'images-tv.adobe.com';
+/** Numeric ID with an optional registered tracking suffix, e.g. 3477418t1. */
+const ADOBE_VIDEO_PATH_REGEX = /^\/v\/(\d+(?:t\d+)?)(?:\/|$)/;
+const DEFAULT_PLAY_LABEL = 'Play video';
 const TRANSCRIPT_LABEL = 'View transcript';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -46,6 +51,41 @@ export function getYoutubeId(href) {
 }
 
 /**
+ * Extracts an Adobe Video Publishing Cloud ID from a video.tv.adobe.com URL.
+ * Supports /v/{id}, /v/{id}/, extra path segments, query strings, and the
+ * t{n} tracking suffix, which is kept because it is part of a valid embed URL.
+ *
+ * @param {string} href Candidate URL
+ * @returns {string} Video ID such as `3503885` or `3477418t1`, or an empty string
+ */
+export function getAdobeVideoId(href) {
+  if (!href) return '';
+  try {
+    const url = new URL(href);
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    if (url.hostname.toLowerCase() !== ADOBE_VIDEO_HOST) return '';
+    return url.pathname.match(ADOBE_VIDEO_PATH_REGEX)?.[1] || '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Identifies the video provider and ID for an authored URL.
+ *
+ * @param {string} href Candidate URL
+ * @returns {{ provider: 'youtube'|'adobe', id: string, params: URLSearchParams }|null}
+ * Provider, video ID, and the author's query params; null when unsupported
+ */
+export function getVideoSource(href) {
+  const youtubeId = getYoutubeId(href);
+  if (youtubeId) return { provider: 'youtube', id: youtubeId, params: new URLSearchParams() };
+  const adobeId = getAdobeVideoId(href);
+  if (adobeId) return { provider: 'adobe', id: adobeId, params: new URL(href).searchParams };
+  return null;
+}
+
+/**
  * Whether the URL cell has human link text rather than the raw URL.
  *
  * @param {Element} [urlCell] YouTube URL value cell
@@ -60,14 +100,14 @@ function hasCustomLinkText(urlCell) {
 /**
  * Accessible play-control name from the authored URL cell.
  * Uses custom link text when it is not the raw URL; otherwise includes the
- * video ID until the YouTube title is fetched.
+ * video ID until the oEmbed title is fetched.
  *
- * @param {Element} [urlCell] YouTube URL value cell
- * @param {string} videoId YouTube video ID
+ * @param {Element} [urlCell] Video URL value cell
+ * @param {string} videoId Video ID
  * @returns {string}
  */
 function getPlayLabel(urlCell, videoId) {
-  if (hasCustomLinkText(urlCell)) return `Play ${getCellText(urlCell)}`;
+  if (hasCustomLinkText(urlCell)) return `Play video: ${getCellText(urlCell)}`;
   return videoId ? `${DEFAULT_PLAY_LABEL} ${videoId}` : DEFAULT_PLAY_LABEL;
 }
 
@@ -78,18 +118,7 @@ function getPlayLabel(urlCell, videoId) {
  * @returns {string}
  */
 function getPlayerTitle(playLabel) {
-  return playLabel.replace(/^Play\s+/i, '').trim() || 'YouTube video';
-}
-
-/**
- * Whether motion should be reduced. Unknown or unsupported preference is
- * treated as reduced until `prefers-reduced-motion: no-preference` matches.
- *
- * @returns {boolean}
- */
-function prefersReducedMotion() {
-  if (typeof window.matchMedia !== 'function') return true;
-  return !window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+  return playLabel.replace(/^Play\s+(?:video:\s+)?/i, '').trim() || 'video';
 }
 
 /**
@@ -122,18 +151,19 @@ function getAuthoredPosterMedia(block, urlCell) {
  * Reads authored key/value rows from a video block.
  *
  * @param {Element} block The block element
- * @returns {object} Authored href, video ID, play label, custom-label flag,
- * poster media, and transcript cell
+ * @returns {object} Authored href, video source and ID, play label,
+ * custom-label flag, poster media, and transcript cell
  */
 export function getVideoData(block) {
   const cells = getAuthoredCells(block);
-  const urlCell = cells['youtube-url'];
+  const urlCell = cells['video-url'] ?? cells['youtube-url'];
   const href = getCellLinkHref(urlCell) || toSafeHttpUrl(getCellText(urlCell));
-  const videoId = getYoutubeId(href);
+  const source = getVideoSource(href);
   return {
     href,
-    videoId,
-    playLabel: getPlayLabel(urlCell, videoId),
+    source,
+    videoId: source?.id || '',
+    playLabel: getPlayLabel(urlCell, source?.id),
     hasCustomPlayLabel: hasCustomLinkText(urlCell),
     posterMedia: getAuthoredPosterMedia(block, urlCell),
     transcriptCell: cells.transcript,
@@ -222,24 +252,97 @@ function buildYoutubePoster(videoId) {
 }
 
 /**
- * Fetches the public YouTube title via oEmbed. Returns an empty string on
- * network or payload failure so the play control keeps its fallback name.
+ * Adobe Video Publishing Cloud poster. The `format=jpeg` frame is small, so it
+ * is shown first and upgraded from oEmbed `thumbnail_url` when available.
  *
- * @param {string} videoId YouTube video ID
- * @returns {Promise<string>}
+ * @param {string} videoId Adobe video ID
+ * @returns {HTMLImageElement}
  */
-async function fetchYoutubeTitle(videoId) {
-  const url = new URL('https://www.youtube.com/oembed');
-  url.searchParams.set('format', 'json');
-  url.searchParams.set('url', `https://www.youtube.com/watch?v=${videoId}`);
+function buildAdobePoster(videoId) {
+  const img = document.createElement('img');
+  img.src = `${ADOBE_VIDEO_ORIGIN}/v/${encodeURIComponent(videoId)}?format=jpeg`;
+  img.alt = '';
+  img.width = 1280;
+  img.height = 720;
+  img.decoding = 'async';
+  img.loading = 'lazy';
+  return img;
+}
+
+/**
+ * Adobe oEmbed thumbnail URL, only when it is an https image on the Adobe
+ * video image CDN.
+ *
+ * @param {unknown} value Candidate thumbnail URL from oEmbed
+ * @returns {string}
+ */
+function getAdobeThumbnailUrl(value) {
+  if (typeof value !== 'string') return '';
   try {
-    const resp = await window.fetch(url);
-    if (!resp.ok) return '';
-    const payload = await resp.json();
-    if (typeof payload.title !== 'string') return '';
-    return payload.title.replace(/\s+/g, ' ').trim();
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === ADOBE_POSTER_HOST ? url.href : '';
   } catch {
     return '';
+  }
+}
+
+/**
+ * Per-provider poster, oEmbed endpoint, and iframe settings.
+ */
+const PROVIDERS = {
+  youtube: {
+    buildPoster: buildYoutubePoster,
+    oembedUrl(id) {
+      const url = new URL('https://www.youtube.com/oembed');
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('url', `https://www.youtube.com/watch?v=${id}`);
+      return url;
+    },
+    embedSrc(id) {
+      const params = new URLSearchParams({ rel: '0', cc_load_policy: '1', autoplay: '1' });
+      return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?${params}`;
+    },
+    allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen',
+  },
+  adobe: {
+    buildPoster: buildAdobePoster,
+    oembedUrl(id) {
+      const url = new URL(`${ADOBE_VIDEO_ORIGIN}/oembed`);
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('url', `${ADOBE_VIDEO_ORIGIN}/v/${id}/`);
+      return url;
+    },
+    embedSrc(id, authorParams) {
+      // Keep authored player options (e.g. t, learn); always autoplay after the poster click.
+      const params = new URLSearchParams(authorParams);
+      if (!params.has('hidetitle')) params.set('hidetitle', '1');
+      if (!params.has('captions')) params.set('captions', '1');
+      params.set('autoplay', '1');
+      return `${ADOBE_VIDEO_ORIGIN}/v/${encodeURIComponent(id)}/?${params}`;
+    },
+    allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen',
+  },
+};
+
+/**
+ * Fetches public oEmbed metadata. Returns empty fields on network or payload
+ * failure so the play control and poster keep their fallbacks.
+ *
+ * @param {URL} url oEmbed endpoint URL
+ * @returns {Promise<{ title: string, thumbnailUrl: unknown }>}
+ */
+async function fetchOembed(url) {
+  const empty = { title: '', thumbnailUrl: '' };
+  try {
+    const resp = await window.fetch(url);
+    if (!resp.ok) return empty;
+    const payload = await resp.json();
+    return {
+      title: typeof payload.title === 'string' ? payload.title.replace(/\s+/g, ' ').trim() : '',
+      thumbnailUrl: payload.thumbnail_url,
+    };
+  } catch {
+    return empty;
   }
 }
 
@@ -258,30 +361,30 @@ function buildStatus() {
 }
 
 /**
- * Replaces the poster with a privacy-enhanced YouTube iframe and focuses it.
- * Only the stage is replaced so a transcript disclosure stays in the block.
+ * Replaces the poster with the provider's iframe (privacy-enhanced for
+ * YouTube) and focuses it. Only the stage is replaced so a transcript
+ * disclosure stays in the block.
  *
  * @param {Element} block The video block
- * @param {{ videoId: string, playLabel: string }} data
+ * @param {{ source: object, playLabel: string }} data
  */
-function loadEmbed(block, { videoId, playLabel }) {
-  const playerTitle = getPlayerTitle(playLabel);
-  const autoplay = !prefersReducedMotion();
-  const params = new URLSearchParams({ rel: '0', cc_load_policy: '1' });
-  if (autoplay) params.set('autoplay', '1');
+function loadEmbed(block, { source, playLabel }) {
+  const provider = PROVIDERS[source.provider];
 
   const player = document.createElement('div');
   player.className = 'video__player';
 
+  // Provider-specific player iframe.
   const iframe = document.createElement('iframe');
-  iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?${params}`;
-  iframe.title = playerTitle;
-  iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-  iframe.setAttribute('allowfullscreen', '');
+  iframe.src = provider.embedSrc(source.id, source.params);
+  iframe.title = getPlayerTitle(playLabel);
+  iframe.allow = provider.allow;
 
+  // Announce the load to screen readers.
   const status = block.querySelector('[role="status"]') || buildStatus();
   status.textContent = 'Video player loaded';
 
+  // Swap the poster for the player, keeping the transcript in place.
   player.append(iframe);
   const stage = block.querySelector('.video__stage');
   if (stage) {
@@ -290,6 +393,7 @@ function loadEmbed(block, { videoId, playLabel }) {
   } else {
     block.replaceChildren(player, status);
   }
+  // Move focus into the player so keyboard users can control it.
   iframe.focus();
 }
 
@@ -301,28 +405,34 @@ function loadEmbed(block, { videoId, playLabel }) {
  */
 function buildVideo(data, block) {
   const {
-    videoId, posterMedia, hasCustomPlayLabel, transcriptCell,
+    source, posterMedia, hasCustomPlayLabel, transcriptCell,
   } = data;
   let { playLabel } = data;
+  const provider = PROVIDERS[source.provider];
+  // Use authored poster if it exists; otherwise use the provider's thumbnail.
+  const poster = posterMedia || provider.buildPoster(source.id);
 
+  // Poster button that loads the player on click.
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'video__poster';
   button.setAttribute('aria-label', playLabel);
 
+  // Decorative poster image; the button label names the video.
   const media = document.createElement('span');
   media.className = 'video__media';
   media.setAttribute('aria-hidden', 'true');
-  media.append(posterMedia || buildYoutubePoster(videoId));
+  media.append(poster);
   button.append(media);
 
   const { icon } = buildPlayIcon();
   button.append(icon);
 
   button.addEventListener('click', () => {
-    loadEmbed(block, { videoId, playLabel });
+    loadEmbed(block, { source, playLabel });
   });
 
+  // Write stage, live region, and optional transcript into the block.
   const stage = document.createElement('div');
   stage.className = 'video__stage';
   stage.append(button);
@@ -331,11 +441,22 @@ function buildVideo(data, block) {
   block.replaceChildren(stage, buildStatus());
   if (transcript) block.append(transcript);
 
-  if (hasCustomPlayLabel) return;
-  fetchYoutubeTitle(videoId).then((title) => {
-    if (!title || !block.contains(button)) return;
-    playLabel = `Play ${title}`;
-    button.setAttribute('aria-label', playLabel);
+  // Fetch oEmbed data only when it's needed; when the label or poster
+  // image size can be improved.
+  const canUpgradePoster = source.provider === 'adobe' && !posterMedia;
+  if (hasCustomPlayLabel && !canUpgradePoster) return;
+
+  fetchOembed(provider.oembedUrl(source.id)).then(({ title, thumbnailUrl }) => {
+    // Skip if the player already replaced the poster.
+    if (!block.contains(button)) return;
+    // Name the button with the video's real title.
+    if (title && !hasCustomPlayLabel) {
+      playLabel = `Play video: ${title}`;
+      button.setAttribute('aria-label', playLabel);
+    }
+    // Swap the small Adobe poster for the hi-res thumbnail.
+    const hiResPoster = canUpgradePoster && getAdobeThumbnailUrl(thumbnailUrl);
+    if (hiResPoster) poster.src = hiResPoster;
   });
 }
 
@@ -347,7 +468,7 @@ function buildVideo(data, block) {
  */
 function discardBrokenBlock(block, href) {
   // eslint-disable-next-line no-console
-  console.log(`video: broken YouTube link${href ? ` (${href})` : ''}`);
+  console.warn(`Video block: contains a broken video link${href ? ` (${href})` : ''}. Skipped rendering of the block.`);
   const wrapper = block.parentElement;
   block.remove();
   if (wrapper?.classList.contains('video-wrapper') && !wrapper.children.length) {
@@ -356,16 +477,17 @@ function discardBrokenBlock(block, href) {
 }
 
 /**
- * Decorates a video block: a YouTube URL becomes a poster with a play control
- * that swaps in an embedded player on activation. An authored Transcript row
- * becomes a closed “View transcript” disclosure. Unusable URLs are not rendered.
+ * Decorates a video block: a YouTube or Adobe Video Publishing Cloud
+ * (video.tv.adobe.com) URL becomes a poster with a play control that swaps in
+ * an embedded player on activation. An authored Transcript row becomes a
+ * closed “View transcript” disclosure. Unusable URLs are not rendered.
  *
  * @param {Element} block The video block element
  */
 export default function decorate(block) {
   if (block.querySelector('.video__poster, .video__player')) return;
   const data = getVideoData(block);
-  if (!data.videoId) {
+  if (!data.source || !data.videoId) {
     discardBrokenBlock(block, data.href);
     return;
   }
