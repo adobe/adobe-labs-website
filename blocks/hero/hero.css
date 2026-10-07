@@ -126,7 +126,7 @@
     gap: var(--s2a-spacing-sm);
 
     @media (width >=31.25rem) {
-      --hero-headline-max-inline-size: 20ch;
+      --hero-headline-max-inline-size: 32ch;
     }
 
     @media (width >=48rem) {
