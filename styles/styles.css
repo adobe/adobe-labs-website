@@ -1129,6 +1129,13 @@ html.hero-intro:not(.hero-intro--body) .hero-container:has(.hero-full-screen) + 
   );
 }
 
+/* Set a max width for lead-in, abstract, byline, and table of contents. */
+body.article :is(.lead-in-wrapper, .abstract-wrapper, .article-meta-section, .table-of-contents-wrapper) {
+  @media (width >= 64rem) {
+    --article-content-max-inline-size: min(max(calc(8 / 12 * 100%), var(--article-default-content-max-inline-size, 100%)), 77.875rem); /* 1246px max. Same as .image.lg. */
+  }
+}
+
 /* Article h2 uses heading-5. :where() lets block heading styles override. */
 :where(body.article main) h2 {
   font-size: var(--s2a-typography-font-size-heading-5);
