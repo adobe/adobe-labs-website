@@ -248,7 +248,8 @@ class ChromaticHover {
    * @param {Element} trigger Element that receives pointer/focus events
    *   (the whole clickable card, matching the existing hover/pressed CSS)
    * @param {HTMLImageElement} img Real image this crossfades over
-   * @param {Element} container `img`'s parent; sized box the canvas fills
+   * @param {Element} container Sized box the canvas fills (`img`'s parent,
+   *   or its `<picture>` wrapper's parent when one exists)
    */
   constructor(trigger, img, container) {
     this.trigger = trigger;
@@ -523,7 +524,10 @@ class ChromaticHover {
  */
 export default function initChromaticHover(trigger, img) {
   if (!trigger || !img || !supportsChromaticHover()) return;
-  const container = img.parentElement;
+  // `<picture>` only permits `<source>`/`<img>` children (plus script-supporting
+  // elements) — appending the canvas there would be invalid markup, so the
+  // canvas goes a level up, as a sibling of the picture instead.
+  const container = (img.closest('picture') || img).parentElement;
   if (!container) return;
 
   const instance = new ChromaticHover(trigger, img, container);

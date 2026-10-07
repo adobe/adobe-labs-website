@@ -191,6 +191,29 @@ describe('initChromaticHover', () => {
       return { trigger, container, img };
     }
 
+    it('mounts the canvas as a sibling of <picture>, never inside it', async () => {
+      const trigger = document.createElement('a');
+      const container = document.createElement('div');
+      const picture = document.createElement('picture');
+      const img = createLoadedImage();
+      picture.append(img);
+      container.append(picture);
+      trigger.append(container);
+      document.body.append(trigger);
+      initChromaticHover(trigger, img);
+      const [observer] = observerInstances;
+
+      observer.callback([{ isIntersecting: true }]);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const canvas = container.querySelector(':scope > canvas.chromatic-hover-canvas');
+      expect(canvas).toBeTruthy();
+      expect(picture.querySelector('canvas')).toBeNull();
+      expect(canvas.parentElement).toBe(container);
+      expect(container.contains(img)).toBe(true);
+    });
+
     it('mounts a canvas only once the card intersects, keeping the <img> intact', async () => {
       const { container, img } = mountedCard();
       const [observer] = observerInstances;
