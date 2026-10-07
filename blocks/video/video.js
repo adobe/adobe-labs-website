@@ -488,7 +488,7 @@ function discardBrokenBlock(block, href) {
 export default function decorate(block) {
   if (block.querySelector('.video__poster, .video__player')) return;
   const data = getVideoData(block);
-  if (!data.source) {
+  if (!data.source || !data.videoId) {
     discardBrokenBlock(block, data.href);
     return;
   }
