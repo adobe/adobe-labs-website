@@ -469,6 +469,13 @@ html.hero-intro .hero-container:has(.hero-full-screen) {
   background-color: var(--s2a-color-background-knockout, #000);
 }
 
+html.hero-intro main > .section.hero-container:has(.hero-full-screen) {
+  /* The full-bleed image hangs below this section. A calc() clip margin
+     computes to 0 while the intro runs, so the 4px section-scroll clip
+     shows the body knockout color under the image. */
+  overflow: visible;
+}
+
 html.hero-intro .hero-full-screen {
   overflow: visible;
 }
