@@ -379,7 +379,6 @@ function loadEmbed(block, { source, playLabel }) {
   iframe.src = provider.embedSrc(source.id, source.params);
   iframe.title = getPlayerTitle(playLabel);
   iframe.allow = provider.allow;
-  iframe.setAttribute('allowfullscreen', '');
   if (source.provider === 'adobe') iframe.setAttribute('scrolling', 'no');
 
   // Announce the load to screen readers.

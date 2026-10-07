@@ -173,7 +173,8 @@ describe('video block', () => {
     expect(iframe.src).toContain('rel=0');
     expect(iframe.src).toContain('cc_load_policy=1');
     expect(iframe).toHaveAttribute('title', `video ${VIDEO_ID}`);
-    expect(iframe).toHaveAttribute('allowfullscreen');
+    expect(iframe.allow).toContain('fullscreen');
+    expect(iframe).not.toHaveAttribute('allowfullscreen');
     expect(iframe).not.toHaveAttribute('tabindex');
     expect(within(block).getByRole('status')).toHaveTextContent('Video player loaded');
   });
@@ -454,7 +455,8 @@ describe('video block', () => {
       expect(src.searchParams.get('captions')).toBe('1');
       expect(src.searchParams.get('autoplay')).toBe('1');
       expect(iframe.allow).toContain('autoplay');
-      expect(iframe).toHaveAttribute('allowfullscreen');
+      expect(iframe.allow).toContain('fullscreen');
+      expect(iframe).not.toHaveAttribute('allowfullscreen');
       expect(iframe).toHaveAttribute('scrolling', 'no');
       expect(iframe).toHaveAttribute('title', `video ${ADOBE_ID}`);
       expect(within(block).getByRole('status')).toHaveTextContent('Video player loaded');
