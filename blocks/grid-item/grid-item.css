@@ -90,9 +90,9 @@
       color: var(--s2a-color-content-default);
     }
 
-    .grid-item__main:hover .grid-item__image::after {
-      opacity: 1;
-    }
+    /* No hover darkening: a dark overlay here would compete with the
+       chromatic hover effect, which should read as clearly as possible.
+       The focus/press state below is unaffected. */
   }
 
   .grid-item__image {
