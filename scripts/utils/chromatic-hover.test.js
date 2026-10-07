@@ -232,6 +232,62 @@ describe('initChromaticHover', () => {
       expect(Number(canvas.style.opacity)).toBeCloseTo(0, 2);
     });
 
+    it('keeps the canvas opaque while the distortion eases out, then fades', async () => {
+      const { trigger, container } = mountedCard();
+      const [observer] = observerInstances;
+      observer.callback([{ isIntersecting: true }]);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const canvas = container.querySelector('canvas');
+      const [resizeObserver] = global.ResizeObserver.mock.instances;
+      resizeObserver.callback();
+
+      const nextFrame = () => new Promise((resolve) => { requestAnimationFrame(resolve); });
+
+      // Ramp the distortion all the way up before leaving, so there's
+      // something substantial for it to ease back out of.
+      trigger.dispatchEvent(new window.MouseEvent('pointerenter', { clientX: 10, clientY: 10 }));
+      gl.uniform1f.mockClear();
+      for (let i = 0; i < 90; i += 1) {
+        // eslint-disable-next-line no-await-in-loop -- easing needs successive frames
+        await nextFrame();
+      }
+      const rampedHover = gl.uniform1f.mock.calls.at(-1)?.[1];
+      expect(rampedHover).toBeGreaterThan(0.5);
+      expect(canvas.style.opacity).toBe('1');
+
+      gl.uniform1f.mockClear();
+      trigger.dispatchEvent(new window.MouseEvent('pointerleave'));
+
+      // Collect the uHover value drawn on every frame the canvas was still
+      // fully opaque — a fading opacity here would show the sharp real
+      // <img> through a still-distorted canvas at once (ghosting, reversed).
+      const hoverAtFullOpacity = [];
+      let faded = false;
+      for (let i = 0; i < 220; i += 1) {
+        // eslint-disable-next-line no-await-in-loop -- easing needs successive frames
+        await nextFrame();
+        const hover = gl.uniform1f.mock.calls.at(-1)?.[1];
+        if (canvas.style.opacity === '1') {
+          if (hover !== undefined) hoverAtFullOpacity.push(hover);
+        } else {
+          faded = true;
+          break;
+        }
+      }
+
+      expect(hoverAtFullOpacity[0]).toBeGreaterThan(0.5);
+      expect(hoverAtFullOpacity.at(-1)).toBeCloseTo(0, 2);
+      expect(faded).toBe(true);
+
+      for (let i = 0; i < 80; i += 1) {
+        // eslint-disable-next-line no-await-in-loop -- easing needs successive frames
+        await nextFrame();
+      }
+      expect(Number(canvas.style.opacity)).toBeCloseTo(0, 2);
+    }, 15000);
+
     it('re-entering mid-fade-out resnaps to opaque and still fades smoothly on the next leave', async () => {
       const { trigger, container } = mountedCard();
       const [observer] = observerInstances;
