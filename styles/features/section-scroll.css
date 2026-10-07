@@ -109,10 +109,6 @@
     z-index: 0;
   }
 
-  body > footer.section-scroll-under:has(.footer__skip:focus-visible) {
-    z-index: 2;
-  }
-
   body > footer.section-scroll-under:not(.section-scroll-logo) .footer__inner {
     position: sticky;
     inset-block-end: 0;

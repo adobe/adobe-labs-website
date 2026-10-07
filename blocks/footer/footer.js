@@ -570,11 +570,7 @@ function openNavIfClosed(nav) {
 }
 
 /**
- * Opens the mobile drawer (if closed) ahead of the click that's about to follow.
- * A sitewide capture-phase listener (section-scroll's smooth-scroll hijack) can
- * intercept same-page hash clicks before this link's own click handler runs, so
- * the drawer needs to already be open by click time regardless of which handler
- * ends up moving focus.
+ * Opens the mobile drawer, if closed, ahead of the click that's about to follow.
  * @returns {void}
  */
 function preopenHeaderNav() {
@@ -583,12 +579,7 @@ function preopenHeaderNav() {
 }
 
 /**
- * Moves focus into the header's primary nav landmark. Fallback path for when
- * nothing else intercepted the click (the drawer is already open by now via
- * `preopenHeaderNav`). Stops the click from bubbling to the header's own
- * click-outside-closes-drawer listener, which would otherwise see this link
- * (outside the header) as an outside click and immediately close what this
- * handler just opened.
+ * Moves focus into the header's primary nav landmark.
  * @param {MouseEvent} event Click event from the "Skip to navigation" link
  * @returns {void}
  */
@@ -603,13 +594,23 @@ function focusHeaderNav(event) {
 }
 
 /**
+ * Scrolls the footer landmark into view.
+ * @returns {void}
+ */
+function scrollFooterIntoView() {
+  document.querySelector('footer')?.scrollIntoView({ block: 'start' });
+}
+
+/**
  * Builds the footer's "Skip to content" and "Skip to navigation" links, hidden
  * until focused via keyboard.
  * @returns {Element[]}
  */
 function buildFooterSkipLinks() {
-  const toContent = fromHTML('<a class="footer__skip visually-hidden" href="#main">Skip to content</a>');
-  const toNav = fromHTML('<a class="footer__skip visually-hidden" href="#header-nav">Skip to navigation</a>');
+  const toContent = fromHTML('<a class="footer__skip" href="#main">Skip to content</a>');
+  const toNav = fromHTML('<a class="footer__skip" href="#header-nav">Skip to navigation</a>');
+  toContent.addEventListener('focus', scrollFooterIntoView);
+  toNav.addEventListener('focus', scrollFooterIntoView);
   toNav.addEventListener('pointerdown', preopenHeaderNav);
   toNav.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') preopenHeaderNav();
@@ -697,7 +698,7 @@ export default async function decorate(block) {
   if (social) options.append(social);
 
   block.append(wrapper);
-  block.prepend(...buildFooterSkipLinks());
+  block.closest('footer')?.before(...buildFooterSkipLinks());
   decorateLogo(block);
   await loadFooterIcons(block);
 }

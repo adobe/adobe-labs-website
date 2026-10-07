@@ -15,10 +15,6 @@
   z-index: 0;
 }
 
-.footer:has(.footer__skip:focus-visible) {
-  z-index: 2;
-}
-
 /* Article pages append a visually-hidden <output> after the last section, so
    :last-child never sees the rounded card and the hero shows through its
    end radius. Match the last section instead. */
@@ -48,18 +44,21 @@ body:has(main > .section:nth-last-child(1 of .section)[class*="section-rounded-"
   outline-offset: 2px;
 }
 
-/* Hidden until keyboard focus, same pattern as the header's skip-to-content link. */
-.footer__skip:focus-visible {
-  position: absolute;
-  z-index: 2;
-  inset-block-start: var(--s2a-spacing-xs, 0.5rem);
+.footer__skip {
+  position: fixed;
+  z-index: 11;
   inset-inline-start: var(--s2a-spacing-xs, 0.5rem);
+  inset-block-start: -3rem;
   padding: var(--s2a-spacing-xs, 0.5rem) var(--s2a-spacing-sm, 0.75rem);
   background-color: var(--s2a-color-background-default, #fff);
   color: var(--s2a-color-content-default, #000);
   text-decoration: none;
   outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
   outline-offset: 2px;
+}
+
+.footer__skip:focus-visible {
+  inset-block-start: calc(var(--nav-height) + var(--s2a-spacing-xs, 0.5rem));
 }
 
 .footer__icons {
