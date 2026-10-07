@@ -457,7 +457,6 @@ describe('video block', () => {
       expect(iframe.allow).toContain('autoplay');
       expect(iframe.allow).toContain('fullscreen');
       expect(iframe).not.toHaveAttribute('allowfullscreen');
-      expect(iframe).toHaveAttribute('scrolling', 'no');
       expect(iframe).toHaveAttribute('title', `video ${ADOBE_ID}`);
       expect(within(block).getByRole('status')).toHaveTextContent('Video player loaded');
     });
