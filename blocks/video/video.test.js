@@ -122,7 +122,7 @@ describe('video block', () => {
 
     decorate(block);
 
-    expect(within(block).getByRole('button', { name: 'Play Keynote' })).toBeTruthy();
+    expect(within(block).getByRole('button', { name: 'Play video: Keynote' })).toBeTruthy();
     expect(window.fetch).not.toHaveBeenCalled();
   });
 
@@ -140,7 +140,7 @@ describe('video block', () => {
 
     await waitFor(() => {
       expect(within(block).getByRole('button', {
-        name: 'Play How Creatives are thinking about AI',
+        name: 'Play video: How Creatives are thinking about AI',
       })).toBeTruthy();
     });
 
@@ -149,7 +149,7 @@ describe('video block', () => {
     expect(requested).toContain(VIDEO_ID);
 
     within(block).getByRole('button', {
-      name: 'Play How Creatives are thinking about AI',
+      name: 'Play video: How Creatives are thinking about AI',
     }).click();
     expect(block.querySelector('iframe')).toHaveAttribute(
       'title',
@@ -169,7 +169,7 @@ describe('video block', () => {
     expect(within(block).queryByRole('button')).toBeNull();
     expect(block.querySelector('.video__player')).toBeTruthy();
     expect(iframe.src).toContain(`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?`);
-    expect(iframe.src).not.toContain('autoplay=');
+    expect(iframe.src).toContain('autoplay=1');
     expect(iframe.src).toContain('rel=0');
     expect(iframe.src).toContain('cc_load_policy=1');
     expect(iframe).toHaveAttribute('title', `video ${VIDEO_ID}`);
@@ -178,36 +178,13 @@ describe('video block', () => {
     expect(within(block).getByRole('status')).toHaveTextContent('Video player loaded');
   });
 
-  it('autoplays only when the visitor prefers motion', () => {
-    const { matchMedia: originalMatchMedia } = window;
-    window.matchMedia = jest.fn((query) => ({
-      matches: String(query).includes('no-preference'),
-      media: query,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    }));
-
-    try {
-      const block = createBlock({
-        'YouTube URL': youtubeLink(WATCH_URL),
-      });
-
-      decorate(block);
-      within(block).getByRole('button', { name: `Play video ${VIDEO_ID}` }).click();
-
-      expect(block.querySelector('iframe').src).toContain('autoplay=1');
-    } finally {
-      window.matchMedia = originalMatchMedia;
-    }
-  });
-
   it('titles the iframe from custom link text', () => {
     const block = createBlock({
       'YouTube URL': youtubeLink(WATCH_URL, 'Keynote'),
     });
 
     decorate(block);
-    within(block).getByRole('button', { name: 'Play Keynote' }).click();
+    within(block).getByRole('button', { name: 'Play video: Keynote' }).click();
 
     expect(block.querySelector('iframe')).toHaveAttribute('title', 'Keynote');
   });
@@ -413,7 +390,7 @@ describe('video block', () => {
 
       await waitFor(() => {
         expect(within(block).getByRole('button', {
-          name: 'Play Adobe Labs, Trust your own eyes',
+          name: 'Play video: Adobe Labs, Trust your own eyes',
         })).toBeTruthy();
       });
       expect(block.querySelector('img')).toHaveAttribute('src', OEMBED_THUMB);
@@ -432,7 +409,7 @@ describe('video block', () => {
       decorate(block);
 
       await waitFor(() => {
-        expect(within(block).getByRole('button', { name: 'Play Clip' })).toBeTruthy();
+        expect(within(block).getByRole('button', { name: 'Play video: Clip' })).toBeTruthy();
       });
       expect(block.querySelector('img').src).toContain('?format=jpeg');
     });
@@ -449,7 +426,7 @@ describe('video block', () => {
       await waitFor(() => {
         expect(block.querySelector('img')).toHaveAttribute('src', OEMBED_THUMB);
       });
-      expect(within(block).getByRole('button', { name: 'Play Keynote' })).toBeTruthy();
+      expect(within(block).getByRole('button', { name: 'Play video: Keynote' })).toBeTruthy();
     });
 
     it('does not fetch oEmbed with custom link text and an authored poster', () => {
@@ -475,7 +452,7 @@ describe('video block', () => {
       expect(`${src.origin}${src.pathname}`).toBe(`https://video.tv.adobe.com/v/${ADOBE_ID}/`);
       expect(src.searchParams.get('hidetitle')).toBe('1');
       expect(src.searchParams.get('captions')).toBe('1');
-      expect(src.searchParams.has('autoplay')).toBe(false);
+      expect(src.searchParams.get('autoplay')).toBe('1');
       expect(iframe.allow).toContain('autoplay');
       expect(iframe).toHaveAttribute('allowfullscreen');
       expect(iframe).toHaveAttribute('scrolling', 'no');
@@ -485,7 +462,7 @@ describe('video block', () => {
 
     it('keeps authored player params and the tracking suffix', () => {
       const block = createBlock({
-        'Video URL': youtubeLink('https://video.tv.adobe.com/v/3477418t1?t=30&hidetitle=false&autoplay=true'),
+        'Video URL': youtubeLink('https://video.tv.adobe.com/v/3477418t1?t=30&hidetitle=false&autoplay=0'),
       });
 
       decorate(block);
@@ -495,28 +472,7 @@ describe('video block', () => {
       expect(src.pathname).toBe('/v/3477418t1/');
       expect(src.searchParams.get('t')).toBe('30');
       expect(src.searchParams.get('hidetitle')).toBe('false');
-      expect(src.searchParams.has('autoplay')).toBe(false);
-    });
-
-    it('autoplays only when the visitor prefers motion', () => {
-      const { matchMedia: originalMatchMedia } = window;
-      window.matchMedia = jest.fn((query) => ({
-        matches: String(query).includes('no-preference'),
-        media: query,
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-      }));
-
-      try {
-        const block = createBlock({ 'Video URL': youtubeLink(ADOBE_URL) });
-
-        decorate(block);
-        block.querySelector('button').click();
-
-        expect(new URL(block.querySelector('iframe').src).searchParams.get('autoplay')).toBe('1');
-      } finally {
-        window.matchMedia = originalMatchMedia;
-      }
+      expect(src.searchParams.get('autoplay')).toBe('1');
     });
   });
 });

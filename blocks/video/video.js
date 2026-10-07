@@ -118,18 +118,7 @@ function getPlayLabel(urlCell, videoId) {
  * @returns {string}
  */
 function getPlayerTitle(playLabel) {
-  return playLabel.replace(/^Play\s+/i, '').trim() || 'video';
-}
-
-/**
- * Whether motion should be reduced. Unknown or unsupported preference is
- * treated as reduced until `prefers-reduced-motion: no-preference` matches.
- *
- * @returns {boolean}
- */
-function prefersReducedMotion() {
-  if (typeof window.matchMedia !== 'function') return true;
-  return !window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+  return playLabel.replace(/^Play\s+(?:video:\s+)?/i, '').trim() || 'video';
 }
 
 /**
@@ -309,9 +298,8 @@ const PROVIDERS = {
       url.searchParams.set('url', `https://www.youtube.com/watch?v=${id}`);
       return url;
     },
-    embedSrc(id, authorParams, autoplay) {
-      const params = new URLSearchParams({ rel: '0', cc_load_policy: '1' });
-      if (autoplay) params.set('autoplay', '1');
+    embedSrc(id) {
+      const params = new URLSearchParams({ rel: '0', cc_load_policy: '1', autoplay: '1' });
       return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?${params}`;
     },
     allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen',
@@ -324,13 +312,12 @@ const PROVIDERS = {
       url.searchParams.set('url', `${ADOBE_VIDEO_ORIGIN}/v/${id}/`);
       return url;
     },
-    embedSrc(id, authorParams, autoplay) {
-      // Keep authored player options (e.g. t, learn); autoplay follows motion prefs.
+    embedSrc(id, authorParams) {
+      // Keep authored player options (e.g. t, learn); always autoplay after the poster click.
       const params = new URLSearchParams(authorParams);
       if (!params.has('hidetitle')) params.set('hidetitle', '1');
       if (!params.has('captions')) params.set('captions', '1');
-      params.delete('autoplay');
-      if (autoplay) params.set('autoplay', '1');
+      params.set('autoplay', '1');
       return `${ADOBE_VIDEO_ORIGIN}/v/${encodeURIComponent(id)}/?${params}`;
     },
     allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen',
@@ -383,15 +370,13 @@ function buildStatus() {
  */
 function loadEmbed(block, { source, playLabel }) {
   const provider = PROVIDERS[source.provider];
-  // Autoplay only when the visitor has not asked for reduced motion.
-  const autoplay = !prefersReducedMotion();
 
   const player = document.createElement('div');
   player.className = 'video__player';
 
   // Provider-specific player iframe.
   const iframe = document.createElement('iframe');
-  iframe.src = provider.embedSrc(source.id, source.params, autoplay);
+  iframe.src = provider.embedSrc(source.id, source.params);
   iframe.title = getPlayerTitle(playLabel);
   iframe.allow = provider.allow;
   iframe.setAttribute('allowfullscreen', '');
