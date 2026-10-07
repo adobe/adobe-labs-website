@@ -1,3 +1,10 @@
+/* Default variant. 10 columns of the full-width 12-column grid. */
+.media-text-wrapper {
+  @media (width >= 48rem) {
+    --article-content-max-inline-size: min(10 / 12 * 100%, 97.25rem);
+  }
+}
+
 .media-text {
   display: flex;
   flex-direction: column;
@@ -5,9 +12,10 @@
 
   @media (width >= 48rem) {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 8fr);
+    grid-template-columns: 30% auto;
+    grid-template-areas: "media content";
     align-items: start;
-    column-gap: var(--s2a-spacing-lg);
+    column-gap: var(--s2a-spacing-md);
   }
 
   @media (width >= 64rem) {
@@ -15,27 +23,16 @@
     margin-block: var(--s2a-spacing-2xl);
   }
 
-  @media (width >= 80rem) {
-    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
-
-    &.small {
-      grid-template-columns: minmax(0, 3fr) minmax(0, 5fr);
-    }
+  @media (width >= 90rem) {
+    grid-template-columns: 40% auto;
   }
 
-  @media (width >= 48rem) {
-    &.media-right {
-      grid-template-columns: minmax(0, 8fr) minmax(0, 3fr);
-    }
-  }
+  &.media-right {
+    grid-template-columns: auto 30%;
+    grid-template-areas: "content media";
 
-  @media (width >= 80rem) {
-    &.media-right {
-      grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
-    }
-
-    &.small.media-right {
-      grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
+    @media (width >= 90rem) {
+      grid-template-columns: auto 40%;
     }
   }
 
@@ -46,8 +43,18 @@
 
 /* Small variant */
 .media-text-wrapper:has(.media-text.small) {
-  @media (width >=48rem) {
-    --article-content-max-inline-size: min(calc(8 / 12 * 100%), 77.875rem);
+  @media (width >=64rem) {
+    --article-content-max-inline-size: min(8 / 12 * 100%, 97.25rem);
+
+    .media-text {
+      grid-template-columns: 37.5% 1fr;
+      grid-template-areas: "media content";
+
+      &.media-right {
+        grid-template-columns: 1fr 37.5%;
+        grid-template-areas: "content media";
+      }
+    }
   }
 }
 
@@ -68,6 +75,7 @@
 
 /* Media */
 .media-text__media {
+  grid-area: media;
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -97,6 +105,11 @@
   font-weight: 700;
   line-height: var(--s2a-typography-line-height-caption);
   letter-spacing: var(--s2a-typography-letter-spacing-caption);
+}
+
+/* Content */
+.media-text__content {
+  grid-area: content;
 }
 
 /* Typography.
