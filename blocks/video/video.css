@@ -87,10 +87,10 @@ body.article main .video-wrapper {
     transition: none;
   }
 
-  /* Inset so overflow:hidden on the player does not clip the ring. */
-  .video__player iframe:focus,
   .video__player iframe:focus-visible {
     outline: 0.125rem solid var(--s2a-color-focus-ring-default);
+
+    /* Inset so overflow:hidden on the player does not clip the ring. */
     outline-offset: -0.1875rem;
   }
 
