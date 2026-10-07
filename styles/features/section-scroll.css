@@ -125,10 +125,6 @@
   body > footer.section-scroll-under:not(.section-scroll-logo) .footer__content {
     transform: translateY(calc((var(--section-scroll-inner-progress, -100) / 100) * 50%));
   }
-
-  body > footer.section-scroll-under:not(.section-scroll-logo) .footer__logo {
-    position: relative;
-  }
 }
 
 /*
