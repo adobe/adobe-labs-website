@@ -107,7 +107,7 @@ function hasCustomLinkText(urlCell) {
  * @returns {string}
  */
 function getPlayLabel(urlCell, videoId) {
-  if (hasCustomLinkText(urlCell)) return `Play ${getCellText(urlCell)}`;
+  if (hasCustomLinkText(urlCell)) return `Play video: ${getCellText(urlCell)}`;
   return videoId ? `${DEFAULT_PLAY_LABEL} ${videoId}` : DEFAULT_PLAY_LABEL;
 }
 
@@ -468,7 +468,7 @@ function buildVideo(data, block) {
     if (!block.contains(button)) return;
     // Name the button with the video's real title.
     if (title && !hasCustomPlayLabel) {
-      playLabel = `Play ${title}`;
+      playLabel = `Play video: ${title}`;
       button.setAttribute('aria-label', playLabel);
     }
     // Swap the small Adobe poster for the hi-res thumbnail.
