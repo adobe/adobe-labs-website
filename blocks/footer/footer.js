@@ -554,6 +554,72 @@ function decorateLogo(parent) {
 
 /**
  * ==================================================================
+ * SKIP LINKS
+ * ==================================================================
+ */
+
+/**
+ * Opens the header's mobile nav drawer if it's currently closed (`display: none`
+ * below the desktop breakpoint), so focus below has something visible to land on.
+ * @param {Element} nav Header primary nav element
+ * @returns {void}
+ */
+function openNavIfClosed(nav) {
+  if (getComputedStyle(nav).display !== 'none') return;
+  document.querySelector(`.header__toggle[aria-controls="${nav.id}"]`)?.click();
+}
+
+/**
+ * Opens the mobile drawer (if closed) ahead of the click that's about to follow.
+ * A sitewide capture-phase listener (section-scroll's smooth-scroll hijack) can
+ * intercept same-page hash clicks before this link's own click handler runs, so
+ * the drawer needs to already be open by click time regardless of which handler
+ * ends up moving focus.
+ * @returns {void}
+ */
+function preopenHeaderNav() {
+  const nav = document.getElementById('header-nav');
+  if (nav) openNavIfClosed(nav);
+}
+
+/**
+ * Moves focus into the header's primary nav landmark. Fallback path for when
+ * nothing else intercepted the click (the drawer is already open by now via
+ * `preopenHeaderNav`). Stops the click from bubbling to the header's own
+ * click-outside-closes-drawer listener, which would otherwise see this link
+ * (outside the header) as an outside click and immediately close what this
+ * handler just opened.
+ * @param {MouseEvent} event Click event from the "Skip to navigation" link
+ * @returns {void}
+ */
+function focusHeaderNav(event) {
+  const nav = document.getElementById('header-nav');
+  if (!nav) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  if (!nav.hasAttribute('tabindex')) nav.tabIndex = -1;
+  nav.focus();
+}
+
+/**
+ * Builds the footer's "Skip to content" and "Skip to navigation" links, hidden
+ * until focused via keyboard.
+ * @returns {Element[]}
+ */
+function buildFooterSkipLinks() {
+  const toContent = fromHTML('<a class="footer__skip visually-hidden" href="#main">Skip to content</a>');
+  const toNav = fromHTML('<a class="footer__skip visually-hidden" href="#header-nav">Skip to navigation</a>');
+  toNav.addEventListener('pointerdown', preopenHeaderNav);
+  toNav.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') preopenHeaderNav();
+  });
+  toNav.addEventListener('click', focusHeaderNav);
+  return [toContent, toNav];
+}
+
+/**
+ * ==================================================================
  * PARSE SECTIONS & DECORATE BLOCK
  * ==================================================================
  */
@@ -631,6 +697,7 @@ export default async function decorate(block) {
   if (social) options.append(social);
 
   block.append(wrapper);
+  block.prepend(...buildFooterSkipLinks());
   decorateLogo(block);
   await loadFooterIcons(block);
 }
