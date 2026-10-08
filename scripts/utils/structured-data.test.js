@@ -50,12 +50,44 @@ function articlePage() {
   addCanonical('https://labs.adobe.com/research/article-title#comments');
 }
 
+/** 00:30 UTC on 7 Oct 2026. West of UTC, the local calendar day is 6 Oct. */
+const MODIFIED_INSTANT = new Date(Date.UTC(2026, 9, 7, 0, 30, 0));
+const DATE_MODIFIED = '2026-10-07';
+const MODIFIED_TIME = '2026-10-07T00:30:00Z';
+
+function modifiedTimeMeta() {
+  return document.head.querySelector('meta[property="article:modified_time"]');
+}
+
+/**
+ * `document.lastModified` is the Last-Modified header in local time:
+ * `MM/DD/YYYY hh:mm:ss`.
+ * @param {Date} date
+ * @returns {string}
+ */
+function browserLastModified(date) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+/**
+ * @param {string} value
+ */
+function setLastModified(value) {
+  Object.defineProperty(document, 'lastModified', {
+    configurable: true,
+    get: () => value,
+  });
+}
+
 beforeEach(() => {
   clearPage();
+  setLastModified(browserLastModified(MODIFIED_INSTANT));
 });
 
 describe('addStructuredData', () => {
-  it('emits Organization only on a generic page', () => {
+  it('emits Organization and WebPage on a generic page', () => {
+    addCanonical('https://labs.adobe.com/policy');
     addStructuredData();
 
     expect(jsonLdScripts()).toHaveLength(1);
@@ -73,7 +105,35 @@ describe('addStructuredData', () => {
           url: 'https://www.adobe.com/',
         },
       },
+      {
+        '@type': 'WebPage',
+        '@id': 'https://labs.adobe.com/policy',
+        url: 'https://labs.adobe.com/policy',
+        dateModified: DATE_MODIFIED,
+      },
     ]);
+    expect(modifiedTimeMeta()).toBeNull();
+  });
+
+  it('uses the UTC day of document.lastModified and ignores publication-date', () => {
+    addCanonical('https://labs.adobe.com/policy');
+    addMeta('name', 'publication-date', '2026-06-01');
+    addMeta('name', 'modified-date', '2026-01-01');
+    addStructuredData();
+
+    const page = readGraph()['@graph'].find((node) => node['@type'] === 'WebPage');
+    expect(page.dateModified).toBe(DATE_MODIFIED);
+    expect(page).not.toHaveProperty('datePublished');
+  });
+
+  it('omits dateModified when document.lastModified is unparseable', () => {
+    addCanonical('https://labs.adobe.com/policy');
+    setLastModified('');
+    addStructuredData();
+
+    const page = readGraph()['@graph'].find((node) => node['@type'] === 'WebPage');
+    expect(page).not.toHaveProperty('dateModified');
+    expect(modifiedTimeMeta()).toBeNull();
   });
 
   it('emits Article and one Person and strips the canonical hash', () => {
@@ -95,11 +155,21 @@ describe('addStructuredData', () => {
     expect(article.description).toBe('Article description');
     expect(article.image).toBe('https://labs.adobe.com/media/article.png');
     expect(article.datePublished).toBe('2026-10-05');
+    expect(article.dateModified).toBe(DATE_MODIFIED);
     expect(article.url).toBe(url);
     expect(article.mainEntityOfPage).toEqual({ '@type': 'WebPage', '@id': url });
     expect(article.author).toEqual({ '@id': person['@id'] });
     expect(article.publisher).toEqual({ '@id': ORG_ID });
     expect(article.inLanguage).toBe('en');
+
+    const page = graph.find((node) => node['@type'] === 'WebPage');
+    expect(page).toMatchObject({
+      '@id': url,
+      url,
+      name: 'Article title',
+      dateModified: DATE_MODIFIED,
+    });
+    expect(modifiedTimeMeta()).toHaveAttribute('content', MODIFIED_TIME);
   });
 
   it('emits two Person nodes for two author names', () => {
@@ -130,7 +200,7 @@ describe('addStructuredData', () => {
     expect(article.author).toEqual({ '@id': ORG_ID });
   });
 
-  it('omits description, image, and date when those meta values are missing', () => {
+  it('omits description, image, and datePublished when those meta values are missing', () => {
     addMeta('name', 'template', 'article');
     addMeta('property', 'og:title', 'Article title');
     addCanonical('https://labs.adobe.com/research/article-title');
@@ -143,23 +213,31 @@ describe('addStructuredData', () => {
     expect(article).not.toHaveProperty('description');
     expect(article).not.toHaveProperty('image');
     expect(article).not.toHaveProperty('datePublished');
+    expect(article.dateModified).toBe(DATE_MODIFIED);
     expect(article.headline).toBe('Article title');
+
+    const page = data['@graph'].find((node) => node['@type'] === 'WebPage');
+    expect(page.dateModified).toBe(DATE_MODIFIED);
   });
 
   it('emits no script when robots contains noindex', () => {
+    addMeta('name', 'template', 'article');
     addMeta('name', 'robots', 'noindex, nofollow');
     addStructuredData();
 
     expect(jsonLdScripts()).toHaveLength(0);
+    expect(modifiedTimeMeta()).toBeNull();
   });
 
   it('does not add a second script on a second call', () => {
+    articlePage();
     addStructuredData();
     const first = jsonLdScripts()[0].textContent;
     addStructuredData();
 
     expect(jsonLdScripts()).toHaveLength(1);
     expect(jsonLdScripts()[0].textContent).toBe(first);
+    expect(document.head.querySelectorAll('meta[property="article:modified_time"]')).toHaveLength(1);
   });
 
   it('leaves an existing JSON-LD script untouched', () => {

@@ -1594,6 +1594,58 @@ function toIsoDate(value) {
 }
 
 /**
+ * The response `Last-Modified` header, which the browser exposes in local
+ * time as `MM/DD/YYYY hh:mm:ss`.
+ *
+ * @param {Document} doc
+ * @returns {Date|null}
+ */
+function lastModifiedInstant(doc) {
+  const raw = String(doc.lastModified || '').trim();
+  const match = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/.exec(raw);
+  if (!match) return null;
+
+  const date = new Date(
+    Number(match[3]),
+    Number(match[1]) - 1,
+    Number(match[2]),
+    Number(match[4]),
+    Number(match[5]),
+    Number(match[6]),
+  );
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Schema.org dateModified. Sitemap `lastmod` is the `Last-Modified` header's
+ * UTC calendar day, so this returns `YYYY-MM-DD` in UTC.
+ *
+ * @param {Document} doc
+ * @returns {string}
+ */
+function contentDateModified(doc) {
+  const date = lastModifiedInstant(doc);
+  if (!date) return '';
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Open Graph `article:modified_time` for the same instant, as a UTC datetime.
+ *
+ * @param {Document} doc
+ * @returns {string}
+ */
+function contentModifiedTime(doc) {
+  const date = lastModifiedInstant(doc);
+  if (!date) return '';
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+/**
  * Adobe Labs on every indexable page.
  * @returns {object}
  */
@@ -1649,6 +1701,28 @@ function authorReference(people) {
 }
 
 /**
+ * WebPage for this document. `dateModified` is the UTC day of `Last-Modified`.
+ * @param {Document} doc
+ * @returns {object}
+ */
+function buildWebPage(doc) {
+  const url = getShareUrl();
+  const page = {
+    '@type': 'WebPage',
+    '@id': url,
+    url,
+  };
+
+  const name = getMetadata('og:title', doc).trim() || String(doc.title || '').trim();
+  if (name) page.name = name;
+
+  const dateModified = contentDateModified(doc);
+  if (dateModified) page.dateModified = dateModified;
+
+  return page;
+}
+
+/**
  * Article plus its Person nodes, or an empty list when this page is not an
  * article or has no headline.
  * @param {Document} doc
@@ -1674,6 +1748,9 @@ function buildArticleGraph(doc) {
 
   const datePublished = toIsoDate(getMetadata('publication-date', doc));
   if (datePublished) article.datePublished = datePublished;
+
+  const dateModified = contentDateModified(doc);
+  if (dateModified) article.dateModified = dateModified;
 
   article.url = url;
   article.mainEntityOfPage = { '@type': 'WebPage', '@id': url };
@@ -1730,7 +1807,30 @@ export function addMarkdownAlternate(doc = document) {
 }
 
 /**
- * Appends one application/ld+json script from published meta tags.
+ * Open Graph modification time on article pages. The same `Last-Modified`
+ * instant as schema.org `dateModified`, written as a UTC datetime. An existing
+ * tag is left in place.
+ *
+ * @param {Document} doc
+ * @returns {void}
+ */
+function addArticleModifiedTime(doc) {
+  const { head } = doc;
+  if (!head || !isArticleDetailPage(doc)) return;
+  if (head.querySelector('meta[property="article:modified_time"]')) return;
+
+  const content = contentModifiedTime(doc);
+  if (!content) return;
+
+  const meta = doc.createElement('meta');
+  meta.setAttribute('property', 'article:modified_time');
+  meta.content = content;
+  head.append(meta);
+}
+
+/**
+ * Appends one application/ld+json script from published meta tags, and
+ * `article:modified_time` on article pages.
  * Does nothing when head already has JSON-LD, or when robots contains noindex.
  * @param {Document} [doc]
  * @returns {void}
@@ -1745,7 +1845,8 @@ export function addStructuredData(doc = document) {
   script.type = 'application/ld+json';
   script.textContent = JSON.stringify({
     '@context': 'https://schema.org',
-    '@graph': [buildOrganization(), ...buildArticleGraph(doc)],
+    '@graph': [buildOrganization(), buildWebPage(doc), ...buildArticleGraph(doc)],
   });
   head.append(script);
+  addArticleModifiedTime(doc);
 }
