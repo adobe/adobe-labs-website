@@ -1,3 +1,4 @@
+// temp: testing whether unrelated code deploys move dateModified (ADBLABS-21 review)
 import { getMetadata } from '../../scripts/aem.js';
 import { entryProgress, logoEntryHeld } from '../../scripts/utils/entry-progress.js';
 import { escapeAttr, fromHTML, isExternalLink } from '../../scripts/utils/utils.js';
