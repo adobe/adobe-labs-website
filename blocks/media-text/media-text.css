@@ -44,7 +44,7 @@
 /* Small variant */
 .media-text-wrapper:has(.media-text.small) {
   @media (width >=64rem) {
-    --article-content-max-inline-size: min(8 / 12 * 100%, 97.25rem);
+    --article-content-max-inline-size: min(8 / 12 * 100%, 77.8125rem);
 
     .media-text {
       grid-template-columns: 37.5% 1fr;
