@@ -1,6 +1,8 @@
 .hero {
-  --hero-font-size: var(--s2a-typography-font-size-heading-2);
-  --hero-line-height: var(--s2a-typography-line-height-heading-2);
+  --hero-font-size: var(--s2a-typography-font-size-heading-4);
+  --hero-line-height: var(--s2a-typography-line-height-heading-4);
+  --hero-meta-font-size: var(--hero-font-size);
+  --hero-meta-line-height: var(--hero-line-height);
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
   --hero-scrim-regular: rgb(0 0 0 / 42%);
@@ -20,8 +22,25 @@
   border-radius: var(--s2a-border-radius-xs);
   aspect-ratio: 3 / 2;
 
-  @media (width >=48rem) {
+  @media (width >= 31.25rem) {
+    --hero-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-line-height: var(--s2a-typography-line-height-heading-2);
+  }
+
+  @media (width >= 48rem) {
+    --hero-font-size: var(--s2a-font-size-6xl);
+    --hero-line-height: var(--s2a-font-line-height-2xl);
+    --hero-meta-font-size: var(--s2a-font-size-6xl);
+    --hero-meta-line-height: var(--s2a-font-line-height-2xl);
+
     aspect-ratio: 2 / 1;
+  }
+
+  @media (width >= 64rem) {
+    --hero-font-size: var(--s2a-font-size-7xl);
+    --hero-line-height: var(--s2a-font-line-height-3xl);
+    --hero-meta-font-size: var(--s2a-font-size-7xl);
+    --hero-meta-line-height: var(--s2a-font-line-height-3xl);
   }
 
   /* The inline link wraps the entire component,
@@ -65,7 +84,7 @@
     grid-template:
       "top-left top-right" min-content
       "bottom-left bottom-right" min-content
-      / minmax(0, 1fr) max-content;
+      / minmax(0, 1fr) minmax(0, max-content);
     column-gap: var(--s2a-spacing-xs);
     align-content: space-between;
     align-items: start;
@@ -87,35 +106,36 @@
 
   /* Headline and article category */
   .hero__copy {
-    --hero-headline-max-inline-size: 15ch;
+    --hero-headline-max-inline-size: 100%;
 
     display: flex;
     flex-direction: column;
-    grid-area: bottom-left / bottom-left / bottom-right / bottom-right;
+    grid-area: bottom-left;
     align-self: last baseline;
     max-inline-size: var(--hero-headline-max-inline-size);
     color: var(--s2a-color-gray-25, #fff);
     gap: var(--s2a-spacing-sm);
 
-    @media (width >=31.25rem) {
-      --hero-headline-max-inline-size: 20ch;
-
-      grid-area: bottom-left;
-    }
-
-    @media (width >=48rem) {
+    @media (width >= 31.25rem) {
       --hero-headline-max-inline-size: 25ch;
+    }
+  }
 
-      grid-area: bottom-left;
+  .hero__content:not(:has(.hero__cta-text)) .hero__copy {
+    @media (width <31.25rem) {
+      grid-area: bottom-left / bottom-left / bottom-right / bottom-right;
     }
   }
 
   .hero__headline {
     display: inline-block;
+    margin: 0;
+    font-family: var(--heading-font-family);
     font-size: var(--hero-font-size);
     line-height: var(--hero-line-height);
     letter-spacing: var(--hero-letter-spacing);
     font-weight: var(--hero-font-weight);
+    text-wrap: balance;
   }
 
   /* Two stacked copies share wrapping. Ghost's real underline gets
@@ -164,18 +184,28 @@
     font-size: var(--s2a-typography-font-size-heading-6);
     line-height: var(--s2a-typography-line-height-heading-6);
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+
+    @media (width >64rem) {
+      font-size: var(--s2a-font-size-lg);
+    }
+  }
+
+  .hero__top-row {
+    grid-area: top-left / top-left / top-right / top-right;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--s2a-spacing-xs);
   }
 
   .hero__eyebrow {
     --hero-category-circle-gap: var(--s2a-spacing-xs);
 
-    grid-area: top-left;
     display: flex;
     flex-flow: row nowrap;
+    flex-shrink: 0;
     gap: var(--hero-category-circle-gap);
     color: var(--s2a-color-gray-25, #fff);
-    font-size: var(--hero-font-size);
-    line-height: var(--hero-line-height);
     letter-spacing: var(--hero-letter-spacing);
     font-weight: var(--hero-font-weight);
     place-items: center;
@@ -187,13 +217,21 @@
     svg {
       --hero-category-circle-size: clamp(
         0rem,
-        calc(var(--hero-font-size) * 0.825),
+        calc(var(--hero-meta-font-size) * 0.825),
         2.375rem
       );
 
       height: var(--hero-category-circle-size);
       width: var(--hero-category-circle-size);
+      flex-shrink: 0;
     }
+  }
+
+  .hero__content-type {
+    color: var(--s2a-color-gray-25, #fff);
+    font-size: var(--hero-meta-font-size);
+    line-height: var(--hero-meta-line-height);
+    overflow-wrap: break-word;
   }
 
   /* Image */
@@ -248,10 +286,11 @@
 
   /* Date */
   .hero__date {
-    grid-area: top-right;
-    justify-self: end;
+    margin-inline-start: auto;
     color: var(--s2a-color-gray-25, #fff);
-    white-space: nowrap;
+    font-size: var(--hero-meta-font-size);
+    line-height: var(--hero-meta-line-height);
+    text-align: end;
   }
 
   /* CTA label (not a button — the whole card is the link) */
@@ -265,23 +304,27 @@
 
   /* --- Full-Screen variant --- */
   &.hero-full-screen {
-    /* Figma's spacing differs from s2a tokens.
-    Full-screen variant has custom vertical padding to account for overlapping content. */
+    --hero-meta-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-meta-line-height: var(--s2a-typography-line-height-heading-2);
     --hero-padding-block-start: 5.625rem;
     --hero-padding-block-end: 3.125rem;
     --hero-full-screen-block-size: 60lvh;
     --hero-full-screen-max-block-size: 75rem;
     --hero-full-screen-content-min-gap: 6.25rem;
 
-    @media (width >=48rem) {
+    @media (width >= 48rem) {
       --hero-padding-block-start: 6.25rem;
       --hero-padding-block-end: 4.375rem;
       --hero-full-screen-block-size: 86lvh;
+      --hero-meta-font-size: var(--s2a-font-size-6xl);
+      --hero-meta-line-height: var(--s2a-font-line-height-2xl);
     }
 
-    @media (width >=64rem) {
+    @media (width >= 64rem) {
       --hero-padding-block-start: 5rem;
       --hero-padding-block-end: 5.625rem;
+      --hero-meta-font-size: var(--s2a-font-size-7xl);
+      --hero-meta-line-height: var(--s2a-font-line-height-3xl);
     }
 
     border-radius: 0;
@@ -363,6 +406,13 @@
 /* Article full-screen hero uses the flat card scrim, not the gradient */
 .article .hero.hero-full-screen .hero__media::after {
   background: var(--hero-scrim-regular);
+}
+
+.article .hero.hero-full-screen {
+  @media (width <=48rem) {
+    --hero-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-line-height: var(--s2a-typography-line-height-heading-2);
+  }
 }
 
 /* Full-screen hero at the top of the page sits under the sticky header.

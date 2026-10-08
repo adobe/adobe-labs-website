@@ -55,13 +55,17 @@
     overflow: visible;
   }
 
-  /* Stick under the site header, behind the hero and the dim overlay. */
+  /* Sticks under header; mobile offset matches padding, avoiding a scroll slide. */
   main > .section.section-scroll-intro > .section-scroll-fade {
     position: sticky;
     top: var(--nav-height);
     z-index: 1;
     align-self: flex-start;
     inline-size: 100%;
+
+    @media (width < 48rem) {
+      top: calc(var(--nav-height) + var(--s2a-spacing-md, 1rem));
+    }
   }
 
   /* Hero (and other intro blocks) slide over the page header. */

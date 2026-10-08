@@ -1,6 +1,6 @@
 import { getMetadata } from '../../scripts/aem.js';
 import { entryProgress, logoEntryHeld } from '../../scripts/utils/entry-progress.js';
-import { escapeAttr, fromHTML } from '../../scripts/utils/utils.js';
+import { escapeAttr, fromHTML, isExternalLink } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
 /**
@@ -238,23 +238,10 @@ function decorateHeadline(heading, items) {
 const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V7.296L7.28 8.288V1.792L1.056 8.016Z';
 
 /**
- * Whether a link points at another origin.
- * @param {Element} link Anchor element
- * @returns {boolean}
- */
-function isExternalLink(link) {
-  try {
-    const url = new URL(link.getAttribute('href') || '', window.location.href);
-    return url.origin !== window.location.origin;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Appends the external-link arrow. When the link opens a new tab, adds hidden text
  * so the accessible name matches the social links.
  * @param {Element} link Menu anchor element
+ * @returns {void}
  */
 function decorateExternalLink(link) {
   if (!isExternalLink(link)) return;

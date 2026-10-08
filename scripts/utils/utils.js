@@ -59,6 +59,146 @@ export function toSafeHttpUrl(value) {
   return '';
 }
 
+/** Published hosts. Authors paste these absolute URLs on preview and local. */
+const PRODUCTION_HOSTS = new Set(['labs.adobe.com', 'www.labs.adobe.com']);
+
+/**
+ * This project's preview and live hosts:
+ * `{ref}--adobe-labs-website--adobe.aem.page` and `.aem.live`.
+ */
+const AEM_HOST_SUFFIX = /--adobe-labs-website--adobe\.aem\.(?:page|live)$/;
+
+/** Screen-reader text appended when a link opens in a new tab. */
+const NEW_TAB_HINT = '(opens in a new tab)';
+
+/**
+ * Hostname without a trailing dot, lowercased.
+ * @param {string} hostname Host to normalize
+ * @returns {string}
+ */
+function normalizeHostname(hostname) {
+  return String(hostname || '').toLowerCase().replace(/\.$/, '');
+}
+
+/**
+ * Whether `hostname` is this site: the current host, labs.adobe.com, or an
+ * AEM preview/live host for this project.
+ * @param {string} hostname Hostname to test
+ * @returns {boolean}
+ */
+function isInternalHostname(hostname) {
+  const host = normalizeHostname(hostname);
+  if (!host) return false;
+  if (host === normalizeHostname(window.location.hostname)) return true;
+  if (PRODUCTION_HOSTS.has(host)) return true;
+  return AEM_HOST_SUFFIX.test(host);
+}
+
+/**
+ * Whether an anchor points at another website.
+ * Root-relative links, labs.adobe.com, and this project's `.aem.page` /
+ * `.aem.live` URLs are on-site. mailto, tel, and other non-http(s) links are not.
+ *
+ * @param {Element} link Anchor element
+ * @returns {boolean}
+ */
+export function isExternalLink(link) {
+  const href = link?.getAttribute?.('href');
+  if (!href) return false;
+  let url;
+  try {
+    url = new URL(href, window.location.href);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  return !isInternalHostname(url.hostname);
+}
+
+/**
+ * Keeps an existing `rel` and adds `noopener` and `noreferrer`.
+ * @param {Element} link Anchor element
+ * @returns {void}
+ */
+function setExternalRel(link) {
+  const tokens = (link.getAttribute('rel') || '').split(/\s+/).filter(Boolean);
+  ['noopener', 'noreferrer'].forEach((token) => {
+    if (!tokens.includes(token)) tokens.push(token);
+  });
+  link.setAttribute('rel', tokens.join(' '));
+}
+
+/**
+ * Tells assistive tech the link opens a new tab, without replacing an
+ * existing accessible name. Matches the footer social and menu links.
+ * @param {Element} link Anchor element
+ * @returns {void}
+ */
+function ensureNewTabHint(link) {
+  const ariaLabel = link.getAttribute('aria-label');
+  if (ariaLabel) {
+    if (!ariaLabel.includes(NEW_TAB_HINT)) {
+      link.setAttribute('aria-label', `${ariaLabel} ${NEW_TAB_HINT}`);
+    }
+    return;
+  }
+  const hinted = [...link.querySelectorAll('.visually-hidden')]
+    .some((node) => node.textContent.includes(NEW_TAB_HINT));
+  if (hinted) return;
+
+  const hint = document.createElement('span');
+  hint.className = 'visually-hidden';
+  hint.textContent = ` ${NEW_TAB_HINT}`;
+  link.append(hint);
+}
+
+/**
+ * Marks one external link so it opens in a new tab.
+ * @param {Element} link Anchor element
+ * @returns {void}
+ */
+export function markExternalLink(link) {
+  if (!isExternalLink(link)) return;
+  link.setAttribute('target', '_blank');
+  setExternalRel(link);
+  ensureNewTabHint(link);
+}
+
+/**
+ * Marks every external link under `root`.
+ * @param {ParentNode} [root=document] Tree to search
+ * @returns {void}
+ */
+export function markExternalLinks(root = document) {
+  root.querySelectorAll('a[href]').forEach(markExternalLink);
+}
+
+/** @type {MutationObserver|undefined} */
+let externalLinksObserver;
+
+/**
+ * Marks external links already in the document, and links added later
+ * (header, footer, fragments, blocks).
+ * @param {Document} [doc=document] Document to watch
+ * @returns {MutationObserver}
+ */
+export function watchExternalLinks(doc = document) {
+  const root = doc.body || doc.documentElement;
+  markExternalLinks(root);
+  externalLinksObserver?.disconnect();
+  externalLinksObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.matches('a[href]')) markExternalLink(node);
+        markExternalLinks(node);
+      });
+    });
+  });
+  externalLinksObserver.observe(root, { childList: true, subtree: true });
+  return externalLinksObserver;
+}
+
 /**
  * Builds a lookup of authored field names to their value cells.
  * Key/value block content is a table: each row is [label, value].
@@ -78,13 +218,30 @@ export function getAuthoredCells(block) {
 }
 
 /**
+ * Text of `node`, skipping `.visually-hidden` subtrees.
+ * Those nodes are screen-reader hints. `textContent` would copy them into
+ * visible block text (the hero headline stacks the string twice).
+ *
+ * @param {Node} node
+ * @returns {string}
+ */
+function textExcludingVisuallyHidden(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  if (node.nodeType !== Node.ELEMENT_NODE) return '';
+  if (node.classList.contains('visually-hidden')) return '';
+  return [...node.childNodes].map(textExcludingVisuallyHidden).join('');
+}
+
+/**
  * Returns trimmed text from an authored cell, or an empty string if missing.
+ * Ignores `.visually-hidden` hints such as "(opens in a new tab)".
  *
  * @param {Element} [cell] The value cell
  * @returns {string}
  */
 export function getCellText(cell) {
-  return cell?.textContent.trim() || '';
+  if (!cell) return '';
+  return textExcludingVisuallyHidden(cell).trim();
 }
 
 /**
@@ -323,10 +480,11 @@ const copyRevertTimers = new WeakMap();
  * Whether a page is an article detail.
  * True when bulk or page-level `template` metadata includes `article`.
  *
+ * @param {Document} [doc]
  * @returns {boolean}
  */
-export function isArticleDetailPage() {
-  const templates = getMetadata('template')
+export function isArticleDetailPage(doc = document) {
+  const templates = getMetadata('template', doc)
     .split(',')
     .map((value) => toClassName(value.trim()))
     .filter(Boolean);
@@ -579,7 +737,7 @@ export function decorateSectionMetadata(main) {
  *
  * @returns {string}
  */
-function getShareUrl() {
+export function getShareUrl() {
   const canonical = document.querySelector('link[rel="canonical"]')?.href;
   const raw = canonical || window.location.href;
   try {
@@ -1388,4 +1546,206 @@ export function ensureArticleBackToTop(doc = document) {
   link.append(icon);
 
   main.after(link);
+}
+
+const SITE_ORIGIN = 'https://labs.adobe.com';
+const ORG_ID = `${SITE_ORIGIN}/#organization`;
+
+/**
+ * Absolute http(s) image URL. A relative path on localhost or an AEM preview
+ * host is resolved against https://labs.adobe.com. An authored absolute URL
+ * stays as written.
+ * @param {string} value
+ * @param {string} baseHref
+ * @returns {string}
+ */
+function toAbsoluteImage(value, baseHref) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  let url;
+  try {
+    url = new URL(raw, baseHref);
+  } catch {
+    return '';
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+  const authoredAbsolute = /^https?:\/\//i.test(raw) || raw.startsWith('//');
+  if (!authoredAbsolute && !PRODUCTION_HOSTS.has(normalizeHostname(url.hostname))) {
+    url.protocol = 'https:';
+    url.hostname = 'labs.adobe.com';
+    url.port = '';
+  }
+  return url.href;
+}
+
+/**
+ * Publication date as YYYY-MM-DD in the local calendar.
+ * ISO dates keep their calendar day.
+ * @param {string} value
+ * @returns {string}
+ */
+function toIsoDate(value) {
+  const date = parseCardDate(value);
+  if (!date) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Adobe Labs on every indexable page.
+ * @returns {object}
+ */
+function buildOrganization() {
+  return {
+    '@type': 'Organization',
+    '@id': ORG_ID,
+    name: 'Adobe Labs',
+    url: `${SITE_ORIGIN}/`,
+    parentOrganization: {
+      '@type': 'Organization',
+      name: 'Adobe',
+      url: 'https://www.adobe.com/',
+    },
+  };
+}
+
+/**
+ * One Person per authored name. The byline fallback "Adobe Labs" is not a name
+ * here: an empty author field yields an empty list.
+ * @param {Document} doc
+ * @returns {object[]}
+ */
+function buildPeople(doc) {
+  const seen = new Set();
+  const people = [];
+  getMetadata('author', doc)
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .forEach((name) => {
+      const slug = toClassName(name);
+      if (!slug || seen.has(slug)) return;
+      seen.add(slug);
+      people.push({
+        '@type': 'Person',
+        '@id': `${SITE_ORIGIN}/#person-${slug}`,
+        name,
+      });
+    });
+  return people;
+}
+
+/**
+ * Article author: one person id, a list of person ids, or the Organization.
+ * @param {object[]} people
+ * @returns {object|object[]}
+ */
+function authorReference(people) {
+  if (!people.length) return { '@id': ORG_ID };
+  const refs = people.map((person) => ({ '@id': person['@id'] }));
+  return refs.length === 1 ? refs[0] : refs;
+}
+
+/**
+ * Article plus its Person nodes, or an empty list when this page is not an
+ * article or has no headline.
+ * @param {Document} doc
+ * @returns {object[]}
+ */
+function buildArticleGraph(doc) {
+  if (!isArticleDetailPage()) return [];
+  const headline = getMetadata('og:title', doc).trim() || String(doc.title || '').trim();
+  if (!headline) return [];
+
+  const url = getShareUrl();
+  const people = buildPeople(doc);
+  const article = {
+    '@type': 'Article',
+    headline,
+  };
+
+  const description = getMetadata('description', doc).trim();
+  if (description) article.description = description;
+
+  const image = toAbsoluteImage(getMetadata('og:image', doc), url);
+  if (image) article.image = image;
+
+  const datePublished = toIsoDate(getMetadata('publication-date', doc));
+  if (datePublished) article.datePublished = datePublished;
+
+  article.url = url;
+  article.mainEntityOfPage = { '@type': 'WebPage', '@id': url };
+  article.publisher = { '@id': ORG_ID };
+  article.inLanguage = 'en';
+  article.author = authorReference(people);
+
+  return [...people, article];
+}
+
+/**
+ * Root-relative path of this page's markdown twin.
+ * Directory URLs map to `index.md` (`/` → `/index.md`), which is how Edge
+ * Delivery serves the markdown source. Extension URLs (`.plain.html` and
+ * similar) are not public pages and return an empty string.
+ *
+ * @param {string} pathname
+ * @returns {string}
+ */
+export function markdownAlternatePath(pathname) {
+  if (!pathname || pathname.endsWith('.md')) return pathname || '';
+  if (pathname.endsWith('/')) return `${pathname}index.md`;
+  const last = pathname.slice(pathname.lastIndexOf('/') + 1);
+  if (last.includes('.')) return '';
+  return `${pathname}.md`;
+}
+
+/**
+ * Points article pages at their markdown twin with
+ * `<link rel="alternate" type="text/markdown">`.
+ *
+ * Listing pages are skipped: their markdown omits query-index content such
+ * as the article cards. An existing markdown alternate is left in place.
+ * `rel="canonical"` is not touched; the HTML pipeline already emits a
+ * self-reference, and this link uses a different relation.
+ *
+ * @param {Document} [doc]
+ * @returns {void}
+ */
+export function addMarkdownAlternate(doc = document) {
+  const { head } = doc;
+  if (!head || !isArticleDetailPage(doc)) return;
+  if (head.querySelector('link[rel="alternate"][type="text/markdown"]')) return;
+
+  const pathname = doc.defaultView?.location?.pathname || '';
+  const href = markdownAlternatePath(pathname);
+  if (!href) return;
+
+  const link = doc.createElement('link');
+  link.rel = 'alternate';
+  link.type = 'text/markdown';
+  link.href = href;
+  head.append(link);
+}
+
+/**
+ * Appends one application/ld+json script from published meta tags.
+ * Does nothing when head already has JSON-LD, or when robots contains noindex.
+ * @param {Document} [doc]
+ * @returns {void}
+ */
+export function addStructuredData(doc = document) {
+  const { head } = doc;
+  if (!head) return;
+  if (head.querySelector('script[type="application/ld+json"]')) return;
+  if (getMetadata('robots', doc).toLowerCase().includes('noindex')) return;
+
+  const script = doc.createElement('script');
+  script.type = 'application/ld+json';
+  script.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [buildOrganization(), ...buildArticleGraph(doc)],
+  });
+  head.append(script);
 }
