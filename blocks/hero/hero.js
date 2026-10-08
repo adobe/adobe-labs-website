@@ -264,6 +264,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (pageCategory) pageCategoryEl.textContent = pageCategory;
   else pageCategoryEl.remove();
 
+  const copy = fragment.querySelector('.hero__copy');
   if (headline) copy.append(createHeadline(headlineTag, headline));
   if (!copy.querySelector('.hero__category, .hero__headline')) copy.remove();
 
