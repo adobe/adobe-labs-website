@@ -474,6 +474,11 @@
     outline-color: var(--s2a-color-focus-ring-knockout, #fff);
   }
 
+  .header__nav:focus-visible {
+    outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
+    outline-offset: -2px;
+  }
+
   .header__column {
     @media (width >= 48rem) {
       min-inline-size: 10rem;

@@ -57,8 +57,12 @@ body:has(main > .section:nth-last-child(1 of .section)[class*="section-rounded-"
   outline-offset: 2px;
 }
 
-.footer__skip:focus-visible {
+.footer__skip-links:focus-within .footer__skip:first-child {
   inset-block-start: calc(var(--nav-height) + var(--s2a-spacing-xs, 0.5rem));
+}
+
+.footer__skip-links:focus-within .footer__skip:last-child {
+  inset-block-start: calc(var(--nav-height) + var(--s2a-spacing-xs, 0.5rem) + 3rem);
 }
 
 .footer__icons {

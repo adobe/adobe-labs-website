@@ -459,6 +459,18 @@ describe('footer block', () => {
       expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
     });
 
+    it('does not pre-open the drawer on Space, since anchors only activate on Enter', async () => {
+      const { nav, toggle } = appendHeaderNav({ open: false });
+      const block = appendFooterBlock();
+      await decorate(block);
+
+      const skipToNav = within(document.body).getByRole('link', { name: 'Skip to navigation' });
+      skipToNav.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(nav).not.toHaveFocus();
+    });
+
     it('opens the closed mobile nav drawer and focuses it when activated by keyboard', async () => {
       const { nav, toggle } = appendHeaderNav({ open: false });
       const block = appendFooterBlock();
