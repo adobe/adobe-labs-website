@@ -6,7 +6,6 @@
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
   --hero-scrim-regular: rgb(0 0 0 / 42%);
-  --hero-scrim-hover: rgb(0 0 0 / 57%);
   --hero-scrim-pressed: var(--s2a-color-transparent-black-72);
   --hero-underline-transition-duration: 0.3s;
   --hero-underline-transition-easing: ease;
@@ -57,12 +56,6 @@
     &:focus-visible {
       outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
       outline-offset: var(--s2a-border-width-md);
-    }
-
-    @media (hover: hover) {
-      &:hover .hero__media::after {
-        background-color: var(--hero-scrim-hover);
-      }
     }
 
     &:active .hero__media::after {

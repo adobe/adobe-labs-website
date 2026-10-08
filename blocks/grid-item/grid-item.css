@@ -89,10 +89,6 @@
     .grid-item__content-type:hover .grid-item__content-type-name {
       color: var(--s2a-color-content-default);
     }
-
-    .grid-item__main:hover .grid-item__image::after {
-      opacity: 1;
-    }
   }
 
   .grid-item__image {

@@ -458,6 +458,20 @@ describe('hero block', () => {
     }
   });
 
+  it('leaves the image as the only visual on a device without a fine pointer', async () => {
+    const block = createHeroBlock([
+      ['<a href="/research/example">Headline</a>'],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+
+    await decorate(block);
+
+    // jsdom has no fine-pointer match and no WebGL, so the chromatic hover
+    // never mounts; this guards against it ever touching the real <img>.
+    expect(block.querySelector('canvas')).toBeNull();
+    expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
+  });
+
   it('keeps a new-tab hint out of the visible headline', async () => {
     const block = createHeroBlock([
       [

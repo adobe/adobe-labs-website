@@ -608,6 +608,19 @@ footer {
   }
 }
 
+/* --- Chromatic hover ---
+   Decorative canvas crossfaded over the real <img> on hero/grid-item hover.
+   The <img> underneath is untouched and is what shows when this canvas is
+   absent or fully faded out. */
+.chromatic-hover-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* --- Article meta --- */
 
 /* Shared container for the top and bottom meta sections of an article: the
