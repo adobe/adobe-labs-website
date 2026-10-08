@@ -37,7 +37,6 @@ import {
   decorateSectionMetadata,
   decorateBlockquotes,
   isArticleDetailPage,
-  watchExternalLinks,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -249,9 +248,7 @@ async function loadEager(doc) {
   }
   ensureSkipLink(doc);
   ensureArticleBackToTop(doc);
-  // After decorateButtons, so button titles stay the link text and not the
-  // "opens in a new tab" hint. The observer covers header, footer, and fragments.
-  watchExternalLinks(doc);
+
   if (main) {
     document.body.classList.add('appear');
     await loadSection(main.querySelector('.section'), waitForFirstImage);
