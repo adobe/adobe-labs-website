@@ -603,20 +603,25 @@ function scrollFooterIntoView() {
 
 /**
  * Builds the footer's "Skip to content" and "Skip to navigation" links, hidden
- * until focused via keyboard.
- * @returns {Element[]}
+ * until focused via keyboard, wrapped in their own landmark.
+ * @returns {Element}
  */
 function buildFooterSkipLinks() {
-  const toContent = fromHTML('<a class="footer__skip" href="#main">Skip to content</a>');
-  const toNav = fromHTML('<a class="footer__skip" href="#header-nav">Skip to navigation</a>');
+  const wrapper = fromHTML(`
+    <nav class="footer__skip-links" aria-label="Skip links">
+      <a class="footer__skip" href="#main">Skip to content</a>
+      <a class="footer__skip" href="#header-nav">Skip to navigation</a>
+    </nav>
+  `);
+  const [toContent, toNav] = wrapper.children;
   toContent.addEventListener('focus', scrollFooterIntoView);
   toNav.addEventListener('focus', scrollFooterIntoView);
   toNav.addEventListener('pointerdown', preopenHeaderNav);
   toNav.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') preopenHeaderNav();
+    if (event.key === 'Enter') preopenHeaderNav();
   });
   toNav.addEventListener('click', focusHeaderNav);
-  return [toContent, toNav];
+  return wrapper;
 }
 
 /**
@@ -698,7 +703,7 @@ export default async function decorate(block) {
   if (social) options.append(social);
 
   block.append(wrapper);
-  block.closest('footer')?.before(...buildFooterSkipLinks());
+  block.closest('footer')?.before(buildFooterSkipLinks());
   decorateLogo(block);
   await loadFooterIcons(block);
 }

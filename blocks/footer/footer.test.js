@@ -423,18 +423,22 @@ describe('footer block', () => {
     }
 
     afterEach(() => {
-      document.querySelectorAll('header, footer, a.footer__skip').forEach((el) => el.remove());
+      document.querySelectorAll('header, footer, .footer__skip-links').forEach((el) => el.remove());
     });
 
-    it('adds hidden skip-to-content and skip-to-navigation links as siblings before the footer landmark', async () => {
+    it('adds a labelled skip-links landmark, as a sibling before the footer landmark', async () => {
       const block = appendFooterBlock();
 
       await decorate(block);
 
       const footerEl = block.closest('footer');
-      const links = [...document.body.children].filter((el) => el.matches('a.footer__skip'));
+      const skipNav = footerEl.previousElementSibling;
+      expect(skipNav).toHaveClass('footer__skip-links');
+      expect(skipNav.tagName).toBe('NAV');
+      expect(skipNav).toHaveAttribute('aria-label', 'Skip links');
+
+      const links = skipNav.querySelectorAll('a.footer__skip');
       expect(links).toHaveLength(2);
-      links.forEach((link) => expect(link.nextElementSibling === footerEl || link.nextElementSibling?.matches('a.footer__skip')).toBe(true));
       expect(links[0]).toHaveAttribute('href', '#main');
       expect(links[0]).toHaveTextContent('Skip to content');
       expect(links[1]).toHaveAttribute('href', '#header-nav');
