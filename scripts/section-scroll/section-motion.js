@@ -16,8 +16,10 @@ import {
   CLASS_OVERLAY,
   HERO_TEXT_SPEED,
   OVERLAY_DIM,
+  coverPinProgress,
   coverStartPx,
   headerFadeVh,
+  holdThenLinear,
   introLagPx,
   isFullScreenHero,
   roundedParallax,
@@ -33,15 +35,17 @@ import {
  *
  * @param {HTMLElement} trigger
  * @param {() => string} startAt
+ * @param {() => void} [onRefresh] Recompute geometry ScrollTrigger does not own
  * @returns {object}
  */
-function scrub(trigger, startAt) {
+function scrub(trigger, startAt, onRefresh) {
   return {
     trigger,
     start: () => `clamp(${startAt()})`,
     end: 'top top',
     scrub: true,
     invalidateOnRefresh: true,
+    ...(onRefresh ? { onRefresh } : {}),
   };
 }
 
@@ -73,12 +77,13 @@ function coverStart(section) {
  * @param {HTMLElement} slow Outgoing section
  * @param {HTMLElement} next Incoming section
  * @param {() => string} startAt
+ * @param {() => void} [onRefresh]
  * @returns {object}
  */
-function coverTimeline(slow, next, startAt) {
+function coverTimeline(slow, next, startAt, onRefresh) {
   return gsap.timeline({
     defaults: { ease: 'none' },
-    scrollTrigger: scrub(next, startAt),
+    scrollTrigger: scrub(next, startAt, onRefresh),
   });
 }
 
@@ -184,12 +189,21 @@ export function bindPair(slow, next) {
     return;
   }
 
-  const cover = coverTimeline(slow, next, coverStart(slow));
+  // The next card overlaps this one, so the cover starts before the pin.
+  // Hold the grid still until the card stops, or it slides up ahead of the scroll.
+  const pin = { at: 0 };
+  const syncPin = () => {
+    const overlap = slow.offsetTop + slow.offsetHeight - next.offsetTop;
+    pin.at = coverPinProgress(overlap, coverStartPx(slow));
+  };
+  const cover = coverTimeline(slow, next, coverStart(slow), syncPin);
+  syncPin();
   const inner = touch ? [] : [...slow.children].filter((el) => el !== overlay);
   if (inner.length) {
     cover.fromTo(inner, { y: 0 }, {
       y: () => roundedParallax(window.innerHeight),
       duration: 1,
+      ease: (progress) => holdThenLinear(progress, pin.at),
     });
   }
   dim(cover, overlay, heroText, FULL_SPAN);

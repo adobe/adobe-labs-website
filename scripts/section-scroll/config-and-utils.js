@@ -155,6 +155,34 @@ export function roundedParallax(vh) {
 }
 
 /**
+ * Where along the cover (0–1) the outgoing card actually pins.
+ * The next card overlaps the previous one, so the cover line arrives while
+ * that card is still in flow. `0` when the cards do not overlap.
+ *
+ * @param {number} overlapPx How far the next section starts above the previous bottom
+ * @param {number} coverPx Scroll from the cover line to the top of the viewport
+ * @returns {number}
+ */
+export function coverPinProgress(overlapPx, coverPx) {
+  if (!coverPx || overlapPx <= 0) return 0;
+  return Math.min(1, overlapPx / coverPx);
+}
+
+/**
+ * Linear progress that stays at rest until `at`, then catches up by the end.
+ * Holds a rounded card's content still through the overlap before the pin.
+ *
+ * @param {number} progress
+ * @param {number} at
+ * @returns {number}
+ */
+export function holdThenLinear(progress, at) {
+  if (at <= 0) return progress;
+  if (progress <= at || at >= 1) return 0;
+  return (progress - at) / (1 - at);
+}
+
+/**
  * Overlap distance held back on an intro section, in px.
  *
  * @param {HTMLElement} section

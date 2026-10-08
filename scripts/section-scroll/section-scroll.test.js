@@ -530,6 +530,35 @@ describe('initSectionScroll', () => {
     expect(timeline.to).not.toHaveBeenCalled();
   });
 
+  it('holds rounded content still until the outgoing card pins', async () => {
+    mockMatchMedia(true);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section section-rounded-blue">
+        <div class="inner">Card</div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+    const slow = main.children[0];
+    const next = main.children[1];
+    // Cover line is 480px. The next card starts 240px above this card's bottom.
+    Object.defineProperty(slow, 'offsetTop', { configurable: true, value: 0 });
+    Object.defineProperty(slow, 'offsetHeight', { configurable: true, value: 1000 });
+    Object.defineProperty(next, 'offsetTop', { configurable: true, value: 760 });
+
+    await initSectionScroll();
+
+    const { config, timeline } = timelineTweening(main.querySelector('.inner'));
+    const { ease } = tweenVars(timeline, main.querySelector('.inner'));
+    expect(ease(0.5)).toBe(0);
+    expect(ease(0.75)).toBe(0.5);
+    expect(ease(1)).toBe(1);
+
+    Object.defineProperty(next, 'offsetTop', { configurable: true, value: 1000 });
+    config.scrollTrigger.onRefresh();
+    expect(ease(0.5)).toBe(0.5);
+  });
+
   it('dims the outgoing card from the cover line, on the parallax timeline', async () => {
     mockMatchMedia(true);
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
