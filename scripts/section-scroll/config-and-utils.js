@@ -57,6 +57,15 @@ export const HERO_TEXT_SPEED = 0.5;
 /** Viewport query for a stacked page header (`< 48rem`). */
 const SMALL_MQ = '(width < 48rem)';
 
+/** Footer columns stack below this width. Matches `blocks/footer/footer.css`. */
+export const FOOTER_STACKED_MQ = '(width < 64rem)';
+
+/**
+ * A stacked footer is fully uncovered once its top reaches this share of the
+ * viewport. Desktop keeps using the menu's own height.
+ */
+export const FOOTER_UNCOVER_VH = 0.5;
+
 /** Touch phones/tablets: skip Lenis; intro lag is CSS on the compositor. */
 const TOUCH_MQ = '(hover: none) and (pointer: coarse)';
 
@@ -197,4 +206,21 @@ export function dimEntryStart(section) {
 export function pinTopPx(section) {
   if (isFullScreenHero(section)) return 0;
   return window.innerHeight * COVER_START_VH - section.offsetHeight;
+}
+
+/**
+ * Scroll distance for the footer garage door, in px.
+ * Desktop uses the menu height. A stacked menu never runs longer than
+ * `FOOTER_UNCOVER_VH` of the viewport, so a tall column is clear once its top
+ * reaches mid-screen. A menu shorter than that still clears on its own height.
+ *
+ * @param {number} innerHeight `.footer__inner` height
+ * @param {number} viewportHeight
+ * @param {boolean} stacked True below `FOOTER_STACKED_MQ`
+ * @returns {number}
+ */
+export function footerCoverDistance(innerHeight, viewportHeight, stacked) {
+  if (!innerHeight) return 0;
+  if (!stacked || !viewportHeight) return innerHeight;
+  return Math.min(innerHeight, FOOTER_UNCOVER_VH * viewportHeight);
 }
