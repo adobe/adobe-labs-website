@@ -141,8 +141,9 @@ describe('hero block', () => {
       await decorate(block);
 
       const view = within(block);
-      const eyebrow = view.getByText('ResearchTest');
-      expect(eyebrow).toHaveClass('hero__eyebrow');
+      const eyebrowText = view.getByText('ResearchTest');
+      expect(eyebrowText).toHaveClass('hero__content-type');
+      const eyebrow = eyebrowText.closest('.hero__eyebrow');
       expect(eyebrow).toHaveAttribute('aria-hidden', 'true');
       const mark = eyebrow.querySelector('svg');
       expect(eyebrow.firstElementChild).toBe(mark);
@@ -245,7 +246,7 @@ describe('hero block', () => {
 
     try {
       await decorate(block);
-      expect(within(block).getByText('Sneaks')).toHaveClass('hero__eyebrow');
+      expect(within(block).getByText('Sneaks')).toHaveClass('hero__content-type');
     } finally {
       main.remove();
       window.history.replaceState({}, '', '/');
@@ -304,7 +305,7 @@ describe('hero block', () => {
       await decorate(block);
 
       const view = within(block);
-      expect(view.getByText('Research')).toHaveClass('hero__eyebrow');
+      expect(view.getByText('Research')).toHaveClass('hero__content-type');
       expect(view.getByText('5.24.26')).toHaveClass('hero__date');
       const headline = block.querySelector('.hero__headline');
       expect(headline.tagName).toBe('P');
@@ -327,7 +328,7 @@ describe('hero block', () => {
     try {
       await decorate(block);
 
-      expect(within(block).getByText('Research')).toHaveClass('hero__eyebrow');
+      expect(within(block).getByText('Research')).toHaveClass('hero__content-type');
       expect(within(block).getByText('Oct 26')).toHaveClass('hero__date');
       const headline = block.querySelector('.hero__headline');
       expect(headline.tagName).toBe('P');
