@@ -55,6 +55,10 @@ const MODIFIED_INSTANT = new Date(Date.UTC(2026, 9, 7, 0, 30, 0));
 const DATE_MODIFIED = '2026-10-07';
 const MODIFIED_TIME = '2026-10-07T00:30:00Z';
 
+/**
+ * The article Open Graph modification-time tag, when present.
+ * @returns {Element|null}
+ */
 function modifiedTimeMeta() {
   return document.head.querySelector('meta[property="article:modified_time"]');
 }
@@ -71,7 +75,9 @@ function browserLastModified(date) {
 }
 
 /**
- * @param {string} value
+ * Overrides `document.lastModified` for the current page.
+ * @param {string} value Browser-formatted local time (`MM/DD/YYYY hh:mm:ss`)
+ * @returns {void}
  */
 function setLastModified(value) {
   Object.defineProperty(document, 'lastModified', {
