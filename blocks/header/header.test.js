@@ -14,6 +14,21 @@ jest.mock('../fragment/fragment.js', () => ({
   loadFragment: jest.fn(),
 }));
 
+/** jsdom does not lay out scroll, so tests set this value directly. */
+let scrollYValue = 0;
+
+/**
+ * @param {number} value
+ */
+function setScrollY(value) {
+  scrollYValue = value;
+}
+
+Object.defineProperty(window, 'scrollY', {
+  configurable: true,
+  get: () => scrollYValue,
+});
+
 /**
  * Labs-shaped nav fragment: brand, links (one with nested menu), Subscribe.
  * @type {string}
@@ -175,11 +190,13 @@ describe('header block', () => {
     loadFragment.mockResolvedValue(createFragment(NAV_HTML));
     global.fetch = mockHeaderFetch();
     window.history.pushState({}, '', '/');
+    setScrollY(0);
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
     document.documentElement.classList.remove('header-scroll-lock');
+    setScrollY(0);
   });
 
   it('loads the default nav fragment when nav metadata is empty', async () => {
@@ -201,6 +218,9 @@ describe('header block', () => {
     const block = await decorateHeader();
 
     expect(block.querySelector('.header__logo-desktop')).toHaveAttribute('alt', '');
+    const heading = within(block).getByRole('heading', { level: 1, name: 'Adobe Labs' });
+    expect(heading).toHaveClass('header__site-title');
+    expect(heading.querySelector('.header__brand')).toHaveAttribute('href', '/');
     expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
     expect(within(document.body).getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main');
     expect(within(block).getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
@@ -210,6 +230,27 @@ describe('header block', () => {
     expect(within(block).getByRole('button', { name: 'Products' })).not.toHaveAttribute('aria-haspopup');
     expect(within(block).getByRole('button', { name: 'Products' }).querySelector('.header__chevron')).toHaveAttribute('aria-hidden', 'true');
     expect(within(block).getByRole('link', { name: 'Research' }).querySelector('.header__chevron')).toBeNull();
+  });
+
+  it.each(['/', '/index', '/index.html'])(
+    'makes the brand logo the page heading at %s',
+    async (path) => {
+      window.history.pushState({}, '', path);
+
+      const block = await decorateHeader();
+
+      expect(within(block).getByRole('heading', { level: 1, name: 'Adobe Labs' })).toBeInTheDocument();
+      expect(block.querySelector('h1 .header__brand')).not.toHaveAttribute('aria-label');
+    },
+  );
+
+  it('keeps the brand logo out of the heading outline on other pages', async () => {
+    window.history.pushState({}, '', '/research');
+
+    const block = await decorateHeader();
+
+    expect(block.querySelector('h1')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toHaveAttribute('aria-label', 'Adobe Labs');
   });
 
   it('marks the matching path with aria-current', async () => {
@@ -452,6 +493,32 @@ describe('header block', () => {
     expect(block).not.toHaveClass('header--scrolled');
     expect(observerInstances.find(isFrostObserver)).toBeUndefined();
     expect(within(block).getByRole('link', { name: 'Subscribe' })).not.toHaveClass('button--static-white');
+  });
+
+  it('applies the drop shadow once a page without a hero scrolls', async () => {
+    const block = await decorateHeader();
+
+    expect(block).not.toHaveClass('header--scrolled');
+
+    setScrollY(1);
+    window.dispatchEvent(new Event('scroll'));
+
+    expect(block).toHaveClass('header--scrolled');
+    expect(block).not.toHaveClass('header--inverse');
+
+    setScrollY(0);
+    window.dispatchEvent(new Event('scroll'));
+
+    expect(block).not.toHaveClass('header--scrolled');
+  });
+
+  it('keeps the drop shadow when a page without a hero loads already scrolled', async () => {
+    setScrollY(40);
+
+    const block = await decorateHeader();
+
+    expect(block).toHaveClass('header--scrolled');
+    expect(block).not.toHaveClass('header--inverse');
   });
 
   it('drops inverse when the full-screen hero scrolls away', async () => {

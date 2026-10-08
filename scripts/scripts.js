@@ -24,6 +24,8 @@ import {
   getMetadata,
 } from './aem.js';
 import {
+  addMarkdownAlternate,
+  addStructuredData,
   buildArticleAuthorMeta,
   buildArticleMetaActions,
   buildArticlePreFooter,
@@ -34,6 +36,8 @@ import {
   decorateArticleSections,
   decorateSectionMetadata,
   decorateBlockquotes,
+  isArticleDetailPage,
+  watchExternalLinks,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -235,6 +239,8 @@ async function loadFonts() {
  */
 async function loadEager(doc) {
   document.documentElement.lang = 'en';
+  addStructuredData(doc);
+  addMarkdownAlternate(doc);
   decorateDarkMode();
   decorateTemplateAndTheme();
   const main = doc.querySelector('main');
@@ -243,6 +249,9 @@ async function loadEager(doc) {
   }
   ensureSkipLink(doc);
   ensureArticleBackToTop(doc);
+  // After decorateButtons, so button titles stay the link text and not the
+  // "opens in a new tab" hint. The observer covers header, footer, and fragments.
+  watchExternalLinks(doc);
   if (main) {
     document.body.classList.add('appear');
     await loadSection(main.querySelector('.section'), waitForFirstImage);
@@ -350,8 +359,20 @@ async function loadLazy(doc) {
  * without impacting the user experience.
  */
 function loadDelayed() {
-  import('./consent-check.js');
-  // load anything that can be postponed to the latest here
+  // Content Credentials (CR Pin): Read images to look for content credentials,
+  // and add CR pins to any that have them. Only article pages show CR pins, and the
+  // c2pa library is large, so this waits out the window where the visitor first
+  // interacts rather than running the moment lazy loading resolves.
+  if (isArticleDetailPage()) {
+    window.setTimeout(() => {
+      loadCSS(`${window.hlx.codeBasePath}/styles/features/content-credentials.css`);
+      import('./features/content-credentials/content-credentials.js')
+        .then(({ default: initContentCredentials }) => initContentCredentials())
+        .catch(() => {
+          // Ignore error.
+        });
+    }, 3000);
+  }
 }
 
 async function loadPage() {

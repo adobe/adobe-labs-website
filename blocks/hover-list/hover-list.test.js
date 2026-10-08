@@ -1,5 +1,6 @@
 import { within } from '@testing-library/dom';
 import { createOptimizedPicture } from '../../scripts/aem.js';
+import { markExternalLink } from '../../scripts/utils/utils.js';
 import decorate, {
   attachHoverMedia,
   HOVER_IMAGE_BREAKPOINTS,
@@ -91,6 +92,28 @@ describe('hover-list block', () => {
     expect(list).toHaveClass('hover-list__list');
     expect(list).toHaveAttribute('role', 'list');
     expect(view.getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('keeps the new-tab hint out of an external headline', () => {
+    const block = createBlock([
+      ['<p><a href="https://www.adobe.com/privacy">Privacy Policy<span class="visually-hidden"> (opens in a new tab)</span></a></p>'],
+      ['<p><a href="/child-safety">Adobe’s commitment to child safety</a></p>'],
+    ]);
+
+    decorate(block);
+
+    const links = within(block).getAllByRole('link');
+    markExternalLink(links[0]);
+    markExternalLink(links[1]);
+
+    const visible = [...links[0].querySelectorAll('.hover-list__headline')].map((el) => el.textContent).join('');
+    expect(visible).toBe('Privacy Policy');
+    expect(links[0]).toHaveAttribute('aria-label', 'Privacy Policy (opens in a new tab)');
+    expect(links[0].querySelector('.visually-hidden')).toBeNull();
+    expect(links[1]).not.toHaveAttribute('aria-label');
+    expect(links[1].querySelector('.visually-hidden')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Privacy Policy (opens in a new tab)' })).toBe(links[0]);
+    expect(within(block).getByRole('link', { name: 'Adobe’s commitment to child safety' })).toBe(links[1]);
   });
 
   it('skips rows with javascript URLs or missing headlines', () => {

@@ -145,6 +145,8 @@ The page already loads the first image in the first section right away, and AEM 
 
 In Document Authoring, insert a section break after the hero table. Paste the hero image as a normal picture — you do not need to set `loading` or `fetchpriority`. Adding `fetchpriority="high"` or a preload usually makes Lighthouse scores worse on Edge Delivery; see Adobe’s [keeping-it-100](https://www.aem.live/developer/keeping-it-100) guidance.
 
+Set the headline's heading level in Document Authoring. The hero keeps that element: Heading 1, Heading 2, or the default paragraph. Articles that need a single page title use Heading 1. A page with more than one hero, such as Sneaks, should not use Heading 1 for each one.
+
 #### AEM editing
 
 1. Insert a **section break** after the previous section.
@@ -280,6 +282,15 @@ Anything driven from `gsap.ticker` — Lenis is, in `scripts/section-scroll/init
 
 `scripts.js` may still emit a guarded `<link rel="modulepreload">` for the bundle, as `loadLazy` does for section overlays. A dynamic `import()` inside a module cannot be requested until that module's own imports have resolved, so a vendored bundle behind one starts downloading several round trips late. The hint starts the download early without placing the bundle in any import graph, and it must carry the same guard as the import it warms — otherwise it becomes an eager load for requests that never use it.
 
+### Updating the vendored c2pa-web library
+
+`@contentauth/c2pa-web` (used by content credentials / CR pin) is vendored this way. To rebuild it, e.g. after bumping the version in `package.json`:
+
+```sh
+npm install
+npm run build:c2pa
+```
+
 ## Query Indexes
 
 The following query indexes are configured for this site.
@@ -392,3 +403,24 @@ Add extra classes for variants as needed, for example `button--static-white`.
 
 #### Disabled buttons as links
 `decorateButtons` runs before block JavaScript. For a disabled link that you create as `a.button` in block JS, set `aria-disabled="true"`, set `tabIndex = "-1"`, and call `event.preventDefault()` on click.
+
+## Image Content Authenticity and CR Pin
+
+A feature is included that displays content authenticity (C2PA) info in a
+popover, denoted and accessed through a "CR" pin icon button in the corner
+of some images.
+
+### `c2pa-web` SDK ###
+This feature uses and loads the `@contentauth/c2pa-web` SDK in order to read the manifest of credentialed images. The WASM binary of this library is quite large, so steps were taken to prevent this from affecting initial load:
+
+- Scripts only start loading if on the article page.
+- Scripts load via loadDelayed(), and after a few seconds, to avoid interference with initial load and first interaction.
+- The larger wasm file required by the SDK only loads if targeted images are found.
+
+This library is bundled into deps, following the documented convention used by other dependencies. This adds an npm script for building, `build:c2pa`.
+
+### Frontend UI
+
+If credentials are found on an image, it will have a wrapper added around it, and an absolutely positioned CR pin button will be displayed in the upper right corner. The CR pin button can be activated on hover (requested behavior), and also can be activated by keyboard. When activated, it will display a popover containing info from the credentials data.
+
+What data is displayed in the popover and where it is pulled from the raw manifest data is based on the now deprecated web component from `contentauth/c2pa-js-legacy`. There also is an inspect button with an external link for viewing the Disclosure Level 3 data.
