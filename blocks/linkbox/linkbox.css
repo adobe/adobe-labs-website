@@ -109,6 +109,7 @@
   color: transparent;
   text-decoration-line: underline;
   text-decoration-color: var(--s2a-color-content-default);
+
   /* A 0% mask is dropped for a frame in Chrome and the underline flashes. */
   clip-path: inset(0 100% 0 0);
   transition: clip-path var(--linkbox-underline-duration) var(--linkbox-underline-easing);
