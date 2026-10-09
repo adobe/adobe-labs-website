@@ -53,8 +53,12 @@ body:has(main > .section:nth-last-child(1 of .section)[class*="section-rounded-"
   background-color: var(--s2a-color-background-default, #fff);
   color: var(--s2a-color-content-default, #000);
   text-decoration: none;
-  outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
+  outline: 2px solid transparent;
   outline-offset: 2px;
+}
+
+.footer__skip:focus-visible {
+  outline-color: var(--s2a-color-focus-ring-default, #1473e6);
 }
 
 .footer__skip-links:focus-within .footer__skip:first-child {
