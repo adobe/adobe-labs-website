@@ -10,6 +10,8 @@ import {
   coverStartPx,
   coversPrevious,
   dimEntryStart,
+  FOOTER_UNCOVER_VH,
+  footerCoverDistance,
   headerFadeVh,
   introLagPx,
   isFullScreenHero,
@@ -180,6 +182,20 @@ describe('roundedParallax', () => {
 
   it('is inert without a viewport', () => {
     expect(roundedParallax(0)).toBe(0);
+  });
+});
+
+describe('footerCoverDistance', () => {
+  it('uses the menu height when the footer is a row', () => {
+    expect(footerCoverDistance(700, 800, false)).toBe(700);
+  });
+
+  it('caps a tall stacked menu at half the viewport', () => {
+    expect(footerCoverDistance(700, 800, true)).toBe(800 * FOOTER_UNCOVER_VH);
+  });
+
+  it('keeps a short stacked menu on its own height', () => {
+    expect(footerCoverDistance(200, 800, true)).toBe(200);
   });
 });
 

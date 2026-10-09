@@ -33,6 +33,8 @@ import {
   dimEntryStart,
   introLagPx,
   isRounded,
+  FOOTER_STACKED_MQ,
+  footerCoverDistance,
   pinTopPx,
   staysInFlow,
   coverStartPx,
@@ -787,9 +789,22 @@ export function bindFooterReveal(main, root, options = {}) {
   /** @type {HTMLElement | null} */
   let inner = null;
   let innerHeight = 0;
+  /** Garage-door distance. Half the viewport when the menu is a tall column. */
+  let coverDistance = 0;
   /** @type {HTMLElement | null} */
   let logo = null;
   let logoHeight = 0;
+  /** Last written progress values, so a clamped frame does not touch style. */
+  let menuProgress = null;
+  /** @type {number | null} */
+  let logoProgress = null;
+
+  /**
+   * True while the footer menu is a stacked column (`FOOTER_STACKED_MQ`).
+   *
+   * @returns {boolean}
+   */
+  const menuStacks = () => window.matchMedia?.(FOOTER_STACKED_MQ)?.matches === true;
 
   /**
    * The footer menu element. `loadFooter` may not have built `.footer__inner`
@@ -801,8 +816,12 @@ export function bindFooterReveal(main, root, options = {}) {
     if (!inner?.isConnected) {
       inner = footer.querySelector('.footer__inner');
       innerHeight = 0;
+      menuProgress = null;
     }
-    if (inner && !innerHeight) innerHeight = inner.offsetHeight;
+    if (inner && !innerHeight) {
+      innerHeight = inner.offsetHeight;
+      coverDistance = footerCoverDistance(innerHeight, window.innerHeight, menuStacks());
+    }
     return inner;
   };
 
@@ -816,6 +835,7 @@ export function bindFooterReveal(main, root, options = {}) {
       const found = footer.querySelector('.footer__logo');
       logo = found instanceof HTMLElement ? found : null;
       logoHeight = 0;
+      logoProgress = null;
     }
     if (logo && !logoHeight) logoHeight = logo.offsetHeight;
     return logo;
@@ -830,17 +850,21 @@ export function bindFooterReveal(main, root, options = {}) {
   const sync = () => {
     const el = resolve();
     if (!el) return;
-    const progress = entryProgress(lastRounded, el, { height: innerHeight });
-    el.style.setProperty(VAR_PROGRESS, String(progress));
-    footer.classList.toggle(CLASS_LOGO, progress >= ENTRY_END);
+    const progress = entryProgress(lastRounded, el, { height: coverDistance || innerHeight });
+    if (progress !== menuProgress) {
+      menuProgress = progress;
+      el.style.setProperty(VAR_PROGRESS, String(progress));
+      footer.classList.toggle(CLASS_LOGO, progress >= ENTRY_END);
+    }
 
     const logoEl = resolveLogo();
     const cover = logoEl?.previousElementSibling;
     if (logoEl && cover instanceof HTMLElement) {
-      logoEl.style.setProperty(
-        VAR_LOGO,
-        String(entryProgress(cover, logoEl, { height: logoHeight })),
-      );
+      const next = entryProgress(cover, logoEl, { height: logoHeight });
+      if (next !== logoProgress) {
+        logoProgress = next;
+        logoEl.style.setProperty(VAR_LOGO, String(next));
+      }
     }
   };
 
@@ -867,11 +891,12 @@ export function bindFooterReveal(main, root, options = {}) {
     const el = resolve();
     if (!el || !innerHeight) return;
 
-    const menuProgress = entryProgress(lastRounded, el, { height: innerHeight });
+    const distance = coverDistance || innerHeight;
+    const progress = entryProgress(lastRounded, el, { height: distance });
     let delta = 0;
-    if (menuProgress < ENTRY_END) {
+    if (progress < ENTRY_END) {
       delta = lastRounded.getBoundingClientRect().bottom
-        - (window.innerHeight - innerHeight);
+        - (window.innerHeight - distance);
     }
 
     const logoEl = footer.querySelector('.footer__logo');
@@ -892,12 +917,18 @@ export function bindFooterReveal(main, root, options = {}) {
     sync();
     // Lenis scrolls immediately and may not have run the footer's scroll
     // listener yet. The delta lands on a fully risen logo, so rest it now.
-    if (finishLogo) logoEl.style.setProperty(VAR_LOGO, String(ENTRY_END));
+    if (finishLogo) {
+      logoProgress = ENTRY_END;
+      logoEl.style.setProperty(VAR_LOGO, String(ENTRY_END));
+    }
   };
 
   syncNow = () => {
     innerHeight = 0;
+    coverDistance = 0;
     logoHeight = 0;
+    menuProgress = null;
+    logoProgress = null;
     sync();
   };
 
