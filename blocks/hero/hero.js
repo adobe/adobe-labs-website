@@ -428,6 +428,18 @@ function bindIntroScroll() {
   window.addEventListener('scroll', introScrollHandler, { passive: true });
 }
 
+/**
+ * On Safari and on all browsers on iPhones, the frost SVG filter
+ * uses a lot of processing power (it runs on the CPU).
+ * To avoid slowing down these devices, we don't use the filter
+ * on them. The filter is only used on desktop Chrome and Firefox.
+ *
+ * @returns {boolean}
+ */
+function noFrostSVG() {
+  return navigator.vendor === 'Apple Computer, Inc.';
+}
+
 /** Eases blur and displacement after the black hold. */
 function tickFrost(now) {
   if (!frostDisplace && !mediaEl) return;
@@ -527,6 +539,7 @@ export function clearHeroIntro() {
     'hero-intro--nav',
     'hero-intro--body',
     'hero-intro--scrolled',
+    'hero-intro--no-frost',
   );
   frostSvg?.remove();
   frostSvg = undefined;
@@ -578,8 +591,12 @@ function startHeroIntro(block, section) {
   const root = document.documentElement;
   root.classList.add('hero-intro');
   mediaEl = block.querySelector('.hero__media img') || undefined;
-  injectFrost();
-  if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
+  if (noFrostSVG()) {
+    root.classList.add('hero-intro--no-frost');
+  } else {
+    injectFrost();
+    if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
+  }
   bindSkipClear();
   bindIntroScroll();
   waitForBodyIntro(root, section);

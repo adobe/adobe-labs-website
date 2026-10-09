@@ -510,8 +510,17 @@ describe('hero block', () => {
   });
 
   describe('full-screen loading intro', () => {
+    /** @type {jest.SpyInstance} */
+    let vendor;
+
     beforeEach(() => {
       document.body.classList.add('appear');
+      // This Mac's jsdom reports the Apple vendor. Frost tests need a non-WebKit vendor.
+      vendor = jest.spyOn(navigator, 'vendor', 'get').mockReturnValue('Google Inc.');
+    });
+
+    afterEach(() => {
+      vendor.mockRestore();
     });
 
     it('adds hero-intro immediately and hero-intro--body after paint', async () => {
@@ -827,6 +836,30 @@ describe('hero block', () => {
       } finally {
         window.matchMedia = originalMatchMedia;
       }
+    });
+
+    it('skips the frost filter on WebKit and clears the no-frost class', async () => {
+      vendor.mockReturnValue('Apple Computer, Inc.');
+
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+        ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+
+      await decorate(block);
+
+      const img = block.querySelector('.hero__media img');
+      expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.documentElement).toHaveClass('hero-intro--no-frost');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+      expect(img.style.filter).toBe('');
+
+      clearHeroIntro();
+
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--no-frost');
     });
 
     it('adds hero-intro--nav after the nav delay and clears intro classes when done', async () => {
