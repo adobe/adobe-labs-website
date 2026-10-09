@@ -1,0 +1,164 @@
+/* Same column as article body copy. */
+.linkbox-wrapper {
+  --article-content-max-inline-size: var(--article-default-content-max-inline-size, 100%);
+}
+
+.linkbox {
+  --linkbox-background: var(--s2a-color-transparent-black-04);
+  --linkbox-background-hover: var(--s2a-color-transparent-black-12);
+  --linkbox-radius: 1.25rem; /* 20px in Figma; no 20px radius token. */
+  --linkbox-transition-duration: 0s;
+  --linkbox-press-duration: 0s;
+  --linkbox-transition-easing: ease-in-out;
+  --linkbox-underline-duration: 0s;
+  --linkbox-underline-easing: ease;
+
+  @media (prefers-reduced-motion: no-preference) {
+    --linkbox-transition-duration: 0.2s;
+    --linkbox-press-duration: 0.12s;
+    --linkbox-underline-duration: 0.3s;
+  }
+}
+
+:root[data-theme="dark"] .linkbox {
+  --linkbox-background: var(--s2a-color-transparent-white-12);
+  --linkbox-background-hover: var(--s2a-color-transparent-white-24);
+}
+
+.linkbox__surface {
+  display: flex;
+  align-items: center;
+  gap: var(--s2a-spacing-md);
+  padding-block: var(--s2a-spacing-md);
+  padding-inline: var(--s2a-spacing-md) var(--s2a-spacing-lg);
+  border-radius: var(--linkbox-radius);
+  background-color: var(--linkbox-background);
+  color: var(--s2a-color-content-default);
+  text-decoration: none;
+  scale: 1;
+
+  @media (width >= 48rem) {
+    gap: var(--s2a-spacing-lg);
+    padding-block: var(--s2a-spacing-lg);
+    padding-inline: var(--s2a-spacing-lg) var(--s2a-spacing-xl);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      background-color var(--linkbox-transition-duration) var(--linkbox-transition-easing),
+      scale var(--linkbox-press-duration) var(--linkbox-transition-easing);
+
+    &:active {
+      scale: 0.98;
+    }
+  }
+}
+
+.linkbox__media {
+  flex: 0 0 auto;
+  width: min(34%, 10rem);
+  overflow: hidden;
+  border-radius: var(--s2a-border-radius-xs);
+  background-color: var(--s2a-color-background-subtle);
+
+  @media (width >= 48rem) {
+    width: 10rem;
+  }
+
+  :is(picture, img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  img {
+    object-fit: cover;
+  }
+}
+
+.linkbox__copy {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--s2a-spacing-md);
+  min-inline-size: 0;
+}
+
+.linkbox__label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+/* Two stacked copies share wrapping. The ghost's underline is masked
+   and wipes in from the inline start, same as the hero and grid item. */
+.linkbox__stack {
+  display: inline-grid;
+  max-inline-size: 100%;
+  grid-template-columns: 1fr;
+}
+
+.linkbox__text,
+.linkbox__underline {
+  grid-area: 1 / 1;
+  text-wrap: balance;
+}
+
+.linkbox__underline {
+  pointer-events: none;
+  user-select: none;
+  color: transparent;
+  text-decoration-line: underline;
+  text-decoration-color: var(--s2a-color-content-default);
+  mask-image: linear-gradient(to right, black, black);
+  mask-repeat: no-repeat;
+  mask-position: left;
+  mask-size: 0% 100%;
+  transition: mask-size var(--linkbox-underline-duration) var(--linkbox-underline-easing);
+
+  :dir(rtl) & {
+    mask-position: right;
+  }
+}
+
+.linkbox__arrow {
+  display: block;
+  flex-shrink: 0;
+  width: 0.7em;
+  height: 0.7em;
+  margin-inline-start: auto;
+  line-height: 0;
+  opacity: 0.5;
+  transition: opacity var(--linkbox-transition-duration) var(--linkbox-transition-easing);
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+a.linkbox__surface:is(:focus-visible, :active) {
+  background-color: var(--linkbox-background-hover);
+
+  .linkbox__underline {
+    mask-size: 100% 100%;
+  }
+
+  .linkbox__arrow {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) {
+  a.linkbox__surface:hover {
+    background-color: var(--linkbox-background-hover);
+  }
+
+  a.linkbox__surface:hover .linkbox__underline {
+    mask-size: 100% 100%;
+  }
+
+  a.linkbox__surface:hover .linkbox__arrow {
+    opacity: 1;
+  }
+}
