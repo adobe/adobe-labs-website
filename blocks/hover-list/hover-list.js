@@ -1,5 +1,10 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
-import { getCellText, isExternalLink, toSafeHttpUrl } from '../../scripts/utils/utils.js';
+import {
+  createExternalArrow,
+  getCellText,
+  isExternalLink,
+  toSafeHttpUrl,
+} from '../../scripts/utils/utils.js';
 
 /**
  * Hover-list block.
@@ -24,10 +29,6 @@ export const HOVER_IMAGE_BREAKPOINTS = [{ width: '400' }];
 const FINE_POINTER_MQ = '(hover: hover) and (pointer: fine)';
 const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
 
-/** Outlined ↗ from Figma (Adobe Clean Display Black). The webfont lacks this glyph. */
-const ARROW_PATH = 'M3.072 13.704L0.552 11.184L8.592 3.144H0L3.144 0'
-  + 'L14.208.024V11.16L11.112 14.232V5.664L3.072 13.704Z';
-
 /**
  * Parsed authored row. Images inside the headline link are ignored.
  *
@@ -46,24 +47,6 @@ const ARROW_PATH = 'M3.072 13.704L0.552 11.184L8.592 3.144H0L3.144 0'
 function canUseHoverMedia() {
   return window.matchMedia(FINE_POINTER_MQ).matches
     && !window.matchMedia(REDUCED_MOTION_MQ).matches;
-}
-
-/**
- * Builds the decorative external-link SVG. `currentColor` tracks the row
- * text color; the webfont does not include ↗.
- *
- * @returns {SVGSVGElement}
- */
-function createArrowIcon() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 15 15');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', ARROW_PATH);
-  path.setAttribute('fill', 'currentColor');
-  svg.append(path);
-  return svg;
 }
 
 /**
@@ -141,7 +124,7 @@ function buildHoverListItem(data, index) {
   const arrow = document.createElement('span');
   arrow.className = 'hover-list__arrow heading-6';
   arrow.setAttribute('aria-hidden', 'true');
-  arrow.append(createArrowIcon());
+  arrow.append(createExternalArrow());
 
   const end = document.createElement('span');
   end.className = 'hover-list__end';
