@@ -7,12 +7,14 @@ import {
   HEADER_FADE_VH_SMALL,
   INTRO_LAG,
   SHIFT_VH,
+  coverPinProgress,
   coverStartPx,
   coversPrevious,
   dimEntryStart,
   FOOTER_UNCOVER_VH,
   footerCoverDistance,
   headerFadeVh,
+  holdThenLinear,
   introLagPx,
   isFullScreenHero,
   isRounded,
@@ -172,6 +174,35 @@ describe('usesTouchScroll', () => {
   it('is false when matchMedia is unavailable', () => {
     window.matchMedia = undefined;
     expect(usesTouchScroll()).toBe(false);
+  });
+});
+
+describe('coverPinProgress', () => {
+  it('is the overlap as a share of the cover scroll', () => {
+    expect(coverPinProgress(30, 540)).toBeCloseTo(30 / 540);
+  });
+
+  it('stays at the start when the next card does not overlap', () => {
+    expect(coverPinProgress(0, 540)).toBe(0);
+    expect(coverPinProgress(-10, 540)).toBe(0);
+    expect(coverPinProgress(30, 0)).toBe(0);
+  });
+
+  it('does not run past the end of the cover', () => {
+    expect(coverPinProgress(800, 540)).toBe(1);
+  });
+});
+
+describe('holdThenLinear', () => {
+  it('is linear when the card is already pinned', () => {
+    expect(holdThenLinear(0.4, 0)).toBe(0.4);
+  });
+
+  it('stays at rest until the pin, then catches up', () => {
+    expect(holdThenLinear(0.25, 0.5)).toBe(0);
+    expect(holdThenLinear(0.5, 0.5)).toBe(0);
+    expect(holdThenLinear(0.75, 0.5)).toBe(0.5);
+    expect(holdThenLinear(1, 0.5)).toBe(1);
   });
 });
 
