@@ -100,9 +100,9 @@ export function buildLinkBox(data = {}, root = document.createElement('div')) {
   const linked = Boolean(href && label);
   const surface = document.createElement(linked ? 'a' : 'div');
   surface.className = 'linkbox__surface';
+  const img = image?.matches('img') ? image : image?.querySelector('img');
 
   if (image) {
-    const img = image.matches('img') ? image : image.querySelector('img');
     if (img && !img.hasAttribute('alt')) img.alt = '';
 
     const media = document.createElement('span');
@@ -130,9 +130,13 @@ export function buildLinkBox(data = {}, root = document.createElement('div')) {
 
   if (linked) {
     surface.href = href;
-    // The name stays the label so the external-link pass can append
-    // "(opens in a new tab)" without painting that hint in the box.
-    if (isExternalLink(surface)) surface.setAttribute('aria-label', label);
+    // aria-label replaces the link contents, so the image alt has to be
+    // part of it or a screen reader never hears it. markExternalLink
+    // appends "(opens in a new tab)" without painting that hint in the box.
+    if (isExternalLink(surface)) {
+      const accessibleLabel = [img?.alt?.trim(), label].filter(Boolean).join(' • ');
+      surface.setAttribute('aria-label', accessibleLabel);
+    }
     markExternalLink(surface);
   }
 

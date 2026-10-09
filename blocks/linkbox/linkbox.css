@@ -89,7 +89,7 @@
   min-inline-size: 0;
 }
 
-/* Two stacked copies share wrapping. The ghost's underline is masked
+/* Two stacked copies share wrapping. The ghost's underline is clipped
    and wipes in from the inline start, same as the hero and grid item. */
 .linkbox__stack {
   display: inline-grid;
@@ -109,14 +109,12 @@
   color: transparent;
   text-decoration-line: underline;
   text-decoration-color: var(--s2a-color-content-default);
-  mask-image: linear-gradient(to right, black, black);
-  mask-repeat: no-repeat;
-  mask-position: left;
-  mask-size: 0% 100%;
-  transition: mask-size var(--linkbox-underline-duration) var(--linkbox-underline-easing);
+  /* A 0% mask is dropped for a frame in Chrome and the underline flashes. */
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--linkbox-underline-duration) var(--linkbox-underline-easing);
 
   :dir(rtl) & {
-    mask-position: right;
+    clip-path: inset(0 0 0 100%);
   }
 }
 
@@ -141,7 +139,7 @@ a.linkbox__surface:is(:focus-visible, :active) {
   background-color: var(--linkbox-background-hover);
 
   .linkbox__underline {
-    mask-size: 100% 100%;
+    clip-path: inset(0 0 0 0);
   }
 
   .linkbox__arrow {
@@ -155,7 +153,7 @@ a.linkbox__surface:is(:focus-visible, :active) {
   }
 
   a.linkbox__surface:hover .linkbox__underline {
-    mask-size: 100% 100%;
+    clip-path: inset(0 0 0 0);
   }
 
   a.linkbox__surface:hover .linkbox__arrow {

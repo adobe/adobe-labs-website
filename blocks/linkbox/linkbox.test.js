@@ -54,6 +54,23 @@ describe('linkbox block', () => {
     expect(block).not.toHaveTextContent('Text');
   });
 
+  it('includes the image alt in an off-site link name', () => {
+    const block = createBlock({
+      Media: PICTURE,
+      Text: '<a href="https://example.com/experiment">Launch experiment</a>',
+    });
+
+    decorate(block);
+
+    const link = within(block).getByRole('link', {
+      name: 'Crisis response toolkit • Launch experiment (opens in a new tab)',
+    });
+    expect(link).toHaveAttribute(
+      'aria-label',
+      'Crisis response toolkit • Launch experiment (opens in a new tab)',
+    );
+  });
+
   it('marks an off-site link to open in a new tab', () => {
     const block = createBlock({
       Text: '<a href="https://example.com/experiment">Launch experiment</a>',
