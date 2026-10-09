@@ -1,3 +1,9 @@
+.table-of-contents-wrapper {
+  @media (width >= 48rem) {
+    --article-content-max-inline-size: min(max(calc(8 / 12 * 100%), var(--article-default-content-max-inline-size, 100%)), 77.875rem); /* 1246px max. Same as .image.lg. */
+  }
+}
+
 .table-of-contents {
   --table-of-contents-border-color: var(--s2a-color-border-subtle);
   --table-of-contents-number-background: var(--s2a-color-transparent-black-08);

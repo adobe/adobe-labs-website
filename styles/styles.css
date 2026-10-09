@@ -623,6 +623,13 @@ footer {
 
 /* --- Article meta --- */
 
+/* Byline section matches the large image width from the same breakpoint. */
+.article-meta-section {
+  @media (width >= 48rem) {
+    --article-content-max-inline-size: min(max(calc(8 / 12 * 100%), var(--article-default-content-max-inline-size, 100%)), 77.875rem); /* 1246px max. Same as .image.lg. */
+  }
+}
+
 /* Shared container for the top and bottom meta sections of an article: the
    author byline today, action buttons (copy/download/feedback) join it in
    the same container later (ADBLABS-144/ADBLABS-155).
