@@ -1,4 +1,5 @@
 import {
+  createExternalArrow,
   getAuthoredCells,
   getCellLinkHref,
   getCellMedia,
@@ -17,10 +18,6 @@ import {
  *
  * The whole surface is one link. The arrow is decorative.
  */
-
-/** Outlined ↗ from Figma (Adobe Clean Display Black). The webfont lacks this glyph. */
-const ARROW_PATH = 'M3.072 13.704L0.552 11.184L8.592 3.144H0L3.144 0'
-  + 'L14.208.024V11.16L11.112 14.232V5.664L3.072 13.704Z';
 
 /**
  * Data used to decorate a link box.
@@ -63,23 +60,6 @@ function createLabel(label, linked) {
   stack.append(textEl, underline);
   labelEl.append(stack);
   return labelEl;
-}
-
-/**
- * Builds the decorative external-link SVG. `currentColor` tracks the label.
- *
- * @returns {SVGSVGElement}
- */
-function createArrowIcon() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 15 15');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', ARROW_PATH);
-  path.setAttribute('fill', 'currentColor');
-  svg.append(path);
-  return svg;
 }
 
 /**
@@ -141,7 +121,7 @@ export function buildLinkBox(data = {}, root = document.createElement('div')) {
       const arrow = document.createElement('span');
       arrow.className = 'linkbox__arrow';
       arrow.setAttribute('aria-hidden', 'true');
-      arrow.append(createArrowIcon());
+      arrow.append(createExternalArrow());
       copy.append(arrow);
     }
 

@@ -17,6 +17,7 @@ import {
   isArticleDetailPage,
   isAuthoredVideo,
   isExternalLink,
+  createExternalArrow,
   markExternalLink,
   markExternalLinks,
   watchExternalLinks,
@@ -1127,6 +1128,18 @@ describe('decorateSectionMetadata', () => {
     expect(() => decorateSectionMetadata(main)).not.toThrow();
     expect(section.dataset.toc).toBeUndefined();
     expect(section.dataset.tableOfContents).toBeUndefined();
+  });
+});
+
+describe('createExternalArrow', () => {
+  it('builds a decorative arrow that inherits the surrounding text color', () => {
+    const arrow = createExternalArrow();
+
+    expect(arrow.tagName).toBe('svg');
+    expect(arrow).toHaveAttribute('viewBox', '0 0 15 15');
+    expect(arrow).toHaveAttribute('aria-hidden', 'true');
+    expect(arrow.querySelector('path')).toHaveAttribute('fill', 'currentColor');
+    expect(arrow.querySelector('path')).toHaveAttribute('d', expect.stringContaining('M3.072'));
   });
 });
 

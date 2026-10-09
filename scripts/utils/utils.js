@@ -152,6 +152,27 @@ function ensureNewTabHint(link) {
   link.append(hint);
 }
 
+/** Outlined ↗ from Figma (Adobe Clean Display Black). The webfont lacks this glyph. */
+const EXTERNAL_ARROW_PATH = 'M3.072 13.704L0.552 11.184L8.592 3.144H0L3.144 0'
+  + 'L14.208.024V11.16L11.112 14.232V5.664L3.072 13.704Z';
+
+/**
+ * Decorative external-link arrow. `currentColor` tracks the surrounding text.
+ * Hidden from assistive tech; the link's own name carries the meaning.
+ * @returns {SVGSVGElement}
+ */
+export function createExternalArrow() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 15 15');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', EXTERNAL_ARROW_PATH);
+  path.setAttribute('fill', 'currentColor');
+  svg.append(path);
+  return svg;
+}
+
 /**
  * Marks one external link so it opens in a new tab.
  * @param {Element} link Anchor element
