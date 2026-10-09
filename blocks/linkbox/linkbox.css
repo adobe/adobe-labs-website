@@ -14,7 +14,7 @@
   --linkbox-underline-easing: ease;
 
   @media (prefers-reduced-motion: no-preference) {
-    --linkbox-transition-duration: 0.2s;
+    --linkbox-transition-duration: 0.3s;
     --linkbox-press-duration: 0.12s;
     --linkbox-underline-duration: 0.3s;
   }
@@ -48,7 +48,7 @@
       background-color var(--linkbox-transition-duration) var(--linkbox-transition-easing),
       scale var(--linkbox-press-duration) var(--linkbox-transition-easing);
 
-    &:active {
+    &:is(a):active {
       scale: 0.98;
     }
   }
