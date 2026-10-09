@@ -978,6 +978,13 @@ main > .section {
   display: flex;
   flex-flow: column nowrap;
   gap: var(--s2a-spacing-xl);
+
+  &:last-child {
+    /* The last section's bottom edge is always rounded, and its background needs to be visible on top of the footer. */
+    background-color: var(--s2a-color-background-default);
+    border-end-start-radius: var(--section-border-radius);
+    border-end-end-radius: var(--section-border-radius);
+  }
 }
 
 /* Wrappers: block wrappers (`.BLOCKNAME-wrapper`) and `.default-content-wrapper`. 
