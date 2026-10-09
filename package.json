@@ -26,10 +26,10 @@
   },
   "homepage": "https://labs.adobe.com",
   "devDependencies": {
-    "@babel/core": "7.29.7",
-    "@babel/eslint-parser": "7.29.9",
+    "@babel/core": "8.0.7",
+    "@babel/eslint-parser": "8.0.7",
     "@contentauth/c2pa-web": "0.15.3",
-    "@babel/preset-env": "7.29.7",
+    "@babel/preset-env": "8.0.7",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "7.0.1",
     "babel-jest": "30.5.1",
