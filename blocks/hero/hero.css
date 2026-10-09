@@ -341,14 +341,6 @@
       max-height: var(--hero-full-screen-max-block-size);
     }
 
-    /* Full-screen hero never links, so its gradient can't collide with card hover/pressed states. */
-    /* stylelint-disable-next-line no-descending-specificity */
-    .hero__media::after {
-      background: linear-gradient(109deg,
-          var(--s2a-color-transparent-black-64) 0%,
-          var(--s2a-color-transparent-black-00) 55.15%);
-    }
-
     .hero__link-wrap {
       position: relative;
       display: grid;
@@ -401,11 +393,6 @@
 .hero-container:has(.hero-full-screen) .hero-wrapper {
   max-inline-size: unset;
   padding: 0;
-}
-
-/* Article full-screen hero uses the flat card scrim, not the gradient */
-.article .hero.hero-full-screen .hero__media::after {
-  background: var(--hero-scrim-regular);
 }
 
 .article .hero.hero-full-screen {

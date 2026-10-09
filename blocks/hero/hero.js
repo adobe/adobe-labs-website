@@ -306,8 +306,8 @@ export function buildHero(data = {}, root = document.createElement('div')) {
 
   if (data.image) {
     const img = root.querySelector('.hero__media img');
-    const trigger = root.querySelector('.hero__link-wrap') || root;
-    if (img) initChromaticHover(trigger, img);
+    const trigger = root.querySelector('.hero__link-wrap');
+    if (img && trigger) initChromaticHover(trigger, img);
   }
 
   return root;
