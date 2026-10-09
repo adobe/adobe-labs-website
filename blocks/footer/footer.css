@@ -44,6 +44,31 @@ body:has(main > .section:nth-last-child(1 of .section)) .footer {
   outline-offset: 2px;
 }
 
+.footer__skip {
+  position: fixed;
+  z-index: 11;
+  inset-inline-start: var(--s2a-spacing-xs, 0.5rem);
+  inset-block-start: -3rem;
+  padding: var(--s2a-spacing-xs, 0.5rem) var(--s2a-spacing-sm, 0.75rem);
+  background-color: var(--s2a-color-background-default, #fff);
+  color: var(--s2a-color-content-default, #000);
+  text-decoration: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.footer__skip:focus-visible {
+  outline-color: var(--s2a-color-focus-ring-default, #1473e6);
+}
+
+.footer__skip-links:focus-within .footer__skip:first-child {
+  inset-block-start: calc(var(--nav-height) + var(--s2a-spacing-xs, 0.5rem));
+}
+
+.footer__skip-links:focus-within .footer__skip:last-child {
+  inset-block-start: calc(var(--nav-height) + var(--s2a-spacing-xs, 0.5rem) + 3rem);
+}
+
 .footer__icons {
   display: none;
 }

@@ -554,6 +554,78 @@ function decorateLogo(parent) {
 
 /**
  * ==================================================================
+ * SKIP LINKS
+ * ==================================================================
+ */
+
+/**
+ * Opens the header's mobile nav drawer if it's currently closed (`display: none`
+ * below the desktop breakpoint), so focus below has something visible to land on.
+ * @param {Element} nav Header primary nav element
+ * @returns {void}
+ */
+function openNavIfClosed(nav) {
+  if (getComputedStyle(nav).display !== 'none') return;
+  document.querySelector(`.header__toggle[aria-controls="${nav.id}"]`)?.click();
+}
+
+/**
+ * Opens the mobile drawer, if closed, ahead of the click that's about to follow.
+ * @returns {void}
+ */
+function preopenHeaderNav() {
+  const nav = document.getElementById('header-nav');
+  if (nav) openNavIfClosed(nav);
+}
+
+/**
+ * Moves focus into the header's primary nav landmark.
+ * @param {MouseEvent} event Click event from the "Skip to navigation" link
+ * @returns {void}
+ */
+function focusHeaderNav(event) {
+  const nav = document.getElementById('header-nav');
+  if (!nav) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  if (!nav.hasAttribute('tabindex')) nav.tabIndex = -1;
+  nav.focus();
+}
+
+/**
+ * Scrolls the footer landmark into view.
+ * @returns {void}
+ */
+function scrollFooterIntoView() {
+  document.querySelector('footer')?.scrollIntoView({ block: 'start' });
+}
+
+/**
+ * Builds the footer's "Skip to content" and "Skip to navigation" links, hidden
+ * until focused via keyboard, wrapped in their own landmark.
+ * @returns {Element}
+ */
+function buildFooterSkipLinks() {
+  const wrapper = fromHTML(`
+    <nav class="footer__skip-links" aria-label="Skip links">
+      <a class="footer__skip" href="#main">Skip to content</a>
+      <a class="footer__skip" href="#header-nav">Skip to navigation</a>
+    </nav>
+  `);
+  const [toContent, toNav] = wrapper.children;
+  toContent.addEventListener('focus', scrollFooterIntoView);
+  toNav.addEventListener('focus', scrollFooterIntoView);
+  toNav.addEventListener('pointerdown', preopenHeaderNav);
+  toNav.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') preopenHeaderNav();
+  });
+  toNav.addEventListener('click', focusHeaderNav);
+  return wrapper;
+}
+
+/**
+ * ==================================================================
  * PARSE SECTIONS & DECORATE BLOCK
  * ==================================================================
  */
@@ -631,6 +703,7 @@ export default async function decorate(block) {
   if (social) options.append(social);
 
   block.append(wrapper);
+  block.closest('footer')?.before(buildFooterSkipLinks());
   decorateLogo(block);
   await loadFooterIcons(block);
 }

@@ -562,6 +562,16 @@ footer {
   --section-border-radius: 1.875rem;
 }
 
+main:focus-visible::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
+  outline-offset: -2px;
+  pointer-events: none;
+}
+
 /* Hides content visually but keeps it in the accessibility tree.
    :focus-within / :active opt elements out — useful for skip links and
    any focusable content wrapped in this class. */
