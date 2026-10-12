@@ -346,6 +346,22 @@ describe('classifySectionScroll', () => {
 
     expect(main.children[0].style.getPropertyValue('--section-scroll-slow-top'))
       .toBe(`${vh * COVER_START_VH - 1200}px`);
+    expect(main.children[1]).not.toHaveClass('section-scroll-seam');
+  });
+
+  it('pins a short outgoing card at the top of a tall viewport', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section section-rounded-blue"></div>
+      <div class="section section-rounded-default"></div>
+    `);
+    Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 400 });
+
+    classifySectionScroll();
+
+    expect(main.children[0].style.getPropertyValue('--section-scroll-slow-top')).toBe('0px');
+    // The next card overlaps by another radius so the rounded bottom stays covered.
+    expect(main.children[1]).toHaveClass('section-scroll-seam');
   });
 
   it('does not bind GSAP until motion has started', () => {
@@ -447,9 +463,10 @@ describe('initSectionScroll', () => {
     const instance = Lenis.mock.results[0].value;
     main.querySelector('a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    // The section top is still inside the dim. The overlay is clear once the
-    // following section sits at the cover line, which is further up.
-    expect(instance.scrollTo).toHaveBeenCalledWith(3400 - 800 * COVER_START_VH);
+    // The section top is still inside the dim. #one is shorter than the 60vh
+    // line, so the overlay is clear once the following section reaches the
+    // card's own bottom.
+    expect(instance.scrollTo).toHaveBeenCalledWith(3400 - 400);
     window.history.pushState(null, '', previous);
   });
 

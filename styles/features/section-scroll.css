@@ -48,6 +48,16 @@
        focus ring (2px outline plus 2px offset) on a control at the card edge,
        which would otherwise be cut off. */
     overflow-clip-margin: 4px;
+
+    /*
+     * A card shorter than the cover line pins at the top, so it no longer sits
+     * down across the next card. The usual overlap is one radius, and both
+     * cards are rounded, which leaves the page background in the seam. One
+     * more radius covers the outgoing card's bottom curve.
+     */
+    & + .section.section-scroll-seam {
+      margin-block-start: calc(var(--section-margin-negative-offset) - var(--section-border-radius));
+    }
   }
 
   main > .section.section-scroll-intro {
