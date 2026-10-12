@@ -162,7 +162,8 @@ const usedHeadingIds = new Set();
  * @returns {string}
  */
 function uniqueHeadingId(text) {
-  const base = text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'footer-menu-heading';
+  const slug = text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const base = `footer-${slug || 'menu-heading'}`;
   let id = base;
   let suffix = 1;
   while (usedHeadingIds.has(id)) {
