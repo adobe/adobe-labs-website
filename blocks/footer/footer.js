@@ -496,8 +496,9 @@ function animateLogo(logo) {
     const prevElement = logo.previousElementSibling;
     if (!prevElement) return;
     if (!logoHeight) logoHeight = logo.offsetHeight;
-    // Still unloaded: leave the property alone. Writing -100 would crop the
-    // wordmark until the next scroll, after the image has a height.
+    // The image has no height until it loads. entryProgress treats that as
+    // fully covered (-100) and would clip the wordmark. Skip the write; the
+    // image's load handler measures again once the height is real.
     if (!logoHeight) return;
     logo.style.setProperty(
       '--footer-logo-entry-progress',
