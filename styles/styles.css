@@ -574,9 +574,12 @@ main:focus-visible::after {
 
 /* Hides content visually but keeps it in the accessibility tree.
    :focus-within / :active opt elements out — useful for skip links and
-   any focusable content wrapped in this class. */
+   any focusable content wrapped in this class. A section's own
+   visually-hidden heading stays clipped when it receives programmatic
+   focus, so a display heading does not flash into the layout. */
 .visually-hidden:where(:not(:focus-within, :active)),
-.sr-only:where(:not(:focus-within, :active)) {
+.sr-only:where(:not(:focus-within, :active)),
+main > .section > .visually-hidden {
   position: absolute !important;
   clip-path: inset(50%) !important;
   overflow: hidden !important;

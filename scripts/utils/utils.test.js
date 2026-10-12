@@ -1129,6 +1129,170 @@ describe('decorateSectionMetadata', () => {
     expect(section.dataset.toc).toBeUndefined();
     expect(section.dataset.tableOfContents).toBeUndefined();
   });
+
+  /**
+   * @param {Object<string, string>} fields
+   * @param {string} [contentHtml] First content in the section
+   * @returns {{ section: HTMLDivElement, meta: HTMLDivElement }}
+   */
+  function sectionWithContent(fields, contentHtml) {
+    const { section, meta } = createSectionMetadataFixture(fields);
+    const content = document.createElement('div');
+    content.className = 'default-content-wrapper';
+    content.innerHTML = contentHtml;
+    section.prepend(content);
+    return { section, meta };
+  }
+
+  it('renders a visually-hidden headline at the authored heading level', () => {
+    const { section } = sectionWithContent(
+      { 'Visually-hidden headline': '<h3 id="tools">Section tools</h3>', Style: 'highlight' },
+      '<p>Intro copy</p>',
+    );
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    const heading = within(section).getByRole('heading', { name: 'Section tools' });
+    expect(heading.tagName).toBe('H3');
+    expect(heading).toHaveClass('visually-hidden');
+    expect(heading).toHaveAttribute('id', 'tools');
+    expect(heading).toBe(section.firstElementChild);
+    expect(section.dataset.visuallyHiddenHeadline).toBeUndefined();
+    expect(section).toHaveClass('highlight');
+    expect(section.querySelector('.section-metadata')).toBeNull();
+  });
+
+  it('keeps heading level 6 when that is the level in the field', () => {
+    const { section } = sectionWithContent(
+      { 'Visually-hidden headline': '<h6>Notes</h6>' },
+      '<div class="cards"></div>',
+    );
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    const heading = within(section).getByRole('heading', { name: 'Notes' });
+    expect(heading.tagName).toBe('H6');
+    expect(heading).toHaveClass('visually-hidden');
+  });
+
+  it('does not render a visually-hidden headline when the first item is a heading', () => {
+    const { section } = sectionWithContent(
+      { 'Visually-hidden headline': '<h2>Hidden title</h2>' },
+      '<h4>Visible title</h4><p>Body</p>',
+    );
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(within(section).getByRole('heading', { name: 'Visible title' }).tagName).toBe('H4');
+    expect(within(section).queryByRole('heading', { name: 'Hidden title' })).toBeNull();
+    expect(section.querySelector('.visually-hidden')).toBeNull();
+    expect(section.dataset.visuallyHiddenHeadline).toBeUndefined();
+  });
+
+  it('skips the headline when a heading follows the metadata table', () => {
+    const { section } = createSectionMetadataFixture({
+      'Visually-hidden headline': '<h2>Hidden title</h2>',
+    });
+    const content = document.createElement('div');
+    content.className = 'default-content-wrapper';
+    content.innerHTML = '<h1>Page title</h1>';
+    section.append(content);
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(within(section).getByRole('heading', { name: 'Page title' }).tagName).toBe('H1');
+    expect(within(section).queryByRole('heading', { name: 'Hidden title' })).toBeNull();
+  });
+
+  it('still renders when a heading comes after the first item', () => {
+    const { section } = sectionWithContent(
+      { 'Visually-hidden headline': '<h2>Section label</h2>' },
+      '<p>Lead</p><h2>Later heading</h2>',
+    );
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(within(section).getByRole('heading', { name: 'Section label' })).toHaveClass('visually-hidden');
+    expect(within(section).getByRole('heading', { name: 'Later heading' })).not.toHaveClass('visually-hidden');
+  });
+
+  it('renders paragraph text from the field as a visually hidden heading', () => {
+    const { section } = sectionWithContent(
+      { 'Visually-hidden headline': '<p>Just a paragraph</p>' },
+      '<p>Intro</p>',
+    );
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    const heading = within(section).getByRole('heading', { name: 'Just a paragraph' });
+    expect(heading.tagName).toBe('H2');
+    expect(heading).toHaveClass('visually-hidden');
+    expect(heading).toHaveTextContent('Just a paragraph');
+    expect(section.dataset.visuallyHiddenHeadline).toBeUndefined();
+  });
+
+  it('renders a published visually-hidden headline data attribute as a heading', () => {
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.dataset.visuallyHiddenHeadline = 'Recent Articles';
+    const wrapper = document.createElement('div');
+    const grid = document.createElement('div');
+    grid.className = 'content-grid';
+    wrapper.append(grid);
+    section.append(wrapper);
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    const heading = within(section).getByRole('heading', { name: 'Recent Articles' });
+    expect(heading.tagName).toBe('H2');
+    expect(heading).toHaveClass('visually-hidden');
+    expect(heading.textContent).toBe('Recent Articles');
+    expect(heading).toBe(section.firstElementChild);
+  });
+
+  it('uses a Markdown heading marker in the published value as the heading level', () => {
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.dataset.visuallyHiddenHeadline = '### Notes';
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = '<p>Intro</p>';
+    section.append(wrapper);
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    const heading = within(section).getByRole('heading', { name: 'Notes' });
+    expect(heading.tagName).toBe('H3');
+    expect(heading).toHaveTextContent('Notes');
+  });
+
+  it('ignores an empty visually-hidden headline', () => {
+    const { section } = sectionWithContent(
+      { 'Visually-hidden headline': '<h2>   </h2>' },
+      '<p>Intro</p>',
+    );
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateSectionMetadata(main);
+
+    expect(within(section).queryByRole('heading')).toBeNull();
+  });
 });
 
 describe('createExternalArrow', () => {

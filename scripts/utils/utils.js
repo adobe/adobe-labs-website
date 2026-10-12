@@ -720,6 +720,97 @@ export function buildArticleAuthorMeta(main) {
   sections[sections.length - 1].append(buildArticleMeta('bottom'));
 }
 
+const VISUALLY_HIDDEN_HEADLINE = 'visually-hidden-headline';
+const SECTION_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+/** Used when AEM has already published the cell as text and dropped the heading tag. */
+const DEFAULT_HEADLINE_LEVEL = 2;
+
+/**
+ * First authored item in a section, skipping the Section Metadata table
+ * and any empty wrappers around it.
+ *
+ * @param {Element} section
+ * @param {Element} [sectionMeta]
+ * @returns {Element|null}
+ */
+function firstSectionItem(section, sectionMeta) {
+  const metaWrapper = sectionMeta?.parentElement;
+  const wrappers = [...section.children].filter(
+    (child) => child !== metaWrapper && !(sectionMeta && child.contains(sectionMeta)),
+  );
+  return wrappers.find((wrapper) => wrapper.firstElementChild)?.firstElementChild || null;
+}
+
+/**
+ * Heading level and text. A leading Markdown heading (`## Title`) keeps that
+ * level. Plain text is level 2: the HTML pipeline stores only the heading's
+ * text on `data-visually-hidden-headline`.
+ *
+ * @param {string} value
+ * @returns {{ level: number, text: string }|null}
+ */
+function headlineParts(value) {
+  const raw = `${value ?? ''}`.replace(/\s+/g, ' ').trim();
+  if (!raw) return null;
+  const marked = raw.match(/^(#{1,6}) (.+)$/);
+  if (!marked) return { level: DEFAULT_HEADLINE_LEVEL, text: raw };
+  const text = marked[2].trim();
+  if (!text) return null;
+  return { level: marked[1].length, text };
+}
+
+/**
+ * Visually hidden heading element. The text is a DOM text node.
+ *
+ * @param {string} text
+ * @param {number} level 1–6
+ * @param {string} [id]
+ * @returns {HTMLElement}
+ */
+function createVisuallyHiddenHeadline(text, level, id) {
+  const heading = document.createElement(`h${level}`);
+  heading.className = 'visually-hidden';
+  heading.textContent = text;
+  if (id) heading.id = id;
+  return heading;
+}
+
+/**
+ * Heading from a Visually-hidden headline cell. An authored heading keeps
+ * its level. Any other text in the cell is still rendered.
+ *
+ * @param {Element} cell
+ * @returns {HTMLElement|null}
+ */
+function visuallyHiddenHeadlineFromCell(cell) {
+  const source = cell?.querySelector(SECTION_HEADING_SELECTOR);
+  if (source) {
+    const text = source.textContent.replace(/\s+/g, ' ').trim();
+    if (!text) return null;
+    return createVisuallyHiddenHeadline(text, Number(source.tagName[1]), source.id);
+  }
+  const parts = headlineParts(cell?.textContent);
+  if (!parts) return null;
+  return createVisuallyHiddenHeadline(parts.text, parts.level);
+}
+
+/**
+ * Pulls the Visually-hidden headline row out of a Section Metadata table
+ * so `readBlockConfig` does not store it as a dataset entry.
+ *
+ * @param {Element} sectionMeta
+ * @returns {HTMLElement|null}
+ */
+function takeVisuallyHiddenHeadline(sectionMeta) {
+  const row = [...sectionMeta.children].find(
+    (child) => toClassName(child.children[0]?.textContent) === VISUALLY_HIDDEN_HEADLINE,
+  );
+  if (!row) return null;
+  const cell = row.children[1];
+  row.remove();
+  return visuallyHiddenHeadlineFromCell(cell);
+}
+
 /**
  * Reads each section's authored `Section Metadata` table into `section.dataset`
  * and removes the table so it never reaches `decorateBlocks` as a block to load.
@@ -728,15 +819,24 @@ export function buildArticleAuthorMeta(main) {
  * `section-metadata` block folder).
  *
  * The `style` key is special-cased: it adds one or more (comma-separated)
- * classes to the section instead of a dataset entry. Every other key
- * (including `Table of Contents`, read by the Table of Contents
- * block) becomes a plain `section.dataset` entry.
+ * classes to the section instead of a dataset entry. `Visually-hidden headline`
+ * is also special-cased: its text is rendered at the start of the section as
+ * a heading with the `visually-hidden` class. An authored heading keeps its
+ * level. The HTML pipeline may already have published that text as
+ * `data-visually-hidden-headline` and removed the table; that value is
+ * rendered the same way. The heading is omitted when the section's first
+ * content item is already a heading. Every other key (including
+ * `Table of Contents`, read by the Table of Contents block) becomes a plain
+ * `section.dataset` entry.
  *
  * @param {Element} main The container element
  */
 export function decorateSectionMetadata(main) {
   main.querySelectorAll(':scope > .section > div > .section-metadata').forEach((sectionMeta) => {
     const section = sectionMeta.closest('.section');
+    const headline = takeVisuallyHiddenHeadline(sectionMeta);
+    const startsWithHeading = firstSectionItem(section, sectionMeta)
+      ?.matches(SECTION_HEADING_SELECTOR);
     const config = readBlockConfig(sectionMeta);
     Object.entries(config).forEach(([key, value]) => {
       if (key === 'style') {
@@ -749,6 +849,15 @@ export function decorateSectionMetadata(main) {
       section.dataset[toCamelCase(key)] = value;
     });
     sectionMeta.remove();
+    if (headline && !startsWithHeading) section.prepend(headline);
+  });
+
+  main.querySelectorAll(':scope > .section').forEach((section) => {
+    if (section.querySelector(':scope > .visually-hidden')) return;
+    const parts = headlineParts(section.dataset.visuallyHiddenHeadline);
+    if (!parts) return;
+    if (firstSectionItem(section)?.matches(SECTION_HEADING_SELECTOR)) return;
+    section.prepend(createVisuallyHiddenHeadline(parts.text, parts.level));
   });
 }
 
