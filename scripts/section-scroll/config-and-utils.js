@@ -300,3 +300,20 @@ export function footerCoverDistance(innerHeight, viewportHeight, stacked) {
   if (!stacked || !viewportHeight) return innerHeight;
   return Math.min(innerHeight, FOOTER_UNCOVER_VH * viewportHeight);
 }
+
+/**
+ * True while the footer still starts at or below the fold, so the last card
+ * can slide over it. A viewport taller than the content above the footer
+ * shows the footer immediately, and the rise stays off. An unmeasured
+ * footer (document top still 0) stays eligible until layout.
+ *
+ * @param {HTMLElement} footerEl `body > footer`
+ * @param {number} [viewportHeight=window.innerHeight]
+ * @returns {boolean}
+ */
+export function footerCoverFits(footerEl, viewportHeight = window.innerHeight) {
+  if (!(viewportHeight > 0)) return true;
+  const top = footerEl.getBoundingClientRect().top + (window.scrollY || 0);
+  if (!(top > 0)) return true;
+  return top >= viewportHeight;
+}

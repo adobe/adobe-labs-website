@@ -496,6 +496,9 @@ function animateLogo(logo) {
     const prevElement = logo.previousElementSibling;
     if (!prevElement) return;
     if (!logoHeight) logoHeight = logo.offsetHeight;
+    // Still unloaded: leave the property alone. Writing -100 would crop the
+    // wordmark until the next scroll, after the image has a height.
+    if (!logoHeight) return;
     logo.style.setProperty(
       '--footer-logo-entry-progress',
       entryProgress(prevElement, logo, { height: logoHeight }),
@@ -532,6 +535,10 @@ function animateLogo(logo) {
 
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onResize);
+  logo.querySelector('img')?.addEventListener('load', () => {
+    logoHeight = 0;
+    updateLogoProgress();
+  });
   updateLogoProgress();
 }
 

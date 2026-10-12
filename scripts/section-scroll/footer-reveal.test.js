@@ -71,6 +71,18 @@ function cardBottom(card, bottom) {
 }
 
 /**
+ * Places the footer's document top, which decides whether the viewport is
+ * already tall enough to show it.
+ *
+ * @param {Element} footerEl
+ * @param {number} top
+ * @returns {void}
+ */
+function footerDocumentTop(footerEl, top) {
+  footerEl.getBoundingClientRect = () => ({ top, bottom: top, height: 0 });
+}
+
+/**
  * @param {Element | null} inner
  * @param {number} height
  * @returns {void}
@@ -118,6 +130,35 @@ describe('bindFooterReveal', () => {
     expect(footer).toHaveClass('section-scroll-under');
   });
 
+  it('garage-doors while the footer still starts below the fold', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
+    footerDocumentTop(footer, 1600);
+
+    bindFooterReveal(main, document);
+
+    expect(main).toHaveClass('section-scroll-reveal-main');
+    expect(main.children[0]).toHaveClass('section-scroll-reveal');
+    expect(footer).toHaveClass('section-scroll-under');
+  });
+
+  it('does not garage-door when the viewport already shows the footer', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 3440 });
+    const { main, footer } = mountPage(
+      '<div class="section section-rounded-default"></div>',
+      MENU_AND_LOGO_HTML,
+    );
+    const logo = footer.querySelector('.footer__logo');
+    footerDocumentTop(footer, 1800);
+    logo.style.setProperty('--footer-logo-entry-progress', '-100');
+
+    bindFooterReveal(main, document);
+
+    expect(main).not.toHaveClass('section-scroll-reveal-main');
+    expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
+    expect(footer).not.toHaveClass('section-scroll-under');
+    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('0');
+  });
+
   it('writes the logo rise in the same frame as the menu', () => {
     const { main, footer } = mountPage(
       '<div class="section section-rounded-default"></div>',
@@ -160,6 +201,28 @@ describe('bindFooterReveal', () => {
     bindFooterReveal(main, document);
 
     expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-50');
+  });
+
+  it('keeps the footer rising on a tall viewport while the card still covers it', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 3440 });
+    const { main, footer } = mountPage(
+      '<div class="section section-rounded-default"></div>',
+      MENU_AND_LOGO_HTML,
+    );
+    const inner = footer.querySelector('.footer__inner');
+    const logo = footer.querySelector('.footer__logo');
+    menuHeight(inner, 240);
+    menuHeight(logo, 450);
+    // The card still crosses the menu. The viewport floor is far below both boxes.
+    cardBottom(main.children[0], 2600);
+    inner.getBoundingClientRect = () => ({ top: 2500, bottom: 2740, height: 240 });
+    logo.getBoundingClientRect = () => ({ top: 2500, bottom: 2950, height: 450 });
+
+    bindFooterReveal(main, document);
+
+    expect(Number(inner.style.getPropertyValue('--section-scroll-inner-progress'))).toBeLessThan(0);
+    expect(footer).not.toHaveClass('section-scroll-logo');
+    expect(Number(logo.style.getPropertyValue('--footer-logo-entry-progress'))).toBeLessThan(0);
   });
 
   it('keeps the logo unstuck while the last card still covers the menu', () => {
@@ -452,6 +515,20 @@ describe('refreshFooterReveal', () => {
     refreshFooterReveal();
 
     expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('0');
+  });
+
+  it('drops the garage door when a resize shows the footer without scrolling', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
+    footerDocumentTop(footer, 1400);
+
+    bindFooterReveal(main, document);
+    expect(footer).toHaveClass('section-scroll-under');
+
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 3440 });
+    refreshFooterReveal();
+
+    expect(main).not.toHaveClass('section-scroll-reveal-main');
+    expect(footer).not.toHaveClass('section-scroll-under');
   });
 });
 
