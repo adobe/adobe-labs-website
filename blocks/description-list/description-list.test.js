@@ -39,6 +39,21 @@ const ROW_WITH_NO_CELLS = `
   <div></div>
 `;
 
+const ROW_WITH_EMPTY_CELLS = `
+  <div>
+    <div><h2>Heading</h2></div>
+    <div></div>
+  </div>
+  <div>
+    <div><h3>Term only</h3></div>
+    <div><p>Has a description.</p></div>
+  </div>
+  <div>
+    <div></div>
+    <div></div>
+  </div>
+`;
+
 describe('description-list block', () => {
   it('builds a heading and a list of items from the authored rows', () => {
     const block = createBlock(HEADING_AND_ITEMS);
@@ -81,5 +96,15 @@ describe('description-list block', () => {
     decorate(block);
 
     expect(block.querySelectorAll('.description-list__item')).toHaveLength(0);
+  });
+
+  it('skips a row whose cells are present but have no content', () => {
+    const block = createBlock(ROW_WITH_EMPTY_CELLS);
+
+    decorate(block);
+
+    const items = block.querySelectorAll('.description-list__item');
+    expect(items).toHaveLength(1);
+    expect(items[0].querySelector('.description-list__item-heading')).toHaveTextContent('Term only');
   });
 });

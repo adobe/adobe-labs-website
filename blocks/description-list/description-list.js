@@ -10,6 +10,7 @@ export default function decorate(block) {
   itemRows.forEach((row) => {
     const [term, description] = row.children;
     if (!term) return;
+    if (!term.textContent.trim() && !description?.textContent.trim()) return;
 
     const li = document.createElement('li');
     li.className = 'description-list__item';
