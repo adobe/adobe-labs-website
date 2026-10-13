@@ -378,9 +378,9 @@ On each section that should appear, add a Section Metadata row named **Table of 
 
 ### Visually-hidden headline
 
-Use this when a section's first item is not a heading and assistive technology still needs one. In that section, add a Section Metadata row named **Visually-hidden headline**. Format the cell as a heading. The page inserts that heading's text into the section as a heading with the `visually-hidden` class. The text is in the page for screen readers. It does not appear in the layout.
+Use this when a section's first item is not a heading and assistive technology still needs one. In that section, add a Section Metadata row named **Visually-hidden headline**. The page renders that row's text as a visually hidden heading level 2. The text is in the page for screen readers. It does not appear in the layout.
 
-A heading in the cell keeps its level (Heading 1 through Heading 6). After publish, AEM stores the cell as text on the section. That text is still rendered as a heading. If the section's first content item is already a heading (`h1`–`h6`), the row is left out.
+The row is omitted when the section's first content item is already a heading (`h1`–`h6`).
 
 ## Buttons
 

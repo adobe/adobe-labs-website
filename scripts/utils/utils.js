@@ -720,90 +720,42 @@ export function buildArticleAuthorMeta(main) {
   sections[sections.length - 1].append(buildArticleMeta('bottom'));
 }
 
-const VISUALLY_HIDDEN_HEADLINE = 'visually-hidden-headline';
 const SECTION_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
-/** Used when AEM has already published the cell as text and dropped the heading tag. */
-const DEFAULT_HEADLINE_LEVEL = 2;
 
 /**
- * First authored item in a section, skipping the Section Metadata table
- * and any empty wrappers around it.
+ * First authored item in a section, skipping empty wrappers.
  *
  * @param {Element} section
- * @param {Element} [sectionMeta]
  * @returns {Element|null}
  */
-function firstSectionItem(section, sectionMeta) {
-  const metaWrapper = sectionMeta?.parentElement;
-  const wrappers = [...section.children].filter(
-    (child) => child !== metaWrapper && !(sectionMeta && child.contains(sectionMeta)),
-  );
-  return wrappers.find((wrapper) => wrapper.firstElementChild)?.firstElementChild || null;
+function firstSectionItem(section) {
+  const wrapper = [...section.children].find((child) => child.firstElementChild);
+  return wrapper?.firstElementChild || null;
 }
 
 /**
- * Heading level and text. Plain text is level 2: the HTML pipeline stores
- * only the heading's text on `data-visually-hidden-headline`.
+ * Text published on `data-visually-hidden-headline`. Empty values are ignored.
  *
- * @param {string} value
- * @returns {{ level: number, text: string }|null}
+ * @param {string} [value]
+ * @returns {string|null}
  */
-function headlineParts(value) {
+function visuallyHiddenHeadlineText(value) {
   const text = `${value ?? ''}`.replace(/\s+/g, ' ').trim();
-  if (!text) return null;
-  return { level: DEFAULT_HEADLINE_LEVEL, text };
+  return text || null;
 }
 
 /**
- * Visually hidden heading element. The text is a DOM text node.
+ * Visually hidden heading. The text is a DOM text node. The level is 2:
+ * AEM publishes the Section Metadata cell as text and drops the heading tag.
  *
  * @param {string} text
- * @param {number} level 1–6
- * @param {string} [id]
- * @returns {HTMLElement}
+ * @returns {HTMLHeadingElement}
  */
-function createVisuallyHiddenHeadline(text, level, id) {
-  const heading = document.createElement(`h${level}`);
+function createVisuallyHiddenHeadline(text) {
+  const heading = document.createElement('h2');
   heading.className = 'visually-hidden';
   heading.textContent = text;
-  if (id) heading.id = id;
   return heading;
-}
-
-/**
- * Heading from a Visually-hidden headline cell. An authored heading keeps
- * its level. Any other text in the cell is still rendered.
- *
- * @param {Element} cell
- * @returns {HTMLElement|null}
- */
-function visuallyHiddenHeadlineFromCell(cell) {
-  const source = cell?.querySelector(SECTION_HEADING_SELECTOR);
-  if (source) {
-    const text = source.textContent.replace(/\s+/g, ' ').trim();
-    if (!text) return null;
-    return createVisuallyHiddenHeadline(text, Number(source.tagName[1]), source.id);
-  }
-  const parts = headlineParts(cell?.textContent);
-  if (!parts) return null;
-  return createVisuallyHiddenHeadline(parts.text, parts.level);
-}
-
-/**
- * Pulls the Visually-hidden headline row out of a Section Metadata table
- * so `readBlockConfig` does not store it as a dataset entry.
- *
- * @param {Element} sectionMeta
- * @returns {HTMLElement|null}
- */
-function takeVisuallyHiddenHeadline(sectionMeta) {
-  const row = [...sectionMeta.children].find(
-    (child) => toClassName(child.children[0]?.textContent) === VISUALLY_HIDDEN_HEADLINE,
-  );
-  if (!row) return null;
-  const cell = row.children[1];
-  row.remove();
-  return visuallyHiddenHeadlineFromCell(cell);
 }
 
 /**
@@ -814,13 +766,7 @@ function takeVisuallyHiddenHeadline(sectionMeta) {
  * `section-metadata` block folder).
  *
  * The `style` key is special-cased: it adds one or more (comma-separated)
- * classes to the section instead of a dataset entry. `Visually-hidden headline`
- * is also special-cased: its text is rendered at the start of the section as
- * a heading with the `visually-hidden` class. An authored heading keeps its
- * level. The HTML pipeline may already have published that text as
- * `data-visually-hidden-headline` and removed the table; that value is
- * rendered the same way. The heading is omitted when the section's first
- * content item is already a heading. Every other key (including
+ * classes to the section instead of a dataset entry. Every other key (including
  * `Table of Contents`, read by the Table of Contents block) becomes a plain
  * `section.dataset` entry.
  *
@@ -829,9 +775,6 @@ function takeVisuallyHiddenHeadline(sectionMeta) {
 export function decorateSectionMetadata(main) {
   main.querySelectorAll(':scope > .section > div > .section-metadata').forEach((sectionMeta) => {
     const section = sectionMeta.closest('.section');
-    const headline = takeVisuallyHiddenHeadline(sectionMeta);
-    const startsWithHeading = firstSectionItem(section, sectionMeta)
-      ?.matches(SECTION_HEADING_SELECTOR);
     const config = readBlockConfig(sectionMeta);
     Object.entries(config).forEach(([key, value]) => {
       if (key === 'style') {
@@ -844,15 +787,26 @@ export function decorateSectionMetadata(main) {
       section.dataset[toCamelCase(key)] = value;
     });
     sectionMeta.remove();
-    if (headline && !startsWithHeading) section.prepend(headline);
   });
+}
 
+/**
+ * Renders each section's published `data-visually-hidden-headline` as a
+ * heading at the start of the section. The heading uses the `visually-hidden`
+ * class and heading level 2. It is omitted when the section's first content
+ * item is already a heading.
+ *
+ * The HTML pipeline stores the Section Metadata cell as text on the section
+ * and removes the table before this runs.
+ *
+ * @param {Element} main The container element
+ */
+export function decorateVisuallyHiddenHeadings(main) {
   main.querySelectorAll(':scope > .section').forEach((section) => {
-    if (section.querySelector(':scope > .visually-hidden')) return;
-    const parts = headlineParts(section.dataset.visuallyHiddenHeadline);
-    if (!parts) return;
+    const text = visuallyHiddenHeadlineText(section.dataset.visuallyHiddenHeadline);
+    if (!text) return;
     if (firstSectionItem(section)?.matches(SECTION_HEADING_SELECTOR)) return;
-    section.prepend(createVisuallyHiddenHeadline(parts.text, parts.level));
+    section.prepend(createVisuallyHiddenHeadline(text));
   });
 }
 
