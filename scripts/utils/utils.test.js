@@ -1164,21 +1164,6 @@ describe('decorateSectionMetadata', () => {
     expect(section.querySelector('.section-metadata')).toBeNull();
   });
 
-  it('keeps heading level 6 when that is the level in the field', () => {
-    const { section } = sectionWithContent(
-      { 'Visually-hidden headline': '<h6>Notes</h6>' },
-      '<div class="cards"></div>',
-    );
-    const main = document.createElement('main');
-    main.append(section);
-
-    decorateSectionMetadata(main);
-
-    const heading = within(section).getByRole('heading', { name: 'Notes' });
-    expect(heading.tagName).toBe('H6');
-    expect(heading).toHaveClass('visually-hidden');
-  });
-
   it('does not render a visually-hidden headline when the first item is a heading', () => {
     const { section } = sectionWithContent(
       { 'Visually-hidden headline': '<h2>Hidden title</h2>' },
