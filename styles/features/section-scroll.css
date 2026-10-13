@@ -208,14 +208,14 @@
       animation-range: entry var(--section-scroll-dim-start, 40%) entry 100%;
     }
 
-    main.section-scroll-css-cover > .section.section-scroll-intro > .section-scroll-fade {
+    main > .section.section-scroll-intro > .section-scroll-fade {
       animation: section-scroll-fade-out linear both;
       animation-timeline: scroll(root block);
       animation-range: 0 17vh;
     }
 
     @media (width < 48rem) {
-      main.section-scroll-css-cover > .section.section-scroll-intro > .section-scroll-fade {
+      main > .section.section-scroll-intro > .section-scroll-fade {
         animation-range: 0 40vh;
       }
     }

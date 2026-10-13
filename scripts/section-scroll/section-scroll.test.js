@@ -258,6 +258,28 @@ describe('classifySectionScroll', () => {
     expect(next).toHaveClass('section-scroll-next');
   });
 
+  it('sticks a page header under its hero when the next section is plain', () => {
+    const main = mountMain(`
+      <div class="section">
+        <div class="page-header-wrapper">
+          <div class="page-header"></div>
+        </div>
+        <div class="hero-wrapper">
+          <div class="hero"></div>
+        </div>
+      </div>
+      <div class="section"></div>
+    `);
+
+    classifySectionScroll();
+
+    const [intro, next] = main.children;
+    expect(intro).not.toHaveClass('section-scroll-slow');
+    expect(intro).toHaveClass('section-scroll-intro');
+    expect(intro.querySelector('.page-header-wrapper')).toHaveClass('section-scroll-fade');
+    expect(next).not.toHaveClass('section-scroll-next');
+  });
+
   it('lags an intro hero with a CSS var on a coarse pointer instead of pinning', () => {
     mockMatchMedia(true, { touch: true });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
@@ -1084,6 +1106,37 @@ describe('initSectionScroll', () => {
     expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
     expect(main.children[1]).toHaveClass('section-scroll-reveal');
     expect(footer).toHaveClass('section-scroll-under');
+  });
+
+  it('fades the page header without covering the next section', async () => {
+    mockMatchMedia(true);
+    const { main } = mountPage(`
+      <div class="section">
+        <div class="page-header-wrapper">
+          <div class="page-header"></div>
+        </div>
+        <div class="hero-wrapper">
+          <div class="hero"></div>
+        </div>
+      </div>
+      <div class="section"></div>
+    `);
+
+    await initSectionScroll();
+
+    expect(loadCSS).toHaveBeenCalledWith('/styles/features/section-scroll.css');
+    expect(loadCSS).toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
+    expect(Lenis).toHaveBeenCalled();
+    expect(gsap.fromTo).toHaveBeenCalledWith(
+      main.querySelector('.page-header-wrapper'),
+      { opacity: 1 },
+      expect.objectContaining({ opacity: 0 }),
+    );
+    expect(main.children[0]).toHaveClass('section-scroll-intro');
+    expect(main.children[0]).not.toHaveClass('section-scroll-slow');
+    expect(main.children[1]).not.toHaveClass('section-scroll-next');
+    expect(main.querySelector('.section-scroll-overlay')).toBeNull();
+    expect(main.querySelector('.page-header-wrapper')).toHaveClass('section-scroll-fade');
   });
 
   it('strips footer reveal classes on teardown', async () => {

@@ -37,6 +37,7 @@ import {
   dimEntryStart,
   introLagPx,
   isFullScreenHero,
+  isHeaderHeroSection,
   isRounded,
   pinsFlush,
   FOOTER_STACKED_MQ,
@@ -796,6 +797,32 @@ function hasCoverPair(main) {
 }
 
 /**
+ * True when a shared page header and hero should fade on their own.
+ * A rounded follower already fades the header through the cover pair.
+ *
+ * @param {HTMLElement} main Page main
+ * @returns {boolean}
+ */
+function needsHeaderFade(main) {
+  const sections = [...main.querySelectorAll(':scope > .section')];
+  return sections.some((section, index) => {
+    const next = sections[index + 1];
+    if (next && coversPrevious(section, next)) return false;
+    return staysInFlow(section) && isHeaderHeroSection(section);
+  });
+}
+
+/**
+ * True when the page needs GSAP: a cover pair, or a header fade with no pair.
+ *
+ * @param {HTMLElement} main Page main
+ * @returns {boolean}
+ */
+function needsMotion(main) {
+  return hasCoverPair(main) || needsHeaderFade(main);
+}
+
+/**
  * Garage-doors the footer menu behind the last card, and scrolls that
  * card off a focused menu control.
  *
@@ -1248,6 +1275,23 @@ export function classifySectionScroll(root = document) {
     const sections = [...main.querySelectorAll(':scope > .section')];
     sections.forEach((section, index) => {
       const next = sections[index + 1];
+      // Stick the header under the hero without raising a plain follower over
+      // the hero. A rounded follower still uses the cover path below.
+      if (
+        (!next || !coversPrevious(section, next))
+        && staysInFlow(section)
+        && isHeaderHeroSection(section)
+      ) {
+        section.classList.add(CLASS_INTRO);
+        section.querySelector(':scope > .page-header-wrapper')?.classList.add(CLASS_FADE);
+        // Same fade as a covered intro: from the top of the page, not from a
+        // card covering the hero. Touch runs this in CSS.
+        if (started && motion && !boundToCssCover) {
+          const headerWrap = section.querySelector(':scope > .page-header-wrapper');
+          if (headerWrap) motion.fadeHeader(headerWrap);
+        }
+        return;
+      }
       if (!next || !coversPrevious(section, next)) return;
       section.classList.add(CLASS_SLOW);
       next.classList.add(CLASS_NEXT);
@@ -1302,8 +1346,8 @@ export function classifySectionScroll(root = document) {
     }
   };
 
-  const covers = main instanceof HTMLElement && hasCoverPair(main);
-  if (started && covers && gsap && !boundToCssCover) motionCtx = gsap.context(decorate, main);
+  const motionPage = main instanceof HTMLElement && needsMotion(main);
+  if (started && motionPage && gsap && !boundToCssCover) motionCtx = gsap.context(decorate, main);
   else decorate();
 }
 
@@ -1470,14 +1514,15 @@ function onViewportChange() {
   const cssCover = usesCssCover();
   if (touch !== boundToTouch || cssCover !== boundToCssCover) {
     const main = document.querySelector('main');
-    const covers = main instanceof HTMLElement && hasCoverPair(main);
+    const motionPage = main instanceof HTMLElement && needsMotion(main);
     // A fine pointer still needs GSAP when a rounded section covers the one
-    // before it. A coarse pointer that can fade in CSS does not, including
-    // one that previously loaded the bundle. A page with no cover pair only
-    // garage-doors the footer, so a resize must not fetch the bundle either.
-    // Loading the bundle is the only async step; reclassification itself stays
-    // sync so a resize does not paint a frame with neither path bound.
-    if (covers && !cssCover && !motion) {
+    // before it, and when a shared page header fades without that cover.
+    // A coarse pointer that can fade in CSS does not, including one that
+    // previously loaded the bundle. A page that only garage-doors the footer
+    // must not fetch the bundle. Loading it is the only async step;
+    // reclassification itself stays sync so a resize does not paint a frame
+    // with neither path bound.
+    if (motionPage && !cssCover && !motion) {
       attach().then(() => {
         if (!started) return;
         classifySectionScroll();
@@ -1526,8 +1571,9 @@ function stop() {
 }
 
 /**
- * Loads the section-scroll CSS, then classifies sections. Cover pairs also
- * load the motion bundles. A plain last section only garage-doors the footer.
+ * Loads the section-scroll CSS, then classifies sections. Cover pairs and a
+ * standalone page-header fade also load the motion bundles. A plain last
+ * section only garage-doors the footer.
  *
  * @returns {Promise<void>}
  */
@@ -1536,12 +1582,12 @@ async function start() {
   started = true;
   const base = window.hlx?.codeBasePath || '';
   const main = document.querySelector('main');
-  const covers = main instanceof HTMLElement && hasCoverPair(main);
+  const covers = main instanceof HTMLElement && needsMotion(main);
   const assets = [
     loadCSS(`${base}/styles/features/section-scroll.css`),
   ];
-  // GSAP and Lenis exist for cover pairs. A plain last section only needs the
-  // garage-door rules in the stylesheet above.
+  // GSAP and Lenis fade a shared page header and run cover pairs. A plain
+  // last section only needs the garage-door rules in the stylesheet above.
   if (covers) {
     assets.push(attach());
     if (!usesTouchScroll()) {
