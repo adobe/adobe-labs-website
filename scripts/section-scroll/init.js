@@ -11,7 +11,8 @@
  *
  * A focused control that a cover, the sticky header, or a section-scroll fade
  * is painting over is scrolled into view in this file. The footer garage door
- * (last rounded card over the menu, then the Adobe logo) lives here too.
+ * (the last card over the menu, then the Adobe logo) lives here too. A page
+ * with no rounded cover pair still runs that door and does not load GSAP.
  *
  * See the README's section-surface notes for the authored behaviour, and
  * `styles/features/section-scroll.css` for the parts CSS owns (sticky, stacking, and the
@@ -32,6 +33,7 @@ import {
   coversPrevious,
   dimEntryStart,
   introLagPx,
+  isFullScreenHero,
   isRounded,
   FOOTER_STACKED_MQ,
   footerCoverDistance,
@@ -655,17 +657,18 @@ export function bindFocusReveal(options = {}) {
 }
 
 /**
- * The last rounded card garage-doors the footer menu the same way the footer
+ * The last card garage-doors the footer menu the same way the footer
  * later reveals the Adobe logo: the menu sticks to the bottom, clips, and rises
  * behind the card until it is in, then `.section-scroll-logo` hands over to the
- * logo's own sticky.
+ * logo's own sticky. The card is the last `section-rounded-*` section, or the
+ * last section when the page has none.
  *
  * Uses no GSAP. One scroll frame writes both entry custom properties from the
  * shared math in `utils/entry-progress.js`: the menu's, and the logo's, which
  * `footer.js` otherwise drives on pages that never start section scroll.
  */
 
-/** Last rounded card, raised above the footer. */
+/** Last card, raised above the footer. */
 const CLASS_REVEAL = 'section-scroll-reveal';
 
 /** `main`, scoped so mid-chain sticky cards keep their own stacking. */
@@ -754,7 +757,36 @@ export function refreshFooterReveal() {
 }
 
 /**
- * Garage-doors the footer menu behind the last rounded card, and scrolls that
+ * Section that garage-doors the footer. The last authored rounded card when
+ * the page has one. Otherwise the last section, which CSS rounds with
+ * `:last-child`. A full-screen hero is not a card.
+ *
+ * @param {HTMLElement} main Page main
+ * @returns {HTMLElement | null}
+ */
+function footerCoverSection(main) {
+  const sections = [...main.querySelectorAll(':scope > .section')];
+  const lastRounded = sections.filter(isRounded).at(-1);
+  if (lastRounded instanceof HTMLElement) return lastRounded;
+  const last = sections.at(-1);
+  if (!(last instanceof HTMLElement) || isFullScreenHero(last)) return null;
+  return last;
+}
+
+/**
+ * True when a rounded section covers the one before it, so the page needs
+ * the cover motion bundle. A plain last section only garage-doors the footer.
+ *
+ * @param {HTMLElement} main Page main
+ * @returns {boolean}
+ */
+function hasCoverPair(main) {
+  const sections = [...main.querySelectorAll(':scope > .section')];
+  return sections.some((section, index) => coversPrevious(section, sections[index + 1]));
+}
+
+/**
+ * Garage-doors the footer menu behind the last card, and scrolls that
  * card off a focused menu control.
  *
  * @param {HTMLElement} main Page main
@@ -765,10 +797,10 @@ export function refreshFooterReveal() {
  * @returns {void}
  */
 export function bindFooterReveal(main, root, options = {}) {
-  const lastRounded = [...main.querySelectorAll(':scope > .section')].filter(isRounded).at(-1);
+  const card = footerCoverSection(main);
   const doc = root.nodeType === Node.DOCUMENT_NODE ? root : root.ownerDocument;
   const footer = doc?.querySelector('body > footer');
-  if (!(lastRounded instanceof HTMLElement) || !(footer instanceof HTMLElement)) return;
+  if (!(card instanceof HTMLElement) || !(footer instanceof HTMLElement)) return;
 
   const scrollByDelta = options.scrollBy ?? ((delta) => window.scrollBy(0, delta));
 
@@ -776,7 +808,7 @@ export function bindFooterReveal(main, root, options = {}) {
   // does not read layout on the same frames.
   holdLogoEntry(true);
   main.classList.add(CLASS_REVEAL_MAIN);
-  lastRounded.classList.add(CLASS_REVEAL);
+  card.classList.add(CLASS_REVEAL);
   footer.classList.add(CLASS_UNDER);
 
   /*
@@ -850,7 +882,7 @@ export function bindFooterReveal(main, root, options = {}) {
   const sync = () => {
     const el = resolve();
     if (!el) return;
-    const progress = entryProgress(lastRounded, el, { height: coverDistance || innerHeight });
+    const progress = entryProgress(card, el, { height: coverDistance || innerHeight });
     if (progress !== menuProgress) {
       menuProgress = progress;
       el.style.setProperty(VAR_PROGRESS, String(progress));
@@ -892,10 +924,10 @@ export function bindFooterReveal(main, root, options = {}) {
     if (!el || !innerHeight) return;
 
     const distance = coverDistance || innerHeight;
-    const progress = entryProgress(lastRounded, el, { height: distance });
+    const progress = entryProgress(card, el, { height: distance });
     let delta = 0;
     if (progress < ENTRY_END) {
-      delta = lastRounded.getBoundingClientRect().bottom
+      delta = card.getBoundingClientRect().bottom
         - (window.innerHeight - distance);
     }
 
@@ -1191,7 +1223,8 @@ export function classifySectionScroll(root = document) {
     }
   };
 
-  if (started && gsap && !boundToCssCover) motionCtx = gsap.context(decorate, main);
+  const covers = main instanceof HTMLElement && hasCoverPair(main);
+  if (started && covers && gsap && !boundToCssCover) motionCtx = gsap.context(decorate, main);
   else decorate();
 }
 
@@ -1357,11 +1390,15 @@ function onViewportChange() {
   const touch = usesTouchScroll();
   const cssCover = usesCssCover();
   if (touch !== boundToTouch || cssCover !== boundToCssCover) {
-    // A fine pointer still needs GSAP. A coarse pointer that can fade in CSS
-    // does not, including one that previously loaded the bundle. Loading the
-    // bundle is the only async step; reclassification itself stays sync so a
-    // resize does not paint a frame with neither path bound.
-    if (!cssCover && !motion) {
+    const main = document.querySelector('main');
+    const covers = main instanceof HTMLElement && hasCoverPair(main);
+    // A fine pointer still needs GSAP when a rounded section covers the one
+    // before it. A coarse pointer that can fade in CSS does not, including
+    // one that previously loaded the bundle. A page with no cover pair only
+    // garage-doors the footer, so a resize must not fetch the bundle either.
+    // Loading the bundle is the only async step; reclassification itself stays
+    // sync so a resize does not paint a frame with neither path bound.
+    if (covers && !cssCover && !motion) {
       attach().then(() => {
         if (!started) return;
         classifySectionScroll();
@@ -1410,7 +1447,8 @@ function stop() {
 }
 
 /**
- * Loads the section-scroll CSS and motion bundles, then classifies sections.
+ * Loads the section-scroll CSS, then classifies sections. Cover pairs also
+ * load the motion bundles. A plain last section only garage-doors the footer.
  *
  * @returns {Promise<void>}
  */
@@ -1418,12 +1456,18 @@ async function start() {
   if (started || !prefersMotion()) return;
   started = true;
   const base = window.hlx?.codeBasePath || '';
+  const main = document.querySelector('main');
+  const covers = main instanceof HTMLElement && hasCoverPair(main);
   const assets = [
     loadCSS(`${base}/styles/features/section-scroll.css`),
-    attach(),
   ];
-  if (!usesTouchScroll()) {
-    assets.push(loadCSS(`${base}/deps/lenis/dist/lenis.css`));
+  // GSAP and Lenis exist for cover pairs. A plain last section only needs the
+  // garage-door rules in the stylesheet above.
+  if (covers) {
+    assets.push(attach());
+    if (!usesTouchScroll()) {
+      assets.push(loadCSS(`${base}/deps/lenis/dist/lenis.css`));
+    }
   }
   await Promise.all(assets);
   classifySectionScroll();
