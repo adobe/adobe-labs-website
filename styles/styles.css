@@ -908,6 +908,23 @@ main:focus-visible::after {
   }
 }
 
+/* Button element that is styled like a regular text link anchor. */
+.link-button {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  text-transform: inherit;
+  color: var(--s2a-color-content-default);
+  text-decoration: solid underline currentcolor;
+  cursor: pointer;
+}
+
 /* Fixed back-to-top control. Article pages only (injected in utils.js). */
 .back-to-top {
   position: fixed;
@@ -1305,3 +1322,4 @@ body.article main > [class*="section-rounded-"]:not(
 .cr-pin-button {
   position: absolute;
 }
+

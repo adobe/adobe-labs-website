@@ -428,7 +428,11 @@ describe('initSectionScroll', () => {
 
     expect(loadCSS).toHaveBeenCalledWith('/styles/features/section-scroll.css');
     expect(loadCSS).toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
-    expect(Lenis).toHaveBeenCalledWith({ autoRaf: false, anchors: true });
+    expect(Lenis).toHaveBeenCalledWith({
+      autoRaf: false,
+      anchors: true,
+      prevent: expect.any(Function),
+    });
     expect(Lenis.mock.results[0].value.on).toHaveBeenCalledWith('scroll', ScrollTrigger.update);
     expect(gsap.ticker.add).toHaveBeenCalled();
     expect(gsap.ticker.lagSmoothing).toHaveBeenCalledWith(0);
