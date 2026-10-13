@@ -1211,7 +1211,7 @@ describe('decorateSectionMetadata', () => {
     expect(within(section).getByRole('heading', { name: 'Later heading' })).not.toHaveClass('visually-hidden');
   });
 
-  it('renders paragraph text from the field as a visually hidden heading', () => {
+  it('renders the visually hidden heading level as h2 when no heading level is set', () => {
     const { section } = sectionWithContent(
       { 'Visually-hidden headline': '<p>Just a paragraph</p>' },
       '<p>Intro</p>',
