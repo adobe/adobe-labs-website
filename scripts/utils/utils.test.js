@@ -1249,23 +1249,6 @@ describe('decorateSectionMetadata', () => {
     expect(heading).toBe(section.firstElementChild);
   });
 
-  it('uses a Markdown heading marker in the published value as the heading level', () => {
-    const section = document.createElement('div');
-    section.className = 'section';
-    section.dataset.visuallyHiddenHeadline = '### Notes';
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = '<p>Intro</p>';
-    section.append(wrapper);
-    const main = document.createElement('main');
-    main.append(section);
-
-    decorateSectionMetadata(main);
-
-    const heading = within(section).getByRole('heading', { name: 'Notes' });
-    expect(heading.tagName).toBe('H3');
-    expect(heading).toHaveTextContent('Notes');
-  });
-
   it('ignores an empty visually-hidden headline', () => {
     const { section } = sectionWithContent(
       { 'Visually-hidden headline': '<h2>   </h2>' },

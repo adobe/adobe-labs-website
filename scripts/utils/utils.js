@@ -742,21 +742,16 @@ function firstSectionItem(section, sectionMeta) {
 }
 
 /**
- * Heading level and text. A leading Markdown heading (`## Title`) keeps that
- * level. Plain text is level 2: the HTML pipeline stores only the heading's
- * text on `data-visually-hidden-headline`.
+ * Heading level and text. Plain text is level 2: the HTML pipeline stores
+ * only the heading's text on `data-visually-hidden-headline`.
  *
  * @param {string} value
  * @returns {{ level: number, text: string }|null}
  */
 function headlineParts(value) {
-  const raw = `${value ?? ''}`.replace(/\s+/g, ' ').trim();
-  if (!raw) return null;
-  const marked = raw.match(/^(#{1,6}) (.+)$/);
-  if (!marked) return { level: DEFAULT_HEADLINE_LEVEL, text: raw };
-  const text = marked[2].trim();
+  const text = `${value ?? ''}`.replace(/\s+/g, ' ').trim();
   if (!text) return null;
-  return { level: marked[1].length, text };
+  return { level: DEFAULT_HEADLINE_LEVEL, text };
 }
 
 /**
