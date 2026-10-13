@@ -10,6 +10,7 @@ import {
   ensureArticleBackToTop,
   decorateArticleSections,
   decorateSectionMetadata,
+  decorateVisuallyHiddenHeadings,
   formatCardDate,
   getAuthoredCells,
   getSection,
@@ -1128,6 +1129,73 @@ describe('decorateSectionMetadata', () => {
     expect(() => decorateSectionMetadata(main)).not.toThrow();
     expect(section.dataset.toc).toBeUndefined();
     expect(section.dataset.tableOfContents).toBeUndefined();
+  });
+});
+
+describe('decorateVisuallyHiddenHeadings', () => {
+  /**
+   * Published section shape: the headline is text on the section, and the
+   * first content wrapper holds the authored items.
+   * @param {string} headline
+   * @param {string} contentHtml
+   * @returns {HTMLDivElement}
+   */
+  function sectionWithHeadline(headline, contentHtml) {
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.dataset.visuallyHiddenHeadline = headline;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'default-content-wrapper';
+    wrapper.innerHTML = contentHtml;
+    section.append(wrapper);
+    return section;
+  }
+
+  it('renders the visually hidden heading level as h2 when no heading level is set', () => {
+    const section = sectionWithHeadline('Just a paragraph', '<p>Intro</p>');
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateVisuallyHiddenHeadings(main);
+
+    const heading = within(section).getByRole('heading', { name: 'Just a paragraph' });
+    expect(heading.tagName).toBe('H2');
+    expect(heading).toHaveClass('visually-hidden');
+    expect(heading).toHaveTextContent('Just a paragraph');
+    expect(heading).toBe(section.firstElementChild);
+  });
+
+  it('does not render a visually-hidden headline when the first item is a heading', () => {
+    const section = sectionWithHeadline('Hidden title', '<h4>Visible title</h4><p>Body</p>');
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateVisuallyHiddenHeadings(main);
+
+    expect(within(section).getByRole('heading', { name: 'Visible title' }).tagName).toBe('H4');
+    expect(within(section).queryByRole('heading', { name: 'Hidden title' })).toBeNull();
+    expect(section.querySelector('.visually-hidden')).toBeNull();
+  });
+
+  it('still renders when a heading comes after the first item', () => {
+    const section = sectionWithHeadline('Section label', '<p>Lead</p><h2>Later heading</h2>');
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateVisuallyHiddenHeadings(main);
+
+    expect(within(section).getByRole('heading', { name: 'Section label' })).toHaveClass('visually-hidden');
+    expect(within(section).getByRole('heading', { name: 'Later heading' })).not.toHaveClass('visually-hidden');
+  });
+
+  it('ignores an empty visually-hidden headline', () => {
+    const section = sectionWithHeadline('   ', '<p>Intro</p>');
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateVisuallyHiddenHeadings(main);
+
+    expect(within(section).queryByRole('heading')).toBeNull();
   });
 });
 

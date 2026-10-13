@@ -376,6 +376,12 @@ Article pages can list opted-in sections. Insert an empty **Table of Contents** 
 
 On each section that should appear, add a Section Metadata row named **Table of Contents**. The cell value is the label in the list. The block links that label to the section heading. If a section has both rows, the **Table of Contents** value is the label. If no section has either row, the block removes itself.
 
+### Visually-hidden headline
+
+Use this when a section's first item is not a heading and assistive technology still needs one. In that section, add a Section Metadata row named **Visually-hidden headline**. The page renders that row's text as a visually hidden heading level 2. The text is in the page for screen readers. It does not appear in the layout.
+
+The row is omitted when the section's first content item is already a heading (`h1`–`h6`).
+
 ## Buttons
 
 The default `.button` class uses the Primary style. So far only the default/primary style is supported until others are needed.
