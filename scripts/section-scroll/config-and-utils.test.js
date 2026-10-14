@@ -13,6 +13,7 @@ import {
   dimEntryStart,
   FOOTER_UNCOVER_VH,
   footerCoverDistance,
+  footerCoverFits,
   headerFadeVh,
   holdThenLinear,
   introLagPx,
@@ -228,6 +229,30 @@ describe('footerCoverDistance', () => {
 
   it('keeps a short stacked menu on its own height', () => {
     expect(footerCoverDistance(200, 800, true)).toBe(200);
+  });
+});
+
+describe('footerCoverFits', () => {
+  /**
+   * @param {number} top Document position of the footer
+   * @returns {HTMLElement}
+   */
+  function placed(top) {
+    const el = document.createElement('div');
+    el.getBoundingClientRect = () => ({ top, bottom: top, height: 0 });
+    return el;
+  }
+
+  it('keeps the door while the footer starts below the fold', () => {
+    expect(footerCoverFits(placed(1600), 900)).toBe(true);
+  });
+
+  it('drops the door when the viewport is tall enough to show the footer', () => {
+    expect(footerCoverFits(placed(1800), 3440)).toBe(false);
+  });
+
+  it('stays eligible until the footer has a document position', () => {
+    expect(footerCoverFits(placed(0), 800)).toBe(true);
   });
 });
 
