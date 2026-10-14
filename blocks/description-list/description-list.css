@@ -75,18 +75,9 @@
     }
 
     .description-list__item {
-      flex-direction: row;
+      display: grid;
+      grid-template-columns: 1fr 2fr;
       gap: var(--s2a-spacing-xl);
-    }
-
-    .description-list__item-heading {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
-
-    .description-list__item-body {
-      flex: 3 1 0;
-      min-width: 0;
     }
   }
 
