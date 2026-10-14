@@ -573,6 +573,8 @@ describe('buildArticleMetaActions', () => {
       expect(download).toHaveAttribute('href', 'https://example.com/data.zip');
       expect(download).toHaveAttribute('data-meta-action', 'download');
       expect(download).toHaveAttribute('download', 'data.zip');
+      expect(download).not.toHaveAttribute('target');
+      expect(download).not.toHaveAttribute('rel');
       const icon = download.querySelector('.action-button__icon');
       expect(icon).toHaveAttribute('aria-hidden', 'true');
       expect(download.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
@@ -598,7 +600,9 @@ describe('buildArticleMetaActions', () => {
     const href = new URL(download.getAttribute('href'));
     expect(href.origin).toBe(window.location.origin);
     expect(href.pathname).toBe('/media/dataset.pdf');
-    expect(download).toHaveAttribute('download', 'dataset.pdf');
+    expect(download).not.toHaveAttribute('download');
+    expect(download).toHaveAttribute('target', '_blank');
+    expect(download).toHaveAttribute('rel', 'noopener');
   });
 
   it('rewrites a DA media-browser URL for this site to a same-origin file path', () => {
@@ -614,7 +618,48 @@ describe('buildArticleMetaActions', () => {
     const href = new URL(download.getAttribute('href'));
     expect(href.origin).toBe(window.location.origin);
     expect(href.pathname).toBe('/media/c4611-sample-explain.pdf');
-    expect(download).toHaveAttribute('download', 'c4611-sample-explain.pdf');
+    expect(download).not.toHaveAttribute('download');
+    expect(download).toHaveAttribute('target', '_blank');
+    expect(download).toHaveAttribute('rel', 'noopener');
+  });
+
+  it('opens a PDF download-link in a new tab instead of forcing a download', () => {
+    mockTemplate('article', { 'download-link': 'https://example.com/report.PDF' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    expect(download).not.toHaveAttribute('download');
+    expect(download).toHaveAttribute('target', '_blank');
+    expect(download).toHaveAttribute('rel', 'noopener');
+  });
+
+  it('detects a PDF download-link even with a query string', () => {
+    mockTemplate('article', { 'download-link': 'https://example.com/sample.pdf?timestamp=234324' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    expect(download).not.toHaveAttribute('download');
+    expect(download).toHaveAttribute('target', '_blank');
+    expect(download).toHaveAttribute('rel', 'noopener');
+  });
+
+  it('still forces a download for non-PDF files', () => {
+    mockTemplate('article', { 'download-link': 'https://example.com/dataset.pdf.zip' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    expect(download).toHaveAttribute('download', 'dataset.pdf.zip');
+    expect(download).not.toHaveAttribute('target');
+    expect(download).not.toHaveAttribute('rel');
   });
 
   it('rewrites content.da.live and da.live edit URLs for this site', () => {
