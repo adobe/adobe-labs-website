@@ -19,6 +19,7 @@ import {
   isFullScreenHero,
   isRounded,
   pinTopPx,
+  pinsFlush,
   roundedParallax,
   staysInFlow,
   usesCssCover,
@@ -251,6 +252,14 @@ describe('coverStartPx', () => {
     expect(coverStartPx(el)).toBe(800 * COVER_START_VH);
   });
 
+  it('starts a short rounded card at its own bottom', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const el = section('<div class="section section-rounded-blue"></div>');
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 400 });
+
+    expect(coverStartPx(el)).toBe(400);
+  });
+
   it('starts an intro section at the bottom of the outgoing section', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const el = section('<div class="section page-header-container"></div>');
@@ -267,6 +276,25 @@ describe('pinTopPx', () => {
     Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 1200 });
 
     expect(pinTopPx(el)).toBe(800 * COVER_START_VH - 1200);
+  });
+
+  it('pins a short rounded card at the top of a tall viewport', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const el = section('<div class="section section-rounded-blue"></div>');
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 400 });
+
+    expect(pinTopPx(el)).toBe(0);
+  });
+
+  it('asks the next card to cover a flush pin', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const el = section('<div class="section section-rounded-blue"></div>');
+
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 400 });
+    expect(pinsFlush(el)).toBe(true);
+
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 1200 });
+    expect(pinsFlush(el)).toBe(false);
   });
 
   it('pins a full-screen hero at the top so it is never pulled under the nav', () => {

@@ -28,11 +28,13 @@ import {
   CLASS_INTRO,
   CLASS_NEXT,
   CLASS_OVERLAY,
+  CLASS_SEAM,
   CLASS_SLOW,
   coversPrevious,
   dimEntryStart,
   introLagPx,
   isRounded,
+  pinsFlush,
   FOOTER_STACKED_MQ,
   footerCoverDistance,
   pinTopPx,
@@ -1019,13 +1021,18 @@ function prefersMotion() {
  */
 function applySectionVars(section) {
   if (!(section instanceof HTMLElement)) return;
+  const next = section.nextElementSibling;
   if (section.classList.contains(CLASS_INTRO)) {
     section.style.removeProperty(VAR_PIN_TOP);
     if (usesTouchScroll()) section.style.setProperty(VAR_INTRO_LAG, `${introLagPx(section)}px`);
     else section.style.removeProperty(VAR_INTRO_LAG);
+    if (next instanceof HTMLElement) next.classList.remove(CLASS_SEAM);
     return;
   }
   section.style.setProperty(VAR_PIN_TOP, `${pinTopPx(section)}px`);
+  // A flush pin no longer drops the card onto the next one. Another radius of
+  // overlap keeps the rounded bottom covered.
+  if (next instanceof HTMLElement) next.classList.toggle(CLASS_SEAM, pinsFlush(section));
 }
 
 /**
@@ -1101,7 +1108,7 @@ function clear(root = document) {
   });
   root.querySelectorAll(`.${CLASS_SLOW}, .${CLASS_NEXT}, .${CLASS_INTRO}, .${CLASS_FADE}`)
     .forEach((el) => {
-      el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE);
+      el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE, CLASS_SEAM);
       if (el instanceof HTMLElement) {
         el.style.removeProperty(VAR_PIN_TOP);
         el.style.removeProperty(VAR_INTRO_LAG);
