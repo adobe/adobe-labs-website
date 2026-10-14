@@ -80,7 +80,11 @@ describe('hover-list block', () => {
     expect(numbers.map((el) => el.textContent)).toEqual(['1', '2', '3']);
     numbers.forEach((el) => expect(el).toHaveAttribute('aria-hidden', 'true'));
 
-    const arrows = [...block.querySelectorAll('.hover-list__arrow')];
+    const arrows = [...block.querySelectorAll('.hover-list__headline-text .hover-list__arrow')];
+    const underlines = [...block.querySelectorAll('.hover-list__headline-underline')];
+    expect(underlines).toHaveLength(3);
+    underlines.forEach((el) => expect(el).toHaveAttribute('aria-hidden', 'true'));
+    expect(underlines[0]).toHaveTextContent('Adobe’s commitment to child safety');
     expect(arrows).toHaveLength(3);
     arrows.forEach((el) => {
       expect(el).toHaveAttribute('aria-hidden', 'true');
@@ -106,7 +110,7 @@ describe('hover-list block', () => {
     markExternalLink(links[0]);
     markExternalLink(links[1]);
 
-    const visible = [...links[0].querySelectorAll('.hover-list__headline')].map((el) => el.textContent).join('');
+    const visible = [...links[0].querySelectorAll('.hover-list__headline-text .hover-list__headline')].map((el) => el.textContent).join('');
     expect(visible).toBe('Privacy Policy');
     expect(links[0]).toHaveAttribute('aria-label', 'Privacy Policy (opens in a new tab)');
     expect(links[0].querySelector('.visually-hidden')).toBeNull();

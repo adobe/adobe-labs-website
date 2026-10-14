@@ -91,6 +91,30 @@ function getElasticRouterItems(block) {
 }
 
 /**
+ * Visible title, plus an aria-hidden copy whose underline wipes in.
+ * The arrow stays a sibling so it is not part of the underline.
+ *
+ * @param {string} title
+ * @returns {HTMLSpanElement}
+ */
+function createTitleStack(title) {
+  const stack = document.createElement('span');
+  stack.className = 'elastic-router__title-stack';
+
+  const text = document.createElement('span');
+  text.className = 'elastic-router__title-text';
+  text.textContent = title;
+
+  const underline = document.createElement('span');
+  underline.className = 'elastic-router__title-underline';
+  underline.setAttribute('aria-hidden', 'true');
+  underline.textContent = title;
+
+  stack.append(text, underline);
+  return stack;
+}
+
+/**
  * Builds one card. The whole card is a single link — the authored heading
  * keeps its original level (author's choice) but its inner link is unwrapped
  * so it isn't nested inside the card's own link.
@@ -111,9 +135,7 @@ function buildElasticRouterItem(data) {
 
   if (data.heading) {
     data.heading.className = 'elastic-router__title';
-    const innerLink = data.heading.querySelector('a');
-    if (innerLink) innerLink.replaceWith(...innerLink.childNodes);
-    data.heading.append(buildArrowIcon());
+    data.heading.replaceChildren(createTitleStack(data.title), buildArrowIcon());
     link.append(data.heading);
   }
 

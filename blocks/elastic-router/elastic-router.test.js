@@ -38,7 +38,11 @@ describe('elastic-router block', () => {
 
     expect(link).toHaveClass('elastic-router__link');
     expect(link).toHaveAttribute('href', expect.stringMatching(/\/research\/?$/));
-    expect(view.getByText('Research', { selector: 'h3' })).toHaveClass('elastic-router__title');
+    expect(view.getByRole('heading', { name: 'Research' })).toHaveClass('elastic-router__title');
+    expect(link.querySelector('.elastic-router__title-text')).toHaveTextContent('Research');
+    const underline = link.querySelector('.elastic-router__title-underline');
+    expect(underline).toHaveTextContent('Research');
+    expect(underline).toHaveAttribute('aria-hidden', 'true');
     expect(view.getByText('Research the future of creative work')).toHaveClass('elastic-router__description');
     expect(link.querySelector('picture')).toBeTruthy();
   });
@@ -76,7 +80,7 @@ describe('elastic-router block', () => {
 
     const link = within(block).getByRole('link', { name: 'Workflows' });
     expect(link.querySelector('a')).toBeNull();
-    expect(link.textContent.trim()).toBe('Workflows');
+    expect(link.querySelector('.elastic-router__title-text').textContent).toBe('Workflows');
   });
 
   it('skips a row with no href', () => {
@@ -188,7 +192,7 @@ describe('elastic-router block', () => {
 
     decorate(block);
 
-    const titles = [...block.querySelectorAll('.elastic-router__title')]
+    const titles = [...block.querySelectorAll('.elastic-router__title-text')]
       .map((el) => el.textContent.trim());
     expect(titles).toEqual(['Research', 'Workflows', 'Sneaks', 'Playground']);
     expect(block.querySelector('ul.elastic-router__list')).toHaveAttribute('role', 'list');
