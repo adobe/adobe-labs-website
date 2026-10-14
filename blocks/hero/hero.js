@@ -125,28 +125,81 @@ function getHeadlineTag(cell) {
 }
 
 /**
- * Headline at the authored level. The visible text and an aria-hidden
- * underline copy share wrapping inside `.hero__headline-stack`.
+ * Visible text stacked with an aria-hidden underline copy so both wrap
+ * the same way. The underline is revealed in CSS.
  *
- * @param {string} tag `h1`–`h6` or `p`
- * @param {string} text Headline text
- * @returns {HTMLElement}
+ * @param {string} text
+ * @param {{ stack: string, text: string, underline: string }} classNames
+ * @returns {HTMLSpanElement}
  */
-function createHeadline(tag, text) {
-  const el = document.createElement(HEADLINE_TAGS.has(tag) ? tag : 'p');
-  el.className = 'hero__headline';
+function createUnderlineStack(text, classNames) {
   const stack = document.createElement('span');
-  stack.className = 'hero__headline-stack';
+  stack.className = classNames.stack;
   const textEl = document.createElement('span');
-  textEl.className = 'hero__headline-text';
+  textEl.className = classNames.text;
   textEl.textContent = text;
   const underline = document.createElement('span');
-  underline.className = 'hero__headline-underline';
+  underline.className = classNames.underline;
   underline.setAttribute('aria-hidden', 'true');
   underline.textContent = text;
   stack.append(textEl, underline);
-  el.append(stack);
+  return stack;
+}
+
+/**
+ * Headline at the authored level. Pass `href` to link the headline itself
+ * (full-screen heroes). Card heroes leave `href` empty and link the card.
+ *
+ * @param {string} tag `h1`–`h6` or `p`
+ * @param {string} text Headline text
+ * @param {string} [href] Safe http(s) URL
+ * @returns {HTMLElement}
+ */
+function createHeadline(tag, text, href) {
+  const el = document.createElement(HEADLINE_TAGS.has(tag) ? tag : 'p');
+  el.className = 'hero__headline';
+  const stack = createUnderlineStack(text, {
+    stack: 'hero__headline-stack',
+    text: 'hero__headline-text',
+    underline: 'hero__headline-underline',
+  });
+  if (href) {
+    const link = document.createElement('a');
+    link.className = 'hero__headline-link';
+    link.href = href;
+    link.append(stack);
+    el.append(link);
+  } else {
+    el.append(stack);
+  }
   return el;
+}
+
+/**
+ * "Read" label as its own link, with the same underline stack as the headline.
+ * `context` is visually hidden so the accessible name is more than "Read".
+ *
+ * @param {string} href Safe http(s) URL
+ * @param {string} label Visible label
+ * @param {string} [context] Article title, and "video article" when that applies
+ * @returns {HTMLAnchorElement}
+ */
+function createCtaLink(href, label, context) {
+  const link = document.createElement('a');
+  link.className = 'hero__cta-text';
+  link.href = href;
+  link.append(createUnderlineStack(label, {
+    stack: 'hero__cta-stack',
+    text: 'hero__cta-label',
+    underline: 'hero__cta-underline',
+  }));
+  if (context) {
+    const hint = document.createElement('span');
+    hint.className = 'visually-hidden';
+    hint.textContent = ` ${context}`;
+    link.append(hint);
+  }
+  return link;
 }
 
 /**
@@ -209,6 +262,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   const linkLabel = data.linkLabel || '';
   const isVideo = Boolean(data.isVideo);
   const showCategory = Boolean(category) && Boolean(firstSection(root));
+  const linkTexts = Boolean(href) && root.classList.contains('hero-full-screen');
 
   const template = document.createElement('template');
   template.innerHTML = `
@@ -266,20 +320,34 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   else pageCategoryEl.remove();
 
   const copy = fragment.querySelector('.hero__copy');
-  if (headline) copy.append(createHeadline(headlineTag, headline));
+  if (headline) copy.append(createHeadline(headlineTag, headline, linkTexts ? href : ''));
   if (!copy.querySelector('.hero__category, .hero__headline')) copy.remove();
 
   const ctaText = fragment.querySelector('.hero__cta-text');
   if (href && linkLabel) {
-    ctaText.textContent = linkLabel;
+    if (linkTexts) {
+      const context = [isVideo ? 'video article' : '', headline].filter(Boolean).join(': ');
+      ctaText.replaceWith(createCtaLink(href, linkLabel, context));
+    } else {
+      ctaText.textContent = linkLabel;
+    }
   } else {
     ctaText.remove();
+  }
+
+  // The play label sits in the content for card heroes, where one link
+  // wraps everything. On a full-screen hero it belongs in the headline
+  // link so the link name includes "Video article".
+  if (linkTexts) {
+    const videoLabel = fragment.querySelector('.hero__content > .visually-hidden');
+    const headlineLink = copy.querySelector('.hero__headline-link');
+    if (videoLabel && headlineLink) headlineLink.prepend(videoLabel);
   }
 
   const blockChildren = [...fragment.children];
 
   let wrappedContent;
-  if (href) {
+  if (href && !linkTexts) {
     const wrapperLink = document.createElement('a');
     wrapperLink.href = href;
     wrapperLink.classList.add('hero__link-wrap');
@@ -304,7 +372,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
 
   root.replaceChildren(wrappedContent);
 
-  if (data.image) {
+  if (data.image && !root.classList.contains('hero-full-screen')) {
     const img = root.querySelector('.hero__media img');
     const trigger = root.querySelector('.hero__link-wrap');
     if (img && trigger) initChromaticHover(trigger, img);

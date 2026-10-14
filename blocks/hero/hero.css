@@ -138,19 +138,29 @@
     text-wrap: balance;
   }
 
+  .hero__headline-link {
+    display: inline-block;
+    color: inherit;
+    text-decoration: none;
+  }
+
   /* Two stacked copies share wrapping. Ghost's real underline gets
      correct position and skip-ink; mask reveals it on hover. */
-  .hero__headline-stack {
+  .hero__headline-stack,
+  .hero__cta-stack {
     display: inline-grid;
     grid-template-columns: 1fr;
   }
 
   .hero__headline-text,
-  .hero__headline-underline {
+  .hero__headline-underline,
+  .hero__cta-label,
+  .hero__cta-underline {
     grid-area: 1 / 1;
   }
 
-  .hero__headline-underline {
+  .hero__headline-underline,
+  .hero__cta-underline {
     /* Painted on top; without this it would intercept clicks and
        selection meant for the real text. */
     pointer-events: none;
@@ -169,12 +179,16 @@
     }
   }
 
-  .hero__link-wrap:focus-visible .hero__headline-underline {
+  .hero__link-wrap:focus-visible .hero__headline-underline,
+  .hero__headline-link:focus-visible .hero__headline-underline,
+  a.hero__cta-text:focus-visible .hero__cta-underline {
     mask-size: 100% 100%;
   }
 
   @media (hover: hover) {
-    .hero__link-wrap:hover .hero__headline-underline {
+    .hero__link-wrap:hover .hero__headline-underline,
+    .hero__headline-link:hover .hero__headline-underline,
+    a.hero__cta-text:hover .hero__cta-underline {
       mask-size: 100% 100%;
     }
   }
@@ -293,13 +307,21 @@
     text-align: end;
   }
 
-  /* CTA label (not a button — the whole card is the link) */
+  /* CTA label. Card heroes print it inside the card link. Full-screen
+     heroes make this element the link. */
   .hero__cta-text {
     margin-block: 0;
     display: inline-block;
     grid-area: bottom-right;
     place-self: last baseline end;
     white-space: nowrap;
+    color: var(--s2a-color-gray-25, #fff);
+  }
+
+  a.hero__cta-text {
+    min-block-size: 1.5rem;
+    min-inline-size: 1.5rem;
+    text-decoration: none;
   }
 
   /* --- Full-Screen variant --- */
@@ -311,6 +333,8 @@
     --hero-full-screen-block-size: 60lvh;
     --hero-full-screen-max-block-size: 75rem;
     --hero-full-screen-content-min-gap: 6.25rem;
+    --hero-scrim-hover: rgb(0 0 0 / 58%);
+    --hero-image-hover-scale: 1.05;
 
     @media (width >= 48rem) {
       --hero-padding-block-start: 6.25rem;
@@ -341,29 +365,14 @@
       max-height: var(--hero-full-screen-max-block-size);
     }
 
-    .hero__link-wrap {
-      position: relative;
-      display: grid;
-      height: auto;
-
-      /* Inner ring to override the default offset outline, which
-         sits outside the full-bleed box and is hidden by the viewport.
-         inset-block-end matches .hero-container:has(.hero-full-screen) + [class*="section-rounded-"]
-         so the bottom edge stays above the overlapping section. */
+    /* Light ring plus a dark outer ring, so focus stays visible on
+       both bright and dark parts of the photo. */
+    .hero__headline-link,
+    a.hero__cta-text {
       &:focus-visible {
-        outline: none;
-      }
-
-      &:focus-visible::after {
-        content: "";
-        position: absolute;
-        inset: var(--s2a-border-width-md);
-        inset-block-end: calc(
-          var(--section-border-radius)
-          + var(--s2a-border-width-md)
-        );
-        border: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-knockout);
-        z-index: 2;
+        outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-knockout);
+        outline-offset: calc(var(--s2a-border-width-md) * 2);
+        box-shadow: 0 0 0 var(--s2a-border-width-md) var(--s2a-color-gray-900, #131313);
       }
     }
 
@@ -378,6 +387,41 @@
       &:has(.play-icon) {
         grid-template-rows: min-content minmax(var(--hero-full-screen-content-min-gap), 1fr) auto auto;
         row-gap: var(--s2a-spacing-sm);
+      }
+    }
+
+    /* Hover zoom sits on the image so it does not fight the intro
+       transform on .hero__media. The scrim transition already lives on
+       .hero__media::after. :active keeps the pressed scrim. */
+    .hero__media img {
+      @media (prefers-reduced-motion: no-preference) {
+        transition: transform 250ms ease-in-out;
+      }
+    }
+
+    &:has(.hero__headline-link:active, a.hero__cta-text:active) .hero__media::after {
+      background-color: var(--hero-scrim-pressed);
+    }
+
+    @media (hover: hover) {
+      &:has(.hero__headline-link:hover, a.hero__cta-text:hover):not(:has(.hero__headline-link:active, a.hero__cta-text:active)) .hero__media::after {
+        background-color: var(--hero-scrim-hover);
+      }
+    }
+
+    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+      &:has(.hero__headline-link:hover, a.hero__cta-text:hover) .hero__media img {
+        transform: scale(var(--hero-image-hover-scale));
+      }
+    }
+
+    &:has(.hero__headline-link:focus-visible, a.hero__cta-text:focus-visible):not(:has(.hero__headline-link:active, a.hero__cta-text:active)) .hero__media::after {
+      background-color: var(--hero-scrim-hover);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      &:has(.hero__headline-link:focus-visible, a.hero__cta-text:focus-visible) .hero__media img {
+        transform: scale(var(--hero-image-hover-scale));
       }
     }
   }

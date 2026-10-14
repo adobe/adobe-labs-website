@@ -492,6 +492,67 @@ describe('hero block', () => {
     expect(initChromaticHover).toHaveBeenCalledWith(link, img);
   });
 
+  it('links the headline and Read label on a full-screen hero', async () => {
+    const block = createHeroBlock([
+      [
+        'Research',
+        '5.24.26',
+        '<a href="/research/example">Headline</a>',
+        'Read',
+      ],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+    block.classList.add('hero-full-screen');
+    const main = placeInMain(block);
+
+    try {
+      await decorate(block);
+
+      expect(block.querySelector('.hero__link-wrap')).toBeNull();
+      const links = within(block).getAllByRole('link');
+      expect(links).toHaveLength(2);
+
+      const headlineLink = within(block).getByRole('link', { name: /^Headline$/ });
+      const cta = within(block).getByRole('link', { name: /^Read Headline$/ });
+      expect(headlineLink).toHaveAttribute('href', expect.stringMatching(/\/research\/example$/));
+      expect(headlineLink).toHaveClass('hero__headline-link');
+      expect(block.querySelector('.hero__headline').tagName).toBe('P');
+      expect(headlineLink.querySelector('.hero__headline-underline')).toHaveAttribute('aria-hidden', 'true');
+      expect(headlineLink.querySelector('.hero__headline-underline')).toHaveTextContent('Headline');
+      expect(cta).toHaveAttribute('href', headlineLink.getAttribute('href'));
+      expect(cta).toHaveClass('hero__cta-text');
+      expect(cta.querySelector('.hero__cta-label')).toHaveTextContent('Read');
+      expect(cta.querySelector('.hero__cta-underline')).toHaveAttribute('aria-hidden', 'true');
+      expect(cta.querySelector('.hero__cta-underline')).toHaveTextContent('Read');
+      expect(block.querySelector('.hero__date').closest('a')).toBeNull();
+      expect(block.querySelector('.hero__content-type').closest('a')).toBeNull();
+      expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
+      expect(block.querySelector('canvas')).toBeNull();
+    } finally {
+      main.remove();
+    }
+  });
+
+  it('names a full-screen video headline as a video article', async () => {
+    const block = createHeroBlock([
+      [
+        '<a href="/sneaks/project-clean-take">Project Clean Take</a>',
+        'Read',
+      ],
+      ['Is Video', 'true'],
+    ]);
+    block.classList.add('hero-full-screen');
+
+    await decorate(block);
+
+    const headlineLink = within(block).getByRole('link', { name: 'Video article Project Clean Take' });
+    expect(headlineLink).toHaveClass('hero__headline-link');
+    expect(headlineLink.querySelector('.visually-hidden')).toHaveTextContent('Video article');
+    expect(within(block).getByRole('link', { name: 'Read video article: Project Clean Take' }))
+      .toHaveClass('hero__cta-text');
+    expect(block.querySelector('.play-icon')).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('never mounts chromatic hover on a hero without a link', async () => {
     const block = createHeroBlock([
       ['Headline'],
