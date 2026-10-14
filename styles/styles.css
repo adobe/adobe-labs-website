@@ -135,7 +135,7 @@
     --color-section-surface-blue: #111f2f;
     --color-section-surface-pink: #301517;
     --color-section-surface-orange: #312b27;
-    --color-section-surface-default-variant: #262626;
+    --color-section-surface-default-variant: color-mix(in srgb, white 4%, var(--s2a-color-background-default) 96%);
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
 }
