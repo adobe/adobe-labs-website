@@ -118,7 +118,12 @@
   --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
   --color-button-background-primary-hover: var(--s2a-color-gray-800);
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
-  
+
+  /* Shared underline motion. Enter is 0.3s; exit is 0.2s. */
+  --underline-transition-duration: 0.3s;
+  --underline-transition-duration-exit: 0.2s;
+  --underline-transition-easing: ease;
+
   /* article section spacing */
   --article-section-gap: var(--s2a-spacing-2xl);
 

@@ -21,6 +21,7 @@
   --elastic-router-grow: 2;
   --elastic-router-transition-duration: 0.3s;
   --elastic-router-transition-easing: cubic-bezier(0.42, 0, 0, 1);
+  --elastic-router-underline-duration: var(--underline-transition-duration-exit);
 
   @media (width >= 48rem) {
     --elastic-router-gap: 0.5rem;
@@ -28,6 +29,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     --elastic-router-transition-duration: 0s;
+    --elastic-router-underline-duration: 0s;
   }
 }
 
@@ -133,18 +135,51 @@
      heading-5 alias (font-family/weight-900 already come from the site's
      global h1-h6 rule). */
   letter-spacing: var(--s2a-font-letter-spacing-4xl);
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  transition: text-decoration-color var(--elastic-router-transition-duration) var(--elastic-router-transition-easing);
 }
 
-.elastic-router__item:focus-within .elastic-router__title {
-  text-decoration-color: currentcolor;
+/* Two stacked copies share wrapping. The ghost's underline is clipped
+   and wipes in from the inline start. */
+.elastic-router__title-stack {
+  display: inline-grid;
+  min-inline-size: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.elastic-router__title-text,
+.elastic-router__title-underline {
+  grid-area: 1 / 1;
+}
+
+.elastic-router__title-underline {
+  pointer-events: none;
+  user-select: none;
+  color: transparent;
+  text-decoration-line: underline;
+  text-decoration-color: var(--s2a-color-content-label);
+  /* A 0% mask is dropped for a frame in Chrome and the underline flashes. */
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--elastic-router-underline-duration) var(--underline-transition-easing);
+
+  :dir(rtl) & {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
+.elastic-router__item:focus-within .elastic-router__title-underline {
+  clip-path: inset(0 0 0 0);
+
+  @media (prefers-reduced-motion: no-preference) {
+    --elastic-router-underline-duration: var(--underline-transition-duration);
+  }
 }
 
 @media (hover: hover) {
-  .elastic-router__item:hover .elastic-router__title {
-    text-decoration-color: currentcolor;
+  .elastic-router__item:hover .elastic-router__title-underline {
+    clip-path: inset(0 0 0 0);
+
+    @media (prefers-reduced-motion: no-preference) {
+      --elastic-router-underline-duration: var(--underline-transition-duration);
+    }
   }
 }
 

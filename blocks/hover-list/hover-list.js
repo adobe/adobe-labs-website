@@ -90,6 +90,61 @@ function splitLastWord(headline) {
 }
 
 /**
+ * One inline copy of the headline. The last word stays with the arrow so
+ * the icon cannot wrap onto its own line. The ghost copy repeats that
+ * structure, including a hidden arrow, so both copies wrap the same way.
+ *
+ * @param {string} lead Words before the last, including the trailing space
+ * @param {string} last Last word
+ * @param {boolean} ghost Aria-hidden copy whose underline wipes in
+ * @returns {HTMLSpanElement}
+ */
+function createHeadlineFlow(lead, last, ghost) {
+  const flow = document.createElement('span');
+  flow.className = ghost ? 'hover-list__headline-underline' : 'hover-list__headline-text';
+  if (ghost) flow.setAttribute('aria-hidden', 'true');
+
+  if (lead) {
+    const headline = document.createElement('span');
+    headline.className = 'hover-list__headline heading-6';
+    headline.textContent = lead;
+    flow.append(headline);
+  }
+
+  const lastWord = document.createElement('span');
+  lastWord.className = 'hover-list__headline heading-6';
+  lastWord.textContent = last;
+
+  const arrow = document.createElement('span');
+  arrow.className = 'hover-list__arrow heading-6';
+  arrow.setAttribute('aria-hidden', 'true');
+  arrow.append(createExternalArrow());
+
+  const end = document.createElement('span');
+  end.className = 'hover-list__end';
+  end.append(lastWord, arrow);
+  flow.append(end);
+  return flow;
+}
+
+/**
+ * Visible headline, plus an aria-hidden copy whose underline wipes in.
+ *
+ * @param {string} headline
+ * @returns {HTMLSpanElement}
+ */
+function createHeadlineStack(headline) {
+  const { lead, last } = splitLastWord(headline);
+  const stack = document.createElement('span');
+  stack.className = 'hover-list__headline-stack';
+  stack.append(
+    createHeadlineFlow(lead, last, false),
+    createHeadlineFlow(lead, last, true),
+  );
+  return stack;
+}
+
+/**
  * Builds one list row: generated number, then headline with the last word
  * and arrow kept together so the icon does not wrap onto a line by itself.
  * Stashes hover image URLs on `data-hover-images` for the idle media pass.
@@ -115,30 +170,9 @@ function buildHoverListItem(data, index) {
   number.setAttribute('aria-hidden', 'true');
   number.textContent = String(index + 1);
 
-  const { lead, last } = splitLastWord(data.headline);
-
-  const lastWord = document.createElement('span');
-  lastWord.className = 'hover-list__headline heading-6';
-  lastWord.textContent = last;
-
-  const arrow = document.createElement('span');
-  arrow.className = 'hover-list__arrow heading-6';
-  arrow.setAttribute('aria-hidden', 'true');
-  arrow.append(createExternalArrow());
-
-  const end = document.createElement('span');
-  end.className = 'hover-list__end';
-  end.append(lastWord, arrow);
-
   const text = document.createElement('span');
   text.className = 'hover-list__text';
-  if (lead) {
-    const headline = document.createElement('span');
-    headline.className = 'hover-list__headline heading-6';
-    headline.textContent = lead;
-    text.append(headline);
-  }
-  text.append(end);
+  text.append(createHeadlineStack(data.headline));
 
   link.append(number, text);
   item.append(link);
