@@ -110,6 +110,7 @@
   pointer-events: none;
   user-select: none;
   color: transparent;
+
   /* A 0% mask is dropped for a frame in Chrome and the underline flashes. */
   clip-path: inset(0 100% 0 0);
   transition: clip-path var(--hover-list-underline-duration) var(--underline-transition-easing);
@@ -121,10 +122,6 @@
   .hover-list__headline {
     text-decoration-line: underline;
     text-decoration-color: var(--s2a-color-content-default);
-  }
-
-  .hover-list__arrow {
-    visibility: hidden;
   }
 }
 
@@ -153,6 +150,10 @@
     margin-inline-start: var(--s2a-spacing-sm);
     vertical-align: middle;
   }
+}
+
+.hover-list__headline-underline .hover-list__arrow {
+  visibility: hidden;
 }
 
 .hover-list__link:focus-visible .hover-list__headline-underline {
