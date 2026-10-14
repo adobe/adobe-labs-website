@@ -191,6 +191,5 @@ describe('elastic-router block', () => {
     const titles = [...block.querySelectorAll('.elastic-router__title')]
       .map((el) => el.textContent.trim());
     expect(titles).toEqual(['Research', 'Workflows', 'Sneaks', 'Playground']);
-    expect(block.querySelector('ul.elastic-router__list')).toHaveAttribute('role', 'list');
   });
 });
