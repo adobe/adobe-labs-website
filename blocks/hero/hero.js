@@ -147,59 +147,22 @@ function createUnderlineStack(text, classNames) {
 }
 
 /**
- * Headline at the authored level. Pass `href` to link the headline itself
- * (full-screen heroes). Card heroes leave `href` empty and link the card.
+ * Headline at the authored level. The card link wraps the hero; this
+ * element only carries the title and its hover underline.
  *
  * @param {string} tag `h1`–`h6` or `p`
  * @param {string} text Headline text
- * @param {string} [href] Safe http(s) URL
  * @returns {HTMLElement}
  */
-function createHeadline(tag, text, href) {
+function createHeadline(tag, text) {
   const el = document.createElement(HEADLINE_TAGS.has(tag) ? tag : 'p');
   el.className = 'hero__headline';
-  const stack = createUnderlineStack(text, {
+  el.append(createUnderlineStack(text, {
     stack: 'hero__headline-stack',
     text: 'hero__headline-text',
     underline: 'hero__headline-underline',
-  });
-  if (href) {
-    const link = document.createElement('a');
-    link.className = 'hero__headline-link';
-    link.href = href;
-    link.append(stack);
-    el.append(link);
-  } else {
-    el.append(stack);
-  }
-  return el;
-}
-
-/**
- * "Read" label as its own link, with the same underline stack as the headline.
- * `context` is visually hidden so the accessible name is more than "Read".
- *
- * @param {string} href Safe http(s) URL
- * @param {string} label Visible label
- * @param {string} [context] Article title, and "video article" when that applies
- * @returns {HTMLAnchorElement}
- */
-function createCtaLink(href, label, context) {
-  const link = document.createElement('a');
-  link.className = 'hero__cta-text';
-  link.href = href;
-  link.append(createUnderlineStack(label, {
-    stack: 'hero__cta-stack',
-    text: 'hero__cta-label',
-    underline: 'hero__cta-underline',
   }));
-  if (context) {
-    const hint = document.createElement('span');
-    hint.className = 'visually-hidden';
-    hint.textContent = ` ${context}`;
-    link.append(hint);
-  }
-  return link;
+  return el;
 }
 
 /**
@@ -262,7 +225,6 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   const linkLabel = data.linkLabel || '';
   const isVideo = Boolean(data.isVideo);
   const showCategory = Boolean(category) && Boolean(firstSection(root));
-  const linkTexts = Boolean(href) && root.classList.contains('hero-full-screen');
 
   const template = document.createElement('template');
   template.innerHTML = `
@@ -320,34 +282,17 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   else pageCategoryEl.remove();
 
   const copy = fragment.querySelector('.hero__copy');
-  if (headline) copy.append(createHeadline(headlineTag, headline, linkTexts ? href : ''));
+  if (headline) copy.append(createHeadline(headlineTag, headline));
   if (!copy.querySelector('.hero__category, .hero__headline')) copy.remove();
 
   const ctaText = fragment.querySelector('.hero__cta-text');
-  if (href && linkLabel) {
-    if (linkTexts) {
-      const context = [isVideo ? 'video article' : '', headline].filter(Boolean).join(': ');
-      ctaText.replaceWith(createCtaLink(href, linkLabel, context));
-    } else {
-      ctaText.textContent = linkLabel;
-    }
-  } else {
-    ctaText.remove();
-  }
-
-  // The play label sits in the content for card heroes, where one link
-  // wraps everything. On a full-screen hero it belongs in the headline
-  // link so the link name includes "Video article".
-  if (linkTexts) {
-    const videoLabel = fragment.querySelector('.hero__content > .visually-hidden');
-    const headlineLink = copy.querySelector('.hero__headline-link');
-    if (videoLabel && headlineLink) headlineLink.prepend(videoLabel);
-  }
+  if (href && linkLabel) ctaText.textContent = linkLabel;
+  else ctaText.remove();
 
   const blockChildren = [...fragment.children];
 
   let wrappedContent;
-  if (href && !linkTexts) {
+  if (href) {
     const wrapperLink = document.createElement('a');
     wrapperLink.href = href;
     wrapperLink.classList.add('hero__link-wrap');

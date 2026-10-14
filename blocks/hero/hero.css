@@ -138,29 +138,20 @@
     text-wrap: balance;
   }
 
-  .hero__headline-link {
-    display: inline-block;
-    color: inherit;
-    text-decoration: none;
-  }
-
   /* Two stacked copies share wrapping. Ghost's real underline gets
-     correct position and skip-ink; mask reveals it on hover. */
-  .hero__headline-stack,
-  .hero__cta-stack {
+     correct position and skip-ink; mask reveals it when the whole
+     hero link is hovered or focused. */
+  .hero__headline-stack {
     display: inline-grid;
     grid-template-columns: 1fr;
   }
 
   .hero__headline-text,
-  .hero__headline-underline,
-  .hero__cta-label,
-  .hero__cta-underline {
+  .hero__headline-underline {
     grid-area: 1 / 1;
   }
 
-  .hero__headline-underline,
-  .hero__cta-underline {
+  .hero__headline-underline {
     /* Painted on top; without this it would intercept clicks and
        selection meant for the real text. */
     pointer-events: none;
@@ -179,16 +170,12 @@
     }
   }
 
-  .hero__link-wrap:focus-visible .hero__headline-underline,
-  .hero__headline-link:focus-visible .hero__headline-underline,
-  a.hero__cta-text:focus-visible .hero__cta-underline {
+  .hero__link-wrap:focus-visible .hero__headline-underline {
     mask-size: 100% 100%;
   }
 
   @media (hover: hover) {
-    .hero__link-wrap:hover .hero__headline-underline,
-    .hero__headline-link:hover .hero__headline-underline,
-    a.hero__cta-text:hover .hero__cta-underline {
+    .hero__link-wrap:hover .hero__headline-underline {
       mask-size: 100% 100%;
     }
   }
@@ -307,8 +294,7 @@
     text-align: end;
   }
 
-  /* CTA label. Card heroes print it inside the card link. Full-screen
-     heroes make this element the link. */
+  /* CTA label. It sits inside the hero link and stays plain. */
   .hero__cta-text {
     margin-block: 0;
     display: inline-block;
@@ -316,12 +302,6 @@
     place-self: last baseline end;
     white-space: nowrap;
     color: var(--s2a-color-gray-25, #fff);
-  }
-
-  a.hero__cta-text {
-    min-block-size: 1.5rem;
-    min-inline-size: 1.5rem;
-    text-decoration: none;
   }
 
   /* --- Full-Screen variant --- */
@@ -365,10 +345,14 @@
       max-height: var(--hero-full-screen-max-block-size);
     }
 
-    /* Light ring plus a dark outer ring, so focus stays visible on
-       both bright and dark parts of the photo. */
-    .hero__headline-link,
-    a.hero__cta-text {
+    /* The link is the hero's only in-flow child. Make it a grid so the
+       copy stretches and the whole photo is the hit target. */
+    .hero__link-wrap {
+      display: grid;
+      height: auto;
+
+      /* Light ring plus a dark outer ring, so focus stays visible on
+         both bright and dark parts of the photo. */
       &:focus-visible {
         outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-knockout);
         outline-offset: calc(var(--s2a-border-width-md) * 2);
@@ -399,28 +383,24 @@
       }
     }
 
-    &:has(.hero__headline-link:active, a.hero__cta-text:active) .hero__media::after {
-      background-color: var(--hero-scrim-pressed);
-    }
-
     @media (hover: hover) {
-      &:has(.hero__headline-link:hover, a.hero__cta-text:hover):not(:has(.hero__headline-link:active, a.hero__cta-text:active)) .hero__media::after {
+      .hero__link-wrap:hover:not(:active) .hero__media::after {
         background-color: var(--hero-scrim-hover);
       }
     }
 
     @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-      &:has(.hero__headline-link:hover, a.hero__cta-text:hover) .hero__media img {
+      .hero__link-wrap:hover .hero__media img {
         transform: scale(var(--hero-image-hover-scale));
       }
     }
 
-    &:has(.hero__headline-link:focus-visible, a.hero__cta-text:focus-visible):not(:has(.hero__headline-link:active, a.hero__cta-text:active)) .hero__media::after {
+    .hero__link-wrap:focus-visible:not(:active) .hero__media::after {
       background-color: var(--hero-scrim-hover);
     }
 
     @media (prefers-reduced-motion: no-preference) {
-      &:has(.hero__headline-link:focus-visible, a.hero__cta-text:focus-visible) .hero__media img {
+      .hero__link-wrap:focus-visible .hero__media img {
         transform: scale(var(--hero-image-hover-scale));
       }
     }
