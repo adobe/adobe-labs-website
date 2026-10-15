@@ -12,6 +12,13 @@ import {
 } from '../../scripts/utils/utils.js';
 
 /**
+ * Cards top out near 462px CSS. One 2× source covers that at every viewport.
+ *
+ * @type {{ width: string }[]}
+ */
+export const GRID_ITEM_IMAGE_BREAKPOINTS = [{ width: '960' }];
+
+/**
  * Data used to build a grid item. Parsed from a key/value block, a layout row,
  * or JSON (Content Grid).
  *
@@ -61,7 +68,12 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
   const isVideo = Boolean(data.isVideo);
   let mediaElement = data.mediaElement || null;
   if (!mediaElement && data.imageUrl) {
-    mediaElement = createOptimizedPicture(data.imageUrl, data.imageAlt || '');
+    mediaElement = createOptimizedPicture(
+      data.imageUrl,
+      data.imageAlt || '',
+      false,
+      GRID_ITEM_IMAGE_BREAKPOINTS,
+    );
   }
   // Link the card only when a safe http(s) URL was provided.
   const mainTag = href ? 'a' : 'div';

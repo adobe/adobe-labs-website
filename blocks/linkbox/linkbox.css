@@ -11,12 +11,12 @@
   --linkbox-press-duration: 0s;
   --linkbox-transition-easing: ease-in-out;
   --linkbox-underline-duration: 0s;
-  --linkbox-underline-easing: ease;
+  --linkbox-underline-easing: var(--underline-transition-easing);
 
   @media (prefers-reduced-motion: no-preference) {
     --linkbox-transition-duration: 0.3s;
     --linkbox-press-duration: 0.12s;
-    --linkbox-underline-duration: 0.3s;
+    --linkbox-underline-duration: var(--underline-transition-duration-exit);
   }
 }
 
@@ -141,6 +141,10 @@ a.linkbox__surface:is(:focus-visible, :active) {
 
   .linkbox__underline {
     clip-path: inset(0 0 0 0);
+
+    @media (prefers-reduced-motion: no-preference) {
+      --linkbox-underline-duration: var(--underline-transition-duration);
+    }
   }
 
   .linkbox__arrow {
@@ -155,6 +159,10 @@ a.linkbox__surface:is(:focus-visible, :active) {
 
   a.linkbox__surface:hover .linkbox__underline {
     clip-path: inset(0 0 0 0);
+
+    @media (prefers-reduced-motion: no-preference) {
+      --linkbox-underline-duration: var(--underline-transition-duration);
+    }
   }
 
   a.linkbox__surface:hover .linkbox__arrow {

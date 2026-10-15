@@ -10,8 +10,8 @@
   gap: var(--s2a-spacing-xs);
   max-width: 50ch; /* In the unlikely event this is outside of a grid. */
 
-  --grid-item-underline-transition-duration: 0.3s;
-  --grid-item-underline-transition-easing: ease;
+  --grid-item-underline-transition-duration: var(--underline-transition-duration-exit);
+  --grid-item-underline-transition-easing: var(--underline-transition-easing);
 
   &[data-content-type="research"] {
     --grid-item-content-type-color: var(--color-content-type-research);
@@ -191,11 +191,19 @@
 
   .grid-item__main:focus-visible .grid-item__title-underline {
     mask-size: 100% 100%;
+
+    @media (prefers-reduced-motion: no-preference) {
+      --grid-item-underline-transition-duration: var(--underline-transition-duration);
+    }
   }
 
   @media (hover: hover) {
     .grid-item__main:hover .grid-item__title-underline {
       mask-size: 100% 100%;
+
+      @media (prefers-reduced-motion: no-preference) {
+        --grid-item-underline-transition-duration: var(--underline-transition-duration);
+      }
     }
   }
 

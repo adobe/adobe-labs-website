@@ -1,6 +1,6 @@
 import { within } from '@testing-library/dom';
 import { createOptimizedPicture } from '../../scripts/aem.js';
-import decorate, { buildGridItem } from './grid-item.js';
+import decorate, { buildGridItem, GRID_ITEM_IMAGE_BREAKPOINTS } from './grid-item.js';
 
 jest.mock('../../scripts/aem.js', () => ({
   toClassName: (name) => (typeof name === 'string'
@@ -209,6 +209,8 @@ describe('buildGridItem', () => {
     expect(createOptimizedPicture).toHaveBeenCalledWith(
       'https://example.com/hero.jpg',
       'Project thumbnail',
+      false,
+      GRID_ITEM_IMAGE_BREAKPOINTS,
     );
     expect(item.querySelector('img')).toHaveAttribute('alt', 'Project thumbnail');
   });
