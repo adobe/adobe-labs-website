@@ -7,14 +7,20 @@ import {
   HEADER_FADE_VH_SMALL,
   INTRO_LAG,
   SHIFT_VH,
+  coverPinProgress,
   coverStartPx,
   coversPrevious,
   dimEntryStart,
+  FOOTER_UNCOVER_VH,
+  footerCoverDistance,
+  footerCoverFits,
   headerFadeVh,
+  holdThenLinear,
   introLagPx,
   isFullScreenHero,
   isRounded,
   pinTopPx,
+  pinsFlush,
   roundedParallax,
   staysInFlow,
   usesCssCover,
@@ -173,6 +179,35 @@ describe('usesTouchScroll', () => {
   });
 });
 
+describe('coverPinProgress', () => {
+  it('is the overlap as a share of the cover scroll', () => {
+    expect(coverPinProgress(30, 540)).toBeCloseTo(30 / 540);
+  });
+
+  it('stays at the start when the next card does not overlap', () => {
+    expect(coverPinProgress(0, 540)).toBe(0);
+    expect(coverPinProgress(-10, 540)).toBe(0);
+    expect(coverPinProgress(30, 0)).toBe(0);
+  });
+
+  it('does not run past the end of the cover', () => {
+    expect(coverPinProgress(800, 540)).toBe(1);
+  });
+});
+
+describe('holdThenLinear', () => {
+  it('is linear when the card is already pinned', () => {
+    expect(holdThenLinear(0.4, 0)).toBe(0.4);
+  });
+
+  it('stays at rest until the pin, then catches up', () => {
+    expect(holdThenLinear(0.25, 0.5)).toBe(0);
+    expect(holdThenLinear(0.5, 0.5)).toBe(0);
+    expect(holdThenLinear(0.75, 0.5)).toBe(0.5);
+    expect(holdThenLinear(1, 0.5)).toBe(1);
+  });
+});
+
 describe('roundedParallax', () => {
   it('recedes upward by SHIFT_VH, from rest', () => {
     expect(roundedParallax(800)).toBe(-SHIFT_VH * 800);
@@ -180,6 +215,44 @@ describe('roundedParallax', () => {
 
   it('is inert without a viewport', () => {
     expect(roundedParallax(0)).toBe(0);
+  });
+});
+
+describe('footerCoverDistance', () => {
+  it('uses the menu height when the footer is a row', () => {
+    expect(footerCoverDistance(700, 800, false)).toBe(700);
+  });
+
+  it('caps a tall stacked menu at half the viewport', () => {
+    expect(footerCoverDistance(700, 800, true)).toBe(800 * FOOTER_UNCOVER_VH);
+  });
+
+  it('keeps a short stacked menu on its own height', () => {
+    expect(footerCoverDistance(200, 800, true)).toBe(200);
+  });
+});
+
+describe('footerCoverFits', () => {
+  /**
+   * @param {number} top Document position of the footer
+   * @returns {HTMLElement}
+   */
+  function placed(top) {
+    const el = document.createElement('div');
+    el.getBoundingClientRect = () => ({ top, bottom: top, height: 0 });
+    return el;
+  }
+
+  it('keeps the door while the footer starts below the fold', () => {
+    expect(footerCoverFits(placed(1600), 900)).toBe(true);
+  });
+
+  it('drops the door when the viewport is tall enough to show the footer', () => {
+    expect(footerCoverFits(placed(1800), 3440)).toBe(false);
+  });
+
+  it('stays eligible until the footer has a document position', () => {
+    expect(footerCoverFits(placed(0), 800)).toBe(true);
   });
 });
 
@@ -204,6 +277,14 @@ describe('coverStartPx', () => {
     expect(coverStartPx(el)).toBe(800 * COVER_START_VH);
   });
 
+  it('starts a short rounded card at its own bottom', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const el = section('<div class="section section-rounded-blue"></div>');
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 400 });
+
+    expect(coverStartPx(el)).toBe(400);
+  });
+
   it('starts an intro section at the bottom of the outgoing section', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const el = section('<div class="section page-header-container"></div>');
@@ -220,6 +301,25 @@ describe('pinTopPx', () => {
     Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 1200 });
 
     expect(pinTopPx(el)).toBe(800 * COVER_START_VH - 1200);
+  });
+
+  it('pins a short rounded card at the top of a tall viewport', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const el = section('<div class="section section-rounded-blue"></div>');
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 400 });
+
+    expect(pinTopPx(el)).toBe(0);
+  });
+
+  it('asks the next card to cover a flush pin', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const el = section('<div class="section section-rounded-blue"></div>');
+
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 400 });
+    expect(pinsFlush(el)).toBe(true);
+
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 1200 });
+    expect(pinsFlush(el)).toBe(false);
   });
 
   it('pins a full-screen hero at the top so it is never pulled under the nav', () => {

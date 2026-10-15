@@ -71,6 +71,18 @@ function cardBottom(card, bottom) {
 }
 
 /**
+ * Places the footer's document top, which decides whether the viewport is
+ * already tall enough to show it.
+ *
+ * @param {Element} footerEl
+ * @param {number} top
+ * @returns {void}
+ */
+function footerDocumentTop(footerEl, top) {
+  footerEl.getBoundingClientRect = () => ({ top, bottom: top, height: 0 });
+}
+
+/**
  * @param {Element | null} inner
  * @param {number} height
  * @returns {void}
@@ -118,6 +130,35 @@ describe('bindFooterReveal', () => {
     expect(footer).toHaveClass('section-scroll-under');
   });
 
+  it('garage-doors while the footer still starts below the fold', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
+    footerDocumentTop(footer, 1600);
+
+    bindFooterReveal(main, document);
+
+    expect(main).toHaveClass('section-scroll-reveal-main');
+    expect(main.children[0]).toHaveClass('section-scroll-reveal');
+    expect(footer).toHaveClass('section-scroll-under');
+  });
+
+  it('does not garage-door when the viewport already shows the footer', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 3440 });
+    const { main, footer } = mountPage(
+      '<div class="section section-rounded-default"></div>',
+      MENU_AND_LOGO_HTML,
+    );
+    const logo = footer.querySelector('.footer__logo');
+    footerDocumentTop(footer, 1800);
+    logo.style.setProperty('--footer-logo-entry-progress', '-100');
+
+    bindFooterReveal(main, document);
+
+    expect(main).not.toHaveClass('section-scroll-reveal-main');
+    expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
+    expect(footer).not.toHaveClass('section-scroll-under');
+    expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('0');
+  });
+
   it('writes the logo rise in the same frame as the menu', () => {
     const { main, footer } = mountPage(
       '<div class="section section-rounded-default"></div>',
@@ -136,6 +177,21 @@ describe('bindFooterReveal', () => {
     expect(logo.style.getPropertyValue('--footer-logo-entry-progress')).toBe('-50');
   });
 
+  it('does not rewrite progress while the menu stays fully covered', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
+    const inner = footer.querySelector('.footer__inner');
+    cardBottom(main.children[0], 800);
+    menuHeight(inner, 240);
+
+    bindFooterReveal(main, document);
+    const setProperty = jest.spyOn(inner.style, 'setProperty');
+    scroll();
+    scroll();
+
+    expect(setProperty).not.toHaveBeenCalled();
+    setProperty.mockRestore();
+  });
+
   it('sets menu entry progress from the last card', () => {
     const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
     const inner = footer.querySelector('.footer__inner');
@@ -145,6 +201,28 @@ describe('bindFooterReveal', () => {
     bindFooterReveal(main, document);
 
     expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-50');
+  });
+
+  it('keeps the footer rising on a tall viewport while the card still covers it', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 3440 });
+    const { main, footer } = mountPage(
+      '<div class="section section-rounded-default"></div>',
+      MENU_AND_LOGO_HTML,
+    );
+    const inner = footer.querySelector('.footer__inner');
+    const logo = footer.querySelector('.footer__logo');
+    menuHeight(inner, 240);
+    menuHeight(logo, 450);
+    // The card still crosses the menu. The viewport floor is far below both boxes.
+    cardBottom(main.children[0], 2600);
+    inner.getBoundingClientRect = () => ({ top: 2500, bottom: 2740, height: 240 });
+    logo.getBoundingClientRect = () => ({ top: 2500, bottom: 2950, height: 450 });
+
+    bindFooterReveal(main, document);
+
+    expect(Number(inner.style.getPropertyValue('--section-scroll-inner-progress'))).toBeLessThan(0);
+    expect(footer).not.toHaveClass('section-scroll-logo');
+    expect(Number(logo.style.getPropertyValue('--footer-logo-entry-progress'))).toBeLessThan(0);
   });
 
   it('keeps the logo unstuck while the last card still covers the menu', () => {
@@ -244,6 +322,59 @@ describe('bindFooterReveal', () => {
 
     // Viewport 800, menu 240: the fully-in line is 560 from the top.
     expect(scrollBy).toHaveBeenCalledWith(240);
+  });
+
+  it('uncovers a tall stacked menu when its top reaches mid-viewport', () => {
+    const { matchMedia } = window;
+    window.matchMedia = jest.fn((query) => ({
+      matches: query.includes('width < 64rem'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }));
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
+    const card = main.children[0];
+    const inner = footer.querySelector('.footer__inner');
+    menuHeight(inner, 700);
+    cardBottom(card, 800);
+
+    try {
+      bindFooterReveal(main, document);
+      expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-100');
+
+      // Viewport 800: half is 400, so the menu is in once the card bottom is there.
+      cardBottom(card, 400);
+      scroll();
+
+      expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('0');
+      expect(footer).toHaveClass('section-scroll-logo');
+    } finally {
+      window.matchMedia = matchMedia;
+    }
+  });
+
+  it('scrolls a focused control to the stacked mid-viewport line', () => {
+    const { matchMedia } = window;
+    window.matchMedia = jest.fn((query) => ({
+      matches: query.includes('width < 64rem'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }));
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    menuHeight(footer.querySelector('.footer__inner'), 700);
+    cardBottom(main.children[0], 800);
+    const scrollBy = jest.fn();
+
+    try {
+      bindFooterReveal(main, document, { scrollBy });
+      footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+      // Viewport 800, cover capped at 400: fully in when the card bottom is at 400.
+      expect(scrollBy).toHaveBeenCalledWith(400);
+    } finally {
+      window.matchMedia = matchMedia;
+    }
   });
 
   it('scrolls the remaining cover when the menu is only partly in', () => {
@@ -384,6 +515,20 @@ describe('refreshFooterReveal', () => {
     refreshFooterReveal();
 
     expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('0');
+  });
+
+  it('drops the garage door when a resize shows the footer without scrolling', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
+    footerDocumentTop(footer, 1400);
+
+    bindFooterReveal(main, document);
+    expect(footer).toHaveClass('section-scroll-under');
+
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 3440 });
+    refreshFooterReveal();
+
+    expect(main).not.toHaveClass('section-scroll-reveal-main');
+    expect(footer).not.toHaveClass('section-scroll-under');
   });
 });
 

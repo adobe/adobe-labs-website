@@ -118,7 +118,12 @@
   --color-button-background-primary: var(--s2a-color-button-background-primary-solid-on-light-default);
   --color-button-background-primary-hover: var(--s2a-color-gray-800);
   --color-button-text-primary: var(--s2a-color-button-content-primary-solid-default);
-  
+
+  /* Shared underline motion. Enter is 0.3s; exit is 0.2s. */
+  --underline-transition-duration: 0.3s;
+  --underline-transition-duration-exit: 0.2s;
+  --underline-transition-easing: ease;
+
   /* article section spacing */
   --article-section-gap: var(--s2a-spacing-2xl);
 
@@ -147,6 +152,35 @@
     --serif-body-font-size: var(--s2a-font-size-xl);
     --serif-body-line-height: 1.625rem; /* 26px */
   }
+}
+
+/* --- Page transitions --- */
+
+/* Enable native cross-document view transitions if the user does not prefer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+/* Outgoing page: Fades out with a gentle ease-in-out. */
+::view-transition-old(root) {
+  animation: fade-out 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Incoming page: Starts hidden, overlaps the tail of the fade-out, then eases in gradually. */
+::view-transition-new(root) {
+  animation: fade-in 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.26s both;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* --- Reset --- */
@@ -179,7 +213,7 @@ input, button, textarea, select {
 }
 
 /* Avoid text overflows. */
-p, h1, h2, h3, h4, h5, h6 {
+p, h1, h2, h3, h4, h5, h6, blockquote {
   overflow-wrap: break-word;
 }
 
@@ -272,7 +306,7 @@ h1, .heading-1 {
   letter-spacing: var(--s2a-typography-letter-spacing-heading-1);
 }
 
-h2, .heading-2, blockquote {
+h2, .heading-2 {
   font-size: var(--s2a-typography-font-size-heading-2);
   line-height: var(--s2a-typography-line-height-heading-2);
   letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
@@ -350,9 +384,87 @@ p,
 dl,
 ol,
 ul,
-pre,
-blockquote {
+pre {
   margin-block: 1.0rem;
+}
+
+/* Authored quote. The user agent indents blockquote. */
+blockquote {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: var(--s2a-spacing-md);
+  margin-block: var(--s2a-spacing-4xl);
+  margin-inline: 0;
+  padding: 0;
+  color: var(--s2a-color-content-default);
+  font-family: var(--heading-font-family);
+  font-size: var(--s2a-typography-font-size-heading-3);
+  font-weight: var(--s2a-font-weight-heading);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-3);
+  line-height: var(--s2a-typography-line-height-heading-3);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  & :is(p, ul, ol) {
+    margin-block: 0;
+  }
+
+  /* Authors often mark the whole quote italic or bold. The design is upright display type. */
+  & :is(em, i, strong, b) {
+    font-style: inherit;
+    font-weight: inherit;
+  }
+}
+
+/* Hang only the opening mark, and only the first line of the quote. */
+.blockquote-hanging {
+  > * {
+    text-indent: 0;
+  }
+
+  > :first-child {
+    text-indent: -0.25rem;
+  }
+
+  @media (width >= 64rem) {
+    > :first-child {
+      text-indent: -0.6875rem;
+    }
+  }
+}
+
+.blockquote-author {
+  margin-block: var(--s2a-spacing-lg) var(--s2a-spacing-4xl);
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+  color: var(--s2a-color-content-default);
+  font-family: var(--heading-font-family);
+  font-size: var(--s2a-typography-font-size-heading-6);
+  font-style: normal;
+  font-weight: var(--s2a-font-weight-heading);
+  letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
+  line-height: var(--s2a-typography-line-height-heading-6);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  & :is(em, i, strong, b) {
+    font-style: inherit;
+    font-weight: inherit;
+  }
+}
+
+/* Quote plus attribution. Resets the user agent's 40px inline figure margin. */
+.blockquote-figure {
+  margin-block: var(--s2a-spacing-4xl);
+  margin-inline: 0;
+
+  > blockquote {
+    margin-block: 0;
+  }
+
+  > .blockquote-author {
+    margin-block: var(--s2a-spacing-lg) 0;
+  }
 }
 
 img {
@@ -455,6 +567,16 @@ footer {
   --section-border-radius: 1.875rem;
 }
 
+main:focus-visible::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  outline: 2px solid var(--s2a-color-focus-ring-default, #1473e6);
+  outline-offset: -2px;
+  pointer-events: none;
+}
+
 /* Hides content visually but keeps it in the accessibility tree.
    :focus-within / :active opt elements out — useful for skip links and
    any focusable content wrapped in this class. */
@@ -501,7 +623,27 @@ footer {
   }
 }
 
+/* --- Chromatic hover ---
+   Decorative canvas crossfaded over the real <img> on hero/grid-item hover.
+   The <img> underneath is untouched and is what shows when this canvas is
+   absent or fully faded out. */
+.chromatic-hover-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* --- Article meta --- */
+
+/* Byline section matches the large image width from the same breakpoint. */
+.article-meta-section {
+  @media (width >= 48rem) {
+    --article-content-max-inline-size: min(max(calc(8 / 12 * 100%), var(--article-default-content-max-inline-size, 100%)), 77.875rem); /* 1246px max. Same as .image.lg. */
+  }
+}
 
 /* Shared container for the top and bottom meta sections of an article: the
    author byline today, action buttons (copy/download/feedback) join it in
@@ -536,10 +678,6 @@ footer {
     align-items: flex-start;
   }
 
-  .article-meta--top .article-meta__actions {
-    display: none;
-  }
-
   .article-meta--top {
     margin-block-end: 0;
     margin-top: 6px;
@@ -566,6 +704,12 @@ footer {
   }
 }
 
+@media (width < 64rem) {
+  .article-meta--top .article-meta__actions {
+    display: none;
+  }
+}
+
 .article-meta__authors-label,
 .article-meta__author-name {
   /* s2a/typography/heading-6 */
@@ -574,7 +718,7 @@ footer {
   font-weight: 900;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: var(--s2a-typography-line-height-title-6, 1.125rem); /* 112.5% */
+  line-height: var(--s2a-typography-line-height-heading-6);
   letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
 }
 
@@ -856,6 +1000,13 @@ main > .section {
   display: flex;
   flex-flow: column nowrap;
   gap: var(--s2a-spacing-xl);
+
+  &:last-child {
+    /* The last section's bottom edge is always rounded, and its background needs to be visible on top of the footer. */
+    background-color: var(--s2a-color-background-default);
+    border-end-start-radius: var(--section-border-radius);
+    border-end-end-radius: var(--section-border-radius);
+  }
 }
 
 /* Wrappers: block wrappers (`.BLOCKNAME-wrapper`) and `.default-content-wrapper`. 
@@ -959,6 +1110,12 @@ main > .section:last-child:not([class*="section-rounded-"]) {
 /* -- Page-specific section spacing overrides --- */
 main .section.grid-line-content-container {
   padding-block-end: 0;
+}
+
+@media (width < 48rem) {
+  main > .section:first-of-type:not([class*="section-rounded-"], .hero-container:has(.hero-full-screen)) {
+    padding-block-start: var(--s2a-spacing-md, 1rem);
+  }
 }
 
 body.research main {
@@ -1081,6 +1238,16 @@ body.article main {
   line-height: var(--serif-body-line-height);
 }
 
+/* Quote copy stays heading-3. The serif rule above would otherwise win on inner paragraphs. */
+body.article .default-content-wrapper blockquote :is(p, ul, ol) {
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+}
+
 /* Article h3–h6 use heading-6. :where() lets block heading styles override. */
 :where(body.article main) :is(h3, h4, h5, h6) {
   font-size: var(--s2a-typography-font-size-heading-6);
@@ -1101,4 +1268,15 @@ body.article main > [class*="section-rounded-"]:not(
   @media (width >= 64rem) {
     margin-block-end: calc(-1 * (var(--s2a-spacing-4xl) - var(--s2a-spacing-2xl)));
   }
+}
+
+/* Content credentials - base CSS before its CSS file loads. */
+.cr-pin-image {
+  display: block;
+  inline-size: fit-content;
+  position: relative;
+}
+
+.cr-pin-button {
+  position: absolute;
 }

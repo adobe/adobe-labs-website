@@ -59,6 +59,167 @@ export function toSafeHttpUrl(value) {
   return '';
 }
 
+/** Published hosts. Authors paste these absolute URLs on preview and local. */
+const PRODUCTION_HOSTS = new Set(['labs.adobe.com', 'www.labs.adobe.com']);
+
+/**
+ * This project's preview and live hosts:
+ * `{ref}--adobe-labs-website--adobe.aem.page` and `.aem.live`.
+ */
+const AEM_HOST_SUFFIX = /--adobe-labs-website--adobe\.aem\.(?:page|live)$/;
+
+/** Screen-reader text appended when a link opens in a new tab. */
+const NEW_TAB_HINT = '(opens in a new tab)';
+
+/**
+ * Hostname without a trailing dot, lowercased.
+ * @param {string} hostname Host to normalize
+ * @returns {string}
+ */
+function normalizeHostname(hostname) {
+  return String(hostname || '').toLowerCase().replace(/\.$/, '');
+}
+
+/**
+ * Whether `hostname` is this site: the current host, labs.adobe.com, or an
+ * AEM preview/live host for this project.
+ * @param {string} hostname Hostname to test
+ * @returns {boolean}
+ */
+function isInternalHostname(hostname) {
+  const host = normalizeHostname(hostname);
+  if (!host) return false;
+  if (host === normalizeHostname(window.location.hostname)) return true;
+  if (PRODUCTION_HOSTS.has(host)) return true;
+  return AEM_HOST_SUFFIX.test(host);
+}
+
+/**
+ * Whether an anchor points at another website.
+ * Root-relative links, labs.adobe.com, and this project's `.aem.page` /
+ * `.aem.live` URLs are on-site. mailto, tel, and other non-http(s) links are not.
+ *
+ * @param {Element} link Anchor element
+ * @returns {boolean}
+ */
+export function isExternalLink(link) {
+  const href = link?.getAttribute?.('href');
+  if (!href) return false;
+  let url;
+  try {
+    url = new URL(href, window.location.href);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  return !isInternalHostname(url.hostname);
+}
+
+/**
+ * Keeps an existing `rel` and adds `noopener` and `noreferrer`.
+ * @param {Element} link Anchor element
+ * @returns {void}
+ */
+function setExternalRel(link) {
+  const tokens = (link.getAttribute('rel') || '').split(/\s+/).filter(Boolean);
+  ['noopener', 'noreferrer'].forEach((token) => {
+    if (!tokens.includes(token)) tokens.push(token);
+  });
+  link.setAttribute('rel', tokens.join(' '));
+}
+
+/**
+ * Tells assistive tech the link opens a new tab, without replacing an
+ * existing accessible name. Matches the footer social and menu links.
+ * @param {Element} link Anchor element
+ * @returns {void}
+ */
+function ensureNewTabHint(link) {
+  const ariaLabel = link.getAttribute('aria-label');
+  if (ariaLabel) {
+    if (!ariaLabel.includes(NEW_TAB_HINT)) {
+      link.setAttribute('aria-label', `${ariaLabel} ${NEW_TAB_HINT}`);
+    }
+    return;
+  }
+  const hinted = [...link.querySelectorAll('.visually-hidden')]
+    .some((node) => node.textContent.includes(NEW_TAB_HINT));
+  if (hinted) return;
+
+  const hint = document.createElement('span');
+  hint.className = 'visually-hidden';
+  hint.textContent = ` ${NEW_TAB_HINT}`;
+  link.append(hint);
+}
+
+/** Outlined ↗ from Figma (Adobe Clean Display Black). The webfont lacks this glyph. */
+const EXTERNAL_ARROW_PATH = 'M3.072 13.704L0.552 11.184L8.592 3.144H0L3.144 0'
+  + 'L14.208.024V11.16L11.112 14.232V5.664L3.072 13.704Z';
+
+/**
+ * Decorative external-link arrow. `currentColor` tracks the surrounding text.
+ * Hidden from assistive tech; the link's own name carries the meaning.
+ * @returns {SVGSVGElement}
+ */
+export function createExternalArrow() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 15 15');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', EXTERNAL_ARROW_PATH);
+  path.setAttribute('fill', 'currentColor');
+  svg.append(path);
+  return svg;
+}
+
+/**
+ * Marks one external link so it opens in a new tab.
+ * @param {Element} link Anchor element
+ * @returns {void}
+ */
+export function markExternalLink(link) {
+  if (!isExternalLink(link)) return;
+  link.setAttribute('target', '_blank');
+  setExternalRel(link);
+  ensureNewTabHint(link);
+}
+
+/**
+ * Marks every external link under `root`.
+ * @param {ParentNode} [root=document] Tree to search
+ * @returns {void}
+ */
+export function markExternalLinks(root = document) {
+  root.querySelectorAll('a[href]').forEach(markExternalLink);
+}
+
+/** @type {MutationObserver|undefined} */
+let externalLinksObserver;
+
+/**
+ * Marks external links already in the document, and links added later
+ * (header, footer, fragments, blocks).
+ * @param {Document} [doc=document] Document to watch
+ * @returns {MutationObserver}
+ */
+export function watchExternalLinks(doc = document) {
+  const root = doc.body || doc.documentElement;
+  markExternalLinks(root);
+  externalLinksObserver?.disconnect();
+  externalLinksObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.matches('a[href]')) markExternalLink(node);
+        markExternalLinks(node);
+      });
+    });
+  });
+  externalLinksObserver.observe(root, { childList: true, subtree: true });
+  return externalLinksObserver;
+}
+
 /**
  * Builds a lookup of authored field names to their value cells.
  * Key/value block content is a table: each row is [label, value].
@@ -78,13 +239,30 @@ export function getAuthoredCells(block) {
 }
 
 /**
+ * Text of `node`, skipping `.visually-hidden` subtrees.
+ * Those nodes are screen-reader hints. `textContent` would copy them into
+ * visible block text (the hero headline stacks the string twice).
+ *
+ * @param {Node} node
+ * @returns {string}
+ */
+function textExcludingVisuallyHidden(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  if (node.nodeType !== Node.ELEMENT_NODE) return '';
+  if (node.classList.contains('visually-hidden')) return '';
+  return [...node.childNodes].map(textExcludingVisuallyHidden).join('');
+}
+
+/**
  * Returns trimmed text from an authored cell, or an empty string if missing.
+ * Ignores `.visually-hidden` hints such as "(opens in a new tab)".
  *
  * @param {Element} [cell] The value cell
  * @returns {string}
  */
 export function getCellText(cell) {
-  return cell?.textContent.trim() || '';
+  if (!cell) return '';
+  return textExcludingVisuallyHidden(cell).trim();
 }
 
 /**
@@ -260,6 +438,21 @@ function getDownloadFilename(href) {
 }
 
 /**
+ * Whether a download href points at a PDF, by its pathname extension.
+ * PDFs get native in-tab preview instead of a forced download.
+ *
+ * @param {string} href Download href
+ * @returns {boolean}
+ */
+function isPdfHref(href) {
+  try {
+    return new URL(href, window.location.href).pathname.toLowerCase().endsWith('.pdf');
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Mailto for the article Feedback action. The subject is "Feedback: " plus
  * the page metadata Title. AEM writes that row to `og:title`, not
  * `meta[name="title"]`. A missing title omits the query.
@@ -323,10 +516,11 @@ const copyRevertTimers = new WeakMap();
  * Whether a page is an article detail.
  * True when bulk or page-level `template` metadata includes `article`.
  *
+ * @param {Document} [doc]
  * @returns {boolean}
  */
-export function isArticleDetailPage() {
-  const templates = getMetadata('template')
+export function isArticleDetailPage(doc = document) {
+  const templates = getMetadata('template', doc)
     .split(',')
     .map((value) => toClassName(value.trim()))
     .filter(Boolean);
@@ -541,6 +735,44 @@ export function buildArticleAuthorMeta(main) {
   sections[sections.length - 1].append(buildArticleMeta('bottom'));
 }
 
+const SECTION_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+
+/**
+ * First authored item in a section, skipping empty wrappers.
+ *
+ * @param {Element} section
+ * @returns {Element|null}
+ */
+function firstSectionItem(section) {
+  const wrapper = [...section.children].find((child) => child.firstElementChild);
+  return wrapper?.firstElementChild || null;
+}
+
+/**
+ * Text published on `data-visually-hidden-headline`. Empty values are ignored.
+ *
+ * @param {string} [value]
+ * @returns {string|null}
+ */
+function visuallyHiddenHeadlineText(value) {
+  const text = `${value ?? ''}`.replace(/\s+/g, ' ').trim();
+  return text || null;
+}
+
+/**
+ * Visually hidden heading. The text is a DOM text node. The level is 2:
+ * AEM publishes the Section Metadata cell as text and drops the heading tag.
+ *
+ * @param {string} text
+ * @returns {HTMLHeadingElement}
+ */
+function createVisuallyHiddenHeadline(text) {
+  const heading = document.createElement('h2');
+  heading.className = 'visually-hidden';
+  heading.textContent = text;
+  return heading;
+}
+
 /**
  * Reads each section's authored `Section Metadata` table into `section.dataset`
  * and removes the table so it never reaches `decorateBlocks` as a block to load.
@@ -549,9 +781,9 @@ export function buildArticleAuthorMeta(main) {
  * `section-metadata` block folder).
  *
  * The `style` key is special-cased: it adds one or more (comma-separated)
- * classes to the section instead of a dataset entry. Every other key
- * (including `Table of Contents`, read by the Table of Contents
- * block) becomes a plain `section.dataset` entry.
+ * classes to the section instead of a dataset entry. Every other key (including
+ * `Table of Contents`, read by the Table of Contents block) becomes a plain
+ * `section.dataset` entry.
  *
  * @param {Element} main The container element
  */
@@ -574,12 +806,32 @@ export function decorateSectionMetadata(main) {
 }
 
 /**
+ * Renders each section's published `data-visually-hidden-headline` as a
+ * heading at the start of the section. The heading uses the `visually-hidden`
+ * class and heading level 2. It is omitted when the section's first content
+ * item is already a heading.
+ *
+ * The HTML pipeline stores the Section Metadata cell as text on the section
+ * and removes the table before this runs.
+ *
+ * @param {Element} main The container element
+ */
+export function decorateVisuallyHiddenHeadings(main) {
+  main.querySelectorAll(':scope > .section').forEach((section) => {
+    const text = visuallyHiddenHeadlineText(section.dataset.visuallyHiddenHeadline);
+    if (!text) return;
+    if (firstSectionItem(section)?.matches(SECTION_HEADING_SELECTOR)) return;
+    section.prepend(createVisuallyHiddenHeadline(text));
+  });
+}
+
+/**
  * Share URL for Copy link: canonical when present, otherwise the current
  * location, with the hash stripped so in-page jumps are not part of the link.
  *
  * @returns {string}
  */
-function getShareUrl() {
+export function getShareUrl() {
   const canonical = document.querySelector('link[rel="canonical"]')?.href;
   const raw = canonical || window.location.href;
   try {
@@ -786,8 +1038,13 @@ function createMetaActionControl(action) {
     if (href) {
       el.href = href;
       if (action.download) {
-        const filename = getDownloadFilename(href);
-        if (filename) el.setAttribute('download', filename);
+        if (isPdfHref(href)) {
+          el.target = '_blank';
+          el.rel = 'noopener';
+        } else {
+          const filename = getDownloadFilename(href);
+          if (filename) el.setAttribute('download', filename);
+        }
       }
     }
   }
@@ -1007,6 +1264,237 @@ export function decorateArticleMetaSections(main) {
   });
 }
 
+/** Em dash, en dash, or hyphen-minus. */
+const AUTHOR_DASHES = '\u2014\u2013-';
+
+/** Straight, curly, and guillemet quotation marks. */
+const OPENING_QUOTES = '"\u201C\u201D\'\u2018\u2019\u00AB\u00BB\u2039\u203A';
+
+/**
+ * First text node that contains something other than whitespace.
+ * @param {Element} element
+ * @returns {Text|null}
+ */
+function firstBlockquoteTextNode(element) {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  while (node) {
+    if (node.textContent.trim()) return node;
+    node = walker.nextNode();
+  }
+  return null;
+}
+
+/**
+ * @param {string} [char]
+ * @returns {boolean}
+ */
+function isBlockquoteWordChar(char) {
+  return typeof char === 'string' && /[\p{L}\p{N}]/u.test(char);
+}
+
+/**
+ * A straight quote here starts a quotation: the beginning of the text, or after
+ * whitespace, an opening bracket, or a dash.
+ * @param {string} [char]
+ * @returns {boolean}
+ */
+function isBlockquoteQuoteBoundary(char) {
+  return char === undefined || /[\s\u00A0([{\u2014\u2013-]/.test(char);
+}
+
+/**
+ * Straight double and single quotes become curly quotes. Contractions and
+ * possessives (`don't`, `authors'`) use ’, and a quotation that opens after a
+ * space or dash uses ‘ or “.
+ * @param {string} text
+ * @returns {string}
+ */
+function curlBlockquoteQuotes(text) {
+  let result = '';
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const prev = i > 0 ? text[i - 1] : undefined;
+    const next = i + 1 < text.length ? text[i + 1] : undefined;
+    if (char === '"') {
+      result += isBlockquoteQuoteBoundary(prev) ? '\u201C' : '\u201D';
+    } else if (char === "'") {
+      const apostrophe = isBlockquoteWordChar(prev) || (next !== undefined && /\p{N}/u.test(next));
+      result += !apostrophe && isBlockquoteQuoteBoundary(prev) ? '\u2018' : '\u2019';
+    } else {
+      result += char;
+    }
+  }
+  return result;
+}
+
+/**
+ * @param {Element} element
+ */
+function replaceBlockquoteStraightQuotes(element) {
+  const nodes = [];
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  while (node) {
+    nodes.push(node);
+    node = walker.nextNode();
+  }
+  if (!nodes.length) return;
+
+  const original = nodes.map((textNode) => textNode.textContent);
+  const converted = curlBlockquoteQuotes(original.join(''));
+  let offset = 0;
+  nodes.forEach((textNode, index) => {
+    const { length } = original[index];
+    textNode.textContent = converted.slice(offset, offset + length);
+    offset += length;
+  });
+}
+
+/**
+ * @param {string} text
+ * @param {string} chars
+ * @returns {boolean}
+ */
+function blockquoteTextStartsWith(text, chars) {
+  const trimmed = text.trim();
+  return trimmed.length > 0 && chars.includes(trimmed[0]);
+}
+
+/**
+ * @param {Node} node
+ * @returns {boolean}
+ */
+function isBlockquoteAuthorParagraph(node) {
+  return node?.nodeType === Node.ELEMENT_NODE
+    && node.tagName === 'P'
+    && blockquoteTextStartsWith(node.textContent, AUTHOR_DASHES);
+}
+
+/**
+ * Rewrites a leading em dash, en dash, or hyphen as an em dash plus one space.
+ * A doubled dash (`--`, `——`, `––`) is removed entirely and replaced by that
+ * single em dash, so the second mark is not left behind.
+ * @param {HTMLElement} element
+ */
+function normalizeBlockquoteAuthorDash(element) {
+  const textNode = firstBlockquoteTextNode(element);
+  if (!textNode) return;
+  textNode.textContent = textNode.textContent.replace(
+    /^\s*[\u2014\u2013-]{1,2}\s*/,
+    '\u2014 ',
+  );
+}
+
+/**
+ * Marks an attribution and normalizes its dash and quotes.
+ * @param {HTMLElement} element
+ * @returns {HTMLElement}
+ */
+function markBlockquoteAuthor(element) {
+  element.classList.add('blockquote-author');
+  normalizeBlockquoteAuthorDash(element);
+  replaceBlockquoteStraightQuotes(element);
+  return element;
+}
+
+/**
+ * The attribution becomes a figcaption so it is announced as the figure's caption.
+ * @param {HTMLParagraphElement} paragraph
+ * @returns {HTMLElement}
+ */
+function blockquoteAuthorCaption(paragraph) {
+  const caption = document.createElement('figcaption');
+  caption.append(...paragraph.childNodes);
+  return markBlockquoteAuthor(caption);
+}
+
+/**
+ * Groups a quote and its attribution. The attribution stays outside the
+ * blockquote, and the figure connects the two for assistive technology.
+ * @param {HTMLQuoteElement} quote
+ * @param {HTMLParagraphElement} author
+ * @returns {HTMLElement}
+ */
+function wrapBlockquoteFigure(quote, author) {
+  const figure = document.createElement('figure');
+  figure.className = 'blockquote-figure';
+  figure.append(quote, blockquoteAuthorCaption(author));
+  return figure;
+}
+
+/**
+ * @param {Node[]} nodes
+ * @returns {boolean}
+ */
+function blockquoteHasVisibleContent(nodes) {
+  return nodes.some((node) => (
+    node.nodeType === Node.ELEMENT_NODE
+    || (node.nodeType === Node.TEXT_NODE && node.textContent.trim())
+  ));
+}
+
+/**
+ * Curls straight quotes, then hangs the first line when the text opens with a
+ * quotation mark.
+ * @param {HTMLQuoteElement} quote
+ * @returns {HTMLQuoteElement}
+ */
+function finishBlockquote(quote) {
+  replaceBlockquoteStraightQuotes(quote);
+  if (blockquoteTextStartsWith(quote.textContent, OPENING_QUOTES)) {
+    quote.classList.add('blockquote-hanging');
+  }
+  return quote;
+}
+
+/**
+ * @param {Node[]} nodes
+ * @returns {HTMLQuoteElement}
+ */
+function blockquoteFromNodes(nodes) {
+  const block = document.createElement('blockquote');
+  block.append(...nodes);
+  return finishBlockquote(block);
+}
+
+/**
+ * Styles authored blockquotes. An opening quotation mark hangs. A paragraph
+ * inside the quote that starts with an em dash, en dash, or hyphen — where
+ * Document Authoring puts the attribution — becomes the figcaption of a figure
+ * that wraps that quote. A dash-led paragraph outside the quote is left alone.
+ * A quote with no attribution stays a blockquote on its own.
+ * The dash is always an em dash plus one space.
+ * Several quote-and-author pairs in one blockquote split into one figure each.
+ * Straight quotes in the quote and the author become curly quotes.
+ * @param {Element} main The container element
+ */
+export function decorateBlockquotes(main) {
+  [...main.querySelectorAll('blockquote')].forEach((quote) => {
+    if (![...quote.children].some(isBlockquoteAuthorParagraph)) {
+      finishBlockquote(quote);
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    let pending = [];
+    [...quote.childNodes].forEach((node) => {
+      if (!isBlockquoteAuthorParagraph(node)) {
+        pending.push(node);
+        return;
+      }
+      if (blockquoteHasVisibleContent(pending)) {
+        fragment.append(wrapBlockquoteFigure(blockquoteFromNodes(pending), node));
+      } else {
+        fragment.append(markBlockquoteAuthor(node));
+      }
+      pending = [];
+    });
+    if (blockquoteHasVisibleContent(pending)) fragment.append(blockquoteFromNodes(pending));
+    quote.replaceWith(fragment);
+  });
+}
+
 /**
  * Authored cell that flags a video article.
  * Canonical authoring name is **Is Video**; **Show Video Icon** is an alias.
@@ -1157,4 +1645,307 @@ export function ensureArticleBackToTop(doc = document) {
   link.append(icon);
 
   main.after(link);
+}
+
+const SITE_ORIGIN = 'https://labs.adobe.com';
+const ORG_ID = `${SITE_ORIGIN}/#organization`;
+
+/**
+ * Absolute http(s) image URL. A relative path on localhost or an AEM preview
+ * host is resolved against https://labs.adobe.com. An authored absolute URL
+ * stays as written.
+ * @param {string} value
+ * @param {string} baseHref
+ * @returns {string}
+ */
+function toAbsoluteImage(value, baseHref) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  let url;
+  try {
+    url = new URL(raw, baseHref);
+  } catch {
+    return '';
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+  const authoredAbsolute = /^https?:\/\//i.test(raw) || raw.startsWith('//');
+  if (!authoredAbsolute && !PRODUCTION_HOSTS.has(normalizeHostname(url.hostname))) {
+    url.protocol = 'https:';
+    url.hostname = 'labs.adobe.com';
+    url.port = '';
+  }
+  return url.href;
+}
+
+/**
+ * Publication date as YYYY-MM-DD in the local calendar.
+ * ISO dates keep their calendar day.
+ * @param {string} value
+ * @returns {string}
+ */
+function toIsoDate(value) {
+  const date = parseCardDate(value);
+  if (!date) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * The response `Last-Modified` header, which the browser exposes in local
+ * time as `MM/DD/YYYY hh:mm:ss`.
+ *
+ * @param {Document} doc
+ * @returns {Date|null}
+ */
+function lastModifiedInstant(doc) {
+  const raw = String(doc.lastModified || '').trim();
+  const match = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/.exec(raw);
+  if (!match) return null;
+
+  const date = new Date(
+    Number(match[3]),
+    Number(match[1]) - 1,
+    Number(match[2]),
+    Number(match[4]),
+    Number(match[5]),
+    Number(match[6]),
+  );
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Schema.org dateModified. Sitemap `lastmod` is the `Last-Modified` header's
+ * UTC calendar day, so this returns `YYYY-MM-DD` in UTC.
+ *
+ * @param {Document} doc
+ * @returns {string}
+ */
+function contentDateModified(doc) {
+  const date = lastModifiedInstant(doc);
+  if (!date) return '';
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Open Graph `article:modified_time` for the same instant, as a UTC datetime.
+ *
+ * @param {Document} doc
+ * @returns {string}
+ */
+function contentModifiedTime(doc) {
+  const date = lastModifiedInstant(doc);
+  if (!date) return '';
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+/**
+ * Adobe Labs on every indexable page.
+ * @returns {object}
+ */
+function buildOrganization() {
+  return {
+    '@type': 'Organization',
+    '@id': ORG_ID,
+    name: 'Adobe Labs',
+    url: `${SITE_ORIGIN}/`,
+    parentOrganization: {
+      '@type': 'Organization',
+      name: 'Adobe',
+      url: 'https://www.adobe.com/',
+    },
+  };
+}
+
+/**
+ * One Person per authored name. The byline fallback "Adobe Labs" is not a name
+ * here: an empty author field yields an empty list.
+ * @param {Document} doc
+ * @returns {object[]}
+ */
+function buildPeople(doc) {
+  const seen = new Set();
+  const people = [];
+  getMetadata('author', doc)
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .forEach((name) => {
+      const slug = toClassName(name);
+      if (!slug || seen.has(slug)) return;
+      seen.add(slug);
+      people.push({
+        '@type': 'Person',
+        '@id': `${SITE_ORIGIN}/#person-${slug}`,
+        name,
+      });
+    });
+  return people;
+}
+
+/**
+ * Article author: one person id, a list of person ids, or the Organization.
+ * @param {object[]} people
+ * @returns {object|object[]}
+ */
+function authorReference(people) {
+  if (!people.length) return { '@id': ORG_ID };
+  const refs = people.map((person) => ({ '@id': person['@id'] }));
+  return refs.length === 1 ? refs[0] : refs;
+}
+
+/**
+ * WebPage for this document. `dateModified` is the UTC day of `Last-Modified`.
+ * @param {Document} doc
+ * @returns {object}
+ */
+function buildWebPage(doc) {
+  const url = getShareUrl();
+  const page = {
+    '@type': 'WebPage',
+    '@id': url,
+    url,
+  };
+
+  const name = getMetadata('og:title', doc).trim() || String(doc.title || '').trim();
+  if (name) page.name = name;
+
+  const dateModified = contentDateModified(doc);
+  if (dateModified) page.dateModified = dateModified;
+
+  return page;
+}
+
+/**
+ * Article plus its Person nodes, or an empty list when this page is not an
+ * article or has no headline.
+ * @param {Document} doc
+ * @returns {object[]}
+ */
+function buildArticleGraph(doc) {
+  if (!isArticleDetailPage()) return [];
+  const headline = getMetadata('og:title', doc).trim() || String(doc.title || '').trim();
+  if (!headline) return [];
+
+  const url = getShareUrl();
+  const people = buildPeople(doc);
+  const article = {
+    '@type': 'Article',
+    headline,
+  };
+
+  const description = getMetadata('description', doc).trim();
+  if (description) article.description = description;
+
+  const image = toAbsoluteImage(getMetadata('og:image', doc), url);
+  if (image) article.image = image;
+
+  const datePublished = toIsoDate(getMetadata('publication-date', doc));
+  if (datePublished) article.datePublished = datePublished;
+
+  const dateModified = contentDateModified(doc);
+  if (dateModified) article.dateModified = dateModified;
+
+  article.url = url;
+  article.mainEntityOfPage = { '@type': 'WebPage', '@id': url };
+  article.publisher = { '@id': ORG_ID };
+  article.inLanguage = 'en';
+  article.author = authorReference(people);
+
+  return [...people, article];
+}
+
+/**
+ * Root-relative path of this page's markdown twin.
+ * Directory URLs map to `index.md` (`/` → `/index.md`), which is how Edge
+ * Delivery serves the markdown source. Extension URLs (`.plain.html` and
+ * similar) are not public pages and return an empty string.
+ *
+ * @param {string} pathname
+ * @returns {string}
+ */
+export function markdownAlternatePath(pathname) {
+  if (!pathname || pathname.endsWith('.md')) return pathname || '';
+  if (pathname.endsWith('/')) return `${pathname}index.md`;
+  const last = pathname.slice(pathname.lastIndexOf('/') + 1);
+  if (last.includes('.')) return '';
+  return `${pathname}.md`;
+}
+
+/**
+ * Points article pages at their markdown twin with
+ * `<link rel="alternate" type="text/markdown">`.
+ *
+ * Listing pages are skipped: their markdown omits query-index content such
+ * as the article cards. An existing markdown alternate is left in place.
+ * `rel="canonical"` is not touched; the HTML pipeline already emits a
+ * self-reference, and this link uses a different relation.
+ *
+ * @param {Document} [doc]
+ * @returns {void}
+ */
+export function addMarkdownAlternate(doc = document) {
+  const { head } = doc;
+  if (!head || !isArticleDetailPage(doc)) return;
+  if (head.querySelector('link[rel="alternate"][type="text/markdown"]')) return;
+
+  const pathname = doc.defaultView?.location?.pathname || '';
+  const href = markdownAlternatePath(pathname);
+  if (!href) return;
+
+  const link = doc.createElement('link');
+  link.rel = 'alternate';
+  link.type = 'text/markdown';
+  link.href = href;
+  head.append(link);
+}
+
+/**
+ * Open Graph modification time on article pages. The same `Last-Modified`
+ * instant as schema.org `dateModified`, written as a UTC datetime. An existing
+ * tag is left in place.
+ *
+ * @param {Document} doc
+ * @returns {void}
+ */
+function addArticleModifiedTime(doc) {
+  const { head } = doc;
+  if (!head || !isArticleDetailPage(doc)) return;
+  if (head.querySelector('meta[property="article:modified_time"]')) return;
+
+  const content = contentModifiedTime(doc);
+  if (!content) return;
+
+  const meta = doc.createElement('meta');
+  meta.setAttribute('property', 'article:modified_time');
+  meta.content = content;
+  head.append(meta);
+}
+
+/**
+ * Appends one application/ld+json script from published meta tags, and
+ * `article:modified_time` on article pages.
+ * Does nothing when head already has JSON-LD, or when robots contains noindex.
+ * @param {Document} [doc]
+ * @returns {void}
+ */
+export function addStructuredData(doc = document) {
+  const { head } = doc;
+  if (!head) return;
+  if (head.querySelector('script[type="application/ld+json"]')) return;
+  if (getMetadata('robots', doc).toLowerCase().includes('noindex')) return;
+
+  const script = doc.createElement('script');
+  script.type = 'application/ld+json';
+  script.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [buildOrganization(), buildWebPage(doc), ...buildArticleGraph(doc)],
+  });
+  head.append(script);
+  addArticleModifiedTime(doc);
 }

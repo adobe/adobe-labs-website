@@ -21,18 +21,25 @@
  */
 import { loadCSS } from '../aem.js';
 import { debounce } from '../utils/utils.js';
-import { ENTRY_END, entryProgress, holdLogoEntry } from '../utils/entry-progress.js';
+import {
+  ENTRY_END, entryProgress, entryShortfall, holdLogoEntry,
+} from '../utils/entry-progress.js';
 import {
   CLASS_CSS_COVER,
   CLASS_FADE,
   CLASS_INTRO,
   CLASS_NEXT,
   CLASS_OVERLAY,
+  CLASS_SEAM,
   CLASS_SLOW,
   coversPrevious,
   dimEntryStart,
   introLagPx,
   isRounded,
+  pinsFlush,
+  FOOTER_STACKED_MQ,
+  footerCoverDistance,
+  footerCoverFits,
   pinTopPx,
   staysInFlow,
   coverStartPx,
@@ -656,7 +663,8 @@ export function bindFocusReveal(options = {}) {
  * The last rounded card garage-doors the footer menu the same way the footer
  * later reveals the Adobe logo: the menu sticks to the bottom, clips, and rises
  * behind the card until it is in, then `.section-scroll-logo` hands over to the
- * logo's own sticky.
+ * logo's own sticky. The rise stays off when the viewport is already tall enough
+ * to show the footer.
  *
  * Uses no GSAP. One scroll frame writes both entry custom properties from the
  * shared math in `utils/entry-progress.js`: the menu's, and the logo's, which
@@ -692,6 +700,8 @@ let onPointer = null;
 let keyboardNav = false;
 /** @type {HTMLElement | null} */
 let boundFooter = null;
+/** @type {ResizeObserver | null} */
+let footerSizeObserver = null;
 /** @type {(() => void) | null} */
 let syncNow = null;
 let raf = 0;
@@ -722,6 +732,8 @@ export function clearFooterReveal(root) {
   boundFooter = null;
   onFooterFocusIn = null;
   syncNow = null;
+  footerSizeObserver?.disconnect();
+  footerSizeObserver = null;
   if (raf) {
     cancelAnimationFrame(raf);
     raf = 0;
@@ -771,11 +783,9 @@ export function bindFooterReveal(main, root, options = {}) {
   const scrollByDelta = options.scrollBy ?? ((delta) => window.scrollBy(0, delta));
 
   // Own both rises before the first measurement, so the footer's logo listener
-  // does not read layout on the same frames.
+  // does not read layout on the same frames. `sync` releases this when the
+  // viewport is already tall enough to show the footer.
   holdLogoEntry(true);
-  main.classList.add(CLASS_REVEAL_MAIN);
-  lastRounded.classList.add(CLASS_REVEAL);
-  footer.classList.add(CLASS_UNDER);
 
   /*
    * `.footer__inner` is built by `footer.js`, and `loadLazy` does not await
@@ -787,9 +797,51 @@ export function bindFooterReveal(main, root, options = {}) {
   /** @type {HTMLElement | null} */
   let inner = null;
   let innerHeight = 0;
+  /** Garage-door distance. Half the viewport when the menu is a tall column. */
+  let coverDistance = 0;
   /** @type {HTMLElement | null} */
   let logo = null;
   let logoHeight = 0;
+  /** Last written progress values, so a clamped frame does not touch style. */
+  let menuProgress = null;
+  /** @type {number | null} */
+  let logoProgress = null;
+
+  /** @type {boolean | null} */
+  let coverFits = null;
+  /** True after the tall-viewport path has already rested the wordmark. */
+  let resting = false;
+
+  /**
+   * Cached fold check. Invalidated when the footer or the viewport changes
+   * size, so a scroll frame does not measure the document position again.
+   *
+   * @returns {boolean}
+   */
+  const doorFits = () => {
+    if (coverFits === null) coverFits = footerCoverFits(footer);
+    return coverFits;
+  };
+
+  /**
+   * Drops cached sizes and the fold check.
+   *
+   * @returns {void}
+   */
+  const invalidate = () => {
+    coverFits = null;
+    resting = false;
+    innerHeight = 0;
+    coverDistance = 0;
+    logoHeight = 0;
+  };
+
+  /**
+   * True while the footer menu is a stacked column (`FOOTER_STACKED_MQ`).
+   *
+   * @returns {boolean}
+   */
+  const menuStacks = () => window.matchMedia?.(FOOTER_STACKED_MQ)?.matches === true;
 
   /**
    * The footer menu element. `loadFooter` may not have built `.footer__inner`
@@ -801,8 +853,12 @@ export function bindFooterReveal(main, root, options = {}) {
     if (!inner?.isConnected) {
       inner = footer.querySelector('.footer__inner');
       innerHeight = 0;
+      menuProgress = null;
     }
-    if (inner && !innerHeight) innerHeight = inner.offsetHeight;
+    if (inner && !innerHeight) {
+      innerHeight = inner.offsetHeight;
+      coverDistance = footerCoverDistance(innerHeight, window.innerHeight, menuStacks());
+    }
     return inner;
   };
 
@@ -816,31 +872,66 @@ export function bindFooterReveal(main, root, options = {}) {
       const found = footer.querySelector('.footer__logo');
       logo = found instanceof HTMLElement ? found : null;
       logoHeight = 0;
+      logoProgress = null;
     }
     if (logo && !logoHeight) logoHeight = logo.offsetHeight;
     return logo;
   };
 
   /**
+   * Drops the sticky rise and rests the wordmark. The CSS default (-100)
+   * is the half-hidden start of the garage door, which would leave it cropped.
+   *
+   * @returns {void}
+   */
+  const releaseGarageDoor = () => {
+    main.classList.remove(CLASS_REVEAL_MAIN);
+    lastRounded.classList.remove(CLASS_REVEAL);
+    footer.classList.remove(CLASS_UNDER, CLASS_LOGO);
+    if (inner instanceof HTMLElement) inner.style.removeProperty(VAR_PROGRESS);
+    const logoEl = resolveLogo();
+    if (logoEl) logoEl.style.setProperty(VAR_LOGO, String(ENTRY_END));
+    menuProgress = null;
+    logoProgress = null;
+    holdLogoEntry(false);
+  };
+
+  /**
    * Writes `--section-scroll-inner-progress` and swaps in the logo sticky once
-   * the menu has fully risen.
+   * the menu has fully risen. When the viewport already shows the footer, the
+   * rise is dropped once and later frames leave it alone.
    *
    * @returns {void}
    */
   const sync = () => {
+    if (!doorFits()) {
+      if (!resting) releaseGarageDoor();
+      resting = true;
+      return;
+    }
+    resting = false;
+    main.classList.add(CLASS_REVEAL_MAIN);
+    lastRounded.classList.add(CLASS_REVEAL);
+    footer.classList.add(CLASS_UNDER);
+    holdLogoEntry(true);
+
     const el = resolve();
     if (!el) return;
-    const progress = entryProgress(lastRounded, el, { height: innerHeight });
-    el.style.setProperty(VAR_PROGRESS, String(progress));
-    footer.classList.toggle(CLASS_LOGO, progress >= ENTRY_END);
+    const progress = entryProgress(lastRounded, el, { height: coverDistance || innerHeight });
+    if (progress !== menuProgress) {
+      menuProgress = progress;
+      el.style.setProperty(VAR_PROGRESS, String(progress));
+      footer.classList.toggle(CLASS_LOGO, progress >= ENTRY_END);
+    }
 
     const logoEl = resolveLogo();
     const cover = logoEl?.previousElementSibling;
     if (logoEl && cover instanceof HTMLElement) {
-      logoEl.style.setProperty(
-        VAR_LOGO,
-        String(entryProgress(cover, logoEl, { height: logoHeight })),
-      );
+      const next = entryProgress(cover, logoEl, { height: logoHeight });
+      if (next !== logoProgress) {
+        logoProgress = next;
+        logoEl.style.setProperty(VAR_LOGO, String(next));
+      }
     }
   };
 
@@ -853,8 +944,8 @@ export function bindFooterReveal(main, root, options = {}) {
    *
    * The logo sits past that line and is not a tab stop, so keyboard focus
    * keeps going until the inner's bottom has risen by the logo's height.
-   * While the menu is still covered the inner is stuck to the viewport
-   * bottom, and that extra distance is on top of the menu shortfall.
+   * That distance is the same shortfall as the entry progress: the viewport
+   * floor while the box is stuck there, or the box itself on a tall screen.
    */
   /**
    * Scrolls the last card off a focused menu control. Keyboard focus also
@@ -864,14 +955,15 @@ export function bindFooterReveal(main, root, options = {}) {
    * @returns {void}
    */
   const uncoverForFocus = (revealLogo) => {
+    if (!doorFits()) return;
     const el = resolve();
     if (!el || !innerHeight) return;
 
-    const menuProgress = entryProgress(lastRounded, el, { height: innerHeight });
+    const distance = coverDistance || innerHeight;
+    const progress = entryProgress(lastRounded, el, { height: distance });
     let delta = 0;
-    if (menuProgress < ENTRY_END) {
-      delta = lastRounded.getBoundingClientRect().bottom
-        - (window.innerHeight - innerHeight);
+    if (progress < ENTRY_END) {
+      delta = entryShortfall(lastRounded, el, { height: distance });
     }
 
     const logoEl = footer.querySelector('.footer__logo');
@@ -879,8 +971,7 @@ export function bindFooterReveal(main, root, options = {}) {
     const cover = logoEl?.previousElementSibling;
     let finishLogo = false;
     if (revealLogo && logoEl instanceof HTMLElement && mark && cover instanceof HTMLElement) {
-      const remaining = cover.getBoundingClientRect().bottom
-        - (window.innerHeight - mark);
+      const remaining = entryShortfall(cover, logoEl, { height: mark });
       if (remaining > 0) {
         delta += remaining;
         finishLogo = true;
@@ -892,12 +983,16 @@ export function bindFooterReveal(main, root, options = {}) {
     sync();
     // Lenis scrolls immediately and may not have run the footer's scroll
     // listener yet. The delta lands on a fully risen logo, so rest it now.
-    if (finishLogo) logoEl.style.setProperty(VAR_LOGO, String(ENTRY_END));
+    if (finishLogo) {
+      logoProgress = ENTRY_END;
+      logoEl.style.setProperty(VAR_LOGO, String(ENTRY_END));
+    }
   };
 
   syncNow = () => {
-    innerHeight = 0;
-    logoHeight = 0;
+    menuProgress = null;
+    logoProgress = null;
+    invalidate();
     sync();
   };
 
@@ -925,6 +1020,16 @@ export function bindFooterReveal(main, root, options = {}) {
     uncoverForFocus(fromKeyboard);
   };
   footer.addEventListener('focusin', onFooterFocusIn);
+  footerSizeObserver?.disconnect();
+  if (typeof ResizeObserver !== 'undefined') {
+    // Footer markup and the logo image arrive after this bind. Remeasure
+    // when they do, instead of waiting for the next scroll.
+    footerSizeObserver = new ResizeObserver(() => {
+      invalidate();
+      sync();
+    });
+    footerSizeObserver.observe(footer);
+  }
   sync();
 }
 
@@ -988,13 +1093,18 @@ function prefersMotion() {
  */
 function applySectionVars(section) {
   if (!(section instanceof HTMLElement)) return;
+  const next = section.nextElementSibling;
   if (section.classList.contains(CLASS_INTRO)) {
     section.style.removeProperty(VAR_PIN_TOP);
     if (usesTouchScroll()) section.style.setProperty(VAR_INTRO_LAG, `${introLagPx(section)}px`);
     else section.style.removeProperty(VAR_INTRO_LAG);
+    if (next instanceof HTMLElement) next.classList.remove(CLASS_SEAM);
     return;
   }
   section.style.setProperty(VAR_PIN_TOP, `${pinTopPx(section)}px`);
+  // A flush pin no longer drops the card onto the next one. Another radius of
+  // overlap keeps the rounded bottom covered.
+  if (next instanceof HTMLElement) next.classList.toggle(CLASS_SEAM, pinsFlush(section));
 }
 
 /**
@@ -1070,7 +1180,7 @@ function clear(root = document) {
   });
   root.querySelectorAll(`.${CLASS_SLOW}, .${CLASS_NEXT}, .${CLASS_INTRO}, .${CLASS_FADE}`)
     .forEach((el) => {
-      el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE);
+      el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE, CLASS_SEAM);
       if (el instanceof HTMLElement) {
         el.style.removeProperty(VAR_PIN_TOP);
         el.style.removeProperty(VAR_INTRO_LAG);

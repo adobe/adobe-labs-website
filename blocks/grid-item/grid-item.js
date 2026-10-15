@@ -1,4 +1,5 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
+import initChromaticHover from '../../scripts/utils/chromatic-hover.js';
 import {
   buildPlayIcon,
   getAuthoredCells,
@@ -9,6 +10,13 @@ import {
   isAuthoredVideo,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
+
+/**
+ * Cards top out near 462px CSS. One 2× source covers that at every viewport.
+ *
+ * @type {{ width: string }[]}
+ */
+export const GRID_ITEM_IMAGE_BREAKPOINTS = [{ width: '960' }];
 
 /**
  * Data used to build a grid item. Parsed from a key/value block, a layout row,
@@ -60,7 +68,12 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
   const isVideo = Boolean(data.isVideo);
   let mediaElement = data.mediaElement || null;
   if (!mediaElement && data.imageUrl) {
-    mediaElement = createOptimizedPicture(data.imageUrl, data.imageAlt || '');
+    mediaElement = createOptimizedPicture(
+      data.imageUrl,
+      data.imageAlt || '',
+      false,
+      GRID_ITEM_IMAGE_BREAKPOINTS,
+    );
   }
   // Link the card only when a safe http(s) URL was provided.
   const mainTag = href ? 'a' : 'div';
@@ -74,7 +87,7 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
     <${mainTag} class="grid-item__main">
       <div class="grid-item__image"></div>
       <div class="grid-item__body">
-        ${title ? '<p class="grid-item__title heading-6"></p>' : ''}
+        ${title ? '<p class="grid-item__title heading-6"><span class="grid-item__title-stack"><span class="grid-item__title-text"></span><span class="grid-item__title-underline" aria-hidden="true"></span></span></p>' : ''}
         ${subhead ? '<p class="grid-item__subhead body-md"></p>' : ''}
       </div>
     </${mainTag}>
@@ -105,11 +118,22 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
     root.dataset.contentType = contentType.slug;
   }
 
-  if (title) fragment.querySelector('.grid-item__title').textContent = title;
+  if (title) {
+    const titleEl = fragment.querySelector('.grid-item__title');
+    titleEl.querySelector('.grid-item__title-text').textContent = title;
+    titleEl.querySelector('.grid-item__title-underline').textContent = title;
+  }
   if (subhead) fragment.querySelector('.grid-item__subhead').textContent = subhead;
 
   root.classList.add('grid-item');
   root.replaceChildren(fragment);
+
+  if (mediaElement) {
+    const img = root.querySelector('.grid-item__image img');
+    const trigger = root.querySelector('.grid-item__main');
+    if (img) initChromaticHover(trigger, img);
+  }
+
   return root;
 }
 

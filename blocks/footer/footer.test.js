@@ -27,6 +27,8 @@ const FOOTER_FRAGMENT = `
     <div><div>
       <h2>Explore</h2>
       <p><a href="/research" title="Research">Research</a></p>
+      <p><a href="https://labs.adobe.com/research">Labs</a></p>
+      <p><a href="https://main--adobe-labs-website--adobe.aem.page/research">Preview</a></p>
       <p><a href="https://research.adobe.com/" target="_blank">Adobe Research</a></p>
     </div></div>
   </div>
@@ -146,6 +148,8 @@ describe('footer block', () => {
     expect(external.querySelector('.visually-hidden')).toHaveTextContent('(opens in a new tab)');
     expect(block.querySelectorAll('.footer__external-icon')).toHaveLength(1);
     expect(within(block).getByRole('link', { name: 'Research' }).querySelector('.footer__external-icon')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Labs' }).querySelector('.footer__external-icon')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'Preview' }).querySelector('.footer__external-icon')).toBeNull();
     expect(within(block).getByRole('link', { name: 'Subscribe' }).querySelector('.footer__external-icon')).toBeNull();
   });
 
@@ -386,5 +390,169 @@ describe('footer block', () => {
 
     const headingIds = [...columns].map((c) => c.querySelector('h2').id);
     expect(new Set(headingIds).size).toBe(headingIds.length);
+  });
+
+  it('does not collide with a same-named heading id elsewhere on the page', async () => {
+    const pageHeading = document.createElement('h2');
+    pageHeading.id = 'explore';
+    document.body.append(pageHeading);
+
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    try {
+      await decorate(block);
+
+      const exploreColumn = [...block.querySelectorAll('.footer__menu-column--nav')]
+        .find((column) => column.querySelector('h2').textContent === 'Explore');
+      const footerHeading = exploreColumn.querySelector('h2');
+
+      expect(footerHeading.id).not.toBe(pageHeading.id);
+      expect(footerHeading.id).toMatch(/^footer-explore(-\d+)?$/);
+    } finally {
+      pageHeading.remove();
+    }
+  });
+
+  describe('skip links', () => {
+    function appendHeaderNav({ open }) {
+      const header = document.createElement('header');
+      header.innerHTML = `
+        <button type="button" class="header__toggle" aria-controls="header-nav" aria-expanded="false"></button>
+        <nav class="header__nav" id="header-nav" aria-label="Main"></nav>
+      `;
+      const nav = header.querySelector('#header-nav');
+      const toggle = header.querySelector('.header__toggle');
+      nav.style.display = open ? 'block' : 'none';
+      toggle.addEventListener('click', () => {
+        nav.style.display = 'block';
+        toggle.setAttribute('aria-expanded', 'true');
+      });
+      document.body.append(header);
+      return { nav, toggle };
+    }
+
+    // The skip links are inserted as siblings of <footer>, not descendants of
+    // it (see footer.js), so a real <footer> landmark in the DOM is required
+    // for them to appear at all.
+    function appendFooterBlock() {
+      const footerEl = document.createElement('footer');
+      const block = document.createElement('div');
+      block.className = 'footer';
+      footerEl.append(block);
+      document.body.append(footerEl);
+      return block;
+    }
+
+    afterEach(() => {
+      document.querySelectorAll('header, footer, .footer__skip-links').forEach((el) => el.remove());
+    });
+
+    it('adds a labelled skip-links landmark, as a sibling before the footer landmark', async () => {
+      const block = appendFooterBlock();
+
+      await decorate(block);
+
+      const footerEl = block.closest('footer');
+      const skipNav = footerEl.previousElementSibling;
+      expect(skipNav).toHaveClass('footer__skip-links');
+      expect(skipNav.tagName).toBe('NAV');
+      expect(skipNav).toHaveAttribute('aria-label', 'Skip links');
+
+      const links = skipNav.querySelectorAll('a.footer__skip');
+      expect(links).toHaveLength(2);
+      expect(links[0]).toHaveAttribute('href', '#main');
+      expect(links[0]).toHaveTextContent('Skip to content');
+      expect(links[1]).toHaveAttribute('href', '#header-nav');
+      expect(links[1]).toHaveTextContent('Skip to navigation');
+    });
+
+    it('scrolls the footer into view when a skip link is focused', async () => {
+      const block = appendFooterBlock();
+      await decorate(block);
+
+      const footerEl = block.closest('footer');
+      const scrollIntoView = jest.fn();
+      footerEl.scrollIntoView = scrollIntoView;
+
+      const skipToContent = within(document.body).getByRole('link', { name: 'Skip to content' });
+      skipToContent.focus();
+
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+    });
+
+    it('does not pre-open the drawer on Space, since anchors only activate on Enter', async () => {
+      const { nav, toggle } = appendHeaderNav({ open: false });
+      const block = appendFooterBlock();
+      await decorate(block);
+
+      const skipToNav = within(document.body).getByRole('link', { name: 'Skip to navigation' });
+      skipToNav.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(nav).not.toHaveFocus();
+    });
+
+    it('opens the closed mobile nav drawer and focuses it when activated by keyboard', async () => {
+      const { nav, toggle } = appendHeaderNav({ open: false });
+      const block = appendFooterBlock();
+      await decorate(block);
+
+      const skipToNav = within(document.body).getByRole('link', { name: 'Skip to navigation' });
+      // Real Enter activation fires keydown before the browser synthesizes the click.
+      skipToNav.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      skipToNav.click();
+
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(nav).toHaveFocus();
+    });
+
+    it('opens the closed mobile nav drawer and focuses it when activated by pointer', async () => {
+      const { nav, toggle } = appendHeaderNav({ open: false });
+      const block = appendFooterBlock();
+      await decorate(block);
+
+      const skipToNav = within(document.body).getByRole('link', { name: 'Skip to navigation' });
+      skipToNav.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      skipToNav.click();
+
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(nav).toHaveFocus();
+    });
+
+    it('focuses the nav directly, without re-opening it, when it is already open', async () => {
+      const { nav, toggle } = appendHeaderNav({ open: true });
+      const block = appendFooterBlock();
+      await decorate(block);
+
+      const toggleClick = jest.fn();
+      toggle.addEventListener('click', toggleClick);
+
+      const skipToNav = within(document.body).getByRole('link', { name: 'Skip to navigation' });
+      skipToNav.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      skipToNav.click();
+
+      expect(toggleClick).not.toHaveBeenCalled();
+      expect(nav).toHaveFocus();
+    });
+
+    it('stops the click from reaching the header\'s click-outside-closes-drawer listener', async () => {
+      const { nav } = appendHeaderNav({ open: false });
+      const block = appendFooterBlock();
+      await decorate(block);
+
+      // Mirrors header.js: clicks outside the header close the mobile drawer.
+      const outsideClickCloses = jest.fn();
+      document.addEventListener('click', (event) => {
+        if (!nav.closest('header').contains(event.target)) outsideClickCloses();
+      });
+
+      const skipToNav = within(document.body).getByRole('link', { name: 'Skip to navigation' });
+      skipToNav.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      skipToNav.click();
+
+      expect(outsideClickCloses).not.toHaveBeenCalled();
+      expect(nav).toHaveFocus();
+    });
   });
 });

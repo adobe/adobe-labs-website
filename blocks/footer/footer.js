@@ -1,6 +1,6 @@
 import { getMetadata } from '../../scripts/aem.js';
 import { entryProgress, logoEntryHeld } from '../../scripts/utils/entry-progress.js';
-import { escapeAttr, fromHTML } from '../../scripts/utils/utils.js';
+import { escapeAttr, fromHTML, isExternalLink } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
 /**
@@ -162,7 +162,8 @@ const usedHeadingIds = new Set();
  * @returns {string}
  */
 function uniqueHeadingId(text) {
-  const base = text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'footer-menu-heading';
+  const slug = text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const base = `footer-${slug || 'menu-heading'}`;
   let id = base;
   let suffix = 1;
   while (usedHeadingIds.has(id)) {
@@ -238,23 +239,10 @@ function decorateHeadline(heading, items) {
 const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V7.296L7.28 8.288V1.792L1.056 8.016Z';
 
 /**
- * Whether a link points at another origin.
- * @param {Element} link Anchor element
- * @returns {boolean}
- */
-function isExternalLink(link) {
-  try {
-    const url = new URL(link.getAttribute('href') || '', window.location.href);
-    return url.origin !== window.location.origin;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Appends the external-link arrow. When the link opens a new tab, adds hidden text
  * so the accessible name matches the social links.
  * @param {Element} link Menu anchor element
+ * @returns {void}
  */
 function decorateExternalLink(link) {
   if (!isExternalLink(link)) return;
@@ -508,6 +496,10 @@ function animateLogo(logo) {
     const prevElement = logo.previousElementSibling;
     if (!prevElement) return;
     if (!logoHeight) logoHeight = logo.offsetHeight;
+    // The image has no height until it loads. entryProgress treats that as
+    // fully covered (-100) and would clip the wordmark. Skip the write; the
+    // image's load handler measures again once the height is real.
+    if (!logoHeight) return;
     logo.style.setProperty(
       '--footer-logo-entry-progress',
       entryProgress(prevElement, logo, { height: logoHeight }),
@@ -544,6 +536,10 @@ function animateLogo(logo) {
 
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onResize);
+  logo.querySelector('img')?.addEventListener('load', () => {
+    logoHeight = 0;
+    updateLogoProgress();
+  });
   updateLogoProgress();
 }
 
@@ -563,6 +559,78 @@ function decorateLogo(parent) {
   parent.append(logo);
   animateLogo(logo);
   return logo;
+}
+
+/**
+ * ==================================================================
+ * SKIP LINKS
+ * ==================================================================
+ */
+
+/**
+ * Opens the header's mobile nav drawer if it's currently closed (`display: none`
+ * below the desktop breakpoint), so focus below has something visible to land on.
+ * @param {Element} nav Header primary nav element
+ * @returns {void}
+ */
+function openNavIfClosed(nav) {
+  if (getComputedStyle(nav).display !== 'none') return;
+  document.querySelector(`.header__toggle[aria-controls="${nav.id}"]`)?.click();
+}
+
+/**
+ * Opens the mobile drawer, if closed, ahead of the click that's about to follow.
+ * @returns {void}
+ */
+function preopenHeaderNav() {
+  const nav = document.getElementById('header-nav');
+  if (nav) openNavIfClosed(nav);
+}
+
+/**
+ * Moves focus into the header's primary nav landmark.
+ * @param {MouseEvent} event Click event from the "Skip to navigation" link
+ * @returns {void}
+ */
+function focusHeaderNav(event) {
+  const nav = document.getElementById('header-nav');
+  if (!nav) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  if (!nav.hasAttribute('tabindex')) nav.tabIndex = -1;
+  nav.focus();
+}
+
+/**
+ * Scrolls the footer landmark into view.
+ * @returns {void}
+ */
+function scrollFooterIntoView() {
+  document.querySelector('footer')?.scrollIntoView({ block: 'start' });
+}
+
+/**
+ * Builds the footer's "Skip to content" and "Skip to navigation" links, hidden
+ * until focused via keyboard, wrapped in their own landmark.
+ * @returns {Element}
+ */
+function buildFooterSkipLinks() {
+  const wrapper = fromHTML(`
+    <nav class="footer__skip-links" aria-label="Skip links">
+      <a class="footer__skip" href="#main">Skip to content</a>
+      <a class="footer__skip" href="#header-nav">Skip to navigation</a>
+    </nav>
+  `);
+  const [toContent, toNav] = wrapper.children;
+  toContent.addEventListener('focus', scrollFooterIntoView);
+  toNav.addEventListener('focus', scrollFooterIntoView);
+  toNav.addEventListener('pointerdown', preopenHeaderNav);
+  toNav.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') preopenHeaderNav();
+  });
+  toNav.addEventListener('click', focusHeaderNav);
+  return wrapper;
 }
 
 /**
@@ -644,6 +712,7 @@ export default async function decorate(block) {
   if (social) options.append(social);
 
   block.append(wrapper);
+  block.closest('footer')?.before(buildFooterSkipLinks());
   decorateLogo(block);
   await loadFooterIcons(block);
 }

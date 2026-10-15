@@ -1,5 +1,10 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
-import { toSafeHttpUrl } from '../../scripts/utils/utils.js';
+import {
+  createExternalArrow,
+  getCellText,
+  isExternalLink,
+  toSafeHttpUrl,
+} from '../../scripts/utils/utils.js';
 
 /**
  * Hover-list block.
@@ -24,10 +29,6 @@ export const HOVER_IMAGE_BREAKPOINTS = [{ width: '400' }];
 const FINE_POINTER_MQ = '(hover: hover) and (pointer: fine)';
 const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
 
-/** Outlined ↗ from Figma (Adobe Clean Display Black). The webfont lacks this glyph. */
-const ARROW_PATH = 'M3.072 13.704L0.552 11.184L8.592 3.144H0L3.144 0'
-  + 'L14.208.024V11.16L11.112 14.232V5.664L3.072 13.704Z';
-
 /**
  * Parsed authored row. Images inside the headline link are ignored.
  *
@@ -49,24 +50,6 @@ function canUseHoverMedia() {
 }
 
 /**
- * Builds the decorative external-link SVG. `currentColor` tracks the row
- * text color; the webfont does not include ↗.
- *
- * @returns {SVGSVGElement}
- */
-function createArrowIcon() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 15 15');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', ARROW_PATH);
-  path.setAttribute('fill', 'currentColor');
-  svg.append(path);
-  return svg;
-}
-
-/**
  * Reads authored rows into item data. Skips rows without a safe href or
  * headline (`javascript:` and other non-http schemes are dropped).
  *
@@ -77,7 +60,7 @@ function getHoverListItems(block) {
   return [...block.children].flatMap((row) => {
     const link = row.querySelector('a[href]');
     const href = toSafeHttpUrl(link?.href);
-    const headline = link?.textContent.trim() || '';
+    const headline = getCellText(link);
     if (!href || !headline) return [];
 
     const mediaSrcs = [...row.querySelectorAll('img')]
@@ -107,6 +90,61 @@ function splitLastWord(headline) {
 }
 
 /**
+ * One inline copy of the headline. The last word stays with the arrow so
+ * the icon cannot wrap onto its own line. The ghost copy repeats that
+ * structure, including a hidden arrow, so both copies wrap the same way.
+ *
+ * @param {string} lead Words before the last, including the trailing space
+ * @param {string} last Last word
+ * @param {boolean} ghost Aria-hidden copy whose underline wipes in
+ * @returns {HTMLSpanElement}
+ */
+function createHeadlineFlow(lead, last, ghost) {
+  const flow = document.createElement('span');
+  flow.className = ghost ? 'hover-list__headline-underline' : 'hover-list__headline-text';
+  if (ghost) flow.setAttribute('aria-hidden', 'true');
+
+  if (lead) {
+    const headline = document.createElement('span');
+    headline.className = 'hover-list__headline heading-6';
+    headline.textContent = lead;
+    flow.append(headline);
+  }
+
+  const lastWord = document.createElement('span');
+  lastWord.className = 'hover-list__headline heading-6';
+  lastWord.textContent = last;
+
+  const arrow = document.createElement('span');
+  arrow.className = 'hover-list__arrow heading-6';
+  arrow.setAttribute('aria-hidden', 'true');
+  arrow.append(createExternalArrow());
+
+  const end = document.createElement('span');
+  end.className = 'hover-list__end';
+  end.append(lastWord, arrow);
+  flow.append(end);
+  return flow;
+}
+
+/**
+ * Visible headline, plus an aria-hidden copy whose underline wipes in.
+ *
+ * @param {string} headline
+ * @returns {HTMLSpanElement}
+ */
+function createHeadlineStack(headline) {
+  const { lead, last } = splitLastWord(headline);
+  const stack = document.createElement('span');
+  stack.className = 'hover-list__headline-stack';
+  stack.append(
+    createHeadlineFlow(lead, last, false),
+    createHeadlineFlow(lead, last, true),
+  );
+  return stack;
+}
+
+/**
  * Builds one list row: generated number, then headline with the last word
  * and arrow kept together so the icon does not wrap onto a line by itself.
  * Stashes hover image URLs on `data-hover-images` for the idle media pass.
@@ -122,36 +160,19 @@ function buildHoverListItem(data, index) {
   const link = document.createElement('a');
   link.className = 'hover-list__link';
   link.href = data.href;
+  // The new-tab hint is already on the authored link. Copying that text
+  // paints it in the headline. The name stays the headline so the
+  // external-link pass can append "(opens in a new tab)" without the number.
+  if (isExternalLink(link)) link.setAttribute('aria-label', data.headline);
 
   const number = document.createElement('span');
   number.className = 'hover-list__number body-lg';
   number.setAttribute('aria-hidden', 'true');
   number.textContent = String(index + 1);
 
-  const { lead, last } = splitLastWord(data.headline);
-
-  const lastWord = document.createElement('span');
-  lastWord.className = 'hover-list__headline heading-6';
-  lastWord.textContent = last;
-
-  const arrow = document.createElement('span');
-  arrow.className = 'hover-list__arrow heading-6';
-  arrow.setAttribute('aria-hidden', 'true');
-  arrow.append(createArrowIcon());
-
-  const end = document.createElement('span');
-  end.className = 'hover-list__end';
-  end.append(lastWord, arrow);
-
   const text = document.createElement('span');
   text.className = 'hover-list__text';
-  if (lead) {
-    const headline = document.createElement('span');
-    headline.className = 'hover-list__headline heading-6';
-    headline.textContent = lead;
-    text.append(headline);
-  }
-  text.append(end);
+  text.append(createHeadlineStack(data.headline));
 
   link.append(number, text);
   item.append(link);

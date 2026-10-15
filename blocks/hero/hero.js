@@ -1,4 +1,5 @@
 import { getMetadata } from '../../scripts/aem.js';
+import initChromaticHover from '../../scripts/utils/chromatic-hover.js';
 import {
   buildPlayIcon,
   getAuthoredCells,
@@ -8,11 +9,14 @@ import {
   getCellText,
   isArticleDetailPage,
   isAuthoredTrue,
+  isExternalLink,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
 const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const HEADLINE_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']);
+const HEADLINE_RICH_SELECTOR = 'a[href], h1, h2, h3, h4, h5, h6';
 
 export const HERO_INTRO_FROST_ID = 'hero-intro-frost';
 
@@ -69,7 +73,7 @@ function firstSection(block) {
 
 /**
  * Data used to decorate a hero. Parsed from the positional AEM table:
- * row 1 is category, date, headline (link or heading), link label; row 2 is the image.
+ * row 1 is category, date, headline (link, heading, or paragraph), link label; row 2 is the image.
  * An optional key/value row (`Is Video` | `true`) adds a play icon.
  * `Show Video Icon` is an alias for that flag.
  *
@@ -79,10 +83,71 @@ function firstSection(block) {
  * @property {string} [pageCategory] Category metadata string (article detail only)
  * @property {string} date
  * @property {string} headline
+ * @property {string} headlineTag `h1`–`h6`, or `p` for default text
  * @property {string} href Article URL from the headline link
  * @property {string} linkLabel
  * @property {boolean} [isVideo]
  */
+
+/**
+ * Headline cell. A heading or link wins.
+ * `wrapTextNodes` turns category, date, and the link label into paragraphs
+ * before decorate, so a paragraph is the headline only when no heading or
+ * link is present. Several paragraphs means the positional headline: the
+ * third cell (category, date, headline, link label).
+ *
+ * @param {Element[]} cells Authored cells, video row removed
+ * @returns {Element|undefined}
+ */
+function findHeadlineCell(cells) {
+  const rich = cells.find((cell) => cell.querySelector(HEADLINE_RICH_SELECTOR));
+  if (rich) return rich;
+
+  const paragraphs = cells.filter((cell) => cell.querySelector('p'));
+  if (paragraphs.length === 1) return paragraphs[0];
+
+  const positional = cells[2];
+  if (positional?.querySelector('p')) return positional;
+  return undefined;
+}
+
+/**
+ * Heading level from the headline cell.
+ * An authored heading keeps its level. Default text (a paragraph or a bare link) is `p`.
+ *
+ * @param {Element} [cell] Headline cell
+ * @returns {string}
+ */
+function getHeadlineTag(cell) {
+  const tag = cell?.querySelector('h1, h2, h3, h4, h5, h6')?.tagName.toLowerCase();
+  if (tag && HEADLINE_TAGS.has(tag)) return tag;
+  return 'p';
+}
+
+/**
+ * Headline at the authored level. The visible text and an aria-hidden
+ * underline copy share wrapping inside `.hero__headline-stack`.
+ *
+ * @param {string} tag `h1`–`h6` or `p`
+ * @param {string} text Headline text
+ * @returns {HTMLElement}
+ */
+function createHeadline(tag, text) {
+  const el = document.createElement(HEADLINE_TAGS.has(tag) ? tag : 'p');
+  el.className = 'hero__headline';
+  const stack = document.createElement('span');
+  stack.className = 'hero__headline-stack';
+  const textEl = document.createElement('span');
+  textEl.className = 'hero__headline-text';
+  textEl.textContent = text;
+  const underline = document.createElement('span');
+  underline.className = 'hero__headline-underline';
+  underline.setAttribute('aria-hidden', 'true');
+  underline.textContent = text;
+  stack.append(textEl, underline);
+  el.append(stack);
+  return el;
+}
 
 /**
  * Reads authored cells from a hero block.
@@ -105,12 +170,13 @@ export function getHeroData(block) {
   const cells = [...block.querySelectorAll(':scope > div > div')]
     .filter((cell) => !skip.has(cell));
   const imageCell = cells.find((cell) => getCellMedia(cell));
-  const headlineCell = cells.find((cell) => cell.querySelector('a[href], h1, h2, h3'));
+  const headlineCell = findHeadlineCell(cells);
   const textCells = cells.filter((cell) => cell !== imageCell && cell !== headlineCell);
   const image = getCellMedia(imageCell);
   const category = getCellText(textCells[0]) || undefined;
   const date = getCellText(textCells[1]);
   const headline = getCellText(headlineCell);
+  const headlineTag = getHeadlineTag(headlineCell);
   const href = getCellLinkHref(headlineCell);
   const linkLabel = getCellText(textCells[2]) || 'Read';
 
@@ -119,6 +185,7 @@ export function getHeroData(block) {
     category,
     date,
     headline,
+    headlineTag,
     href,
     linkLabel,
     isVideo,
@@ -138,6 +205,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   const pageCategory = data.pageCategory || '';
   const date = data.date || '';
   const headline = data.headline || '';
+  const headlineTag = data.headlineTag || 'p';
   const linkLabel = data.linkLabel || '';
   const isVideo = Boolean(data.isVideo);
   const showCategory = Boolean(category) && Boolean(firstSection(root));
@@ -146,15 +214,16 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   template.innerHTML = `
     <div class="hero__media" aria-hidden="true"></div>
     <div class="hero__content">
-      <div class="hero__eyebrow" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
-          <circle cx="19" cy="19" r="19" fill="white"/>
-        </svg>
+      <div class="hero__top-row">
+        <div class="hero__eyebrow" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
+            <circle cx="19" cy="19" r="19" fill="white"/>
+          </svg>
+        </div>
+        <div class="hero__date" aria-hidden="true"></div>
       </div>
-      <div class="hero__date" aria-hidden="true"></div>
       <div class="hero__copy">
         <p class="hero__category"></p>
-        <h2 class="hero__headline"><span></span></h2>
       </div>
       <p class="hero__cta-text"></p>
     </div>
@@ -171,13 +240,16 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (!showCategory) {
     eyebrow.remove();
   } else {
-    eyebrow.append(document.createTextNode(category));
+    const contentType = document.createElement('span');
+    contentType.className = 'hero__content-type';
+    contentType.textContent = category;
+    eyebrow.append(contentType);
   }
 
   if (isVideo) {
     const { label, icon } = buildPlayIcon();
     const content = fragment.querySelector('.hero__content');
-    const insertBefore = content.querySelector('.hero__copy, .hero__date, .hero__cta-text');
+    const insertBefore = content.querySelector('.hero__top-row, .hero__copy, .hero__cta-text');
     content.insertBefore(label, insertBefore);
     content.insertBefore(icon, insertBefore);
   }
@@ -186,19 +258,15 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (date) dateEl.textContent = date;
   else dateEl.remove();
 
+  const topRow = fragment.querySelector('.hero__top-row');
+  if (!topRow.querySelector('.hero__eyebrow, .hero__date')) topRow.remove();
+
   const pageCategoryEl = fragment.querySelector('.hero__category');
   if (pageCategory) pageCategoryEl.textContent = pageCategory;
   else pageCategoryEl.remove();
 
-  const h2 = fragment.querySelector('.hero__headline');
-  const headlineSpan = h2.querySelector('span');
-  if (!headline) {
-    h2.remove();
-  } else {
-    headlineSpan.textContent = headline;
-  }
-
   const copy = fragment.querySelector('.hero__copy');
+  if (headline) copy.append(createHeadline(headlineTag, headline));
   if (!copy.querySelector('.hero__category, .hero__headline')) copy.remove();
 
   const ctaText = fragment.querySelector('.hero__cta-text');
@@ -216,6 +284,18 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     wrapperLink.href = href;
     wrapperLink.classList.add('hero__link-wrap');
     blockChildren.forEach((child) => wrapperLink.appendChild(child));
+    // A visually-hidden hint inside this card is clipped out of the
+    // accessibility tree. The name is the visible text, once, so the
+    // external-link pass can append "(opens in a new tab)" to it.
+    if (isExternalLink(wrapperLink)) {
+      const name = [
+        isVideo ? 'Video article' : '',
+        pageCategory,
+        headline,
+        linkLabel,
+      ].filter(Boolean).join(' • ');
+      if (name) wrapperLink.setAttribute('aria-label', name);
+    }
     wrappedContent = wrapperLink;
   } else {
     wrappedContent = document.createDocumentFragment();
@@ -223,6 +303,13 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   }
 
   root.replaceChildren(wrappedContent);
+
+  if (data.image) {
+    const img = root.querySelector('.hero__media img');
+    const trigger = root.querySelector('.hero__link-wrap');
+    if (img && trigger) initChromaticHover(trigger, img);
+  }
+
   return root;
 }
 
@@ -341,6 +428,18 @@ function bindIntroScroll() {
   window.addEventListener('scroll', introScrollHandler, { passive: true });
 }
 
+/**
+ * On Safari and on all browsers on iPhones, the frost SVG filter
+ * uses a lot of processing power (it runs on the CPU).
+ * To avoid slowing down these devices, we don't use the filter
+ * on them. The filter is only used on desktop Chrome and Firefox.
+ *
+ * @returns {boolean}
+ */
+function noFrostSVG() {
+  return navigator.vendor === 'Apple Computer, Inc.';
+}
+
 /** Eases blur and displacement after the black hold. */
 function tickFrost(now) {
   if (!frostDisplace && !mediaEl) return;
@@ -440,6 +539,7 @@ export function clearHeroIntro() {
     'hero-intro--nav',
     'hero-intro--body',
     'hero-intro--scrolled',
+    'hero-intro--no-frost',
   );
   frostSvg?.remove();
   frostSvg = undefined;
@@ -491,8 +591,12 @@ function startHeroIntro(block, section) {
   const root = document.documentElement;
   root.classList.add('hero-intro');
   mediaEl = block.querySelector('.hero__media img') || undefined;
-  injectFrost();
-  if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
+  if (noFrostSVG()) {
+    root.classList.add('hero-intro--no-frost');
+  } else {
+    injectFrost();
+    if (mediaEl) applyMediaFilter(BLUR_START_PX, FROST_DISPLACE);
+  }
   bindSkipClear();
   bindIntroScroll();
   waitForBodyIntro(root, section);

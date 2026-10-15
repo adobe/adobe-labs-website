@@ -10,12 +10,18 @@ import {
   ensureArticleBackToTop,
   decorateArticleSections,
   decorateSectionMetadata,
+  decorateVisuallyHiddenHeadings,
   formatCardDate,
   getAuthoredCells,
   getSection,
   getSectionFromPath,
   isArticleDetailPage,
   isAuthoredVideo,
+  isExternalLink,
+  createExternalArrow,
+  markExternalLink,
+  markExternalLinks,
+  watchExternalLinks,
 } from './utils.js';
 
 jest.mock('../aem.js', () => ({
@@ -568,6 +574,8 @@ describe('buildArticleMetaActions', () => {
       expect(download).toHaveAttribute('href', 'https://example.com/data.zip');
       expect(download).toHaveAttribute('data-meta-action', 'download');
       expect(download).toHaveAttribute('download', 'data.zip');
+      expect(download).not.toHaveAttribute('target');
+      expect(download).not.toHaveAttribute('rel');
       const icon = download.querySelector('.action-button__icon');
       expect(icon).toHaveAttribute('aria-hidden', 'true');
       expect(download.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
@@ -593,7 +601,9 @@ describe('buildArticleMetaActions', () => {
     const href = new URL(download.getAttribute('href'));
     expect(href.origin).toBe(window.location.origin);
     expect(href.pathname).toBe('/media/dataset.pdf');
-    expect(download).toHaveAttribute('download', 'dataset.pdf');
+    expect(download).not.toHaveAttribute('download');
+    expect(download).toHaveAttribute('target', '_blank');
+    expect(download).toHaveAttribute('rel', 'noopener');
   });
 
   it('rewrites a DA media-browser URL for this site to a same-origin file path', () => {
@@ -609,7 +619,48 @@ describe('buildArticleMetaActions', () => {
     const href = new URL(download.getAttribute('href'));
     expect(href.origin).toBe(window.location.origin);
     expect(href.pathname).toBe('/media/c4611-sample-explain.pdf');
-    expect(download).toHaveAttribute('download', 'c4611-sample-explain.pdf');
+    expect(download).not.toHaveAttribute('download');
+    expect(download).toHaveAttribute('target', '_blank');
+    expect(download).toHaveAttribute('rel', 'noopener');
+  });
+
+  it('opens a PDF download-link in a new tab instead of forcing a download', () => {
+    mockTemplate('article', { 'download-link': 'https://example.com/report.PDF' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    expect(download).not.toHaveAttribute('download');
+    expect(download).toHaveAttribute('target', '_blank');
+    expect(download).toHaveAttribute('rel', 'noopener');
+  });
+
+  it('detects a PDF download-link even with a query string', () => {
+    mockTemplate('article', { 'download-link': 'https://example.com/sample.pdf?timestamp=234324' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    expect(download).not.toHaveAttribute('download');
+    expect(download).toHaveAttribute('target', '_blank');
+    expect(download).toHaveAttribute('rel', 'noopener');
+  });
+
+  it('still forces a download for non-PDF files', () => {
+    mockTemplate('article', { 'download-link': 'https://example.com/dataset.pdf.zip' });
+    const { main } = createArticleMain();
+
+    buildArticleMetaActions(main);
+
+    const download = within(main.querySelector('.article-meta__actions'))
+      .getByRole('link', { name: 'Download' });
+    expect(download).toHaveAttribute('download', 'dataset.pdf.zip');
+    expect(download).not.toHaveAttribute('target');
+    expect(download).not.toHaveAttribute('rel');
   });
 
   it('rewrites content.da.live and da.live edit URLs for this site', () => {
@@ -1123,5 +1174,195 @@ describe('decorateSectionMetadata', () => {
     expect(() => decorateSectionMetadata(main)).not.toThrow();
     expect(section.dataset.toc).toBeUndefined();
     expect(section.dataset.tableOfContents).toBeUndefined();
+  });
+});
+
+describe('decorateVisuallyHiddenHeadings', () => {
+  /**
+   * Published section shape: the headline is text on the section, and the
+   * first content wrapper holds the authored items.
+   * @param {string} headline
+   * @param {string} contentHtml
+   * @returns {HTMLDivElement}
+   */
+  function sectionWithHeadline(headline, contentHtml) {
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.dataset.visuallyHiddenHeadline = headline;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'default-content-wrapper';
+    wrapper.innerHTML = contentHtml;
+    section.append(wrapper);
+    return section;
+  }
+
+  it('renders the visually hidden heading level as h2 when no heading level is set', () => {
+    const section = sectionWithHeadline('Just a paragraph', '<p>Intro</p>');
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateVisuallyHiddenHeadings(main);
+
+    const heading = within(section).getByRole('heading', { name: 'Just a paragraph' });
+    expect(heading.tagName).toBe('H2');
+    expect(heading).toHaveClass('visually-hidden');
+    expect(heading).toHaveTextContent('Just a paragraph');
+    expect(heading).toBe(section.firstElementChild);
+  });
+
+  it('does not render a visually-hidden headline when the first item is a heading', () => {
+    const section = sectionWithHeadline('Hidden title', '<h4>Visible title</h4><p>Body</p>');
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateVisuallyHiddenHeadings(main);
+
+    expect(within(section).getByRole('heading', { name: 'Visible title' }).tagName).toBe('H4');
+    expect(within(section).queryByRole('heading', { name: 'Hidden title' })).toBeNull();
+    expect(section.querySelector('.visually-hidden')).toBeNull();
+  });
+
+  it('still renders when a heading comes after the first item', () => {
+    const section = sectionWithHeadline('Section label', '<p>Lead</p><h2>Later heading</h2>');
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateVisuallyHiddenHeadings(main);
+
+    expect(within(section).getByRole('heading', { name: 'Section label' })).toHaveClass('visually-hidden');
+    expect(within(section).getByRole('heading', { name: 'Later heading' })).not.toHaveClass('visually-hidden');
+  });
+
+  it('ignores an empty visually-hidden headline', () => {
+    const section = sectionWithHeadline('   ', '<p>Intro</p>');
+    const main = document.createElement('main');
+    main.append(section);
+
+    decorateVisuallyHiddenHeadings(main);
+
+    expect(within(section).queryByRole('heading')).toBeNull();
+  });
+});
+
+describe('createExternalArrow', () => {
+  it('builds a decorative arrow that inherits the surrounding text color', () => {
+    const arrow = createExternalArrow();
+
+    expect(arrow.tagName).toBe('svg');
+    expect(arrow).toHaveAttribute('viewBox', '0 0 15 15');
+    expect(arrow).toHaveAttribute('aria-hidden', 'true');
+    expect(arrow.querySelector('path')).toHaveAttribute('fill', 'currentColor');
+    expect(arrow.querySelector('path')).toHaveAttribute('d', expect.stringContaining('M3.072'));
+  });
+});
+
+describe('external links', () => {
+  /** @type {MutationObserver|undefined} */
+  let observer;
+
+  /**
+   * @param {string} href
+   * @param {Object<string, string>} [attrs]
+   * @returns {HTMLAnchorElement}
+   */
+  function makeLink(href, attrs = {}) {
+    const link = document.createElement('a');
+    link.setAttribute('href', href);
+    link.textContent = 'Example';
+    Object.entries(attrs).forEach(([name, value]) => link.setAttribute(name, value));
+    return link;
+  }
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    observer?.disconnect();
+    observer = undefined;
+    document.body.innerHTML = '';
+  });
+
+  it('treats root-relative, production, and AEM preview links as internal', () => {
+    const { hostname } = window.location;
+    const internal = [
+      '/research',
+      'research/foo',
+      '#section',
+      '?q=1',
+      `https://${hostname}/research`,
+      'https://labs.adobe.com/research',
+      'https://www.labs.adobe.com/workflows',
+      'https://main--adobe-labs-website--adobe.aem.page/research',
+      'https://feature--adobe-labs-website--adobe.aem.live/sneaks',
+      'mailto:labs@adobe.com',
+      'tel:+15551212',
+    ];
+
+    internal.forEach((href) => {
+      expect(isExternalLink(makeLink(href))).toBe(false);
+    });
+  });
+
+  it('treats other websites as external', () => {
+    [
+      'https://www.adobe.com/privacy',
+      'https://research.adobe.com/',
+      'https://example.com/subscribe',
+      '//example.com/path',
+    ].forEach((href) => {
+      expect(isExternalLink(makeLink(href))).toBe(true);
+    });
+  });
+
+  it('adds target, rel, and a new-tab hint on external links only', () => {
+    const external = makeLink('https://research.adobe.com/');
+    const internal = makeLink('https://labs.adobe.com/research');
+    const root = makeLink('/research');
+    document.body.append(external, internal, root);
+
+    markExternalLinks(document.body);
+
+    expect(external).toHaveAttribute('target', '_blank');
+    expect(external).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(external.querySelector('.visually-hidden')).toHaveTextContent('(opens in a new tab)');
+    expect(internal).not.toHaveAttribute('target');
+    expect(internal).not.toHaveAttribute('rel');
+    expect(internal.querySelector('.visually-hidden')).toBeNull();
+    expect(root).not.toHaveAttribute('target');
+  });
+
+  it('keeps an existing rel and does not repeat the new-tab hint', () => {
+    const link = makeLink('https://example.com/', { rel: 'nofollow' });
+    const hint = document.createElement('span');
+    hint.className = 'visually-hidden';
+    hint.textContent = ' (opens in a new tab)';
+    link.append(hint);
+
+    markExternalLink(link);
+    markExternalLink(link);
+
+    expect(link).toHaveAttribute('rel', 'nofollow noopener noreferrer');
+    expect(link.querySelectorAll('.visually-hidden')).toHaveLength(1);
+  });
+
+  it('extends an aria-label instead of adding a second hint', () => {
+    const link = makeLink('https://example.com/', { 'aria-label': 'Adobe Research' });
+
+    markExternalLink(link);
+
+    expect(link).toHaveAttribute('aria-label', 'Adobe Research (opens in a new tab)');
+    expect(link.querySelector('.visually-hidden')).toBeNull();
+  });
+
+  it('marks external links inserted after the watcher starts', async () => {
+    observer = watchExternalLinks(document);
+    const link = makeLink('https://www.adobe.com/');
+    document.body.append(link);
+
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 });

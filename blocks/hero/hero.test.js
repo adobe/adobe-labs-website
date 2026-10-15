@@ -1,4 +1,6 @@
 import { within } from '@testing-library/dom';
+import { markExternalLink } from '../../scripts/utils/utils.js';
+import initChromaticHover from '../../scripts/utils/chromatic-hover.js';
 import decorate, {
   clearHeroIntro,
   HERO_INTRO_DURATION_MS,
@@ -6,6 +8,31 @@ import decorate, {
   HERO_INTRO_FROST_ID,
   HERO_INTRO_NAV_DELAY_MS,
 } from './hero.js';
+
+jest.mock('../../scripts/utils/chromatic-hover.js', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+/**
+ * Matches `wrapTextNodes` in aem.js: plain cells become paragraphs before decorate.
+ *
+ * @param {HTMLElement} block Hero block
+ */
+function wrapPlainCells(block) {
+  const valid = new Set([
+    'P', 'PRE', 'UL', 'OL', 'PICTURE', 'TABLE', 'BLOCKQUOTE',
+    'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  ]);
+  block.querySelectorAll(':scope > div > div').forEach((cell) => {
+    if (!cell.hasChildNodes()) return;
+    const first = cell.firstElementChild;
+    if (first && valid.has(first.tagName)) return;
+    const paragraph = document.createElement('p');
+    paragraph.append(...cell.childNodes);
+    cell.append(paragraph);
+  });
+}
 
 /**
  * Builds a positional hero table (row 1 copy, row 2 image).
@@ -101,6 +128,7 @@ afterEach(() => {
   document.body.classList.remove('appear');
   document.querySelector('a.header__skip')?.remove();
   document.querySelectorAll('main').forEach((main) => main.remove());
+  initChromaticHover.mockClear();
 });
 
 describe('hero block', () => {
@@ -120,8 +148,9 @@ describe('hero block', () => {
       await decorate(block);
 
       const view = within(block);
-      const eyebrow = view.getByText('ResearchTest');
-      expect(eyebrow).toHaveClass('hero__eyebrow');
+      const eyebrowText = view.getByText('ResearchTest');
+      expect(eyebrowText).toHaveClass('hero__content-type');
+      const eyebrow = eyebrowText.closest('.hero__eyebrow');
       expect(eyebrow).toHaveAttribute('aria-hidden', 'true');
       const mark = eyebrow.querySelector('svg');
       expect(eyebrow.firstElementChild).toBe(mark);
@@ -130,9 +159,9 @@ describe('hero block', () => {
       const date = view.getByText('5.24.26');
       expect(date).toHaveClass('hero__date');
       expect(date).toHaveAttribute('aria-hidden', 'true');
-      expect(view.getByRole('heading', { level: 2 })).toHaveTextContent(
-        'How AI is Redistributing Creative Work.',
-      );
+      const headline = block.querySelector('.hero__headline');
+      expect(headline.tagName).toBe('P');
+      expect(headline).toHaveTextContent('How AI is Redistributing Creative Work.');
       expect(view.getByRole('link', { name: 'How AI is Redistributing Creative Work. Read' }))
         .toHaveAttribute('href', expect.stringMatching(/\/research\/example-article-1$/));
       expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
@@ -167,7 +196,9 @@ describe('hero block', () => {
     const view = within(block);
     expectPlayIcon(block);
     expect(view.getByText('Oct 26')).toHaveClass('hero__date');
-    expect(view.getByRole('heading', { level: 2 })).toHaveTextContent('Project Clean Take');
+    const headline = block.querySelector('.hero__headline');
+    expect(headline.tagName).toBe('P');
+    expect(headline).toHaveTextContent('Project Clean Take');
     expect(view.getByRole('link', { name: /video article/i }))
       .toHaveAttribute('href', expect.stringMatching(/\/sneaks\/project-clean-take$/));
     expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
@@ -222,7 +253,7 @@ describe('hero block', () => {
 
     try {
       await decorate(block);
-      expect(within(block).getByText('Sneaks')).toHaveClass('hero__eyebrow');
+      expect(within(block).getByText('Sneaks')).toHaveClass('hero__content-type');
     } finally {
       main.remove();
       window.history.replaceState({}, '', '/');
@@ -253,12 +284,96 @@ describe('hero block', () => {
 
       const kicker = within(block).getByText('Future of Creative Work, Standards & Practices');
       expect(kicker).toHaveClass('hero__category');
+      expect(kicker.nextElementSibling.tagName).toBe('H1');
       expect(kicker.nextElementSibling).toHaveClass('hero__headline');
-      expect(kicker.nextElementSibling).toHaveTextContent('How Creatives are thinking about AI');
+      expect(kicker.nextElementSibling.querySelector('span')).toHaveTextContent(
+        'How Creatives are thinking about AI',
+      );
     } finally {
       main.remove();
       document.head.querySelectorAll('meta[name="template"], meta[name="category"]').forEach((el) => el.remove());
     }
+  });
+
+  it('keeps category, date, and the link when plain cells are wrapped in paragraphs', async () => {
+    const block = createHeroBlock([
+      [
+        'Research',
+        '5.24.26',
+        '<a href="/research/example-article-1">How AI is redistributing creative work.</a>',
+        'Read',
+      ],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+    wrapPlainCells(block);
+    const main = placeInMain(block);
+
+    try {
+      await decorate(block);
+
+      const view = within(block);
+      expect(view.getByText('Research')).toHaveClass('hero__content-type');
+      expect(view.getByText('5.24.26')).toHaveClass('hero__date');
+      const headline = block.querySelector('.hero__headline');
+      expect(headline.tagName).toBe('P');
+      expect(headline).toHaveTextContent('How AI is redistributing creative work.');
+      expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
+      expect(block.querySelector('.hero__link-wrap'))
+        .toHaveAttribute('href', expect.stringMatching(/\/research\/example-article-1$/));
+    } finally {
+      main.remove();
+    }
+  });
+
+  it('uses the third cell as the headline when every copy cell is a paragraph', async () => {
+    const block = createHeroBlock([
+      ['Research', 'Oct 26', '<p>Default title</p>', ''],
+    ]);
+    wrapPlainCells(block);
+    const main = placeInMain(block);
+
+    try {
+      await decorate(block);
+
+      expect(within(block).getByText('Research')).toHaveClass('hero__content-type');
+      expect(within(block).getByText('Oct 26')).toHaveClass('hero__date');
+      const headline = block.querySelector('.hero__headline');
+      expect(headline.tagName).toBe('P');
+      expect(headline).toHaveTextContent('Default title');
+    } finally {
+      main.remove();
+    }
+  });
+
+  it.each([
+    ['h1', 'Article title'],
+    ['h2', 'Section title'],
+    ['p', 'Default title'],
+  ])('renders an authored %s headline as that element', async (tag, text) => {
+    const block = createHeroBlock([
+      ['Research', 'Oct 26', `<${tag}>${text}</${tag}>`, ''],
+    ]);
+
+    await decorate(block);
+
+    const headline = block.querySelector('.hero__headline');
+    expect(headline.tagName).toBe(tag.toUpperCase());
+    expect(headline.querySelector('span')).toHaveTextContent(text);
+    expect(block.querySelector('.hero__link-wrap')).toBeNull();
+  });
+
+  it('keeps a linked headline inside the block link at the authored level', async () => {
+    const block = createHeroBlock([
+      ['<h2><a href="/research/story">Linked title</a></h2>', 'Read'],
+    ]);
+
+    await decorate(block);
+
+    const headline = block.querySelector('.hero__headline');
+    expect(headline.tagName).toBe('H2');
+    expect(headline).toHaveTextContent('Linked title');
+    expect(headline.closest('.hero__link-wrap'))
+      .toHaveAttribute('href', expect.stringMatching(/\/research\/story$/));
   });
 
   it('omits empty optional fields', async () => {
@@ -271,7 +386,9 @@ describe('hero block', () => {
     expect(block.querySelector('.hero__eyebrow')).toBeNull();
     expect(block.querySelector('.hero__date')).toBeNull();
     expect(block.querySelector('.hero__media')).toBeNull();
-    expect(within(block).getByRole('heading', { level: 2 })).toHaveTextContent('Headline only');
+    const headline = block.querySelector('.hero__headline');
+    expect(headline.tagName).toBe('P');
+    expect(headline).toHaveTextContent('Headline only');
     expect(within(block).getByRole('link', { name: 'Headline only Read' })).toBeTruthy();
     expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
   });
@@ -348,6 +465,69 @@ describe('hero block', () => {
     }
   });
 
+  it('leaves the image as the only visual on a device without a fine pointer', async () => {
+    const block = createHeroBlock([
+      ['<a href="/research/example">Headline</a>'],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+
+    await decorate(block);
+
+    // jsdom has no fine-pointer match and no WebGL, so the chromatic hover
+    // never mounts; this guards against it ever touching the real <img>.
+    expect(block.querySelector('canvas')).toBeNull();
+    expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
+  });
+
+  it('mounts chromatic hover on the link wrap when the hero links somewhere', async () => {
+    const block = createHeroBlock([
+      ['<a href="/research/example">Headline</a>'],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+
+    await decorate(block);
+
+    const link = block.querySelector('.hero__link-wrap');
+    const img = block.querySelector('.hero__media img');
+    expect(initChromaticHover).toHaveBeenCalledWith(link, img);
+  });
+
+  it('never mounts chromatic hover on a hero without a link', async () => {
+    const block = createHeroBlock([
+      ['Headline'],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+
+    await decorate(block);
+
+    expect(block.querySelector('.hero__link-wrap')).toBeNull();
+    expect(initChromaticHover).not.toHaveBeenCalled();
+  });
+
+  it('keeps a new-tab hint out of the visible headline', async () => {
+    const block = createHeroBlock([
+      [
+        'ResearchTest',
+        '5.24.26',
+        '<a href="https://www.adobe.com/">External link test<span class="visually-hidden"> (opens in a new tab)</span>s</a>',
+        'Read',
+      ],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+
+    await decorate(block);
+
+    const link = block.querySelector('.hero__link-wrap');
+    markExternalLink(link);
+
+    expect(block.querySelector('.hero__headline-text')).toHaveTextContent(/^External link tests$/);
+    expect(block.querySelector('.hero__headline-underline')).toHaveTextContent(/^External link tests$/);
+    expect(link).toHaveAttribute('aria-label', 'External link tests • Read (opens in a new tab)');
+    expect(link.querySelector('.visually-hidden')).toBeNull();
+    expect(within(block).getByRole('link', { name: 'External link tests • Read (opens in a new tab)' }))
+      .toBe(link);
+  });
+
   it('does not link the headline or CTA when the URL is not http(s)', async () => {
     const block = createHeroBlock([
       ['<a href="javascript:alert(1)">Unsafe headline</a>', 'Read'],
@@ -355,14 +535,24 @@ describe('hero block', () => {
 
     await decorate(block);
 
-    expect(block.querySelector('h2 a')).toBeNull();
-    expect(block.querySelector('h2')).toHaveTextContent('Unsafe headline');
+    expect(block.querySelector('.hero__headline a')).toBeNull();
+    expect(block.querySelector('.hero__headline').tagName).toBe('P');
+    expect(block.querySelector('.hero__headline')).toHaveTextContent('Unsafe headline');
     expect(block.querySelector('.hero__cta-text')).toBeNull();
   });
 
   describe('full-screen loading intro', () => {
+    /** @type {jest.SpyInstance} */
+    let vendor;
+
     beforeEach(() => {
       document.body.classList.add('appear');
+      // This Mac's jsdom reports the Apple vendor. Frost tests need a non-WebKit vendor.
+      vendor = jest.spyOn(navigator, 'vendor', 'get').mockReturnValue('Google Inc.');
+    });
+
+    afterEach(() => {
+      vendor.mockRestore();
     });
 
     it('adds hero-intro immediately and hero-intro--body after paint', async () => {
@@ -678,6 +868,30 @@ describe('hero block', () => {
       } finally {
         window.matchMedia = originalMatchMedia;
       }
+    });
+
+    it('skips the frost filter on WebKit and clears the no-frost class', async () => {
+      vendor.mockReturnValue('Apple Computer, Inc.');
+
+      const block = createHeroBlock([
+        ['<a href="/article">Headline</a>'],
+        ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+      ]);
+      block.classList.add('hero-full-screen');
+      mountInFirstSection(block);
+
+      await decorate(block);
+
+      const img = block.querySelector('.hero__media img');
+      expect(document.documentElement).toHaveClass('hero-intro');
+      expect(document.documentElement).toHaveClass('hero-intro--no-frost');
+      expect(document.getElementById(HERO_INTRO_FROST_ID)).toBeNull();
+      expect(img.style.filter).toBe('');
+
+      clearHeroIntro();
+
+      expect(document.documentElement).not.toHaveClass('hero-intro');
+      expect(document.documentElement).not.toHaveClass('hero-intro--no-frost');
     });
 
     it('adds hero-intro--nav after the nav delay and clears intro classes when done', async () => {

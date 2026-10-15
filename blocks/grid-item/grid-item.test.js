@@ -1,6 +1,6 @@
 import { within } from '@testing-library/dom';
 import { createOptimizedPicture } from '../../scripts/aem.js';
-import decorate, { buildGridItem } from './grid-item.js';
+import decorate, { buildGridItem, GRID_ITEM_IMAGE_BREAKPOINTS } from './grid-item.js';
 
 jest.mock('../../scripts/aem.js', () => ({
   toClassName: (name) => (typeof name === 'string'
@@ -49,7 +49,7 @@ describe('grid-item block', () => {
 
     expect(main).toHaveClass('grid-item__main');
     expect(main).toHaveAttribute('href', 'https://labs.adobe.com/example');
-    expect(view.getByText('Lab project')).toHaveClass('grid-item__title');
+    expect(block.querySelector('.grid-item__title')).toHaveTextContent('Lab project');
     expect(view.getByText('A short description')).toHaveClass('grid-item__subhead');
     expect(view.getByRole('link', { name: 'Research' })).toHaveAttribute(
       'href',
@@ -165,6 +165,20 @@ describe('grid-item block', () => {
 
     expect(block.querySelector('img')).toHaveAttribute('alt', 'original');
   });
+
+  it('leaves the image as the only visual on a device without a fine pointer', () => {
+    const block = createBlock({
+      Title: 'Lab project',
+      Image: PICTURE,
+    });
+
+    decorate(block);
+
+    // jsdom has no fine-pointer match and no WebGL, so the chromatic hover
+    // never mounts; this guards against it ever touching the real <img>.
+    expect(block.querySelector('canvas')).toBeNull();
+    expect(block.querySelector('img')).toHaveAttribute('alt', 'original');
+  });
 });
 
 describe('buildGridItem', () => {
@@ -195,6 +209,8 @@ describe('buildGridItem', () => {
     expect(createOptimizedPicture).toHaveBeenCalledWith(
       'https://example.com/hero.jpg',
       'Project thumbnail',
+      false,
+      GRID_ITEM_IMAGE_BREAKPOINTS,
     );
     expect(item.querySelector('img')).toHaveAttribute('alt', 'Project thumbnail');
   });
