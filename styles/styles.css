@@ -638,10 +638,15 @@ main:focus-visible::after {
 
 /* --- Article meta --- */
 
-/* Byline section matches the large image width from the same breakpoint. */
+/* Byline section matches the large image width from the same breakpoint.
+   The footer instance lines up with the body text column. */
 .article-meta-section {
   @media (width >= 48rem) {
     --article-content-max-inline-size: min(max(calc(8 / 12 * 100%), var(--article-default-content-max-inline-size, 100%)), 77.875rem); /* 1246px max. Same as .image.lg. */
+  }
+
+  &:has(.article-meta--bottom) {
+    --article-content-max-inline-size: var(--article-default-content-max-inline-size);
   }
 }
 
@@ -667,7 +672,7 @@ main:focus-visible::after {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--s2a-spacing-sm);
+  gap: var(--s2a-spacing-xs);
 }
 
 /* Top byline only: stack "Words by:" above the author list at narrow
@@ -734,7 +739,7 @@ main:focus-visible::after {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--s2a-spacing-sm);
+  gap: var(--s2a-spacing-xs);
   list-style: none;
   margin: 0;
   padding: 0;
