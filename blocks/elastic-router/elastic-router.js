@@ -193,7 +193,6 @@ export default function decorate(block) {
 
   const list = document.createElement('ul');
   list.className = 'elastic-router__list';
-  list.setAttribute('role', 'list');
   items.forEach((item) => list.append(buildElasticRouterItem(item)));
 
   nav.append(list);
