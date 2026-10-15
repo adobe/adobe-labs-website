@@ -35,6 +35,7 @@ import {
   ensureArticleBackToTop,
   decorateArticleSections,
   decorateSectionMetadata,
+  decorateVisuallyHiddenHeadings,
   decorateBlockquotes,
   isArticleDetailPage,
 } from './utils/utils.js';
@@ -192,6 +193,7 @@ export function decorateMain(main) {
   buildAutoBlocks(main);
   decorateSections(main);
   decorateSectionMetadata(main);
+  decorateVisuallyHiddenHeadings(main);
   decorateArticleSections(main);
   decorateArticleMetaSections(main);
   decorateBlocks(main);

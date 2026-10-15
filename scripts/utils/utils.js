@@ -720,6 +720,44 @@ export function buildArticleAuthorMeta(main) {
   sections[sections.length - 1].append(buildArticleMeta('bottom'));
 }
 
+const SECTION_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+
+/**
+ * First authored item in a section, skipping empty wrappers.
+ *
+ * @param {Element} section
+ * @returns {Element|null}
+ */
+function firstSectionItem(section) {
+  const wrapper = [...section.children].find((child) => child.firstElementChild);
+  return wrapper?.firstElementChild || null;
+}
+
+/**
+ * Text published on `data-visually-hidden-headline`. Empty values are ignored.
+ *
+ * @param {string} [value]
+ * @returns {string|null}
+ */
+function visuallyHiddenHeadlineText(value) {
+  const text = `${value ?? ''}`.replace(/\s+/g, ' ').trim();
+  return text || null;
+}
+
+/**
+ * Visually hidden heading. The text is a DOM text node. The level is 2:
+ * AEM publishes the Section Metadata cell as text and drops the heading tag.
+ *
+ * @param {string} text
+ * @returns {HTMLHeadingElement}
+ */
+function createVisuallyHiddenHeadline(text) {
+  const heading = document.createElement('h2');
+  heading.className = 'visually-hidden';
+  heading.textContent = text;
+  return heading;
+}
+
 /**
  * Reads each section's authored `Section Metadata` table into `section.dataset`
  * and removes the table so it never reaches `decorateBlocks` as a block to load.
@@ -728,9 +766,9 @@ export function buildArticleAuthorMeta(main) {
  * `section-metadata` block folder).
  *
  * The `style` key is special-cased: it adds one or more (comma-separated)
- * classes to the section instead of a dataset entry. Every other key
- * (including `Table of Contents`, read by the Table of Contents
- * block) becomes a plain `section.dataset` entry.
+ * classes to the section instead of a dataset entry. Every other key (including
+ * `Table of Contents`, read by the Table of Contents block) becomes a plain
+ * `section.dataset` entry.
  *
  * @param {Element} main The container element
  */
@@ -749,6 +787,26 @@ export function decorateSectionMetadata(main) {
       section.dataset[toCamelCase(key)] = value;
     });
     sectionMeta.remove();
+  });
+}
+
+/**
+ * Renders each section's published `data-visually-hidden-headline` as a
+ * heading at the start of the section. The heading uses the `visually-hidden`
+ * class and heading level 2. It is omitted when the section's first content
+ * item is already a heading.
+ *
+ * The HTML pipeline stores the Section Metadata cell as text on the section
+ * and removes the table before this runs.
+ *
+ * @param {Element} main The container element
+ */
+export function decorateVisuallyHiddenHeadings(main) {
+  main.querySelectorAll(':scope > .section').forEach((section) => {
+    const text = visuallyHiddenHeadlineText(section.dataset.visuallyHiddenHeadline);
+    if (!text) return;
+    if (firstSectionItem(section)?.matches(SECTION_HEADING_SELECTOR)) return;
+    section.prepend(createVisuallyHiddenHeadline(text));
   });
 }
 

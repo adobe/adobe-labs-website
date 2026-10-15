@@ -76,9 +76,6 @@
 
     .description-list__item {
       flex-direction: row;
-
-      /* Figma has title and description flush; a horizontal gap keeps text
-         from touching when both columns run long. */
       gap: var(--s2a-spacing-xl);
     }
 
