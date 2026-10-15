@@ -1016,6 +1016,38 @@ describe('content-grid block', () => {
       await decorate(plain);
       expect(plain).not.toHaveClass('content-grid--related');
     });
+
+    it.each([
+      ['/research/current', 'research'],
+      ['/workflows/clip', 'workflows'],
+      ['/sneaks/clip', 'sneaks'],
+      ['/playground/demo', 'playground'],
+    ])('marks a related grid on %s as %s', async (path, slug) => {
+      window.history.pushState({}, '', path);
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(block).toHaveAttribute('data-content-type', slug);
+    });
+
+    it('does not mark a content type when Related content is not set', async () => {
+      window.history.pushState({}, '', '/research/current');
+      const block = createBlock({ 'Content Type:': 'Research', 'Category:': 'All', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(block).not.toHaveAttribute('data-content-type');
+    });
+
+    it('leaves a related grid unmarked when the page is not a known section', async () => {
+      window.history.pushState({}, '', '/policy/terms');
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(block).not.toHaveAttribute('data-content-type');
+    });
   });
 
   describe('stacked jump links', () => {
