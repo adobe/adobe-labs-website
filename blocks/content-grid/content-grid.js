@@ -522,6 +522,10 @@ export default async function decorate(block) {
   const excludePath = isRelated ? currentPath : '';
 
   block.classList.toggle('content-grid--related', isRelated);
+  // The shared pre-footer is authored once. The page path picks the
+  // section wash (see `.section-rounded-related` in styles.css).
+  if (isRelated && section) block.dataset.contentType = section.slug;
+  else delete block.dataset.contentType;
   block.replaceChildren();
 
   const payload = await dataStore.getData(endpoint);

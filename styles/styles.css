@@ -93,11 +93,23 @@
   --color-section-surface-pink: #fff4f2;
   --color-section-surface-orange: #faf4f0;
 
-  /* Blue wash over the theme background (e.g. the related content
-     pre-footer). Author with `Style: section-rounded-related`. No
-     dark-mode override needed: the nested background token already
-     switches per theme. */
-  --color-section-surface-related: linear-gradient(0deg, rgb(0 123 255 / 12%) 0%, rgb(0 123 255 / 12%) 100%), var(--s2a-color-background-default);
+  /* Wash over the theme background (the related content pre-footer).
+     Author with `Style: section-rounded-related`. No dark-mode override
+     needed: the nested background token already switches per theme.
+     The default wash is the fallback. Content-grid sets
+     `data-content-type` from the page path; the type washes below are
+     placeholders until final surfaces land. */
+  --color-section-surface-related: #fff;
+  --color-section-surface-related-research: #edf6ff;
+  --color-section-surface-related-workflows: #faf4f0;
+  --color-section-surface-related-sneaks: #1C1C1C;
+  --color-section-surface-related-playground: var(--color-section-surface-related);
+  
+  &[data-theme="dark"] {
+    --color-section-surface-related: #111F2F;
+    --color-section-surface-related-research: #111F2F;
+    --color-section-surface-related-workflows: #312B27;
+  }
 
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, adobe-clean-fallback, "Trebuchet MS", sans-serif;
@@ -1065,6 +1077,22 @@ main .section {
 
   &.section-rounded-related {
     background: var(--color-section-surface-related);
+
+    &:has(.content-grid[data-content-type="research"]) {
+      background: var(--color-section-surface-related-research);
+    }
+
+    &:has(.content-grid[data-content-type="workflows"]) {
+      background: var(--color-section-surface-related-workflows);
+    }
+
+    &:has(.content-grid[data-content-type="sneaks"]) {
+      background: var(--color-section-surface-related-sneaks);
+    }
+
+    &:has(.content-grid[data-content-type="playground"]) {
+      background: var(--color-section-surface-related-playground);
+    }
   }
 
   /* Related content pre-footer: tighter block padding than the default
