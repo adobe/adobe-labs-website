@@ -259,7 +259,7 @@
       background-color: var(--hero-scrim-regular);
 
       @media (prefers-reduced-motion: no-preference) {
-        transition: background-color 300ms ease;
+        transition: background-color 600ms ease;
       }
     }
   }
@@ -379,7 +379,7 @@
        .hero__media::after. :active keeps the pressed scrim. */
     .hero__media img {
       @media (prefers-reduced-motion: no-preference) {
-        transition: transform 300ms ease;
+        transition: transform 600ms ease;
       }
     }
 
