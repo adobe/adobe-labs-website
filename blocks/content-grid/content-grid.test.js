@@ -1048,6 +1048,55 @@ describe('content-grid block', () => {
 
       expect(block).not.toHaveAttribute('data-content-type');
     });
+
+    it.each([
+      ['Future of Creative Work', 'future-of-creative-work'],
+      ['Economic Impact', 'economic-impact'],
+      ['Research', 'research'],
+      ['Human Side of AI', 'human-side-of-ai'],
+      ['Standards & Practices', 'standards-practices'],
+    ])('marks a research related grid in %s as %s', async (category, slug) => {
+      window.history.pushState({}, '', '/research/current');
+      getMetadata.mockReturnValue(category);
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(block).toHaveAttribute('data-content-type', 'research');
+      expect(block).toHaveAttribute('data-category', slug);
+    });
+
+    it('uses the first known category when a research article lists several', async () => {
+      window.history.pushState({}, '', '/research/current');
+      getMetadata.mockReturnValue('Not a category, Standards & Practices, Economic Impact');
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(block).toHaveAttribute('data-category', 'standards-practices');
+    });
+
+    it('leaves a research related grid unmarked when the category is unknown', async () => {
+      window.history.pushState({}, '', '/research/current');
+      getMetadata.mockReturnValue('Something Else');
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(block).toHaveAttribute('data-content-type', 'research');
+      expect(block).not.toHaveAttribute('data-category');
+    });
+
+    it('does not mark a category on a non-research related grid', async () => {
+      window.history.pushState({}, '', '/workflows/clip');
+      getMetadata.mockReturnValue('Future of Creative Work');
+      const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(block).toHaveAttribute('data-content-type', 'workflows');
+      expect(block).not.toHaveAttribute('data-category');
+    });
   });
 
   describe('stacked jump links', () => {
