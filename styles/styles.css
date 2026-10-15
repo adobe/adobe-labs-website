@@ -103,8 +103,8 @@
   --color-section-surface-related-sneaks: #1c1c1c;
   --color-section-surface-related-playground: var(--color-section-surface-related);
   --color-section-surface-related-category-future-of-creative-work: #EDF6FF;
-  --color-section-surface-related-category-economic-impact: #FFFFFF;
-  --color-section-surface-related-category-human-side-of-ai: #FFFFFF;
+  --color-section-surface-related-category-economic-impact: #fff;
+  --color-section-surface-related-category-human-side-of-ai: #fff;
   --color-section-surface-related-category-standards-practices: #FFF4F2;
   --color-section-surface-related-category-research: var(--color-section-surface-related-research);
 
