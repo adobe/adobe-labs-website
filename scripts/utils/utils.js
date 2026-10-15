@@ -438,6 +438,21 @@ function getDownloadFilename(href) {
 }
 
 /**
+ * Whether a download href points at a PDF, by its pathname extension.
+ * PDFs get native in-tab preview instead of a forced download.
+ *
+ * @param {string} href Download href
+ * @returns {boolean}
+ */
+function isPdfHref(href) {
+  try {
+    return new URL(href, window.location.href).pathname.toLowerCase().endsWith('.pdf');
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Mailto for the article Feedback action. The subject is "Feedback: " plus
  * the page metadata Title. AEM writes that row to `og:title`, not
  * `meta[name="title"]`. A missing title omits the query.
@@ -1023,8 +1038,13 @@ function createMetaActionControl(action) {
     if (href) {
       el.href = href;
       if (action.download) {
-        const filename = getDownloadFilename(href);
-        if (filename) el.setAttribute('download', filename);
+        if (isPdfHref(href)) {
+          el.target = '_blank';
+          el.rel = 'noopener';
+        } else {
+          const filename = getDownloadFilename(href);
+          if (filename) el.setAttribute('download', filename);
+        }
       }
     }
   }

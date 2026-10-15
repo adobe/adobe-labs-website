@@ -11,6 +11,13 @@ export const CLASS_SLOW = 'section-scroll-slow';
 /** Incoming section: the one doing the covering. */
 export const CLASS_NEXT = 'section-scroll-next';
 
+/**
+ * Following section, when the outgoing card pins flush to the top. It needs
+ * another radius of overlap so the outgoing card's rounded bottom does not
+ * reveal the page background.
+ */
+export const CLASS_SEAM = 'section-scroll-seam';
+
 /** Outgoing section that stays in flow instead of pinning. */
 export const CLASS_INTRO = 'section-scroll-intro';
 
@@ -193,9 +200,27 @@ export function introLagPx(section) {
 }
 
 /**
+ * Cover line for a rounded card, in px. `COVER_START_VH` of the viewport,
+ * unless the card is shorter than that line. A short card meets the next
+ * section at its own bottom, so the pin can sit at the top of a tall viewport
+ * instead of floating below it. A zero height has not laid out; keep the
+ * viewport line.
+ *
+ * @param {HTMLElement} section Rounded outgoing section
+ * @returns {number}
+ */
+function roundedCoverLine(section) {
+  const line = window.innerHeight * COVER_START_VH;
+  const height = section.offsetHeight;
+  if (height > 0 && height < line) return height;
+  return line;
+}
+
+/**
  * Viewport Y where the incoming section starts dimming `section`.
  * Intro sections start when the next section reaches their bottom. Rounded
- * cards and full-screen heroes start at `COVER_START_VH`.
+ * cards and full-screen heroes start at `COVER_START_VH`, and a rounded card
+ * shorter than that line starts at its own bottom.
  *
  * @param {HTMLElement} section Outgoing section
  * @returns {number}
@@ -204,6 +229,7 @@ export function coverStartPx(section) {
   if (staysInFlow(section)) {
     return Math.min(section.offsetHeight, window.innerHeight);
   }
+  if (isRounded(section)) return roundedCoverLine(section);
   return window.innerHeight * COVER_START_VH;
 }
 
@@ -225,15 +251,37 @@ export function dimEntryStart(section) {
 }
 
 /**
- * Sticky offset that parks a rounded card at the cover line. A full-screen hero
- * pins at the top instead, so it is never pulled under the nav.
+ * True when a rounded card pins flush to the top of the viewport. It is
+ * shorter than the cover line, so it no longer sits down over the next card.
+ * The next card has to overlap by another radius or the rounded bottom lets
+ * the page background show through.
+ *
+ * @param {HTMLElement} section
+ * @returns {boolean}
+ */
+export function pinsFlush(section) {
+  if (!isRounded(section)) return false;
+  const height = section.offsetHeight;
+  const line = window.innerHeight * COVER_START_VH;
+  return height > 0 && height < line;
+}
+
+/**
+ * Sticky offset that parks a rounded card at the cover line. Never positive:
+ * a card shorter than the line pins at the top of the viewport, so a tall
+ * viewport does not leave a gap above the parallax. A full-screen hero pins
+ * at the top instead, so it is never pulled under the nav. A zero height has
+ * not laid out; keep the viewport line.
  *
  * @param {HTMLElement} section
  * @returns {number}
  */
 export function pinTopPx(section) {
   if (isFullScreenHero(section)) return 0;
-  return window.innerHeight * COVER_START_VH - section.offsetHeight;
+  const height = section.offsetHeight;
+  const line = window.innerHeight * COVER_START_VH;
+  if (!(height > 0)) return line;
+  return Math.min(0, coverStartPx(section) - height);
 }
 
 /**
@@ -251,4 +299,21 @@ export function footerCoverDistance(innerHeight, viewportHeight, stacked) {
   if (!innerHeight) return 0;
   if (!stacked || !viewportHeight) return innerHeight;
   return Math.min(innerHeight, FOOTER_UNCOVER_VH * viewportHeight);
+}
+
+/**
+ * True while the footer still starts at or below the fold, so the last card
+ * can slide over it. A viewport taller than the content above the footer
+ * shows the footer immediately, and the rise stays off. An unmeasured
+ * footer (document top still 0) stays eligible until layout.
+ *
+ * @param {HTMLElement} footerEl `body > footer`
+ * @param {number} [viewportHeight=window.innerHeight]
+ * @returns {boolean}
+ */
+export function footerCoverFits(footerEl, viewportHeight = window.innerHeight) {
+  if (!(viewportHeight > 0)) return true;
+  const top = footerEl.getBoundingClientRect().top + (window.scrollY || 0);
+  if (!(top > 0)) return true;
+  return top >= viewportHeight;
 }

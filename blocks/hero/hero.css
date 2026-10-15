@@ -9,8 +9,8 @@
   --hero-scrim-hover: rgb(0 0 0 / 58%);
   --hero-scrim-pressed: var(--s2a-color-transparent-black-72);
   --hero-image-hover-scale: 1.05;
-  --hero-underline-transition-duration: 0.3s;
-  --hero-underline-transition-easing: ease;
+  --hero-underline-transition-duration: var(--underline-transition-duration-exit);
+  --hero-underline-transition-easing: var(--underline-transition-easing);
 
   position: relative;
   isolation: isolate;
@@ -174,11 +174,19 @@
 
   .hero__link-wrap:focus-visible .hero__headline-underline {
     mask-size: 100% 100%;
+
+    @media (prefers-reduced-motion: no-preference) {
+      --hero-underline-transition-duration: var(--underline-transition-duration);
+    }
   }
 
   @media (hover: hover) {
     .hero__link-wrap:hover .hero__headline-underline {
       mask-size: 100% 100%;
+
+      @media (prefers-reduced-motion: no-preference) {
+        --hero-underline-transition-duration: var(--underline-transition-duration);
+      }
     }
   }
 
@@ -331,7 +339,7 @@
     margin-block: 0;
     display: inline-block;
     grid-area: bottom-right;
-    place-self: last baseline end;
+    place-self: end end;
     white-space: nowrap;
     color: var(--s2a-color-gray-25, #fff);
   }
