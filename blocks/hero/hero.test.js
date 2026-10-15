@@ -1,6 +1,5 @@
 import { within } from '@testing-library/dom';
 import { markExternalLink } from '../../scripts/utils/utils.js';
-import initChromaticHover from '../../scripts/utils/chromatic-hover.js';
 import decorate, {
   clearHeroIntro,
   HERO_INTRO_DURATION_MS,
@@ -8,11 +7,6 @@ import decorate, {
   HERO_INTRO_FROST_ID,
   HERO_INTRO_NAV_DELAY_MS,
 } from './hero.js';
-
-jest.mock('../../scripts/utils/chromatic-hover.js', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
 
 /**
  * Matches `wrapTextNodes` in aem.js: plain cells become paragraphs before decorate.
@@ -128,7 +122,6 @@ afterEach(() => {
   document.body.classList.remove('appear');
   document.querySelector('a.header__skip')?.remove();
   document.querySelectorAll('main').forEach((main) => main.remove());
-  initChromaticHover.mockClear();
 });
 
 describe('hero block', () => {
@@ -465,7 +458,7 @@ describe('hero block', () => {
     }
   });
 
-  it('leaves the image as the only visual on a device without a fine pointer', async () => {
+  it('keeps the authored image and does not add a hover canvas', async () => {
     const block = createHeroBlock([
       ['<a href="/research/example">Headline</a>'],
       ['<picture><img src="hero.jpg" alt="hero"></picture>'],
@@ -473,23 +466,9 @@ describe('hero block', () => {
 
     await decorate(block);
 
-    // jsdom has no fine-pointer match and no WebGL, so the chromatic hover
-    // never mounts; this guards against it ever touching the real <img>.
     expect(block.querySelector('canvas')).toBeNull();
     expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
-  });
-
-  it('mounts chromatic hover on the link wrap when the hero links somewhere', async () => {
-    const block = createHeroBlock([
-      ['<a href="/research/example">Headline</a>'],
-      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
-    ]);
-
-    await decorate(block);
-
-    const link = block.querySelector('.hero__link-wrap');
-    const img = block.querySelector('.hero__media img');
-    expect(initChromaticHover).toHaveBeenCalledWith(link, img);
+    expect(block.querySelector('.hero__link-wrap')).toBeTruthy();
   });
 
   it('links the whole full-screen hero and underlines only the title', async () => {
@@ -550,18 +529,6 @@ describe('hero block', () => {
     expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
     expect(block.querySelector('.hero__headline-link')).toBeNull();
     expect(block.querySelector('.play-icon')).toHaveAttribute('aria-hidden', 'true');
-  });
-
-  it('never mounts chromatic hover on a hero without a link', async () => {
-    const block = createHeroBlock([
-      ['Headline'],
-      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
-    ]);
-
-    await decorate(block);
-
-    expect(block.querySelector('.hero__link-wrap')).toBeNull();
-    expect(initChromaticHover).not.toHaveBeenCalled();
   });
 
   it('keeps a new-tab hint out of the visible headline', async () => {

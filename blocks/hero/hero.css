@@ -6,7 +6,9 @@
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
   --hero-scrim-regular: rgb(0 0 0 / 42%);
+  --hero-scrim-hover: rgb(0 0 0 / 58%);
   --hero-scrim-pressed: var(--s2a-color-transparent-black-72);
+  --hero-image-hover-scale: 1.05;
   --hero-underline-transition-duration: 0.3s;
   --hero-underline-transition-easing: ease;
 
@@ -251,7 +253,15 @@
       object-fit: cover;
     }
 
-    /* Scrim for image overlay. */
+    /* Hover zoom sits on the image so it does not fight the intro
+       transform on .hero__media. */
+    img {
+      @media (prefers-reduced-motion: no-preference) {
+        transition: transform 600ms ease;
+      }
+    }
+
+    /* Scrim for image overlay. :active keeps the pressed scrim. */
     &::after {
       content: "";
       position: absolute;
@@ -261,6 +271,28 @@
       @media (prefers-reduced-motion: no-preference) {
         transition: background-color 600ms ease;
       }
+    }
+  }
+
+  @media (hover: hover) {
+    .hero__link-wrap:hover:not(:active) .hero__media::after {
+      background-color: var(--hero-scrim-hover);
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .hero__link-wrap:hover .hero__media img {
+      transform: scale(var(--hero-image-hover-scale));
+    }
+  }
+
+  .hero__link-wrap:focus-visible:not(:active) .hero__media::after {
+    background-color: var(--hero-scrim-hover);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero__link-wrap:focus-visible .hero__media img {
+      transform: scale(var(--hero-image-hover-scale));
     }
   }
 
@@ -313,8 +345,6 @@
     --hero-full-screen-block-size: 60lvh;
     --hero-full-screen-max-block-size: 75rem;
     --hero-full-screen-content-min-gap: 6.25rem;
-    --hero-scrim-hover: rgb(0 0 0 / 58%);
-    --hero-image-hover-scale: 1.05;
 
     @media (width >= 48rem) {
       --hero-padding-block-start: 6.25rem;
@@ -371,37 +401,6 @@
       &:has(.play-icon) {
         grid-template-rows: min-content minmax(var(--hero-full-screen-content-min-gap), 1fr) auto auto;
         row-gap: var(--s2a-spacing-sm);
-      }
-    }
-
-    /* Hover zoom sits on the image so it does not fight the intro
-       transform on .hero__media. The scrim transition already lives on
-       .hero__media::after. :active keeps the pressed scrim. */
-    .hero__media img {
-      @media (prefers-reduced-motion: no-preference) {
-        transition: transform 600ms ease;
-      }
-    }
-
-    @media (hover: hover) {
-      .hero__link-wrap:hover:not(:active) .hero__media::after {
-        background-color: var(--hero-scrim-hover);
-      }
-    }
-
-    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-      .hero__link-wrap:hover .hero__media img {
-        transform: scale(var(--hero-image-hover-scale));
-      }
-    }
-
-    .hero__link-wrap:focus-visible:not(:active) .hero__media::after {
-      background-color: var(--hero-scrim-hover);
-    }
-
-    @media (prefers-reduced-motion: no-preference) {
-      .hero__link-wrap:focus-visible .hero__media img {
-        transform: scale(var(--hero-image-hover-scale));
       }
     }
   }
