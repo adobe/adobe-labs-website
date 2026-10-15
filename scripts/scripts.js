@@ -38,6 +38,7 @@ import {
   decorateVisuallyHiddenHeadings,
   decorateBlockquotes,
   isArticleDetailPage,
+  watchExternalLinks,
 } from './utils/utils.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -250,6 +251,10 @@ async function loadEager(doc) {
   }
   ensureSkipLink(doc);
   ensureArticleBackToTop(doc);
+
+  if (window.location.pathname === '/drafts/luis/article-test') {
+    watchExternalLinks(doc);
+  }
 
   if (main) {
     document.body.classList.add('appear');
