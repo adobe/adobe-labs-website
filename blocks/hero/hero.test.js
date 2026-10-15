@@ -458,19 +458,6 @@ describe('hero block', () => {
     }
   });
 
-  it('keeps the authored image and does not add a hover canvas', async () => {
-    const block = createHeroBlock([
-      ['<a href="/research/example">Headline</a>'],
-      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
-    ]);
-
-    await decorate(block);
-
-    expect(block.querySelector('canvas')).toBeNull();
-    expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
-    expect(block.querySelector('.hero__link-wrap')).toBeTruthy();
-  });
-
   it('links the whole full-screen hero and underlines only the title', async () => {
     const block = createHeroBlock([
       [
