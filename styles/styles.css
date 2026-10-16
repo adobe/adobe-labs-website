@@ -92,6 +92,7 @@
   --color-section-surface-blue: #edf6ff;
   --color-section-surface-pink: #fff4f2;
   --color-section-surface-orange: #faf4f0;
+  --color-section-surface-default-variant: #f0f0f0;
 
   /* Blue wash over the theme background (e.g. the related content
      pre-footer). Author with `Style: section-rounded-related`. No
@@ -135,7 +136,7 @@
     --color-section-surface-blue: #111f2f;
     --color-section-surface-pink: #301517;
     --color-section-surface-orange: #312b27;
-    --color-section-surface-default-variant: color-mix(in srgb, white 4%, var(--s2a-color-background-default) 96%);
+    --color-section-surface-default-variant: #1C1C1C;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
 }
