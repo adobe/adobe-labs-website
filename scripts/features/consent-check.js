@@ -13,8 +13,7 @@
 import { loadScript } from '../aem.js';
 
 /**
- * Standalone Privacy library (privacy-standalone.js).
- * For development testing with debug logs, this query parameter can be added: `?fedsDebug=privacy`
+ * Adobe Standalone Privacy library.
  */
 const PRIVACY_LIBRARY_URL = 'https://www.adobe.com/etc.clientlibs/globalnav/clientlibs/base/privacy-standalone.js';
 
@@ -33,6 +32,8 @@ const DOMAIN_ID = {
 const FOOTER_LINK_SELECTOR = '#cmp-cookie-preferences';
 
 /**
+ * Check active cookie groups, and load any scripts
+ *
  * When loaded, the Privacy library will trigger different events to announce user consent.
  * Based on these events, Adobe pages can decide which cookies can be set based on the intended
  * use of these cookies and trackers. The events will be triggered as soon as the user makes a
@@ -51,11 +52,13 @@ const FOOTER_LINK_SELECTOR = '#cmp-cookie-preferences';
 const checkConsent = () => {
   const activeGroups = window.adobePrivacy.activeCookieGroups();
 
-  // the group I want to check
-  if (activeGroups.indexOf('C000X') !== -1) {
-    // load your tracking script
-    // perform group related actions
-  }
+  /**
+   * For scripts that are tied to the cookie consent preferences, only load them here and perform
+   * their actions when allowed, according to the active cookie group(s).
+   *
+   * E.g.
+   *  if (activeGroups.indexOf('C000X') !== -1) { ... }
+   */
 };
 
 /**
@@ -85,16 +88,14 @@ const initPrivacyLibrary = () => {
   /**
    * Re-check consent whenever the user makes or changes a decision.
    */
-  const events = {
-    'adobePrivacy:PrivacyConsent': 'Enable all: - All groups are enabled.',
-    'adobePrivacy:PrivacyCustom': 'Confirmed choices: Custom user selected groups are enabled.',
-    'adobePrivacy:PrivacyReject': 'Reject all: Only core groups (C0001) are enabled.',
-  };
+  const events = [
+    'adobePrivacy:PrivacyConsent',
+    'adobePrivacy:PrivacyCustom',
+    'adobePrivacy:PrivacyReject',
+  ];
 
-  Object.entries(events).forEach(([event, description]) => {
+  events.forEach((event) => {
     window.addEventListener(event, () => {
-      /* eslint-disable-next-line no-console */
-      console.log(`${event} - 🍪${description}`);
       checkConsent();
     });
   });
