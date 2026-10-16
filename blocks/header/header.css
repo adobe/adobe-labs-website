@@ -22,6 +22,7 @@
        Horizontal padding is zeroed below so the bar can reach the site max width. */
     --header-inset: var(--s2a-spacing-xs, 0.5rem);
     --header-radius: 1rem;
+
     padding-inline: 0;
   }
 
