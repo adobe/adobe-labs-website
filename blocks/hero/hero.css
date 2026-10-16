@@ -21,26 +21,14 @@
   -moz-osx-font-smoothing: grayscale;
   border-radius: var(--s2a-border-radius-xs);
   aspect-ratio: 3 / 2;
-
-  @media (width >= 31.25rem) {
+  
+  @media (width >= 48rem) {
     --hero-font-size: var(--s2a-typography-font-size-heading-2);
     --hero-line-height: var(--s2a-typography-line-height-heading-2);
-  }
-
-  @media (width >= 48rem) {
-    --hero-font-size: var(--s2a-font-size-6xl);
-    --hero-line-height: var(--s2a-font-line-height-2xl);
-    --hero-meta-font-size: var(--s2a-font-size-6xl);
-    --hero-meta-line-height: var(--s2a-font-line-height-2xl);
+    --hero-meta-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-meta-line-height: var(--s2a-typography-line-height-heading-2);
 
     aspect-ratio: 2 / 1;
-  }
-
-  @media (width >= 64rem) {
-    --hero-font-size: var(--s2a-font-size-7xl);
-    --hero-line-height: var(--s2a-font-line-height-3xl);
-    --hero-meta-font-size: var(--s2a-font-size-7xl);
-    --hero-meta-line-height: var(--s2a-font-line-height-3xl);
   }
 
   /* The inline link wraps the entire component,
