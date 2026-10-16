@@ -117,7 +117,7 @@ const FULL_SPAN = { at: 0, duration: 1 };
  * @param {Element} headerWrap
  * @returns {void}
  */
-function fadeHeader(headerWrap) {
+export function fadeHeader(headerWrap) {
   gsap.fromTo(headerWrap, { opacity: 1 }, {
     opacity: 0,
     ease: 'none',

@@ -108,11 +108,23 @@ export function staysInFlow(el) {
 }
 
 /**
+ * True when a page header and a default hero share the section.
+ * Index pages such as Sneaks and Playground author them together.
+ *
+ * @param {Element | null} el Section to test
+ * @returns {boolean}
+ */
+export function isHeaderHeroSection(el) {
+  return Boolean(el?.querySelector('.page-header') && el.querySelector('.hero'));
+}
+
+/**
  * Adjacent `section-rounded-default` siblings read as one card, so neither
- * covers the other.
+ * covers the other. A plain section after a shared page header and hero does
+ * not cover that hero; the header still sticks under the hero on its own.
  *
  * @param {Element} previous
- * @param {Element} next
+ * @param {Element | undefined} next
  * @returns {boolean}
  */
 export function coversPrevious(previous, next) {
