@@ -18,8 +18,11 @@
   background: transparent;
 
   @media (width >= 48rem) {
+    /* Single length: the open menu uses this in calc() and inset-inline.
+       Horizontal padding is zeroed below so the bar can reach the site max width. */
     --header-inset: var(--s2a-spacing-xs, 0.5rem);
     --header-radius: 1rem;
+    padding-inline: 0;
   }
 
   &.header--inverse {
@@ -60,7 +63,7 @@
     @media (width >= 48rem) {
       justify-content: flex-start;
       gap: var(--s2a-spacing-lg, 1.5rem);
-      padding-inline: var(--s2a-spacing-md, 1rem);
+      padding-inline: var(--s2a-spacing-lg, 1rem);
       padding-block: 0;
       border-block-end: 0;
       background-color: color-mix(in srgb, var(--header-bg) 80%, transparent);
