@@ -566,6 +566,10 @@ main {
 main,
 footer {
   --section-border-radius: 1.875rem;
+
+  @media (width <= 23.4375rem) {
+    --section-border-radius: 1.25rem;
+  }
 }
 
 main:focus-visible::after {
