@@ -78,10 +78,18 @@ describe('createModal', () => {
     expect(dialog).toHaveAttribute('aria-labelledby', heading.id);
   });
 
-  it('falls back to a generic aria-label when the fragment has no heading', async () => {
+  it('names the dialog from the visible message when the fragment has no heading', async () => {
     const content = fragmentFrom('<p>Lorem ipsum with no heading.</p>');
 
     const { block } = await createModal([...content.childNodes]);
+
+    const dialog = block.querySelector('dialog');
+    expect(dialog).toHaveAttribute('aria-label', 'Lorem ipsum with no heading.');
+    expect(dialog).not.toHaveAttribute('aria-labelledby');
+  });
+
+  it('falls back to a generic aria-label when the fragment has no name', async () => {
+    const { block } = await createModal([document.createElement('div')]);
 
     const dialog = block.querySelector('dialog');
     expect(dialog).toHaveAttribute('aria-label', 'Dialog');
@@ -158,7 +166,25 @@ describe('openModal', () => {
     expect(loadFragment).toHaveBeenCalledWith('/modals/subscribe');
     const dialog = document.querySelector('.modal dialog');
     expect(dialog).toHaveAttribute('open');
-    expect(within(dialog).getByRole('heading', { name: 'Subscribe' })).toBeInTheDocument();
+    const heading = within(dialog).getByRole('heading', { name: 'Subscribe' });
+    expect(heading).toBeInTheDocument();
+    expect(dialog).toHaveAttribute('aria-labelledby', heading.id);
+    expect(dialog).toHaveAttribute('aria-describedby', 'modal-description');
+    expect(within(dialog).getByText('Lorem ipsum dolor sit amet.')).toHaveAttribute('id', 'modal-description');
+  });
+
+  it('names the dialog from the visible message when the heading is hidden', async () => {
+    const hidden = document.createElement('div');
+    hidden.hidden = true;
+    hidden.innerHTML = '<h2>Subscribe</h2>';
+    const message = document.createElement('p');
+    message.textContent = 'Something went wrong';
+
+    const { block } = await createModal([hidden, message]);
+
+    const dialog = block.querySelector('dialog');
+    expect(dialog).toHaveAttribute('aria-label', 'Something went wrong');
+    expect(dialog).not.toHaveAttribute('aria-labelledby');
   });
 
   it('resolves an absolute URL to a site-relative path before loading', async () => {
