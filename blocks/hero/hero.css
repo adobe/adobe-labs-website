@@ -8,6 +8,7 @@
   --hero-scrim-regular: rgb(0 0 0 / 42%);
   --hero-scrim-hover: rgb(0 0 0 / 58%);
   --hero-scrim-pressed: var(--s2a-color-transparent-black-72);
+  --hero-scrim-transition-duration: 600ms;
   --hero-image-hover-scale: 1.05;
   --hero-underline-transition-duration: var(--underline-transition-duration-exit);
   --hero-underline-transition-easing: var(--underline-transition-easing);
@@ -275,10 +276,7 @@
       position: absolute;
       inset: 0;
       background-color: var(--hero-scrim-regular);
-
-      @media (prefers-reduced-motion: no-preference) {
-        transition: background-color 600ms ease;
-      }
+      transition: background-color var(--hero-scrim-transition-duration, 600ms) ease;
     }
   }
 
@@ -341,7 +339,6 @@
     grid-area: bottom-right;
     place-self: end end;
     white-space: nowrap;
-    color: var(--s2a-color-gray-25, #fff);
   }
 
   /* --- Full-Screen variant --- */
@@ -386,15 +383,28 @@
     /* The link is the hero's only in-flow child. Make it a grid so the
        copy stretches and the whole photo is the hit target. */
     .hero__link-wrap {
+      position: relative;
       display: grid;
       height: auto;
 
-      /* Light ring plus a dark outer ring, so focus stays visible on
-         both bright and dark parts of the photo. */
+      /* Inner ring to override the default offset outline, which
+         sits outside the full-bleed box and is hidden by the viewport.
+         inset-block-end matches .hero-container:has(.hero-full-screen) + [class*="section-rounded-"]
+         so the bottom edge stays above the overlapping section. */
       &:focus-visible {
-        outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-knockout);
-        outline-offset: calc(var(--s2a-border-width-md) * 2);
-        box-shadow: 0 0 0 var(--s2a-border-width-md) var(--s2a-color-gray-900, #131313);
+        outline: none;
+      }
+
+      &:focus-visible::after {
+        content: "";
+        position: absolute;
+        inset: var(--s2a-border-width-md);
+        inset-block-end: calc(
+          var(--section-border-radius)
+          + var(--s2a-border-width-md)
+        );
+        border: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-knockout);
+        z-index: 2;
       }
     }
 
@@ -447,6 +457,7 @@ main > .section.hero-container--overlay {
 
 @media (prefers-reduced-motion: reduce) {
   .hero {
+    --hero-scrim-transition-duration: 1s;
     --hero-underline-transition-duration: 0s;
   }
 }
