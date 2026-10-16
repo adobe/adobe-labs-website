@@ -335,23 +335,39 @@ async function loadLazy(doc) {
   const setCalcPerspectiveDebounced = debounce(setCalculatedPerspective);
   window.addEventListener('resize', setCalcPerspectiveDebounced);
 
-  // Section cover motion: pages with a rounded section, motion opted in. Guarded
-  // here so reduced-motion requests fetch none of it; the module then owns the
-  // change listener, so turning reduced motion *on* later still stops the
-  // animation. Turning it off later needs a reload, which is the safe asymmetry.
-  const rounded = doc.querySelector('main > .section[class*="section-rounded-"]');
-  if (rounded && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+  // Footer garage door, plus section cover motion when a rounded section is
+  // present. Guarded here so reduced-motion requests fetch none of it; the
+  // module then owns the change listener, so turning reduced motion *on*
+  // later still stops the animation. Turning it off later needs a reload,
+  // which is the safe asymmetry. A last section with no `section-rounded-*`
+  // class still covers the footer, because CSS rounds it with `:last-child`.
+  // A full-screen hero does not. GSAP is preloaded only when a rounded
+  // section can cover the one before it.
+  const sections = [...(main?.querySelectorAll(':scope > .section') ?? [])];
+  const rounded = sections.some((section) => (
+    typeof section.className === 'string' && section.className.includes('section-rounded-')
+  ));
+  const last = sections.at(-1);
+  const lastIsFullScreenHero = Boolean(
+    last?.classList.contains('hero-container') && last.querySelector('.hero-full-screen'),
+  );
+  const footerCover = rounded || (last && !lastIsFullScreenHero);
+  if (footerCover && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
     // GSAP is the largest asset these pages load and it sits two levels deep
     // behind `section-scroll/init.js`. Warm it here so it downloads alongside that
     // module's imports instead of after them. Lenis is small and is fetched in
     // parallel with GSAP, so it needs no hint. A coarse pointer that can fade
     // in CSS never uses the bundle; `config-and-utils.js` knows that and is already a
     // dependency of the module below, so the check does not add a request.
-    const sectionsReady = import('./section-scroll/config-and-utils.js');
+    // A page with no rounded section never uses the bundle.
     const scrollReady = import('./section-scroll/init.js');
-    sectionsReady.then(({ usesCssCover }) => {
-      if (!usesCssCover()) modulePreload('/deps/gsap/dist/index.js');
-    }).catch(() => { /* the scroll import below reports the failure */ });
+    if (rounded) {
+      import('./section-scroll/config-and-utils.js')
+        .then(({ usesCssCover }) => {
+          if (!usesCssCover()) modulePreload('/deps/gsap/dist/index.js');
+        })
+        .catch(() => { /* the scroll import below reports the failure */ });
+    }
     scrollReady
       .then((mod) => mod.initSectionScroll())
       .catch(() => { /* motion is optional: leave the static layout in place */ });

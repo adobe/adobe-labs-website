@@ -1066,6 +1066,26 @@ describe('initSectionScroll', () => {
     expect(Lenis).toHaveBeenCalledTimes(1);
   });
 
+  it('garage-doors a plain last section without loading GSAP or Lenis', async () => {
+    mockMatchMedia(true);
+    const { main, footer } = mountPage(`
+      <div class="section"></div>
+      <div class="section"></div>
+    `);
+
+    await initSectionScroll();
+
+    expect(loadCSS).toHaveBeenCalledWith('/styles/features/section-scroll.css');
+    expect(loadCSS).not.toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
+    expect(Lenis).not.toHaveBeenCalled();
+    expect(gsap.context).not.toHaveBeenCalled();
+    expect(gsap.ticker.add).not.toHaveBeenCalled();
+    expect(main).toHaveClass('section-scroll-reveal-main');
+    expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
+    expect(main.children[1]).toHaveClass('section-scroll-reveal');
+    expect(footer).toHaveClass('section-scroll-under');
+  });
+
   it('strips footer reveal classes on teardown', async () => {
     mockMatchMedia(true);
     const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
