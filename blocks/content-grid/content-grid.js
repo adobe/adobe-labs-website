@@ -15,6 +15,14 @@ import {
 import { buildGridItem } from '../grid-item/grid-item.js';
 
 const DEFAULT_COUNT = 8;
+/** Research categories that choose a related-section surface. */
+const RESEARCH_CATEGORY_SLUGS = new Set([
+  'future-of-creative-work',
+  'economic-impact',
+  'research',
+  'human-side-of-ai',
+  'standards-practices',
+]);
 /** /content.json still includes `/`. */
 const HOME_PATHS = new Set(['', '/', '/index']);
 const DEFAULT_ASPECT_CLASS = 'aspect-1-1';
@@ -259,6 +267,19 @@ export function wireStackedGridPagers(block) {
     const grid = pager.closest('.content-grid');
     if (grid && !wired.has(grid)) pager.remove();
   });
+}
+
+/**
+ * First known research category in page metadata, as a class slug.
+ * A comma-separated list uses the earliest match.
+ * @param {string} [category]
+ * @returns {string}
+ */
+function researchCategorySlug(category) {
+  return String(category || '')
+    .split(',')
+    .map((name) => toClassName(name))
+    .find((slug) => RESEARCH_CATEGORY_SLUGS.has(slug)) || '';
 }
 
 /**
@@ -522,6 +543,16 @@ export default async function decorate(block) {
   const excludePath = isRelated ? currentPath : '';
 
   block.classList.toggle('content-grid--related', isRelated);
+  // The shared pre-footer is authored once. The page path picks the
+  // section surface; a research page also uses its category
+  // (see `.section-rounded-related` in styles.css).
+  if (isRelated && section) block.dataset.contentType = section.slug;
+  else delete block.dataset.contentType;
+  const categorySlug = isRelated && section?.slug === 'research'
+    ? researchCategorySlug(category)
+    : '';
+  if (categorySlug) block.dataset.category = categorySlug;
+  else delete block.dataset.category;
   block.replaceChildren();
 
   const payload = await dataStore.getData(endpoint);
