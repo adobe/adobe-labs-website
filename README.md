@@ -408,6 +408,48 @@ Consent text and the “required” / “valid email” messages are loaded from
 
 On preview hosts, `?email-collection-show=success` or `?email-collection-show=error` opens the modal on that state.
 
+### Troubleshooting
+
+A failed submit shows the error panel. Two causes showed up while wiring the guest path. Both happen after the visitor submits, and both are fixed in `blocks/email-collection/email-collection.js`.
+
+#### Guest token and `ims_sid`
+
+Localhost and other non-production hosts ask stage IMS for a guest token:
+
+`POST https://adobeid-na1-stg1.services.adobe.com/ims/check/v6/token`
+
+```
+guest_allowed=true
+client_id=adlabs
+scope=AdobeID,openid
+```
+
+Production uses `https://adobeid-na1.services.adobe.com/ims/check/v6/token` with the same body.
+
+`imslib` sends cookies on that request. A browser that already has an `ims_sid` cookie for the IMS host gets HTTP 200 and this body:
+
+```json
+{"error":"invalid_credentials"}
+```
+
+The library surfaces that as an expired token (`invalid_credentials`, often with a trailing space because it joins `error` and an empty `error_description`). The same request with no cookies returns a guest `access_token`. A clean browser profile succeeds for that reason, while a signed-in Adobe browser fails.
+
+The block posts the check itself with `credentials: 'omit'`, so an existing Adobe session cookie stays off the guest request. On stage, the `adlabs` client also returns a token when `fingerprint_request_id` is omitted, including a request that never loads the bot-fingerprint script.
+
+#### `aepCmp` and `aepOtherConsents`
+
+The guest token is then sent to `/form-submit` on `https://www.stage.adobe.com/milo-email-collection-api` (stage) or `https://www.adobe.com/milo-email-collection-api` (production).
+
+If `aepCmp` or `aepOtherConsents` is absent from the JSON, the API responds 400:
+
+```json
+{"error":"missing parameter(s) 'aepCmp,aepOtherConsents'"}
+```
+
+`JSON.stringify` drops a key whose value is `undefined`, and the API treats that as missing. Milo copies both fields from Alloy (`window.alloy_all.data._adobe_corpnew`). This site does not load Alloy. Sending both keys as `null` is accepted: 201 and `Email subscribed successfully`.
+
+Those two fields are separate from the newsletter consent. The newsletter consent is `consentId` from federal content (`cs4;ve1;en` when no consent key is authored).
+
 ## Buttons
 
 The default `.button` class uses the Primary style. So far only the default/primary style is supported until others are needed.
