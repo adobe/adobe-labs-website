@@ -92,6 +92,7 @@
   --color-section-surface-blue: #edf6ff;
   --color-section-surface-pink: #fff4f2;
   --color-section-surface-orange: #faf4f0;
+  --color-section-surface-default-variant: #f0f0f0;
 
   /* Blue wash over the theme background (e.g. the related content
      pre-footer). Author with `Style: section-rounded-related`. No
@@ -135,7 +136,7 @@
     --color-section-surface-blue: #111f2f;
     --color-section-surface-pink: #301517;
     --color-section-surface-orange: #312b27;
-    --color-section-surface-default-variant: #262626;
+    --color-section-surface-default-variant: #1C1C1C;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
   }
 }
@@ -565,6 +566,10 @@ main {
 main,
 footer {
   --section-border-radius: 1.875rem;
+
+  @media (width <= 23.4375rem) {
+    --section-border-radius: 1.25rem;
+  }
 }
 
 main:focus-visible::after {
@@ -624,7 +629,7 @@ main:focus-visible::after {
 }
 
 /* --- Chromatic hover ---
-   Decorative canvas crossfaded over the real <img> on hero/grid-item hover.
+   Decorative canvas crossfaded over the real <img> on grid-item hover.
    The <img> underneath is untouched and is what shows when this canvas is
    absent or fully faded out. */
 .chromatic-hover-canvas {
@@ -638,10 +643,15 @@ main:focus-visible::after {
 
 /* --- Article meta --- */
 
-/* Byline section matches the large image width from the same breakpoint. */
+/* Byline section matches the large image width from the same breakpoint.
+   The footer instance lines up with the body text column. */
 .article-meta-section {
   @media (width >= 48rem) {
     --article-content-max-inline-size: min(max(calc(8 / 12 * 100%), var(--article-default-content-max-inline-size, 100%)), 77.875rem); /* 1246px max. Same as .image.lg. */
+  }
+
+  &:has(.article-meta--bottom) {
+    --article-content-max-inline-size: var(--article-default-content-max-inline-size);
   }
 }
 
@@ -667,7 +677,7 @@ main:focus-visible::after {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--s2a-spacing-sm);
+  gap: var(--s2a-spacing-xs);
 }
 
 /* Top byline only: stack "Words by:" above the author list at narrow
@@ -734,7 +744,7 @@ main:focus-visible::after {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--s2a-spacing-sm);
+  gap: var(--s2a-spacing-xs);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1107,15 +1117,14 @@ main > .section:last-child:not([class*="section-rounded-"]) {
   padding-block-end: var(--section-padding-block-end-last);
 }
 
+/* Global top of page padding, between content and main nav. */
+main > .section:first-of-type:not([class*="section-rounded-"], .hero-container:has(.hero-full-screen)) {
+  padding-block-start: var(--s2a-viewport-vertical-padding-2xs, 1rem);
+}
+
 /* -- Page-specific section spacing overrides --- */
 main .section.grid-line-content-container {
   padding-block-end: 0;
-}
-
-@media (width < 48rem) {
-  main > .section:first-of-type:not([class*="section-rounded-"], .hero-container:has(.hero-full-screen)) {
-    padding-block-start: var(--s2a-spacing-md, 1rem);
-  }
 }
 
 body.research main {

@@ -1,6 +1,5 @@
 import { within } from '@testing-library/dom';
 import { markExternalLink } from '../../scripts/utils/utils.js';
-import initChromaticHover from '../../scripts/utils/chromatic-hover.js';
 import decorate, {
   clearHeroIntro,
   HERO_INTRO_DURATION_MS,
@@ -8,11 +7,6 @@ import decorate, {
   HERO_INTRO_FROST_ID,
   HERO_INTRO_NAV_DELAY_MS,
 } from './hero.js';
-
-jest.mock('../../scripts/utils/chromatic-hover.js', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
 
 /**
  * Matches `wrapTextNodes` in aem.js: plain cells become paragraphs before decorate.
@@ -128,7 +122,6 @@ afterEach(() => {
   document.body.classList.remove('appear');
   document.querySelector('a.header__skip')?.remove();
   document.querySelectorAll('main').forEach((main) => main.remove());
-  initChromaticHover.mockClear();
 });
 
 describe('hero block', () => {
@@ -465,43 +458,64 @@ describe('hero block', () => {
     }
   });
 
-  it('leaves the image as the only visual on a device without a fine pointer', async () => {
+  it('links the whole full-screen hero and underlines only the title', async () => {
     const block = createHeroBlock([
-      ['<a href="/research/example">Headline</a>'],
+      [
+        'Research',
+        '5.24.26',
+        '<a href="/research/example">Headline</a>',
+        'Read',
+      ],
       ['<picture><img src="hero.jpg" alt="hero"></picture>'],
     ]);
+    block.classList.add('hero-full-screen');
+    const main = placeInMain(block);
 
-    await decorate(block);
+    try {
+      await decorate(block);
 
-    // jsdom has no fine-pointer match and no WebGL, so the chromatic hover
-    // never mounts; this guards against it ever touching the real <img>.
-    expect(block.querySelector('canvas')).toBeNull();
-    expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
+      const links = within(block).getAllByRole('link');
+      expect(links).toHaveLength(1);
+      const link = links[0];
+      expect(link).toHaveClass('hero__link-wrap');
+      expect(link).toHaveAttribute('href', expect.stringMatching(/\/research\/example$/));
+      expect(block.querySelector('.hero__headline-link')).toBeNull();
+      expect(block.querySelector('.hero__headline').tagName).toBe('P');
+      expect(block.querySelector('.hero__headline-underline')).toHaveAttribute('aria-hidden', 'true');
+      expect(block.querySelector('.hero__headline-underline')).toHaveTextContent('Headline');
+      const cta = block.querySelector('.hero__cta-text');
+      expect(cta.tagName).toBe('P');
+      expect(cta).toHaveTextContent('Read');
+      expect(cta.querySelector('.hero__cta-underline')).toBeNull();
+      expect(block.querySelector('.hero__date').closest('a')).toBe(link);
+      expect(block.querySelector('.hero__content-type').closest('a')).toBe(link);
+      expect(block.querySelector('.hero__media').closest('a')).toBe(link);
+      expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
+      expect(block.querySelector('canvas')).toBeNull();
+    } finally {
+      main.remove();
+    }
   });
 
-  it('mounts chromatic hover on the link wrap when the hero links somewhere', async () => {
+  it('names a full-screen video hero as a video article', async () => {
     const block = createHeroBlock([
-      ['<a href="/research/example">Headline</a>'],
-      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+      [
+        '<a href="/sneaks/project-clean-take">Project Clean Take</a>',
+        'Read',
+      ],
+      ['Is Video', 'true'],
     ]);
+    block.classList.add('hero-full-screen');
 
     await decorate(block);
 
-    const link = block.querySelector('.hero__link-wrap');
-    const img = block.querySelector('.hero__media img');
-    expect(initChromaticHover).toHaveBeenCalledWith(link, img);
-  });
-
-  it('never mounts chromatic hover on a hero without a link', async () => {
-    const block = createHeroBlock([
-      ['Headline'],
-      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
-    ]);
-
-    await decorate(block);
-
-    expect(block.querySelector('.hero__link-wrap')).toBeNull();
-    expect(initChromaticHover).not.toHaveBeenCalled();
+    const link = within(block).getByRole('link', { name: /video article/i });
+    expect(link).toHaveClass('hero__link-wrap');
+    expect(link).toHaveAttribute('href', expect.stringMatching(/\/sneaks\/project-clean-take$/));
+    expect(link.querySelector('.visually-hidden')).toHaveTextContent('Video article');
+    expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
+    expect(block.querySelector('.hero__headline-link')).toBeNull();
+    expect(block.querySelector('.play-icon')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('keeps a new-tab hint out of the visible headline', async () => {
