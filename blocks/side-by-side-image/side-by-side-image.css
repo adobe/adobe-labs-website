@@ -29,6 +29,19 @@
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: 119 / 81;
+  object-fit: cover;
+  border-radius: var(--s2a-border-radius-xs);
+}
+
+@media (width > 23.4375rem) {
+  .side-by-side-image {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .side-by-side-image__item img {
+    aspect-ratio: 360 / 242.306;
+  }
 }
 
 .side-by-side-image__caption {
@@ -45,7 +58,6 @@
 
 @media (width >= 56.25rem) {
   .side-by-side-image {
-    grid-template-columns: 1fr 1fr;
     gap: var(--s2a-spacing-lg, 1.5rem);
     padding-inline: var(--s2a-spacing-lg, 1.5rem);
   }
