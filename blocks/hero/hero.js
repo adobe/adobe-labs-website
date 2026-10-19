@@ -1,5 +1,4 @@
 import { getMetadata } from '../../scripts/aem.js';
-import initChromaticHover from '../../scripts/utils/chromatic-hover.js';
 import {
   buildPlayIcon,
   getAuthoredCells,
@@ -125,8 +124,30 @@ function getHeadlineTag(cell) {
 }
 
 /**
- * Headline at the authored level. The visible text and an aria-hidden
- * underline copy share wrapping inside `.hero__headline-stack`.
+ * Visible text stacked with an aria-hidden underline copy so both wrap
+ * the same way. The underline is revealed in CSS.
+ *
+ * @param {string} text
+ * @param {{ stack: string, text: string, underline: string }} classNames
+ * @returns {HTMLSpanElement}
+ */
+function createUnderlineStack(text, classNames) {
+  const stack = document.createElement('span');
+  stack.className = classNames.stack;
+  const textEl = document.createElement('span');
+  textEl.className = classNames.text;
+  textEl.textContent = text;
+  const underline = document.createElement('span');
+  underline.className = classNames.underline;
+  underline.setAttribute('aria-hidden', 'true');
+  underline.textContent = text;
+  stack.append(textEl, underline);
+  return stack;
+}
+
+/**
+ * Headline at the authored level. The card link wraps the hero; this
+ * element only carries the title and its hover underline.
  *
  * @param {string} tag `h1`–`h6` or `p`
  * @param {string} text Headline text
@@ -135,17 +156,11 @@ function getHeadlineTag(cell) {
 function createHeadline(tag, text) {
   const el = document.createElement(HEADLINE_TAGS.has(tag) ? tag : 'p');
   el.className = 'hero__headline';
-  const stack = document.createElement('span');
-  stack.className = 'hero__headline-stack';
-  const textEl = document.createElement('span');
-  textEl.className = 'hero__headline-text';
-  textEl.textContent = text;
-  const underline = document.createElement('span');
-  underline.className = 'hero__headline-underline';
-  underline.setAttribute('aria-hidden', 'true');
-  underline.textContent = text;
-  stack.append(textEl, underline);
-  el.append(stack);
+  el.append(createUnderlineStack(text, {
+    stack: 'hero__headline-stack',
+    text: 'hero__headline-text',
+    underline: 'hero__headline-underline',
+  }));
   return el;
 }
 
@@ -270,11 +285,8 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (!copy.querySelector('.hero__category, .hero__headline')) copy.remove();
 
   const ctaText = fragment.querySelector('.hero__cta-text');
-  if (href && linkLabel) {
-    ctaText.textContent = linkLabel;
-  } else {
-    ctaText.remove();
-  }
+  if (href && linkLabel) ctaText.textContent = linkLabel;
+  else ctaText.remove();
 
   const blockChildren = [...fragment.children];
 
@@ -303,12 +315,6 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   }
 
   root.replaceChildren(wrappedContent);
-
-  if (data.image) {
-    const img = root.querySelector('.hero__media img');
-    const trigger = root.querySelector('.hero__link-wrap');
-    if (img && trigger) initChromaticHover(trigger, img);
-  }
 
   return root;
 }

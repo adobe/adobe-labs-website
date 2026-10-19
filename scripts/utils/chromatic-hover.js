@@ -1,5 +1,5 @@
 /**
- * Cursor-driven chromatic aberration on hero and grid-item hover.
+ * Cursor-driven chromatic aberration on grid-item hover.
  *
  * Mounts only on a fine pointer (never on touch/mobile) and only when a
  * WebGL context can be created, so unsupported browsers fall back to the
@@ -414,8 +414,7 @@ class ChromaticHover {
    * Syncs the canvas backing size and the `uCanvasSize` uniform to
    * `container`, then redraws immediately. Reassigning `canvas.width`/
    * `height` clears the WebGL drawing buffer (spec behavior, not a bug),
-   * so a container that keeps resizing — e.g. the hero's own load-in
-   * animation, which resizes `.hero__media` for ~2s — would otherwise
+   * so a container that keeps resizing for a couple of seconds would otherwise
    * leave the canvas blank for a frame on every single resize, racing the
    * next tick() on the shared ticker and often losing, which reads as a
    * sustained black flash rather than a one-frame blip.

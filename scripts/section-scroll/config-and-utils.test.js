@@ -119,6 +119,45 @@ describe('coversPrevious', () => {
   it('treats adjacent default cards as one card', () => {
     expect(pair('section-rounded-default', 'section-rounded-default')).toBe(false);
   });
+
+  it('does not let a plain section cover a shared page header and hero', () => {
+    document.body.innerHTML = `
+      <main>
+        <div class="section">
+          <div class="page-header"></div>
+          <div class="hero"></div>
+        </div>
+        <div class="section"></div>
+      </main>`;
+    const [previous, next] = document.querySelector('main').children;
+
+    expect(coversPrevious(previous, next)).toBe(false);
+  });
+
+  it('does not cover a page header that has no hero', () => {
+    document.body.innerHTML = `
+      <main>
+        <div class="section"><div class="page-header"></div></div>
+        <div class="section"></div>
+      </main>`;
+    const [previous, next] = document.querySelector('main').children;
+
+    expect(coversPrevious(previous, next)).toBe(false);
+  });
+
+  it('does not treat a full-screen hero as that intro', () => {
+    document.body.innerHTML = `
+      <main>
+        <div class="section hero-container">
+          <div class="page-header"></div>
+          <div class="hero hero-full-screen"></div>
+        </div>
+        <div class="section"></div>
+      </main>`;
+    const [previous, next] = document.querySelector('main').children;
+
+    expect(coversPrevious(previous, next)).toBe(false);
+  });
 });
 
 describe('headerFadeVh', () => {

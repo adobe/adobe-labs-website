@@ -122,6 +122,7 @@
   .hover-list__headline {
     text-decoration-line: underline;
     text-decoration-color: var(--s2a-color-content-default);
+    text-decoration-thickness: 1px;
   }
 }
 

@@ -480,7 +480,7 @@ describe('bindFooterReveal', () => {
     expect(scrollBy).not.toHaveBeenCalled();
   });
 
-  it('does nothing without a rounded section', () => {
+  it('does nothing when the only section is a full-screen hero', () => {
     const { main, footer } = mountPage(`
       <div class="section hero-container"><div class="hero hero-full-screen"></div></div>
     `);
@@ -489,6 +489,32 @@ describe('bindFooterReveal', () => {
 
     expect(main).not.toHaveClass('section-scroll-reveal-main');
     expect(footer).not.toHaveClass('section-scroll-under');
+  });
+
+  it('garage-doors a plain last section when the page has no rounded card', () => {
+    const { main, footer } = mountPage(`
+      <div class="section"></div>
+      <div class="section"></div>
+    `);
+
+    bindFooterReveal(main, document);
+
+    expect(main).toHaveClass('section-scroll-reveal-main');
+    expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
+    expect(main.children[1]).toHaveClass('section-scroll-reveal');
+    expect(footer).toHaveClass('section-scroll-under');
+  });
+
+  it('keeps the last rounded card when a plain section follows it', () => {
+    const { main } = mountPage(`
+      <div class="section section-rounded-default"></div>
+      <div class="section"></div>
+    `);
+
+    bindFooterReveal(main, document);
+
+    expect(main.children[0]).toHaveClass('section-scroll-reveal');
+    expect(main.children[1]).not.toHaveClass('section-scroll-reveal');
   });
 
   it('does nothing without a footer', () => {

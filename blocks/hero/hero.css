@@ -6,7 +6,10 @@
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
   --hero-scrim-regular: rgb(0 0 0 / 42%);
+  --hero-scrim-hover: rgb(0 0 0 / 58%);
   --hero-scrim-pressed: var(--s2a-color-transparent-black-72);
+  --hero-scrim-transition-duration: 600ms;
+  --hero-image-hover-scale: 1.05;
   --hero-underline-transition-duration: var(--underline-transition-duration-exit);
   --hero-underline-transition-easing: var(--underline-transition-easing);
 
@@ -21,26 +24,14 @@
   -moz-osx-font-smoothing: grayscale;
   border-radius: var(--s2a-border-radius-xs);
   aspect-ratio: 3 / 2;
-
-  @media (width >= 31.25rem) {
+  
+  @media (width >= 48rem) {
     --hero-font-size: var(--s2a-typography-font-size-heading-2);
     --hero-line-height: var(--s2a-typography-line-height-heading-2);
-  }
-
-  @media (width >= 48rem) {
-    --hero-font-size: var(--s2a-font-size-6xl);
-    --hero-line-height: var(--s2a-font-line-height-2xl);
-    --hero-meta-font-size: var(--s2a-font-size-6xl);
-    --hero-meta-line-height: var(--s2a-font-line-height-2xl);
+    --hero-meta-font-size: var(--s2a-typography-font-size-heading-2);
+    --hero-meta-line-height: var(--s2a-typography-line-height-heading-2);
 
     aspect-ratio: 2 / 1;
-  }
-
-  @media (width >= 64rem) {
-    --hero-font-size: var(--s2a-font-size-7xl);
-    --hero-line-height: var(--s2a-font-line-height-3xl);
-    --hero-meta-font-size: var(--s2a-font-size-7xl);
-    --hero-meta-line-height: var(--s2a-font-line-height-3xl);
   }
 
   /* The inline link wraps the entire component,
@@ -139,7 +130,8 @@
   }
 
   /* Two stacked copies share wrapping. Ghost's real underline gets
-     correct position and skip-ink; mask reveals it on hover. */
+     correct position and skip-ink; mask reveals it when the whole
+     hero link is hovered or focused. */
   .hero__headline-stack {
     display: inline-grid;
     grid-template-columns: 1fr;
@@ -158,6 +150,8 @@
     color: transparent;
     text-decoration-line: underline;
     text-decoration-color: var(--s2a-color-gray-25, #fff);
+    text-decoration-thickness: 3px;
+    text-underline-offset: 4px;
     mask-image: linear-gradient(to right, black, black);
     mask-repeat: no-repeat;
     mask-position: left;
@@ -258,16 +252,43 @@
       object-fit: cover;
     }
 
-    /* Scrim for image overlay. */
+    /* Hover zoom sits on the image so it does not fight the intro
+       transform on .hero__media. */
+    img {
+      @media (prefers-reduced-motion: no-preference) {
+        transition: transform 600ms ease;
+      }
+    }
+
+    /* Scrim for image overlay. :active keeps the pressed scrim. */
     &::after {
       content: "";
       position: absolute;
       inset: 0;
       background-color: var(--hero-scrim-regular);
+      transition: background-color var(--hero-scrim-transition-duration, 600ms) ease;
+    }
+  }
 
-      @media (prefers-reduced-motion: no-preference) {
-        transition: background-color 250ms ease-in-out;
-      }
+  @media (hover: hover) {
+    .hero__link-wrap:hover:not(:active) .hero__media::after {
+      background-color: var(--hero-scrim-hover);
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .hero__link-wrap:hover .hero__media img {
+      transform: scale(var(--hero-image-hover-scale));
+    }
+  }
+
+  .hero__link-wrap:focus-visible:not(:active) .hero__media::after {
+    background-color: var(--hero-scrim-hover);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero__link-wrap:focus-visible .hero__media img {
+      transform: scale(var(--hero-image-hover-scale));
     }
   }
 
@@ -301,12 +322,12 @@
     text-align: end;
   }
 
-  /* CTA label (not a button — the whole card is the link) */
+  /* CTA label. It sits inside the hero link and stays plain. */
   .hero__cta-text {
     margin-block: 0;
     display: inline-block;
     grid-area: bottom-right;
-    place-self: last baseline end;
+    place-self: end end;
     white-space: nowrap;
   }
 
@@ -324,15 +345,11 @@
       --hero-padding-block-start: 6.25rem;
       --hero-padding-block-end: 4.375rem;
       --hero-full-screen-block-size: 86lvh;
-      --hero-meta-font-size: var(--s2a-font-size-6xl);
-      --hero-meta-line-height: var(--s2a-font-line-height-2xl);
     }
 
     @media (width >= 64rem) {
       --hero-padding-block-start: 5rem;
       --hero-padding-block-end: 5.625rem;
-      --hero-meta-font-size: var(--s2a-font-size-7xl);
-      --hero-meta-line-height: var(--s2a-font-line-height-3xl);
     }
 
     border-radius: 0;
@@ -349,6 +366,8 @@
       max-height: var(--hero-full-screen-max-block-size);
     }
 
+    /* The link is the hero's only in-flow child. Make it a grid so the
+       copy stretches and the whole photo is the hit target. */
     .hero__link-wrap {
       position: relative;
       display: grid;
@@ -424,6 +443,7 @@ main > .section.hero-container--overlay {
 
 @media (prefers-reduced-motion: reduce) {
   .hero {
+    --hero-scrim-transition-duration: 1s;
     --hero-underline-transition-duration: 0s;
   }
 }
