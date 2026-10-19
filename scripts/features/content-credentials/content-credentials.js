@@ -468,14 +468,35 @@ const bindPinDismissal = () => {
 };
 
 /**
+ * Shared accessible name for a CR pin, before any image-specific text is added.
+ */
+const CR_PIN_LABEL = 'View content credentials for this image';
+
+/**
+ * Accessible name for a CR pin.
+ *
+ * Every pin performs the same action, so the image alt text is appended when the image
+ * has one. That gives each pin a distinct name on a page with several credentialed
+ * images. An image with no alt text keeps the shared name.
+ *
+ * @param {string} [imageAlt] The image's alt text.
+ * @returns {string}
+ */
+const getCrPinLabel = (imageAlt = '') => {
+  const alt = String(imageAlt ?? '').replace(/\s+/g, ' ').trim();
+  return alt ? `${CR_PIN_LABEL}: ${alt}` : CR_PIN_LABEL;
+};
+
+/**
  * Adds a "CR" pin button to the image's pin wrapper. The button toggles a panel that
  * displays the image's content credentials data and an inspect button.
 
  * @param {HTMLElement} pinWrapper The wrapper element to append the button to.
  * @param {object} manifest The image's active C2PA manifest.
  * @param {string} sourceUrl The image's original URL, handed to Verify for inspection.
+ * @param {string} [imageAlt] Alt text of the image this pin belongs to.
  */
-const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl) => {
+const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl, imageAlt = '') => {
   const popoverId = `cr-popover-${crypto.randomUUID()}`;
   const groupClass = 'cr-pin-popover__group';
   const itemClass = 'cr-pin-popover__item';
@@ -486,7 +507,7 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl) => {
   const button = document.createElement('button');
   button.type = 'button';
   button.classList.add('cr-pin-button');
-  button.setAttribute('aria-label', 'View content credentials for this image');
+  button.setAttribute('aria-label', getCrPinLabel(imageAlt));
   button.setAttribute('aria-haspopup', 'dialog');
   button.setAttribute('aria-controls', popoverId);
   button.setAttribute('aria-expanded', 'false');
@@ -803,7 +824,7 @@ const addContentCredentials = async (crImageSelector) => {
     crPinWrapper.classList.add('cr-pin-image');
     picture.before(crPinWrapper);
     crPinWrapper.append(picture);
-    buildCRPinPopoverComponent(crPinWrapper, activeManifest, getOriginalImageUrl(img));
+    buildCRPinPopoverComponent(crPinWrapper, activeManifest, getOriginalImageUrl(img), img.alt);
   }));
 };
 
