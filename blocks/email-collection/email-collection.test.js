@@ -205,8 +205,7 @@ describe('email-collection', () => {
     expect(postBody.current.options.headers.Authorization).toBe('Bearer guest-token');
   });
 
-  it('logs the IMS refusal when no guest token is issued', async () => {
-    const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+  it('shows the error panel when IMS does not issue a guest token', async () => {
     mockFetch({ tokenPayload: { error: 'invalid_credentials' } });
     const block = createBlock({ country: '' });
     await decorate(block);
@@ -218,16 +217,10 @@ describe('email-collection', () => {
     await waitFor(() => {
       expect(block.querySelector('.email-collection__panel--error')).not.toHaveAttribute('hidden');
     });
-    expect(errorLog).toHaveBeenCalledWith(
-      '[email-collection]',
-      'IMS refused a guest token',
-      expect.objectContaining({ message: 'invalid_credentials', clientId: 'adlabs' }),
-    );
     expect(window.fetch).not.toHaveBeenCalledWith(
       expect.stringContaining('/form-submit'),
       expect.anything(),
     );
-    errorLog.mockRestore();
   });
 
   it('closes the dialog from Back to the website and returns to the form', async () => {

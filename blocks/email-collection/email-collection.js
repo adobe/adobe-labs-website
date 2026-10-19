@@ -37,29 +37,6 @@ function isNonProd() {
 }
 
 /**
- * Submit diagnostics. Filter the console for `[email-collection]`.
- * Never log the address or the bearer token.
- * @param {string} step
- * @param {unknown} [detail]
- * @returns {void}
- */
-function reportFailure(step, detail) {
-  if (detail === undefined) console.error('[email-collection]', step);
-  else console.error('[email-collection]', step, detail);
-}
-
-/**
- * @param {string} step
- * @param {unknown} [detail]
- * @returns {void}
- */
-function reportStep(step, detail) {
-  if (!isNonProd()) return;
-  if (detail === undefined) console.info('[email-collection]', step);
-  else console.info('[email-collection]', step, detail);
-}
-
-/**
  * @param {string} value
  * @returns {string}
  */
@@ -268,7 +245,6 @@ function readStoredToken(ims) {
  */
 async function requestGuestToken(clientId) {
   const environment = isNonProd() ? 'stg1' : 'prod';
-  reportStep('requesting guest token', { clientId, environment });
   const response = await fetch(IMS_CHECK[environment], {
     method: 'POST',
     credentials: 'omit',
@@ -283,14 +259,8 @@ async function requestGuestToken(clientId) {
   const payload = await response.json().catch(() => ({}));
   const token = typeof payload.access_token === 'string' ? payload.access_token : '';
   if (!response.ok || payload.error || !token) {
-    reportFailure('IMS refused a guest token', {
-      clientId,
-      environment,
-      message: payload.error || response.status,
-    });
     throw new Error('IMS did not return a guest token');
   }
-  reportStep('guest token', { token: true });
   return token;
 }
 
@@ -560,10 +530,7 @@ function wireMessageLinks(panel, onClose, onShowForm) {
  */
 async function postSubscription(config, consentId, form) {
   const token = await loadImsGuest(IMS_CLIENT_ID);
-  if (!token) {
-    reportFailure('no guest token');
-    return false;
-  }
+  if (!token) return false;
 
   const email = form.querySelector('input[name="email"]')?.value.trim() || '';
   const country = form.querySelector('select[name="country"]')?.value || '';
@@ -580,12 +547,6 @@ async function postSubscription(config, consentId, form) {
   };
   const base = (isNonProd() && config.runtimeEndpoint) || (isNonProd() ? API.stage : API.prod);
   const endpoint = `${base}/form-submit`;
-  reportStep('POST', {
-    endpoint,
-    mpsSname: config.mpsSname,
-    consentId,
-    hasCountry: Boolean(country),
-  });
   const resp = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -594,17 +555,7 @@ async function postSubscription(config, consentId, form) {
     },
     body: JSON.stringify(body),
   });
-  if (!resp.ok) {
-    const responseText = await resp.text().catch(() => '');
-    reportFailure('form-submit rejected', {
-      status: resp.status,
-      endpoint,
-      body: responseText.slice(0, 500),
-    });
-    return false;
-  }
-  reportStep('form-submit accepted', { status: resp.status });
-  return true;
+  return resp.ok;
 }
 
 /**
@@ -735,11 +686,9 @@ export default async function decorate(block) {
     submitButton.setAttribute('aria-busy', 'true');
     submitButton.setAttribute('aria-disabled', 'true');
     try {
-      reportStep('submit', { clientId: IMS_CLIENT_ID, consentId: consent.consentId });
       const ok = await postSubscription(config, consent.consentId, form);
       reveal(ok ? 'success' : 'error');
-    } catch (error) {
-      reportFailure('submit failed', error);
+    } catch {
       reveal('error');
     } finally {
       submitting = false;
