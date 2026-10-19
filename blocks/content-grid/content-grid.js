@@ -21,7 +21,7 @@ const RESEARCH_CATEGORY_SLUGS = new Set([
   'economic-impact',
   'research',
   'human-side-of-ai',
-  'standards-practices',
+  'standards-and-practices',
 ]);
 /** /content.json still includes `/`. */
 const HOME_PATHS = new Set(['', '/', '/index']);

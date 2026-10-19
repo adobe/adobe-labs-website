@@ -1054,7 +1054,7 @@ describe('content-grid block', () => {
       ['Economic Impact', 'economic-impact'],
       ['Research', 'research'],
       ['Human Side of AI', 'human-side-of-ai'],
-      ['Standards & Practices', 'standards-practices'],
+      ['Standards and Practices', 'standards-and-practices'],
     ])('marks a research related grid in %s as %s', async (category, slug) => {
       window.history.pushState({}, '', '/research/current');
       getMetadata.mockReturnValue(category);
@@ -1068,12 +1068,12 @@ describe('content-grid block', () => {
 
     it('uses the first known category when a research article lists several', async () => {
       window.history.pushState({}, '', '/research/current');
-      getMetadata.mockReturnValue('Not a category, Standards & Practices, Economic Impact');
+      getMetadata.mockReturnValue('Not a category, Standards and Practices, Economic Impact');
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
 
       await decorate(block);
 
-      expect(block).toHaveAttribute('data-category', 'standards-practices');
+      expect(block).toHaveAttribute('data-category', 'standards-and-practices');
     });
 
     it('leaves a research related grid unmarked when the category is unknown', async () => {

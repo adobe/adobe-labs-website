@@ -101,13 +101,13 @@
   --color-section-surface-related: #fff;
   --color-section-surface-related-research: #EDF6FF;
   --color-section-surface-related-workflows: #faf4f0;
-  --color-section-surface-related-sneaks: #1c1c1c;
-  --color-section-surface-related-playground: var(--color-section-surface-related);
+  --color-section-surface-related-sneaks: #F5F5F5;
+  --color-section-surface-related-playground: #F5F5F5;
   --color-section-surface-related-category-future-of-creative-work: #EDF6FF;
   --color-section-surface-related-category-economic-impact: #fff;
   --color-section-surface-related-category-human-side-of-ai: #fff;
   --color-section-surface-related-category-standards-practices: #FFF4F2;
-  --color-section-surface-related-category-research: var(--color-section-surface-related-research);
+  --color-section-surface-related-category-research: #F5F5F5;
 
   /* fonts */
   --body-font-family: var(--s2a-font-family-default), adobe-clean, adobe-clean-fallback, "Trebuchet MS", sans-serif;
@@ -150,6 +150,8 @@
     --color-section-surface-related: #111F2F;
     --color-section-surface-related-research: #111F2F;
     --color-section-surface-related-workflows: #312b27;
+    --color-section-surface-related-sneaks: #1C1C1C;
+    --color-section-surface-related-playground: #1C1C1C;
     --color-section-surface-related-category-future-of-creative-work: #163044;
     --color-section-surface-related-category-economic-impact: #131313;
     --color-section-surface-related-category-human-side-of-ai: #131313;
@@ -1124,7 +1126,7 @@ main .section {
       background: var(--color-section-surface-related-category-human-side-of-ai);
     }
 
-    &:has(.content-grid[data-content-type="research"][data-category="standards-practices"]) {
+    &:has(.content-grid[data-content-type="research"][data-category="standards-and-practices"]) {
       background: var(--color-section-surface-related-category-standards-practices);
     }
   }
