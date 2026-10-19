@@ -151,7 +151,7 @@
 @media (width >= 64rem) {
   :root {
     --serif-body-font-size: var(--s2a-font-size-xl);
-    --serif-body-line-height: 1.625rem; /* 26px */
+    --serif-body-line-height: 1.6875rem; /* 27px */
   }
 }
 
