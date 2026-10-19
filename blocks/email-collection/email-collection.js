@@ -7,7 +7,7 @@ import { loadScript } from '../../scripts/aem.js';
 
 const FEDERAL_ROOT = 'https://main--federal--adobecom.aem.page/federal/email-collection';
 const IMS_LIB = 'https://auth.services.adobe.com/imslib/imslib.min.js';
-const IMS_CLIENT_ID = 'spectrumhub';
+const IMS_CLIENT_ID = 'adlabs';
 const API = {
   stage: 'https://www.stage.adobe.com/milo-email-collection-api',
   prod: 'https://www.adobe.com/milo-email-collection-api',
