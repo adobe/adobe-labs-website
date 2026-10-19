@@ -156,18 +156,17 @@
     }
   }
 
+  /* Article grids are 10/12 of the viewport, so a 768px screen is a 40rem content box. */
   @container content-grid (inline-size >= 40rem) {
     --content-grid-columns: 3;
-  }
-
-  @container content-grid (inline-size >= 53.3125rem) {
-    --content-grid-columns: 4;
 
     &.content-grid--has-intro {
+      --content-grid-columns: 4;
+
       .content-grid__intro {
         flex-direction: column;
+        align-items: stretch;
         grid-column: 1;
-        padding-inline-end: var(--s2a-spacing-4xl);
       }
 
       .content-grid__list {
@@ -180,6 +179,14 @@
       .content-grid__pager {
         margin-inline-start: 0;
       }
+    }
+  }
+
+  @container content-grid (inline-size >= 53.3125rem) {
+    --content-grid-columns: 4;
+
+    &.content-grid--has-intro .content-grid__intro {
+      padding-inline-end: var(--s2a-spacing-4xl);
     }
   }
 }
