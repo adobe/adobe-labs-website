@@ -178,6 +178,8 @@
     color: transparent;
     text-decoration-line: underline;
     text-decoration-color: var(--s2a-color-content-default);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
     mask-image: linear-gradient(to right, black, black);
     mask-repeat: no-repeat;
     mask-position: left;
