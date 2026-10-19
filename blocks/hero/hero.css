@@ -162,6 +162,8 @@
     color: transparent;
     text-decoration-line: underline;
     text-decoration-color: var(--s2a-color-gray-25, #fff);
+    text-decoration-thickness: 3px;
+    text-underline-offset: 4px;
     mask-image: linear-gradient(to right, black, black);
     mask-repeat: no-repeat;
     mask-position: left;
