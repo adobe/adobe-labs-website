@@ -61,6 +61,7 @@
   .abstract__number {
     font-family: var(--heading-font-family);
     font-size: var(--s2a-typography-font-size-heading-6);
+    font-weight: var(--s2a-font-weight-heading);
     line-height: var(--s2a-typography-line-height-heading-6);
     letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
     flex-basis: var(--abstract-item-inline-size);
