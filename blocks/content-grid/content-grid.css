@@ -156,11 +156,11 @@
     }
   }
 
-  @container content-grid (inline-size >= 43.75rem) {
+  @container content-grid (inline-size >= 40rem) {
     --content-grid-columns: 3;
   }
 
-  @container content-grid (inline-size >= 64rem) {
+  @container content-grid (inline-size >= 53.3125rem) {
     --content-grid-columns: 4;
 
     &.content-grid--has-intro {
