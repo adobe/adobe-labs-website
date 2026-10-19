@@ -1218,6 +1218,21 @@ body.article main {
       margin-block-start: var(--s2a-spacing-lg);
     }
 
+    /* List items use half the gap between paragraphs (spacing-sm is
+       half of spacing-lg). A paragraph inside an item would otherwise
+       collapse its 1rem margin through the item and override that gap. */
+    & :is(ul, ol) > li + li {
+      margin-block-start: var(--s2a-spacing-sm);
+    }
+
+    & li > p {
+      margin-block: 0;
+    }
+
+    & li > p + p {
+      margin-block-start: var(--s2a-spacing-lg);
+    }
+
     /* Space before a heading that follows other content.
        24px + 12px; no spacing token is 36px. */
     & > * + :is(h1, h2, h3, h4, h5, h6) {
