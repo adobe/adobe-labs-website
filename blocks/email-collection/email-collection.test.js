@@ -179,7 +179,7 @@ describe('email-collection', () => {
       mpsSname: 'adbe_ml_ai_research',
       consentId: 'cs4;ve1;en',
       isGuest: true,
-      appClientId: 'spectrumhub',
+      appClientId: 'adlabs',
       countryCode: 'US',
     });
     expect(within(block).getByText('We’ve received your response.')).toBeVisible();
@@ -204,7 +204,7 @@ describe('email-collection', () => {
     await waitFor(() => {
       expect(block.querySelector('.email-collection__panel--success')).not.toHaveAttribute('hidden');
     });
-    expect(window.adobeid.client_id).toBe('spectrumhub');
+    expect(window.adobeid.client_id).toBe('adlabs');
     expect(window.adobeid.enableGuestBotDetection).toBe(true);
     expect(window.adobeid.guestBotDetectionProvider).toBe('bfp');
     expect(window.adobeid.api_parameters).toEqual({ check_token: { guest_allowed: true } });
@@ -232,7 +232,7 @@ describe('email-collection', () => {
     expect(errorLog).toHaveBeenCalledWith(
       '[email-collection]',
       'IMS refused a guest token',
-      expect.objectContaining({ message: 'access_denied', clientId: 'spectrumhub' }),
+      expect.objectContaining({ message: 'access_denied', clientId: 'adlabs' }),
     );
     expect(window.fetch).not.toHaveBeenCalledWith(
       expect.stringContaining('/form-submit'),
