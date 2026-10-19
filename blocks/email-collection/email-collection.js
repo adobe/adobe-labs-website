@@ -3,11 +3,12 @@
  * plus section metadata (`email`, `mps-sname`, `subscription-name`, `sign-in`).
  * Consent copy and field errors come from federal content.
  */
-import { loadScript } from '../../scripts/aem.js';
-
 const FEDERAL_ROOT = 'https://main--federal--adobecom.aem.page/federal/email-collection';
-const IMS_LIB = 'https://auth.services.adobe.com/imslib/imslib.min.js';
 const IMS_CLIENT_ID = 'adlabs';
+const IMS_CHECK = {
+  stg1: 'https://adobeid-na1-stg1.services.adobe.com/ims/check/v6/token',
+  prod: 'https://adobeid-na1.services.adobe.com/ims/check/v6/token',
+};
 const API = {
   stage: 'https://www.stage.adobe.com/milo-email-collection-api',
   prod: 'https://www.adobe.com/milo-email-collection-api',
@@ -259,159 +260,42 @@ function readStoredToken(ims) {
 }
 
 /**
- * IMS wraps a failed guest `checkToken` as an expired-token exception.
- * @param {unknown} error
- * @returns {Record<string, unknown>}
- */
-function imsErrorDetail(error) {
-  const source = error && typeof error === 'object' && 'exception' in error
-    ? error.exception
-    : error;
-  if (!source) return { message: 'no details' };
-  if (typeof source === 'string') return { message: source };
-  if (source instanceof Error) return { message: source.message };
-  if (typeof source === 'object') {
-    const {
-      message,
-      error: code,
-      error_description: description,
-      status,
-      statusCode,
-      data,
-    } = source;
-    return {
-      message: message || description || code,
-      status: status || statusCode,
-      error: code,
-      data: typeof data === 'string' ? data.slice(0, 300) : data,
-    };
-  }
-  return { message: String(source) };
-}
-
-/**
+ * Asks stage or prod IMS for a guest access token.
+ * `imslib` sends cookies, and an `ims_sid` from another Adobe login makes this
+ * endpoint return `invalid_credentials` instead of a guest token.
  * @param {string} clientId
  * @returns {Promise<string>}
  */
-function requestGuestToken(clientId) {
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    let timeout;
-
-    /**
-     * @param {string} token
-     * @returns {void}
-     */
-    function succeed(token) {
-      if (settled || !token) return;
-      settled = true;
-      window.clearTimeout(timeout);
-      resolve(token);
-    }
-
-    /**
-     * @param {Error} error
-     * @returns {void}
-     */
-    function fail(error) {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeout);
-      reject(error);
-    }
-
-    timeout = window.setTimeout(() => {
-      reportFailure('IMS timed out before a guest token', {
-        clientId,
-        environment: isNonProd() ? 'stg1' : 'prod',
-      });
-      fail(new Error('IMS timeout'));
-    }, 8000);
-
-    const environment = isNonProd() ? 'stg1' : 'prod';
-    let refusal = null;
-
-    /**
-     * @param {unknown} [hint] Token from `onAccessToken`, if IMS passed one
-     * @returns {void}
-     */
-    function consider(hint) {
-      const hinted = accessTokenValue(hint);
-      if (hinted) {
-        reportStep('IMS onAccessToken', { token: true });
-        succeed(hinted);
-        return;
-      }
-      readStoredToken(window.adobeIMS).then((token) => {
-        if (token) {
-          reportStep('IMS onAccessToken', { token: true });
-          succeed(token);
-          return;
-        }
-        reportStep('IMS onAccessToken', { token: false });
-      });
-    }
-
-    window.adobeid = {
+async function requestGuestToken(clientId) {
+  const environment = isNonProd() ? 'stg1' : 'prod';
+  reportStep('requesting guest token', { clientId, environment });
+  const response = await fetch(IMS_CHECK[environment], {
+    method: 'POST',
+    credentials: 'omit',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+    body: new URLSearchParams({
+      guest_allowed: 'true',
       client_id: clientId,
       scope: 'AdobeID,openid',
-      locale: 'en_US',
-      environment,
-      useLocalStorage: false,
-      autoValidateToken: true,
-      logsEnabled: isNonProd(),
-      enableGuestAccounts: true,
-      enableGuestTokenForceRefresh: true,
-      enableGuestBotDetection: true,
-      guestBotDetectionProvider: 'bfp',
-      api_parameters: { check_token: { guest_allowed: true } },
-      onAccessToken: consider,
-      onAccessTokenHasExpired: (error) => {
-        refusal = imsErrorDetail(error);
-        reportFailure('IMS refused a guest token', { clientId, environment, ...refusal });
-      },
-      onReady: () => {
-        if (!window.adobeIMS) {
-          reportFailure('IMS onReady without adobeIMS');
-          fail(new Error('IMS unavailable'));
-          return;
-        }
-        readStoredToken(window.adobeIMS).then((token) => {
-          if (token) {
-            reportStep('IMS onReady', { token: true });
-            succeed(token);
-            return;
-          }
-          if (!refusal) {
-            reportFailure('IMS onReady without a guest token', {
-              clientId,
-              environment,
-              hint: 'This client did not return a guest access token. It has to be onboarded for guest tokens in this IMS environment.',
-            });
-          }
-          fail(new Error('IMS did not return a guest token'));
-        });
-      },
-      onError: (...args) => {
-        reportFailure('IMS onError', args);
-        fail(new Error('IMS error'));
-      },
-    };
-    reportStep('loading IMS', {
-      clientId,
-      environment: window.adobeid.environment,
-    });
-    loadScript(IMS_LIB).catch((error) => {
-      reportFailure('IMS script failed to load', error);
-      fail(error);
-    });
+    }),
+    signal: AbortSignal.timeout(8000),
   });
+  const payload = await response.json().catch(() => ({}));
+  const token = typeof payload.access_token === 'string' ? payload.access_token : '';
+  if (!response.ok || payload.error || !token) {
+    reportFailure('IMS refused a guest token', {
+      clientId,
+      environment,
+      message: payload.error || response.status,
+    });
+    throw new Error('IMS did not return a guest token');
+  }
+  reportStep('guest token', { token: true });
+  return token;
 }
 
 /**
- * Loads Adobe IMS and resolves with a guest access token.
- * A guest token arrives in `onAccessToken` before `onReady`. If startup
- * finishes without one, IMS already refused the client.
+ * Uses a token already held by IMS, otherwise requests a guest token.
  * @param {string} clientId IMS client id
  * @returns {Promise<string>}
  */
@@ -689,6 +573,9 @@ async function postSubscription(config, consentId, form) {
     consentId,
     isGuest: true,
     appClientId: IMS_CLIENT_ID,
+    // Keys must be present. This site has no Alloy CMP, and the API rejects an omitted key.
+    aepCmp: null,
+    aepOtherConsents: null,
     ...(country && { countryCode: country }),
   };
   const base = (isNonProd() && config.runtimeEndpoint) || (isNonProd() ? API.stage : API.prod);

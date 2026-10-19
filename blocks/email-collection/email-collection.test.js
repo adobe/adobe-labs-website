@@ -1,10 +1,5 @@
 import { waitFor, within } from '@testing-library/dom';
-import { loadScript } from '../../scripts/aem.js';
 import decorate from './email-collection.js';
-
-jest.mock('../../scripts/aem.js', () => ({
-  loadScript: jest.fn(() => Promise.resolve()),
-}));
 
 const CONSENT_HTML = '<div><p>Emails about {{subscription-name}}.</p></div><div><p>cs4;ve1;en</p></div>';
 
@@ -16,9 +11,12 @@ function textResponse(text) {
   return { ok: true, json: async () => ({}), text: async () => text };
 }
 
-function mockFetch({ postOk = true, postBody } = {}) {
+function mockFetch({ postOk = true, postBody, tokenPayload } = {}) {
   window.fetch = jest.fn(async (url, options) => {
     const href = String(url);
+    if (href.includes('/ims/check/v6/token')) {
+      return jsonResponse(tokenPayload || { access_token: 'guest-token' });
+    }
     if (href.includes('sheet=placeholders')) {
       return jsonResponse({
         data: [
@@ -180,20 +178,16 @@ describe('email-collection', () => {
       consentId: 'cs4;ve1;en',
       isGuest: true,
       appClientId: 'adlabs',
+      aepCmp: null,
+      aepOtherConsents: null,
       countryCode: 'US',
     });
     expect(within(block).getByText('We’ve received your response.')).toBeVisible();
   });
 
-  it('posts when IMS issues a guest token during startup', async () => {
+  it('requests a guest token without sending the Adobe session cookie', async () => {
     const postBody = {};
     mockFetch({ postBody });
-    loadScript.mockImplementation(() => {
-      window.adobeIMS = { getAccessToken: () => ({ token: 'guest-token' }) };
-      window.adobeid.onAccessToken({ token: 'guest-token' });
-      window.adobeid.onReady();
-      return Promise.resolve();
-    });
     const block = createBlock({ country: '' });
     await decorate(block);
 
@@ -204,21 +198,16 @@ describe('email-collection', () => {
     await waitFor(() => {
       expect(block.querySelector('.email-collection__panel--success')).not.toHaveAttribute('hidden');
     });
-    expect(window.adobeid.client_id).toBe('adlabs');
-    expect(window.adobeid.enableGuestBotDetection).toBe(true);
-    expect(window.adobeid.guestBotDetectionProvider).toBe('bfp');
-    expect(window.adobeid.api_parameters).toEqual({ check_token: { guest_allowed: true } });
+    const tokenCall = window.fetch.mock.calls.find(([url]) => String(url).includes('/ims/check/v6/token'));
+    expect(String(tokenCall[0])).toBe('https://adobeid-na1-stg1.services.adobe.com/ims/check/v6/token');
+    expect(tokenCall[1].credentials).toBe('omit');
+    expect(String(tokenCall[1].body)).toBe('guest_allowed=true&client_id=adlabs&scope=AdobeID%2Copenid');
     expect(postBody.current.options.headers.Authorization).toBe('Bearer guest-token');
   });
 
   it('logs the IMS refusal when no guest token is issued', async () => {
     const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
-    loadScript.mockImplementation(() => {
-      window.adobeIMS = { getAccessToken: () => null };
-      window.adobeid.onAccessTokenHasExpired({ exception: new Error('access_denied') });
-      window.adobeid.onReady();
-      return Promise.resolve();
-    });
+    mockFetch({ tokenPayload: { error: 'invalid_credentials' } });
     const block = createBlock({ country: '' });
     await decorate(block);
 
@@ -232,7 +221,7 @@ describe('email-collection', () => {
     expect(errorLog).toHaveBeenCalledWith(
       '[email-collection]',
       'IMS refused a guest token',
-      expect.objectContaining({ message: 'access_denied', clientId: 'adlabs' }),
+      expect.objectContaining({ message: 'invalid_credentials', clientId: 'adlabs' }),
     );
     expect(window.fetch).not.toHaveBeenCalledWith(
       expect.stringContaining('/form-submit'),
