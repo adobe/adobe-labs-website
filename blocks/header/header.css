@@ -369,8 +369,15 @@
   }
 
   /* Dim sibling labels when one is hovered, like adobe.com. */
-  .header__list:has(> .header__item > .header__link:hover) > .header__item:not(:hover) > .header__link {
+  .header__list:has(> .header__item > .header__link:hover) > .header__item:not(:hover, :has(> .header__link[aria-current="page"])) > .header__link {
     color: var(--header-link-muted);
+  }
+
+  /* Dim sibling labels when one is active, per Figma. */
+  @media (width >= 48rem) {
+    .header__list:has(> .header__item > .header__link[aria-current="page"]) > .header__item:not(:has(> .header__link[aria-current="page"]), :hover) > .header__link {
+      color: var(--header-link-muted);
+    }
   }
 
   & a.header__link,
@@ -445,20 +452,14 @@
 
   .header__link[aria-current="page"],
   .header__panel-link[aria-current="page"] {
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.25em;
-
-    &:hover {
+    @media (width < 48rem) {
       text-decoration: underline;
       text-decoration-thickness: 1px;
-      text-underline-offset: 0.25em;
-    }
-
-    @media (width < 48rem) {
       text-underline-offset: 0.2em;
-      
-      &:hover   {
+
+      &:hover {
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
         text-underline-offset: 0.2em;
       }
     }
