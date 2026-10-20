@@ -4,6 +4,13 @@
 
 .content-grid {
   --content-grid-columns: 1;
+  --content-grid-pager-background: var(--s2a-color-transparent-black-08);
+  --content-grid-pager-background-hover: var(--s2a-color-transparent-black-16);
+
+  :root[data-theme="dark"] & {
+    --content-grid-pager-background: var(--s2a-color-transparent-white-08);
+    --content-grid-pager-background-hover: var(--s2a-color-transparent-white-24);
+  }
 
   .grid-item {
     /* Allow cards to fill the grid track instead of the standalone 50ch cap. */
@@ -101,16 +108,12 @@
     height: var(--s2a-spacing-xl);
     border: none;
     border-radius: var(--s2a-border-radius-6);
-    background-color: var(--s2a-color-transparent-black-12);
-    color: var(--s2a-color-content-default);
+    background-color: var(--content-grid-pager-background);
+    color: var(--s2a-color-content-subtle);
     text-decoration: none;
 
     &:hover {
-      background-color: color-mix(
-        in srgb,
-        var(--s2a-color-content-default) 12%,
-        var(--s2a-color-background-subtle)
-      );
+      background-color: var(--content-grid-pager-background-hover);
     }
 
     &:active {
