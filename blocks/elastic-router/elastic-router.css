@@ -135,6 +135,14 @@
      heading-5 alias (font-family/weight-900 already come from the site's
      global h1-h6 rule). */
   letter-spacing: var(--s2a-font-letter-spacing-4xl);
+
+  @media (width < 90rem) {
+    font-size: var(--s2a-font-size-md);
+  }
+
+  @media (width <= 23.5rem) {
+    font-size: var(--s2a-font-size-lg);
+  }
 }
 
 /* Two stacked copies share wrapping. The ghost's underline is clipped
@@ -243,6 +251,11 @@
      carries the shared .eyebrow class, whose own color declaration
      (--s2a-color-content-eyebrow) would otherwise win over inheritance. */
   color: var(--s2a-color-content-label);
+  font-size: var(--s2a-typography-font-size-eyebrow);
+
+  @media (width > 23.5rem) and (width <= 48rem) {
+    font-size: var(--s2a-typography-font-size-caption);
+  }
 }
 
 [data-theme="dark"] .elastic-router__link:focus-visible {
