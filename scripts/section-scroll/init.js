@@ -700,6 +700,8 @@ let onFooterFocusIn = null;
 let onKeyDown = null;
 /** @type {(() => void) | null} */
 let onPointer = null;
+/** @type {(() => void) | null} */
+let onPendingPointerReveal = null;
 /** True after Tab, until a pointer press. Keyboard focus should reveal the logo. */
 let keyboardNav = false;
 /** @type {HTMLElement | null} */
@@ -731,6 +733,10 @@ export function clearFooterReveal(root) {
   if (onPointer) {
     window.removeEventListener('pointerdown', onPointer);
     onPointer = null;
+  }
+  if (onPendingPointerReveal) {
+    window.removeEventListener('pointerup', onPendingPointerReveal);
+    onPendingPointerReveal = null;
   }
   keyboardNav = false;
   boundFooter = null;
@@ -1076,7 +1082,21 @@ export function bindFooterReveal(main, root, options = {}) {
   onFooterFocusIn = () => {
     const fromKeyboard = keyboardNav;
     keyboardNav = false;
-    uncoverForFocus(fromKeyboard);
+    if (fromKeyboard) {
+      uncoverForFocus(true);
+      return;
+    }
+    // A pointer press is still mid-gesture here: mousedown has focused the
+    // control, but mouseup/click have not fired yet. Scrolling now moves the
+    // control out from under the pointer and the click lands on whatever
+    // took its place. Wait for the press to finish, then uncover the menu
+    // the same way keyboard focus does (the logo stays covered either way).
+    if (onPendingPointerReveal) window.removeEventListener('pointerup', onPendingPointerReveal);
+    onPendingPointerReveal = () => {
+      onPendingPointerReveal = null;
+      uncoverForFocus(false);
+    };
+    window.addEventListener('pointerup', onPendingPointerReveal, { once: true });
   };
   footer.addEventListener('focusin', onFooterFocusIn);
   footerSizeObserver?.disconnect();

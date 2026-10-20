@@ -102,6 +102,18 @@ function focusFromKeyboard(el) {
   el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 }
 
+/**
+ * Click, the way a pointer user enters the footer: mousedown focuses the
+ * control, then the press ends with pointerup.
+ *
+ * @param {Element} el Control that receives focus
+ * @returns {void}
+ */
+function focusFromPointer(el) {
+  el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  window.dispatchEvent(new Event('pointerup', { bubbles: true }));
+}
+
 beforeEach(() => {
   frames = [];
   window.requestAnimationFrame = (cb) => frames.push(cb);
@@ -318,9 +330,28 @@ describe('bindFooterReveal', () => {
     const scrollBy = jest.fn();
 
     bindFooterReveal(main, document, { scrollBy });
-    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    focusFromPointer(footer.querySelector('a'));
 
     // Viewport 800, menu 240: the fully-in line is 560 from the top.
+    expect(scrollBy).toHaveBeenCalledWith(240);
+  });
+
+  it('does not scroll until the pointer press finishes', () => {
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', MENU_HTML);
+    menuHeight(footer.querySelector('.footer__inner'), 240);
+    cardBottom(main.children[0], 800);
+    const scrollBy = jest.fn();
+
+    bindFooterReveal(main, document, { scrollBy });
+    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    // Mousedown has focused the control, but the press has not released yet:
+    // scrolling now would move the control out from under the pointer and
+    // swallow the click that is still in flight.
+    expect(scrollBy).not.toHaveBeenCalled();
+
+    window.dispatchEvent(new Event('pointerup', { bubbles: true }));
+
     expect(scrollBy).toHaveBeenCalledWith(240);
   });
 
@@ -368,7 +399,7 @@ describe('bindFooterReveal', () => {
 
     try {
       bindFooterReveal(main, document, { scrollBy });
-      footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      focusFromPointer(footer.querySelector('a'));
 
       // Viewport 800, cover capped at 400: fully in when the card bottom is at 400.
       expect(scrollBy).toHaveBeenCalledWith(400);
@@ -384,7 +415,7 @@ describe('bindFooterReveal', () => {
     const scrollBy = jest.fn();
 
     bindFooterReveal(main, document, { scrollBy });
-    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    focusFromPointer(footer.querySelector('a'));
 
     expect(scrollBy).toHaveBeenCalledWith(120);
   });
@@ -396,7 +427,7 @@ describe('bindFooterReveal', () => {
     const scrollBy = jest.spyOn(window, 'scrollBy').mockImplementation(() => {});
 
     bindFooterReveal(main, document);
-    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    focusFromPointer(footer.querySelector('a'));
 
     expect(scrollBy).toHaveBeenCalledWith(0, 240);
     scrollBy.mockRestore();
@@ -450,7 +481,7 @@ describe('bindFooterReveal', () => {
     const scrollBy = jest.fn();
 
     bindFooterReveal(main, document, { scrollBy });
-    footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    focusFromPointer(footer.querySelector('a'));
 
     expect(scrollBy).toHaveBeenCalledWith(240);
     // Pointer focus uncovers the menu only. The logo stays fully covered.
