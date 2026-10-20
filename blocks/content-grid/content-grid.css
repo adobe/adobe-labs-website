@@ -156,6 +156,14 @@
     }
   }
 
+  /* While the intro is stacked above the cards, three or more cards
+     stay in three columns. */
+  @container content-grid (28.125rem <= inline-size < 40rem) {
+    &.content-grid--has-intro:has(.content-grid__item:nth-child(3)) {
+      --content-grid-columns: 3;
+    }
+  }
+
   /* Article grids are 10/12 of the viewport, so a 768px screen is a 40rem content box. */
   @container content-grid (inline-size >= 40rem) {
     --content-grid-columns: 3;
