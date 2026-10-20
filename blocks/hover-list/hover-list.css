@@ -147,7 +147,7 @@
   @media (width >= 48rem) {
     position: static;
     inset: auto;
-    translate: none;
+    translate: 0 -10%;
     margin-inline-start: var(--s2a-spacing-sm);
     vertical-align: middle;
   }
