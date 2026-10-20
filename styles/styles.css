@@ -105,7 +105,7 @@
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, adobe-clean-display-fallback, sans-serif;
   --serif-font-family: adobe-clean-spectrum-serif, adobe-clean-spectrum-serif-fallback, serif;
   --serif-body-font-size: var(--s2a-font-size-md);
-  --serif-body-line-height: var(--s2a-font-line-height-20);
+  --serif-body-line-height: var(--s2a-font-line-height-21);
   --typography-font-weight-heading-2: var(--s2a-font-weight-adobe-clean-display-black);
 
   /* nav height: 64px mobile bar, 80px desktop (8px inset + 64px bar) */
