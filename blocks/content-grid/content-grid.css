@@ -17,6 +17,10 @@
     max-width: none;
   }
 
+  .grid-item__image {
+    border: var(--s2a-border-width-sm) solid var(--s2a-color-border-subtle);
+  }
+
   .content-grid__list {
     display: grid;
     grid-template-columns: repeat(var(--content-grid-columns), 1fr);
