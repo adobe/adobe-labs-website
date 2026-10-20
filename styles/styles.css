@@ -1054,16 +1054,6 @@ main .section {
       padding-block-start: 0;
     }
 
-    /* Related is also a default section, but it keeps its own gap above.
-       80px below 1024px, 100px from there up. No 100px spacing token. */
-    + .section-rounded-default.section-rounded-related {
-      margin-block-start: calc(calc(2 * -1 * var(--section-space-between)) + var(--s2a-spacing-80));
-
-      @media (width >= 64rem) {
-        margin-block-start: calc(calc(2 * -1 * var(--section-space-between)) + 100px);
-      }
-    }
-
     /* Last default-color section before a different surface keeps a rounded end. */
     &:has(+ :not(.section-rounded-default)) {
       border-end-start-radius: var(--section-border-radius);
@@ -1087,12 +1077,17 @@ main .section {
     background: var(--color-section-surface-related);
   }
 
-  /* Related content pre-footer: tighter block padding than the default
-     rounded section. Always paired with `.section-rounded-default` (added
-     unconditionally to article sections), matched here so this padding wins
-     over the adjacent-default-sections merge rule above. */
+  /* Related content pre-footer. Always paired with `.section-rounded-default`.
+     This follows the adjacent-default merge at the same specificity, so the
+     padding and the gap above both win. The margin cancels the flex gap twice,
+     then adds 80px below 1024px and 100px from there up. No 100px spacing token. */
   &.section-rounded-default.section-rounded-related {
     padding-block: 1.875rem 3.125rem;
+    margin-block-start: calc(calc(2 * -1 * var(--section-space-between)) + var(--s2a-spacing-80));
+
+    @media (width >= 64rem) {
+      margin-block-start: calc(calc(2 * -1 * var(--section-space-between)) + 100px);
+    }
   }
 
   /* Dark mode variant for Sneaks has a lighter surface color. */
