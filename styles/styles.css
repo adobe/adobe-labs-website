@@ -639,6 +639,7 @@ main:focus-visible::after {
   height: 100%;
   opacity: 0;
   pointer-events: none;
+  clip-path: inset(0 round var(--s2a-border-radius-xs));
 }
 
 /* --- Article meta --- */
