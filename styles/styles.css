@@ -105,7 +105,7 @@
   --heading-font-family: "Adobe Clean Display Black", var(--s2a-font-family-heading), adobe-clean-display, adobe-clean-display-fallback, sans-serif;
   --serif-font-family: adobe-clean-spectrum-serif, adobe-clean-spectrum-serif-fallback, serif;
   --serif-body-font-size: var(--s2a-font-size-md);
-  --serif-body-line-height: var(--s2a-font-line-height-20);
+  --serif-body-line-height: var(--s2a-font-line-height-21);
   --typography-font-weight-heading-2: var(--s2a-font-weight-adobe-clean-display-black);
 
   /* nav height: 64px mobile bar, 80px desktop (8px inset + 64px bar) */
@@ -151,7 +151,7 @@
 @media (width >= 64rem) {
   :root {
     --serif-body-font-size: var(--s2a-font-size-xl);
-    --serif-body-line-height: 1.625rem; /* 26px */
+    --serif-body-line-height: 1.6875rem; /* 27px */
   }
 }
 
@@ -1219,6 +1219,21 @@ body.article main {
     /* Space after a heading, and between paragraphs and lists. */
     & > :is(h1, h2, h3, h4, h5, h6) + :is(p, ul, ol),
     & > :is(p, ul, ol) + :is(p, ul, ol) {
+      margin-block-start: var(--s2a-spacing-lg);
+    }
+
+    /* List items use half the gap between paragraphs (spacing-sm is
+       half of spacing-lg). A paragraph inside an item would otherwise
+       collapse its 1rem margin through the item and override that gap. */
+    & :is(ul, ol) > li + li {
+      margin-block-start: var(--s2a-spacing-sm);
+    }
+
+    & li > p {
+      margin-block: 0;
+    }
+
+    & li > p + p {
       margin-block-start: var(--s2a-spacing-lg);
     }
 
