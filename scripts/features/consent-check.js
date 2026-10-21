@@ -40,7 +40,7 @@ const FOOTER_LINK_SELECTOR = '#cmp-cookie-preferences';
  */
 const initPrivacyLibrary = () => {
   /**
-   * Set CMP Configuration
+   * Set CMP Configuration.
    *
    * "Before loading the library, a configuration object must be provided that instructs the CMP to
    * load the correct settings for this domain."

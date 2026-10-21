@@ -50,7 +50,7 @@ const setAlloyData = () => {
 /* eslint-enable no-underscore-dangle, max-len */
 
 /**
- * Set the marketingtech flags read by the bootstrap script.
+ * Set the marketingtech flags that are read by the bootstrap script.
  */
 const setMarketingTechConfig = () => {
   const environment = PRODUCTION_HOSTS.has(window.location.hostname)
