@@ -392,6 +392,15 @@ function loadDelayed() {
       console.error('The Adobe Privacy library encountered an error:', error);
     });
 
+  // Adobe Experience Platform "marketingtech" scripts. Loaded after the Privacy library has
+  // started, since this reads cookie consent from its events.
+  import('./features/marketing-tech.js')
+    .then(({ default: loadMarketingTech }) => loadMarketingTech())
+    .catch((error) => {
+      /* eslint-disable-next-line no-console */
+      console.error('Adobe marketingtech encountered an error:', error);
+    });
+
   // Content Credentials (CR Pin): Read images to look for content credentials,
   // and add CR pins to any that have them. Only article pages show CR pins, and the
   // c2pa library is large, so this waits out the window where the visitor first
