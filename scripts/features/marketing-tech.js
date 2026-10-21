@@ -13,16 +13,12 @@
  */
 
 import { loadScript } from '../aem.js';
+import { PRODUCTION_HOSTS } from '../utils/utils.js';
 
 /**
  * Adobe marketingtech "bootstrap" script.
  */
 const MARKETING_TECH_URL = 'https://www.adobe.com/marketingtech/main.standard.min.js';
-
-/**
- * Hostnames that will load the production scripts.
- */
-const PRODUCTION_HOSTNAMES = ['adobelabs.com', 'www.adobelabs.com', 'labs.adobe.com'];
 
 /**
  * Launch library URL and Edge (datastream) configuration ID for each environment.
@@ -57,7 +53,7 @@ const setAlloyData = () => {
  * Set the marketingtech flags read by the bootstrap script.
  */
 const setMarketingTechConfig = () => {
-  const environment = PRODUCTION_HOSTNAMES.includes(window.location.hostname)
+  const environment = PRODUCTION_HOSTS.has(window.location.hostname)
     ? ENVIRONMENTS.production
     : ENVIRONMENTS.development;
 

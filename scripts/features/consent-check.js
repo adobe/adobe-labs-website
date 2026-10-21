@@ -11,6 +11,7 @@
  */
 
 import { loadScript } from '../aem.js';
+import { PRODUCTION_HOSTS } from '../utils/utils.js';
 
 /**
  * Adobe Standalone Privacy library.
@@ -47,7 +48,9 @@ const initPrivacyLibrary = () => {
   window.fedsConfig = {
     privacy: {
       // Unique domain ID that holds cookie settings.
-      otDomainId: DOMAIN_ID.test,
+      otDomainId: PRODUCTION_HOSTS.has(window.location.hostname)
+        ? DOMAIN_ID.production
+        : DOMAIN_ID.test,
       // Selector for DOM element that will open the preference center.
       footerLinkSelector: FOOTER_LINK_SELECTOR,
       // Force use of HTML defined language, instead of using the default browser preferred locale.

@@ -59,8 +59,10 @@ export function toSafeHttpUrl(value) {
   return '';
 }
 
-/** Published hosts. Authors paste these absolute URLs on preview and local. */
-const PRODUCTION_HOSTS = new Set(['labs.adobe.com', 'www.labs.adobe.com']);
+/**
+ * Production hostname(s) for the live website.
+ */
+export const PRODUCTION_HOSTS = new Set(['adobelabs.com', 'www.adobelabs.com', 'labs.adobe.com']);
 
 /**
  * This project's preview and live hosts:
