@@ -1085,7 +1085,7 @@ main .section {
     padding-block: 1.875rem 3.125rem;
     margin-block-start: calc(calc(2 * -1 * var(--section-space-between)) + var(--s2a-spacing-80));
 
-  @media (width >= 90rem) {
+    @media (width >= 64rem) {
       margin-block-start: calc(calc(2 * -1 * var(--section-space-between)) + 100px);
     }
   }
