@@ -62,12 +62,13 @@
 
     .description-list__heading,
     .description-list__items {
-      padding-block-start: var(--s2a-spacing-sm);
       border-block-start: 1px solid var(--color-description-list-border);
     }
 
     .description-list__heading {
       grid-column: span 4;
+      padding-block-start: var(--s2a-spacing-sm);
+      padding-inline-end: var(--s2a-spacing-lg);
     }
 
     .description-list__items {
