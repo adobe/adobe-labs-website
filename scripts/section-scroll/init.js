@@ -1507,7 +1507,11 @@ async function attach() {
   // Native `#id` jumps fight Lenis unless we own the click (see handleHashClick).
   // `anchors` is the fallback if that listener misses; both use Lenis's lerp so
   // in-page links keep the same smooth scroll native CSS used to provide.
-  lenis = new Lenis({ autoRaf: false, anchors: true });
+  lenis = new Lenis({
+    autoRaf: false,
+    anchors: true,
+    prevent: (node) => node.closest('[role="dialog"]') || node.closest('dialog'),
+  });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add(tickLenis);
   // Lenis drives its own rAF from this ticker, so smoothing a lagging frame

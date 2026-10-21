@@ -442,6 +442,10 @@ function decorateLegal(legal) {
     <div class="footer__legal">
       <ul class="footer__privacy">
         <li class="footer__privacy-item">© ${year} Adobe Inc. All rights reserved.</li>
+        <li class="footer__privacy-item">
+          <button type="button" aria-haspopup="dialog" id="cmp-cookie-preferences"
+            class="footer__privacy-link link-button" data-lenis-prevent>Cookie preferences</a>
+        </li>
       </ul>
     </div>
   `);
