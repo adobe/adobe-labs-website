@@ -1055,6 +1055,7 @@ describe('content-grid block', () => {
       ['Research', 'research'],
       ['Human Side of AI', 'human-side-of-ai'],
       ['Standards and Practices', 'standards-and-practices'],
+      ['Standards & Practices', 'standards-and-practices'],
     ])('marks a research related grid in %s as %s', async (category, slug) => {
       window.history.pushState({}, '', '/research/current');
       getMetadata.mockReturnValue(category);

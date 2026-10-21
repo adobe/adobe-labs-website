@@ -271,14 +271,15 @@ export function wireStackedGridPagers(block) {
 
 /**
  * First known research category in page metadata, as a class slug.
- * A comma-separated list uses the earliest match.
+ * A comma-separated list uses the earliest match. "&" reads as "and", so
+ * "Standards & Practices" and "Standards and Practices" share a slug.
  * @param {string} [category]
  * @returns {string}
  */
 function researchCategorySlug(category) {
   return String(category || '')
     .split(',')
-    .map((name) => toClassName(name))
+    .map((name) => toClassName(name.replace(/&/g, ' and ')))
     .find((slug) => RESEARCH_CATEGORY_SLUGS.has(slug)) || '';
 }
 
