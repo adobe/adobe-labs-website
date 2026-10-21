@@ -1,6 +1,11 @@
 /**
  * Adobe marketingtech: loads Adobe Experience Platform scripts.
  *
+ * Note about integration with privacy library and cookie consent (consent-check.js):
+ * As long as the privacy-standalone.js script is implemented, nothing additional is needed to
+ * handle the marketingtech script's consent or checking cookie groups. Internally in
+ * Adobe Launch/Tags code, it checks for all of that and listens for any changes in consent.
+ *
  * Usage:
  * - Run from `loadDelayed()`, after the Privacy library has started loading. The Launch property
  *   reads the visitor's cookie consent from the Privacy library events.
