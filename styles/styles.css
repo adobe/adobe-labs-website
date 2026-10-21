@@ -128,7 +128,7 @@
   /* article section spacing */
   --article-section-gap: var(--s2a-spacing-2xl);
 
-  @media (width >= 64rem) {
+  @media (width >= 90rem) {
     --article-section-gap: var(--s2a-spacing-4xl);
   }
 
@@ -1078,21 +1078,26 @@ main .section {
   }
 
   /* Related content pre-footer. Always paired with `.section-rounded-default`.
-     This follows the adjacent-default merge at the same specificity, so the
-     padding and the gap above both win. The margin cancels the flex gap twice,
-     then adds 80px below 1024px and 100px from there up. No 100px spacing token. */
+     Same specificity as the adjacent-default merge, and later, so this padding
+     wins. The gap above it is the previous section's padding. */
   &.section-rounded-default.section-rounded-related {
     padding-block: 1.875rem 3.125rem;
-    margin-block-start: calc(calc(2 * -1 * var(--section-space-between)) + var(--s2a-spacing-80));
-
-    @media (width >= 64rem) {
-      margin-block-start: calc(calc(2 * -1 * var(--section-space-between)) + 100px);
-    }
   }
 
   /* Dark mode variant for Sneaks has a lighter surface color. */
   &.section-rounded-default-variant {
     background: var(--color-section-surface-default-variant);
+  }
+}
+
+/* Section before the related pre-footer. Adjacent defaults cancel the flex gap,
+   so this padding is the visible gap above the related surface: 80px below
+   1024px, 100px from there up. No 100px spacing token. */
+main .section:has(+ .section-rounded-related) {
+  padding-block-end: var(--s2a-spacing-80);
+
+  @media (width >= 64rem) {
+    padding-block-end: 100px;
   }
 }
 
