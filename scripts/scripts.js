@@ -252,7 +252,8 @@ async function loadEager(doc) {
   ensureSkipLink(doc);
   ensureArticleBackToTop(doc);
 
-  if (window.location.pathname === '/drafts/luis/article-test') {
+  const isInIframe = window.self !== window.top;
+  if (!isInIframe) {
     watchExternalLinks(doc);
   }
 
