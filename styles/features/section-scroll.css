@@ -5,9 +5,11 @@
  *
  * This file owns the parts that need no JS: sticky positioning, stacking order,
  * the dim layer's box, and the touch-only intro lag. `scripts/section-scroll/init.js`
- * classifies sections and sets the three custom properties read below —
+ * classifies sections and sets three of the custom properties read below —
  * `--section-scroll-slow-top`, `--section-scroll-intro-lag`, and
- * `--section-scroll-inner-progress`. On a coarse pointer that supports
+ * `--section-scroll-inner-progress`. `scripts/section-scroll/section-motion.js`
+ * sets the fourth, `--section-scroll-hero-text-y`, on a full-screen hero
+ * section, to recede its copy. On a coarse pointer that supports
  * scroll-driven animations, it also owns the cover dim and the page-header
  * fade, driven by `--section-scroll-dim-start` and a named view timeline.
  */
