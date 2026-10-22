@@ -57,6 +57,7 @@
     table {
       border-radius: 0;
       flex-shrink: 0;
+      inline-size: fit-content; /* As a flex item it would otherwise grow to max-content and stop wrapping. */
     }
 
     /* Table edge "fade" for scrollable tables */
@@ -91,7 +92,6 @@
     border-inline-end: 1px solid var(--table-border-color);
     text-align: center;
     vertical-align: middle;
-    white-space: nowrap;
     color: var(--s2a-color-content-default);
     min-inline-size: 6.5rem; /* 104px */
 

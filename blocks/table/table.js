@@ -26,9 +26,11 @@ function bindOverflowUi(block) {
   };
 
   tableWrapper.addEventListener('scroll', updateOverflowUi, { passive: true });
-  window.addEventListener('resize', updateOverflowUi);
+  // Column widths settle after fonts and later sections load, not only on window resize.
+  const resizeObserver = new ResizeObserver(updateOverflowUi);
+  resizeObserver.observe(tableWrapper);
+  resizeObserver.observe(block.querySelector('table'));
   updateOverflowUi();
-  requestAnimationFrame(updateOverflowUi);
 }
 
 export default function decorate(block) {
