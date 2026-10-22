@@ -36,6 +36,12 @@
     z-index: 0;
   }
 
+  /* Full-screen hero copy recedes by `--section-scroll-hero-text-y`, which
+     `section-motion.js` tweens on the hero section. */
+  main > .section .hero-full-screen :is(.hero__copy, .hero__cta-text) {
+    translate: 0 var(--section-scroll-hero-text-y, 0);
+  }
+
   /* `align-self: flex-start` is required for sticky flex items on `main`. */
   main > .section.section-scroll-slow:not(.section-scroll-intro) {
     position: sticky;

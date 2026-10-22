@@ -17,6 +17,7 @@ import {
   HERO_TEXT_SPEED,
   INTRO_LAG,
   OVERLAY_DIM,
+  VAR_HERO_TEXT_Y,
   roundedParallax,
 } from './config-and-utils.js';
 import {
@@ -844,13 +845,10 @@ describe('initSectionScroll', () => {
     // No inner shift: the card itself stays put, only the copy recedes.
     expect(timelineTweening(main.querySelector('.hero-wrapper'))).toBeUndefined();
     const heroY = gsap.fromTo.mock.calls.find(([, from, to]) => (
-      from?.y === 0 && to?.scrollTrigger?.end === 'max'
+      from?.[VAR_HERO_TEXT_Y] === '0px' && to?.scrollTrigger?.end === 'max'
     ));
-    expect([...heroY[0]]).toEqual([
-      main.querySelector('.hero__copy'),
-      main.querySelector('.hero__cta-text'),
-    ]);
-    expect(heroY[2].y()).toBe(-1000 * HERO_TEXT_SPEED);
+    expect(heroY[0]).toBe(main.children[0]);
+    expect(heroY[2][VAR_HERO_TEXT_Y]()).toBe(`${-1000 * HERO_TEXT_SPEED}px`);
 
     const overlay = main.querySelector('.section-scroll-overlay');
     expect(overlay.parentElement).toHaveClass('hero');
