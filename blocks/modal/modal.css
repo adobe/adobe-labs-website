@@ -16,6 +16,15 @@ body.modal-open {
   border: 1px solid var(--s2a-color-border-subtle);
   border-radius: var(--s2a-border-radius-xs);
   box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 12%);
+
+  /* The top layer keeps the light canvas unless the surface and color-scheme are set here. */
+  background-color: var(--s2a-color-background-default);
+  color: var(--s2a-color-content-default);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] .modal dialog {
+  color-scheme: dark;
 }
 
 .modal dialog .modal-content {
@@ -52,14 +61,11 @@ body.modal-open {
   border-radius: 0;
   padding: 0;
   background-color: transparent;
-
-  /* Pinned, not the theme-aware token — the dialog surface stays light always. */
-  color: var(--s2a-color-gray-1000);
+  color: var(--s2a-color-content-default);
   line-height: 0;
 
-  /* Inward ring, pinned color — dark mode's ring token fails contrast on this always-light surface. */
   &:focus-visible {
-    outline: var(--s2a-border-width-md) solid var(--s2a-color-blue-900);
+    outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
     outline-offset: calc(-1 * var(--s2a-border-width-md));
   }
 }

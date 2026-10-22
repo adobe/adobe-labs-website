@@ -383,6 +383,74 @@ Use this when a section's first item is not a heading and assistive technology s
 
 The row is omitted when the section's first content item is already a heading (`h1`–`h6`).
 
+## Email collection
+
+The Subscribe buttons in the header and footer open `/modals/subscribe`. That fragment holds an **Email collection** block with the `mailing-list` option: `email-collection (mailing-list)`.
+
+The block needs three rows and a Section Metadata table in the same section.
+
+1. Form. A heading, a short description, a blank line, then a bold link whose href is `#submit`. The live AI Research modal uses the label Subscribe.
+2. Success. The success sentence and a link whose href is `#close-form`. An optional `#show-form` link returns to an empty form.
+3. Error. The error sentence and a `#close-form` link.
+
+Section Metadata (not shown in the modal):
+
+| Name | Value |
+| --- | --- |
+| email | Email address |
+| country | Country |
+| mps-sname | adbe_ml_ai_research |
+| subscription-name | AI Research |
+| sign-in | off |
+
+`email`, `mps-sname`, and `subscription-name` are required. The form is guest-only. Keep `sign-in | off` for parity with Milo; other values are ignored. A submit requests an IMS guest token with the `adlabs` client id.
+
+Consent text and the “required” / “valid email” messages are loaded from federal content. Authors do not write them. `subscription-name` is inserted into the consent sentence.
+
+On preview hosts, `?email-collection-show=success` or `?email-collection-show=error` opens the modal on that state.
+
+### Troubleshooting
+
+A failed submit shows the error panel. Two causes showed up while wiring the guest path. Both happen after the visitor submits, and both are fixed in `blocks/email-collection/email-collection.js`.
+
+#### Guest token and `ims_sid`
+
+Localhost and other non-production hosts ask stage IMS for a guest token:
+
+`POST https://adobeid-na1-stg1.services.adobe.com/ims/check/v6/token`
+
+```
+guest_allowed=true
+client_id=adlabs
+scope=AdobeID,openid
+```
+
+Production uses `https://adobeid-na1.services.adobe.com/ims/check/v6/token` with the same body.
+
+`imslib` sends cookies on that request. A browser that already has an `ims_sid` cookie for the IMS host gets HTTP 200 and this body:
+
+```json
+{"error":"invalid_credentials"}
+```
+
+The library surfaces that as an expired token (`invalid_credentials`, often with a trailing space because it joins `error` and an empty `error_description`). The same request with no cookies returns a guest `access_token`. A clean browser profile succeeds for that reason, while a signed-in Adobe browser fails.
+
+The block posts the check itself with `credentials: 'omit'`, so an existing Adobe session cookie stays off the guest request. On stage, the `adlabs` client also returns a token when `fingerprint_request_id` is omitted, including a request that never loads the bot-fingerprint script.
+
+#### `aepCmp` and `aepOtherConsents`
+
+The guest token is then sent to `/form-submit` on `https://www.stage.adobe.com/milo-email-collection-api` (stage) or `https://www.adobe.com/milo-email-collection-api` (production).
+
+If `aepCmp` or `aepOtherConsents` is absent from the JSON, the API responds 400:
+
+```json
+{"error":"missing parameter(s) 'aepCmp,aepOtherConsents'"}
+```
+
+`JSON.stringify` drops a key whose value is `undefined`, and the API treats that as missing. Milo copies both fields from Alloy (`window.alloy_all.data._adobe_corpnew`). This site does not load Alloy. Sending both keys as `null` is accepted: 201 and `Email subscribed successfully`.
+
+Those two fields are separate from the newsletter consent. The newsletter consent is `consentId` from federal content (`cs4;ve1;en` when no consent key is authored).
+
 ## Buttons
 
 The default `.button` class uses the Primary style. So far only the default/primary style is supported until others are needed.
