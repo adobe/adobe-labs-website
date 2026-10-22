@@ -1067,9 +1067,9 @@ describe('content-grid block', () => {
       expect(block).toHaveAttribute('data-category', slug);
     });
 
-    it('uses the first known category when a research article lists several', async () => {
+    it('uses the first category when a research article lists several', async () => {
       window.history.pushState({}, '', '/research/current');
-      getMetadata.mockReturnValue('Not a category, Standards and Practices, Economic Impact');
+      getMetadata.mockReturnValue('Standards and Practices, Economic Impact');
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
 
       await decorate(block);
@@ -1077,7 +1077,7 @@ describe('content-grid block', () => {
       expect(block).toHaveAttribute('data-category', 'standards-and-practices');
     });
 
-    it('leaves a research related grid unmarked when the category is unknown', async () => {
+    it('marks any category on a research related grid', async () => {
       window.history.pushState({}, '', '/research/current');
       getMetadata.mockReturnValue('Something Else');
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
@@ -1085,10 +1085,10 @@ describe('content-grid block', () => {
       await decorate(block);
 
       expect(block).toHaveAttribute('data-content-type', 'research');
-      expect(block).not.toHaveAttribute('data-category');
+      expect(block).toHaveAttribute('data-category', 'something-else');
     });
 
-    it('does not mark a category on a non-research related grid', async () => {
+    it('marks the category on a non-research related grid', async () => {
       window.history.pushState({}, '', '/workflows/clip');
       getMetadata.mockReturnValue('Future of Creative Work');
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
@@ -1096,6 +1096,25 @@ describe('content-grid block', () => {
       await decorate(block);
 
       expect(block).toHaveAttribute('data-content-type', 'workflows');
+      expect(block).toHaveAttribute('data-category', 'future-of-creative-work');
+    });
+
+    it('marks the authored category on a grid without Related content', async () => {
+      window.history.pushState({}, '', '/research/current');
+      const block = createBlock({ 'Content Type:': 'Research', 'Category:': 'Economic Impact', 'Count:': '8' });
+
+      await decorate(block);
+
+      expect(block).not.toHaveAttribute('data-content-type');
+      expect(block).toHaveAttribute('data-category', 'economic-impact');
+    });
+
+    it.each(['All', ''])('leaves the category unmarked when it is %j', async (category) => {
+      window.history.pushState({}, '', '/research/current');
+      const block = createBlock({ 'Content Type:': 'Research', 'Category:': category, 'Count:': '8' });
+
+      await decorate(block);
+
       expect(block).not.toHaveAttribute('data-category');
     });
   });

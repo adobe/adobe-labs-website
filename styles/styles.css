@@ -96,7 +96,7 @@
 
   /* Related content pre-footer. Author with `Style: section-rounded-related`.
      Content-grid sets `data-content-type` from the page path, and
-     `data-category` on research articles. The values below are placeholders
+     `data-category` from the first category; only research uses it here. The values below are placeholders
      until final surfaces land. */
   --color-section-surface-related: #fff;
   --color-section-surface-related-research: #EDF6FF;

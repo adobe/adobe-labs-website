@@ -15,14 +15,6 @@ import {
 import { buildGridItem } from '../grid-item/grid-item.js';
 
 const DEFAULT_COUNT = 8;
-/** Research categories that choose a related-section surface. */
-const RESEARCH_CATEGORY_SLUGS = new Set([
-  'future-of-creative-work',
-  'economic-impact',
-  'research',
-  'human-side-of-ai',
-  'standards-and-practices',
-]);
 /** /content.json still includes `/`. */
 const HOME_PATHS = new Set(['', '/', '/index']);
 const DEFAULT_ASPECT_CLASS = 'aspect-1-1';
@@ -270,17 +262,16 @@ export function wireStackedGridPagers(block) {
 }
 
 /**
- * First known research category in page metadata, as a class slug.
- * A comma-separated list uses the earliest match. "&" reads as "and", so
- * "Standards & Practices" and "Standards and Practices" share a slug.
+ * First category as a class slug; "All" is a filter, not a category.
+ * "&" reads as "and", so "Standards & Practices" and
+ * "Standards and Practices" share a slug.
  * @param {string} [category]
  * @returns {string}
  */
-function researchCategorySlug(category) {
-  return String(category || '')
-    .split(',')
-    .map((name) => toClassName(name.replace(/&/g, ' and ')))
-    .find((slug) => RESEARCH_CATEGORY_SLUGS.has(slug)) || '';
+function categorySlug(category) {
+  const [first = ''] = String(category || '').split(',');
+  const slug = toClassName(first.replace(/&/g, ' and '));
+  return slug === 'all' ? '' : slug;
 }
 
 /**
@@ -549,10 +540,8 @@ export default async function decorate(block) {
   // (see `.section-rounded-related` in styles.css).
   if (isRelated && section) block.dataset.contentType = section.slug;
   else delete block.dataset.contentType;
-  const categorySlug = isRelated && section?.slug === 'research'
-    ? researchCategorySlug(category)
-    : '';
-  if (categorySlug) block.dataset.category = categorySlug;
+  const slug = categorySlug(category);
+  if (slug) block.dataset.category = slug;
   else delete block.dataset.category;
   block.replaceChildren();
 
