@@ -1,6 +1,16 @@
 import { within } from '@testing-library/dom';
 import decorate from './table.js';
 
+const resizeCallbacks = [];
+global.ResizeObserver = function ResizeObserver(callback) {
+  resizeCallbacks.push(callback);
+  return { observe() {} };
+};
+
+function triggerResize() {
+  resizeCallbacks.forEach((callback) => callback([]));
+}
+
 function mockScrollerWidths(wrapper, { tableScrollWidth, clientWidth }) {
   Object.defineProperty(wrapper, 'scrollWidth', { configurable: true, writable: true, value: tableScrollWidth });
   Object.defineProperty(wrapper, 'clientWidth', { configurable: true, value: clientWidth });
@@ -217,7 +227,7 @@ describe('table block', () => {
     wrapper.remove();
   });
 
-  it('hides the end fade after resize when the table fits', () => {
+  it('hides the end fade when the table shrinks to fit', () => {
     const block = createBlock(WAGE_SUMMARY);
     const wrapper = decorateInWrapper(block, { tableScrollWidth: 900, clientWidth: 400 });
 
@@ -228,7 +238,7 @@ describe('table block', () => {
     const table = block.querySelector('table');
     table.scrollWidth = 300;
     wrapper.scrollWidth = 300;
-    window.dispatchEvent(new Event('resize'));
+    triggerResize();
 
     expect(block).not.toHaveClass('table--scrollable');
     expect(block).not.toHaveClass('table--fitted');

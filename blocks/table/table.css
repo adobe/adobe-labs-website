@@ -91,7 +91,6 @@
     border-inline-end: 1px solid var(--table-border-color);
     text-align: center;
     vertical-align: middle;
-    white-space: nowrap;
     color: var(--s2a-color-content-default);
     min-inline-size: 6.5rem; /* 104px */
 
