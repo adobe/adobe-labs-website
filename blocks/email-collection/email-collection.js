@@ -1,6 +1,6 @@
 /**
  * Newsletter form. Authors use an `email-collection (mailing-list)` table
- * plus section metadata (`email`, `mps-sname`, `subscription-name`, `sign-in`).
+ * plus section metadata (`email`, `mps-sname`, `subscription-name`).
  * Consent copy and field errors come from federal content.
  */
 const FEDERAL_ROOT = 'https://main--federal--adobecom.aem.page/federal/email-collection';
@@ -111,7 +111,7 @@ function replaceWithButton(anchor, type) {
  * Section metadata is already on `section.dataset` when decorate runs.
  * @param {Element} block
  * @returns {{ fields: { email?: string, country?: string }, mpsSname: string,
- *   subscriptionName: string, signIn: string, consentId: string,
+ *   subscriptionName: string, consentId: string,
  *   runtimeEndpoint: string }}
  */
 function readConfig(block) {
@@ -123,7 +123,6 @@ function readConfig(block) {
     fields,
     mpsSname: data.mpsSname || '',
     subscriptionName: data.subscriptionName || '',
-    signIn: data.signIn || '',
     consentId: data.consentId || '',
     runtimeEndpoint: data.runtimeEndpoint || '',
   };

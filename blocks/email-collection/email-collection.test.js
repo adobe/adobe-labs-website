@@ -42,7 +42,6 @@ function createBlock({
   country = 'Country',
   mpsSname = 'adbe_ml_ai_research',
   subscriptionName = 'AI Research',
-  signIn = 'off',
   submit = true,
   showForm = false,
 } = {}) {
@@ -52,7 +51,6 @@ function createBlock({
   if (country) section.dataset.country = country;
   if (mpsSname) section.dataset.mpsSname = mpsSname;
   if (subscriptionName) section.dataset.subscriptionName = subscriptionName;
-  if (signIn) section.dataset.signIn = signIn;
 
   const block = document.createElement('div');
   block.className = 'email-collection mailing-list';
