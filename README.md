@@ -156,6 +156,7 @@ Set the headline's heading level in Document Authoring. The hero keeps that elem
    - `section-rounded-blue` — blue surface
    - `section-rounded-pink` — pink surface
    - `section-rounded-orange` — orange surface
+   - `section-rounded-gray` — gray surface (`#ececec`). The Economic Impact section uses this.
 
 Keep the **hero in the first section**. Do not put a rounded Style on the hero section.
 

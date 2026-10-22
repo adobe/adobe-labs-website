@@ -93,6 +93,7 @@
   --color-section-surface-pink: #fff4f2;
   --color-section-surface-orange: #faf4f0;
   --color-section-surface-default-variant: #f0f0f0;
+  --color-section-surface-gray: #ececec;
 
   /* Related content pre-footer. Author with `Style: section-rounded-related`.
      Content-grid sets `data-content-type` from the page path, and
@@ -104,7 +105,7 @@
   --color-section-surface-related-sneaks: #F5F5F5;
   --color-section-surface-related-playground: #F5F5F5;
   --color-section-surface-related-category-future-of-creative-work: #EDF6FF;
-  --color-section-surface-related-category-economic-impact: #ECECEC;
+  --color-section-surface-related-category-economic-impact: var(--color-section-surface-gray);
   --color-section-surface-related-category-human-side-of-ai: #fff;
   --color-section-surface-related-category-standards-practices: #FFF4F2;
   --color-section-surface-related-category-research: #F5F5F5;
@@ -146,6 +147,7 @@
     --color-section-surface-pink: #301517;
     --color-section-surface-orange: #312b27;
     --color-section-surface-default-variant: #1C1C1C;
+    --color-section-surface-gray: #2e2b2b;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
     --color-section-surface-related: #111F2F;
     --color-section-surface-related-research: #111F2F;
@@ -153,7 +155,7 @@
     --color-section-surface-related-sneaks: #1C1C1C;
     --color-section-surface-related-playground: #1C1C1C;
     --color-section-surface-related-category-future-of-creative-work: #163044;
-    --color-section-surface-related-category-economic-impact: #2E2B2B;
+    --color-section-surface-related-category-economic-impact: var(--color-section-surface-gray);
     --color-section-surface-related-category-human-side-of-ai: #131313;
     --color-section-surface-related-category-standards-practices: #2F1511;
     --color-section-surface-related-category-research: #1C1C1C;
@@ -1090,6 +1092,10 @@ main .section {
 
   &.section-rounded-orange {
     background: var(--color-section-surface-orange);
+  }
+
+  &.section-rounded-gray {
+    background: var(--color-section-surface-gray);
   }
 
   &.section-rounded-related {
