@@ -430,4 +430,12 @@ This library is bundled into deps, following the documented convention used by o
 
 If credentials are found on an image, it will have a wrapper added around it, and an absolutely positioned CR pin button will be displayed in the upper right corner. The CR pin button can be activated on hover (requested behavior), and also can be activated by keyboard. When activated, it will display a popover containing info from the credentials data.
 
+Pins are added to images in image blocks, side-by-side image blocks, and article text. Images inside other blocks, such as linkboxes and content grids, are not read.
+
+Article hero images work differently:
+
+- The hero media is `aria-hidden`, so the image is not wrapped. The pin is added to the hero's content grid (`.cr-pin-image--hero`), at the bottom right, in line with the headline. Its popover opens up and to the left.
+- A hero wrapped in a link never gets a pin, because a button cannot sit inside a link. The image is not fetched.
+- On a full-screen hero, the pin recedes with the headline as the page scrolls. Both read `--section-scroll-hero-text-y`, which `scripts/section-scroll/section-motion.js` sets on the hero section.
+
 What data is displayed in the popover and where it is pulled from the raw manifest data is based on the now deprecated web component from `contentauth/c2pa-js-legacy`. There also is an inspect button with an external link for viewing the Disclosure Level 3 data.

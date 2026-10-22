@@ -61,6 +61,13 @@ export const HEADER_FADE_VH_SMALL = 0.4;
 /** Share of page scroll applied to full-screen hero headline and CTA. */
 export const HERO_TEXT_SPEED = 0.5;
 
+/**
+ * Full-screen hero text offset, set on the hero section. A variable rather than
+ * a transform on each element, so anything added beside the copy after binding
+ * (such as the CR pin) recedes with it.
+ */
+export const VAR_HERO_TEXT_Y = '--section-scroll-hero-text-y';
+
 /** Viewport query for a stacked page header (`< 48rem`). */
 const SMALL_MQ = '(width < 48rem)';
 

@@ -29,6 +29,7 @@ const CR_IMAGE_SELECTORS = [
   'body.article .image-wrapper picture > img',
   'body.article .side-by-side-image-wrapper picture > img',
   'body.article .default-content-wrapper picture > img',
+  'body.article .hero .hero__media picture > img',
 ].join(', ');
 
 /**
@@ -61,14 +62,16 @@ const readCredentials = async (img) => {
   if (!img?.src) return false;
 
   // Load the SDK and create a c2pa instance with the WASM binary, once per page.
-  // `import.meta.url` still resolves against this file, so the WASM sits alongside
-  // the bundle either way.
+  // The WASM URL resolves from the code base path, like the feature's stylesheet.
   if (!c2paReady) {
     c2paReady = (async () => {
       const sdk = await import('../../../deps/c2pa-web/index.js');
       Reader = sdk.Reader;
       c2pa = await sdk.createC2pa({
-        wasmSrc: new URL('../../../deps/c2pa-web/resources/c2pa_bg.wasm', import.meta.url).href,
+        wasmSrc: new URL(
+          `${window.hlx?.codeBasePath ?? ''}/deps/c2pa-web/resources/c2pa_bg.wasm`,
+          window.location.href,
+        ).href,
       });
     })();
   }
@@ -793,9 +796,42 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl, imageAlt = 
 };
 
 /**
+ * Wrap the image's `picture`, so the CR pin can be positioned on top of it.
+ *
+ * @param {HTMLImageElement} img
+ * @returns {HTMLElement|null} The wrapper, or null if the image has no `picture`.
+ */
+const createImagePinWrapper = (img) => {
+  const picture = img.closest('picture');
+  if (!picture) return null;
+
+  const crPinWrapper = document.createElement('span');
+  crPinWrapper.classList.add('cr-pin-image');
+  picture.before(crPinWrapper);
+  crPinWrapper.append(picture);
+  return crPinWrapper;
+};
+
+/**
+ * Add a CR pin wrapper to the hero's content grid. The hero media is aria-hidden, so
+ * the pin sits beside the copy instead of wrapping the image.
+ *
+ * @param {HTMLElement} hero The hero block.
+ * @returns {HTMLElement|null} The wrapper, or null if the hero has no content grid.
+ */
+const createHeroPinWrapper = (hero) => {
+  const content = hero.querySelector('.hero__content');
+  if (!content) return null;
+
+  const crPinWrapper = document.createElement('span');
+  crPinWrapper.classList.add('cr-pin-image', 'cr-pin-image--hero');
+  content.append(crPinWrapper);
+  return crPinWrapper;
+};
+
+/**
  * Find the page's matching images, read their CR data, and give every image that has a
- * manifest a wrapped `picture` carrying the CR pin and its popover. Images without
- * credentials are left untouched.
+ * manifest a CR pin and its popover. Images without credentials are left untouched.
  *
  * @param {string} crImageSelector Selector matching the images to read.
  * @returns {Promise<void>} Resolves once every image has been read.
@@ -812,18 +848,18 @@ const addContentCredentials = async (crImageSelector) => {
   // If there is CR data, give it a wrapper and add the pin with its data.
   // Awaited as a whole so the c2pa instance is not disposed while reads are in flight.
   await Promise.all([...images].map(async (img) => {
+    // A linked hero is one big link, and the pin is a button that cannot sit inside it.
+    // Checked before the read, so the image is never fetched for nothing.
+    const hero = img.closest('.hero');
+    if (hero && img.closest('a')) return;
+
     // Get CR data.
     const activeManifest = await readCredentials(img);
     if (!activeManifest) return;
 
-    // Give the picture element a wrapper, for positioning the CR pin on top of it.
-    const picture = img.closest('picture');
-    if (!picture) return;
+    const crPinWrapper = hero ? createHeroPinWrapper(hero) : createImagePinWrapper(img);
+    if (!crPinWrapper) return;
 
-    const crPinWrapper = document.createElement('span');
-    crPinWrapper.classList.add('cr-pin-image');
-    picture.before(crPinWrapper);
-    crPinWrapper.append(picture);
     buildCRPinPopoverComponent(crPinWrapper, activeManifest, getOriginalImageUrl(img), img.alt);
   }));
 };

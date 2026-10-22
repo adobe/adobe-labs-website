@@ -16,6 +16,7 @@ import {
   CLASS_OVERLAY,
   HERO_TEXT_SPEED,
   OVERLAY_DIM,
+  VAR_HERO_TEXT_Y,
   coverPinProgress,
   coverStartPx,
   headerFadeVh,
@@ -134,16 +135,15 @@ export function fadeHeader(headerWrap) {
  * Pushes the full-screen hero copy block and CTA up at half scroll speed.
  * The copy block is the category and headline together; moving only the
  * headline leaves the category behind. The pinned hero card and its art stay
- * in place.
+ * in place. The offset is tweened on the section and applied in CSS.
  *
  * @param {HTMLElement} section Outgoing full-screen hero
  * @returns {void}
  */
 function recedeHeroText(section) {
-  const text = section.querySelectorAll('.hero__copy, .hero__cta-text');
-  if (!text.length) return;
-  gsap.fromTo(text, { y: 0 }, {
-    y: () => -ScrollTrigger.maxScroll(window) * HERO_TEXT_SPEED,
+  if (!section.querySelector('.hero__copy, .hero__cta-text')) return;
+  gsap.fromTo(section, { [VAR_HERO_TEXT_Y]: '0px' }, {
+    [VAR_HERO_TEXT_Y]: () => `${-ScrollTrigger.maxScroll(window) * HERO_TEXT_SPEED}px`,
     ease: 'none',
     scrollTrigger: {
       start: 0,
