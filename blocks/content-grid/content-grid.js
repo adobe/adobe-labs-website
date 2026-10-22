@@ -262,6 +262,19 @@ export function wireStackedGridPagers(block) {
 }
 
 /**
+ * First category as a class slug; "All" is a filter, not a category.
+ * "&" reads as "and", so "Standards & Practices" and
+ * "Standards and Practices" share a slug.
+ * @param {string} [category]
+ * @returns {string}
+ */
+function categorySlug(category) {
+  const [first = ''] = String(category || '').split(',');
+  const slug = toClassName(first.replace(/&/g, ' and '));
+  return slug === 'all' ? '' : slug;
+}
+
+/**
  * Trim and lowercase category names from a string, comma list, or array.
  * @param {*} value
  * @returns {string[]}
@@ -522,6 +535,14 @@ export default async function decorate(block) {
   const excludePath = isRelated ? currentPath : '';
 
   block.classList.toggle('content-grid--related', isRelated);
+  // The shared pre-footer is authored once. The page path picks the
+  // section surface; a research page also uses its category
+  // (see `.section-rounded-related` in styles.css).
+  if (isRelated && section) block.dataset.contentType = section.slug;
+  else delete block.dataset.contentType;
+  const slug = categorySlug(category);
+  if (slug) block.dataset.category = slug;
+  else delete block.dataset.category;
   block.replaceChildren();
 
   const payload = await dataStore.getData(endpoint);
