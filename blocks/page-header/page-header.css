@@ -83,8 +83,8 @@
   }
 
   .page-header__aside {
+    justify-self: end;
     max-width: 25rem;
-    inline-size: 25rem;
   }
 }
 
@@ -123,7 +123,6 @@
 
   .page-header__aside {
     max-width: 37.5rem;
-    inline-size: auto;
   }
 
   .page-header:has(.page-header__jump) {
