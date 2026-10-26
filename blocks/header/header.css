@@ -276,11 +276,10 @@
     backdrop-filter: blur(4rem);
   }
 
-  /* The open mobile menu sits under the bar; match it so the hero doesn't show through. */
-  &.header--inverse.header--nav-open .header__bar {
+  &.header--inverse .header__nav {
     @media (width < 48rem) {
-      background-color: var(--header-surface);
-      backdrop-filter: none;
+      z-index: -1;
+      box-shadow: 0 calc(-1 * var(--header-bar-height)) 0 var(--header-surface);
     }
   }
 
