@@ -374,6 +374,64 @@ function selectItems(data, {
 }
 
 /**
+ * Site path from an authored link: a site URL, a bare or relative path,
+ * or a DA editor URL (`https://da.live/edit#/{owner}/{repo}/path`).
+ * @param {string} [value]
+ * @returns {string} Normalized path, or '' when unparseable
+ */
+function toPagePath(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  let url;
+  try {
+    url = new URL(raw, `${window.location.origin}/`);
+  } catch {
+    return '';
+  }
+  let path = url.pathname;
+  if (url.hostname === 'da.live' || url.hostname.endsWith('.da.live')) {
+    // The DA path lives in the hash, prefixed with owner and repo.
+    const segments = url.hash.replace(/^#/, '').split('/').filter(Boolean);
+    path = `/${segments.slice(2).join('/')}`;
+  }
+  return normalizePath(path.replace(/\.(plain\.)?html$/, ''));
+}
+
+/**
+ * Paths from the page's `Related Articles` metadata, in authored order.
+ * Links may be comma- or whitespace-separated.
+ * @returns {string[]}
+ */
+function getRelatedArticlePaths() {
+  return getMetadata('related-articles')
+    .split(/[\s,]+/)
+    .map(toPagePath)
+    .filter((path) => path && path !== '/');
+}
+
+/**
+ * Index rows for the given paths, in that order. Skips duplicates, paths
+ * missing from the index, and the same rows {@link selectItems} skips.
+ * @param {ContentItem[]} data
+ * @param {string[]} paths
+ * @param {object} options
+ * @param {number} options.count
+ * @param {string} [options.excludePath]
+ * @returns {ContentItem[]}
+ */
+function selectPinnedItems(data, paths, { count, excludePath }) {
+  const byPath = new Map(data
+    .filter((item) => !/noindex/i.test(String(item.robots || ''))
+      && !isExcludedPath(item.path)
+      && (!excludePath || normalizePath(item.path) !== normalizePath(excludePath)))
+    .map((item) => [normalizePath(item.path), item]));
+  return [...new Set(paths)]
+    .map((path) => byPath.get(path))
+    .filter(Boolean)
+    .slice(0, count);
+}
+
+/**
  * Whether an index row should render as a video card.
  * Prefers an explicit isVideo flag, then contentType, then the /sneaks/ folder.
  * @param {ContentItem} item
@@ -511,6 +569,10 @@ async function renderGrid(block, gridItems, header) {
  * empty instead of coming up empty. Meant for a single shared placement
  * (e.g. the article pre-footer fragment) that renders differently per page
  * without being re-authored per page.
+ *
+ * A page can pin its own picks with `Related Articles` metadata (links,
+ * any content type). Pinned cards come first in authored order and show
+ * their content-type label; the automatic results fill any remaining slots.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
@@ -530,9 +592,9 @@ export default async function decorate(block) {
   const parsedCount = Number.parseInt(String(config.count || '').trim(), 10);
   const count = Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : DEFAULT_COUNT;
   const subheadDescription = block.classList.contains('subhead-description');
-  const showContentType = block.classList.contains('show-content-type');
   const category = isRelated ? getMetadata('category') : config.category;
   const excludePath = isRelated ? currentPath : '';
+  const pinnedPaths = isRelated ? getRelatedArticlePaths() : [];
 
   block.classList.toggle('content-grid--related', isRelated);
   // The shared pre-footer is authored once. The page path picks the
@@ -545,7 +607,11 @@ export default async function decorate(block) {
   else delete block.dataset.category;
   block.replaceChildren();
 
-  const payload = await dataStore.getData(endpoint);
+  const [payload, pinnedPayload] = await Promise.all([
+    dataStore.getData(endpoint),
+    // Picks can be any content type, so they resolve against the all-content index.
+    pinnedPaths.length ? dataStore.getData(dataStore.commonEndpoints.allContent) : null,
+  ]);
   if (!payload) {
     // eslint-disable-next-line no-console
     console.error(`content-grid: failed to load ${endpoint}`);
@@ -555,10 +621,23 @@ export default async function decorate(block) {
   }
 
   const data = Array.isArray(payload.data) ? payload.data : [];
-  let items = selectItems(data, { category, count, excludePath });
+  const pinned = selectPinnedItems(
+    Array.isArray(pinnedPayload?.data) ? pinnedPayload.data : [],
+    pinnedPaths,
+    { count, excludePath },
+  );
+  // Ask for extra rows so pinned duplicates can be dropped without leaving gaps.
+  const fillCount = count + pinned.length;
+  let items = selectItems(data, { category, count: fillCount, excludePath });
   if (isRelated && category && !items.length) {
-    items = selectItems(data, { category: '', count, excludePath });
+    items = selectItems(data, { category: '', count: fillCount, excludePath });
   }
+  if (pinned.length) {
+    const pinnedSet = new Set(pinned.map((item) => normalizePath(item.path)));
+    items = [...pinned, ...items.filter((item) => !pinnedSet.has(normalizePath(item.path)))];
+  }
+  items = items.slice(0, count);
+  const showContentType = block.classList.contains('show-content-type') || pinned.length > 0;
   await renderGrid(
     block,
     items.map((entry) => createGridItem(entry, { subheadDescription, showContentType })),
