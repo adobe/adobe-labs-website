@@ -10,7 +10,7 @@ import {
   coverPinProgress,
   coverStartPx,
   coversPrevious,
-  dimEntryStart,
+  dimRange,
   FOOTER_UNCOVER_VH,
   footerCoverDistance,
   footerCoverFits,
@@ -192,15 +192,23 @@ describe('usesCssCover', () => {
   });
 });
 
-describe('dimEntryStart', () => {
-  it('maps the cover line onto a view-timeline entry percentage', () => {
+describe('dimRange', () => {
+  it('maps the cover line onto view-timeline cover offsets', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const rounded = section('<div class="section section-rounded-blue"></div>');
-    expect(dimEntryStart(rounded)).toBe('40%');
+    expect(dimRange(rounded)).toEqual({ start: '320px', end: '800px' });
 
     const intro = section('<div class="section page-header-container"></div>');
     Object.defineProperty(intro, 'offsetHeight', { configurable: true, value: 400 });
-    expect(dimEntryStart(intro)).toBe('50%');
+    expect(dimRange(intro)).toEqual({ start: '400px', end: '800px' });
+  });
+
+  it('ends when the incoming top reaches the viewport top, not when it is fully visible', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 956 });
+    const hero = section(`
+      <div class="section hero-container"><div class="hero hero-full-screen"></div></div>
+    `);
+    expect(dimRange(hero)).toEqual({ start: '382.4px', end: '956px' });
   });
 });
 
