@@ -7,6 +7,7 @@ jest.mock('../../scripts/aem.js', () => ({
     : ''),
   getMetadata: jest.fn(() => ''),
   buildBlock: jest.fn(),
+  loadScript: jest.fn(() => Promise.resolve()),
 }));
 
 const VIDEO_ID = '1F-5bZC_M7Q';
@@ -183,6 +184,8 @@ describe('video block', () => {
     expect(iframe.src).toContain('autoplay=1');
     expect(iframe.src).toContain('rel=0');
     expect(iframe.src).toContain('cc_load_policy=1');
+    expect(iframe.src).toContain('playsinline=1');
+    expect(iframe.src).toContain('enablejsapi=1');
     expect(iframe).toHaveAttribute('title', `video ${VIDEO_ID}`);
     expect(iframe.allow).toContain('fullscreen');
     expect(iframe).not.toHaveAttribute('allowfullscreen');
@@ -340,6 +343,130 @@ describe('video block', () => {
     within(block).getByText('View transcript').click();
 
     expect(block.querySelector('.video__transcript').open).toBe(true);
+  });
+
+  describe('YouTube IFrame Player API', () => {
+    const API_URL = 'https://www.youtube.com/iframe_api';
+    let decorateFresh;
+    let loadScript;
+    let playVideo;
+    let mute;
+    let playerState;
+
+    beforeEach(() => {
+      playVideo = jest.fn();
+      mute = jest.fn();
+      playerState = 1;
+      // Fresh module per test so the cached API promise starts empty.
+      /* eslint-disable global-require */
+      jest.isolateModules(() => {
+        ({ loadScript } = require('../../scripts/aem.js'));
+        decorateFresh = require('./video.js').default;
+      });
+      /* eslint-enable global-require */
+      loadScript.mockClear();
+      loadScript.mockImplementation(() => {
+        window.YT = {
+          PlayerState: { PLAYING: 1, BUFFERING: 3 },
+          Player: jest.fn((el, { events }) => events.onReady({
+            target: { playVideo, mute, getPlayerState: () => playerState },
+          })),
+        };
+        window.onYouTubeIframeAPIReady();
+        return Promise.resolve();
+      });
+    });
+
+    afterEach(() => {
+      delete window.YT;
+      delete window.onYouTubeIframeAPIReady;
+    });
+
+    it('starts playback through the API after the player loads', async () => {
+      const block = createBlock({ 'YouTube URL': youtubeLink(WATCH_URL) });
+
+      decorateFresh(block);
+      within(block).getByRole('button', { name: `Play video ${VIDEO_ID}` }).click();
+
+      const iframe = block.querySelector('iframe');
+      await waitFor(() => expect(playVideo).toHaveBeenCalled());
+      expect(loadScript).toHaveBeenCalledWith(API_URL);
+      expect(window.YT.Player).toHaveBeenCalledWith(iframe, expect.any(Object));
+    });
+
+    it('keeps sound on when playback starts', async () => {
+      jest.useFakeTimers();
+      const block = createBlock({ 'YouTube URL': youtubeLink(WATCH_URL) });
+
+      decorateFresh(block);
+      block.querySelector('.video__poster').click();
+      await jest.runAllTimersAsync();
+      jest.useRealTimers();
+
+      expect(playVideo).toHaveBeenCalledTimes(1);
+      expect(mute).not.toHaveBeenCalled();
+    });
+
+    it('retries muted when the browser blocks playback with sound', async () => {
+      jest.useFakeTimers();
+      playerState = -1;
+      const block = createBlock({ 'YouTube URL': youtubeLink(WATCH_URL) });
+
+      decorateFresh(block);
+      block.querySelector('.video__poster').click();
+      await jest.runAllTimersAsync();
+      jest.useRealTimers();
+
+      expect(mute).toHaveBeenCalledTimes(1);
+      expect(playVideo).toHaveBeenCalledTimes(2);
+      expect(mute.mock.invocationCallOrder[0]).toBeLessThan(playVideo.mock.invocationCallOrder[1]);
+    });
+
+    it('starts loading the API when the poster is hovered', () => {
+      const block = createBlock({ 'YouTube URL': youtubeLink(WATCH_URL) });
+
+      decorateFresh(block);
+      block.querySelector('.video__poster').dispatchEvent(new Event('pointerenter'));
+
+      expect(loadScript).toHaveBeenCalledTimes(1);
+      expect(loadScript).toHaveBeenCalledWith(API_URL);
+    });
+
+    it('loads the API script only once', async () => {
+      const first = createBlock({ 'YouTube URL': youtubeLink(WATCH_URL) });
+      const second = createBlock({ 'YouTube URL': youtubeLink(WATCH_URL) });
+
+      decorateFresh(first);
+      decorateFresh(second);
+      first.querySelector('.video__poster').click();
+      second.querySelector('.video__poster').click();
+
+      await waitFor(() => expect(playVideo).toHaveBeenCalledTimes(2));
+      expect(loadScript).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the plain iframe when the API fails to load', async () => {
+      loadScript.mockImplementation(() => Promise.reject(new Error('blocked')));
+      const block = createBlock({ 'YouTube URL': youtubeLink(WATCH_URL) });
+
+      decorateFresh(block);
+      block.querySelector('.video__poster').click();
+      await Promise.resolve();
+
+      expect(block.querySelector('iframe').src).toContain('autoplay=1');
+      expect(playVideo).not.toHaveBeenCalled();
+    });
+
+    it('does not load the API for Adobe videos', () => {
+      const block = createBlock({ 'Video URL': youtubeLink('https://video.tv.adobe.com/v/3503885/') });
+
+      decorateFresh(block);
+      const button = block.querySelector('.video__poster');
+      button.dispatchEvent(new Event('pointerenter'));
+      button.click();
+
+      expect(loadScript).not.toHaveBeenCalled();
+    });
   });
 
   describe('Adobe Video Publishing Cloud', () => {

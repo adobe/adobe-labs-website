@@ -1,3 +1,4 @@
+import { loadScript } from '../../scripts/aem.js';
 import {
   buildPlayIcon,
   getAuthoredCells,
@@ -9,6 +10,8 @@ import {
 
 const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const YOUTUBE_POSTER_PLACEHOLDER_WIDTH = 120;
+const YOUTUBE_API_URL = 'https://www.youtube.com/iframe_api';
+const YOUTUBE_AUTOPLAY_CHECK_DELAY = 1000;
 const ADOBE_VIDEO_ORIGIN = 'https://video.tv.adobe.com';
 const ADOBE_VIDEO_HOST = 'video.tv.adobe.com';
 const ADOBE_POSTER_HOST = 'images-tv.adobe.com';
@@ -286,6 +289,33 @@ function getAdobeThumbnailUrl(value) {
   }
 }
 
+let youtubeApi;
+
+/**
+ * Loads the YouTube IFrame Player API once per page.
+ *
+ * @returns {Promise<object>} Resolves with `window.YT` when the API is ready
+ */
+function loadYoutubeApi() {
+  if (!youtubeApi) {
+    youtubeApi = new Promise((resolve, reject) => {
+      if (window.YT?.Player) {
+        resolve(window.YT);
+        return;
+      }
+      const previousReady = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        previousReady?.();
+        resolve(window.YT);
+      };
+      loadScript(YOUTUBE_API_URL).catch(reject);
+    });
+    // Allow a retry on the next interaction if the script fails to load.
+    youtubeApi.catch(() => { youtubeApi = undefined; });
+  }
+  return youtubeApi;
+}
+
 /**
  * Per-provider poster, oEmbed endpoint, and iframe settings.
  */
@@ -299,10 +329,38 @@ const PROVIDERS = {
       return url;
     },
     embedSrc(id) {
-      const params = new URLSearchParams({ rel: '0', cc_load_policy: '1', autoplay: '1' });
+      const params = new URLSearchParams({
+        rel: '0',
+        cc_load_policy: '1',
+        autoplay: '1',
+        playsinline: '1',
+        enablejsapi: '1',
+        origin: window.location.origin,
+      });
       return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?${params}`;
     },
     allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen',
+    warmup() {
+      loadYoutubeApi().catch(() => {});
+    },
+    onEmbed(iframe) {
+      loadYoutubeApi()
+        .then((YT) => new YT.Player(iframe, {
+          events: {
+            onReady: ({ target }) => {
+              target.playVideo();
+              // iOS blocks playback with sound here; retry muted so it still starts.
+              setTimeout(() => {
+                const state = target.getPlayerState();
+                if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) return;
+                target.mute();
+                target.playVideo();
+              }, YOUTUBE_AUTOPLAY_CHECK_DELAY);
+            },
+          },
+        }))
+        .catch(() => {});
+    },
   },
   adobe: {
     buildPoster: buildAdobePoster,
@@ -395,6 +453,7 @@ function loadEmbed(block, { source, playLabel }) {
   }
   // Move focus into the player so keyboard users can control it.
   iframe.focus();
+  provider.onEmbed?.(iframe);
 }
 
 /**
@@ -431,6 +490,12 @@ function buildVideo(data, block) {
   button.addEventListener('click', () => {
     loadEmbed(block, { source, playLabel });
   });
+  // Start loading the player API before the click so playback starts within the tap.
+  if (provider.warmup) {
+    ['pointerenter', 'touchstart', 'focus'].forEach((type) => {
+      button.addEventListener(type, provider.warmup, { once: true, passive: true });
+    });
+  }
 
   // Write stage, live region, and optional transcript into the block.
   const stage = document.createElement('div');
