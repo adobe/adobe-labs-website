@@ -82,8 +82,19 @@
       letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
     }
 
-    & h6 {
+    /* Authors pick the level for the page outline; the design shows heading 4. */
+    & :is(h1, h2, h3) {
+      font-size: var(--s2a-typography-font-size-heading-4);
+      font-weight: var(--s2a-font-weight-heading);
+      line-height: var(--s2a-typography-line-height-heading-4);
+      letter-spacing: var(--s2a-typography-letter-spacing-heading-4);
+    }
+
+    & :is(h6, .content-grid__intro-heading--small) {
       color: var(--s2a-color-content-body-subtle);
+      font-size: var(--s2a-typography-font-size-heading-6);
+      line-height: var(--s2a-typography-line-height-heading-6);
+      letter-spacing: var(--s2a-typography-letter-spacing-heading-6);
     }
   }
 

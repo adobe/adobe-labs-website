@@ -53,6 +53,20 @@ function takeConfigCell(block, name) {
 }
 
 /**
+ * An all-italic intro heading opts into the small (heading 6) style at any level.
+ * Unwraps the `<em>` and adds `content-grid__intro-heading--small`.
+ * @param {Element} copy
+ */
+function markSmallHeadings(copy) {
+  copy.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((heading) => {
+    const em = heading.querySelector(':scope > em');
+    if (!em || em.textContent.trim() !== heading.textContent.trim()) return;
+    em.replaceWith(...em.childNodes);
+    heading.classList.add('content-grid__intro-heading--small');
+  });
+}
+
+/**
  * Pull the Intro row out of the config table and return a decorated intro node.
  * @param {Element} block
  * @returns {HTMLDivElement|null}
@@ -67,6 +81,7 @@ function takeIntro(block) {
   copy.className = 'content-grid__intro-copy';
   copy.append(...cell.childNodes);
   copy.querySelectorAll('p').forEach((p) => p.classList.add('body-lg'));
+  markSmallHeadings(copy);
   intro.append(copy);
   return intro;
 }

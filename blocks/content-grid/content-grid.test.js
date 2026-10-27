@@ -730,6 +730,38 @@ describe('content-grid block', () => {
     expect(buildGridItem).toHaveBeenCalledTimes(2);
   });
 
+  it('turns an all-italic intro heading into the small heading style', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+      Intro: '<h2><em>Coming soon</em></h2><p>More to explore.</p>',
+    });
+
+    await decorate(block);
+
+    const heading = block.querySelector('.content-grid__intro h2');
+    expect(heading).toHaveClass('content-grid__intro-heading--small');
+    expect(heading).toHaveTextContent('Coming soon');
+    expect(heading.querySelector('em')).toBeNull();
+  });
+
+  it('keeps a plain or partly italic intro heading unchanged', async () => {
+    const block = createBlock({
+      'Content Type:': 'All',
+      'Category:': 'All',
+      'Count:': '1',
+      Intro: '<h2>Future of Creative Work</h2><h3>The <em>human</em> side</h3>',
+    });
+
+    await decorate(block);
+
+    const [h2, h3] = block.querySelectorAll('.content-grid__intro :is(h2, h3)');
+    expect(h2).not.toHaveClass('content-grid__intro-heading--small');
+    expect(h3).not.toHaveClass('content-grid__intro-heading--small');
+    expect(h3.querySelector('em')).toHaveTextContent('human');
+  });
+
   it('does not pass Intro to readBlockConfig', async () => {
     const labels = [];
     readBlockConfig.mockImplementation((el) => {
