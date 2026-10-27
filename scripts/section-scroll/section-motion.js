@@ -21,6 +21,8 @@ import {
   coverStartPx,
   headerFadeVh,
   holdThenLinear,
+  introHoldEase,
+  introHoldPx,
   introLagPx,
   isFullScreenHero,
   roundedParallax,
@@ -176,7 +178,17 @@ export function bindPair(slow, next) {
     const lagInner = [...slow.children].filter((el) => el !== overlay && el !== headerWrap);
     // Touch reaches here only without scroll-driven CSS (Safari < 26), so GSAP owns the lag.
     if (lagInner.length) {
-      cover.fromTo(lagInner, { y: 0 }, { y: () => introLagPx(slow), duration: 1 }, 0);
+      const intro = { hold: 0, lag: 0, span: 0 };
+      cover.fromTo(lagInner, { y: 0 }, {
+        y: () => {
+          intro.hold = touch ? introHoldPx(slow) : 0;
+          intro.lag = introLagPx(slow);
+          intro.span = coverStartPx(slow);
+          return intro.hold + intro.lag;
+        },
+        duration: 1,
+        ease: (progress) => introHoldEase(progress, intro),
+      }, 0);
     }
     dim(cover, overlay, heroText, FULL_SPAN);
     return;

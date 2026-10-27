@@ -146,10 +146,18 @@
  * Touch lag on the compositor. GSAP y on the same node as native iOS scroll
  * jitters; a view timeline does not. `--section-scroll-intro-lag` is set in JS.
  * Without view timelines (Safari < 26), `section-motion.js` falls back to GSAP.
+ * The hold keeps the intro still across `--section-scroll-intro-hold` (the gap
+ * to the next section), so the incoming card meets it before the lag starts.
  * `@supports` stays at the root: nesting it breaks adjacent styles in Safari
  * 16.5 through 18.1.
  */
 @supports (animation-timeline: view()) and (animation-range: entry) {
+  @keyframes section-scroll-intro-hold {
+    to {
+      translate: 0 var(--section-scroll-intro-hold, 0);
+    }
+  }
+
   @keyframes section-scroll-intro-lag {
     to {
       transform: translateY(var(--section-scroll-intro-lag, 0));
@@ -163,9 +171,13 @@
     }
 
     main > .section.section-scroll-intro > :not(.section-scroll-fade, .section-scroll-overlay) {
-      animation: section-scroll-intro-lag linear both;
-      animation-timeline: --section-scroll-intro;
-      animation-range: exit 0% exit 100%;
+      animation:
+        section-scroll-intro-hold linear both,
+        section-scroll-intro-lag linear both;
+      animation-timeline: --section-scroll-intro, --section-scroll-intro;
+      animation-range:
+        exit 0% exit var(--section-scroll-intro-hold, 0),
+        exit var(--section-scroll-intro-hold, 0) exit 100%;
     }
   }
 }

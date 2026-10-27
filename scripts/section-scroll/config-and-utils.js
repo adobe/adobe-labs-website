@@ -219,6 +219,36 @@ export function introLagPx(section) {
 }
 
 /**
+ * Gap between an intro section and the section after it, in px. On touch the
+ * intro holds still for this much scroll so the incoming card meets it sooner.
+ *
+ * @param {HTMLElement} section
+ * @returns {number}
+ */
+export function introHoldPx(section) {
+  const next = section.nextElementSibling;
+  if (!(next instanceof HTMLElement)) return 0;
+  return Math.max(0, next.offsetTop - section.offsetTop - section.offsetHeight);
+}
+
+/**
+ * Ease for an intro lag that holds still for `hold` px of scroll, then lags
+ * `lag` px over the rest of `span`. Linear when there is no hold.
+ *
+ * @param {number} progress
+ * @param {{ hold: number, lag: number, span: number }} geometry
+ * @returns {number}
+ */
+export function introHoldEase(progress, { hold, lag, span }) {
+  const held = Math.min(hold, span);
+  const total = held + lag;
+  if (held <= 0 || total <= 0) return progress;
+  const at = held / span;
+  const px = progress < at ? progress * span : held + lag * holdThenLinear(progress, at);
+  return px / total;
+}
+
+/**
  * Cover line for a rounded card, in px. `COVER_START_VH` of the viewport,
  * unless the card is shorter than that line. A short card meets the next
  * section at its own bottom, so the pin can sit at the top of a tall viewport

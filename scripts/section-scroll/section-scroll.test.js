@@ -765,6 +765,12 @@ describe('initSectionScroll', () => {
     const cover = timelineTweening(heroWrap);
     expect(cover.timeline).toBe(timelineTweening(overlay).timeline);
     expect(tweenVars(cover.timeline, heroWrap).y()).toBe(400 * INTRO_LAG);
+
+    // A gap to the next section adds a hold before the lag.
+    Object.defineProperty(main.children[1], 'offsetTop', { configurable: true, value: 464 });
+    const vars = tweenVars(cover.timeline, heroWrap);
+    expect(vars.y()).toBe(64 + 400 * INTRO_LAG);
+    expect(vars.ease(64 / 400) * vars.y()).toBeCloseTo(64);
     expect(Lenis).not.toHaveBeenCalled();
     expect(gsap.ticker.add).not.toHaveBeenCalled();
     expect(loadCSS).toHaveBeenCalledWith('/styles/features/section-scroll.css');
