@@ -34,7 +34,7 @@ import {
   CLASS_SEAM,
   CLASS_SLOW,
   coversPrevious,
-  dimEntryStart,
+  dimCoverRange,
   introLagPx,
   isFullScreenHero,
   isHeaderHeroSection,
@@ -1120,8 +1120,11 @@ const VAR_PIN_TOP = '--section-scroll-slow-top';
 /** Touch-only intro lag distance, consumed by a CSS view timeline. */
 const VAR_INTRO_LAG = '--section-scroll-intro-lag';
 
-/** View-timeline entry percentage where a touch cover starts to dim. */
+/** View-timeline `cover` offset where a touch cover starts to dim. */
 const VAR_DIM_START = '--section-scroll-dim-start';
+
+/** View-timeline `cover` offset where a touch cover is fully dimmed. */
+const VAR_DIM_END = '--section-scroll-dim-end';
 
 /** Named view timeline for one incoming section, inherited by its dim layer. */
 const VAR_DIM_TIMELINE = '--section-scroll-dim-timeline';
@@ -1184,6 +1187,21 @@ function applySectionVars(section) {
   // A flush pin no longer drops the card onto the next one. Another radius of
   // overlap keeps the rounded bottom covered.
   if (next instanceof HTMLElement) next.classList.toggle(CLASS_SEAM, pinsFlush(section));
+}
+
+/**
+ * Writes the touch dim range for a cover pair. Reads layout, so it runs after
+ * `applySectionVars` has settled the seam margin.
+ *
+ * @param {HTMLElement} section Outgoing section
+ * @returns {void}
+ */
+function applyDimRange(section) {
+  const next = section.nextElementSibling;
+  if (!(next instanceof HTMLElement)) return;
+  const range = dimCoverRange(section, next);
+  section.style.setProperty(VAR_DIM_START, range.start);
+  section.style.setProperty(VAR_DIM_END, range.end);
 }
 
 /**
@@ -1264,6 +1282,7 @@ function clear(root = document) {
         el.style.removeProperty(VAR_PIN_TOP);
         el.style.removeProperty(VAR_INTRO_LAG);
         el.style.removeProperty(VAR_DIM_START);
+        el.style.removeProperty(VAR_DIM_END);
         el.style.removeProperty(VAR_DIM_TIMELINE);
         el.style.removeProperty('view-timeline-name');
       }
@@ -1325,10 +1344,9 @@ export function classifySectionScroll(root = document) {
         const name = `--section-scroll-cover-${index}`;
         coverNames.push(name);
         const overlay = ensureOverlay(section);
-        const dimStart = dimEntryStart(section);
         next.style.setProperty('view-timeline-name', name);
         section.style.setProperty(VAR_DIM_TIMELINE, name);
-        section.style.setProperty(VAR_DIM_START, dimStart);
+        applyDimRange(section);
         // Inline, not only the custom property: `animation-timeline` needs a
         // dashed-ident, and an unregistered variable is not one in every browser.
         overlay.style.setProperty('animation-timeline', name);
@@ -1558,9 +1576,7 @@ function onViewportChange() {
   }
   document.querySelectorAll(`main > .${CLASS_SLOW}`).forEach((el) => {
     applySectionVars(el);
-    if (boundToCssCover && el instanceof HTMLElement) {
-      el.style.setProperty(VAR_DIM_START, dimEntryStart(el));
-    }
+    if (boundToCssCover && el instanceof HTMLElement) applyDimRange(el);
   });
   refreshFooterReveal();
   if (!boundToCssCover) ScrollTrigger?.refresh();

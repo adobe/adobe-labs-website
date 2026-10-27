@@ -1035,6 +1035,7 @@ describe('initSectionScroll', () => {
       <div class="section section-rounded-default"></div>
     `);
     Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 1200 });
+    main.children[1].getBoundingClientRect = () => ({ top: 1200 });
 
     await initSectionScroll();
 
@@ -1045,7 +1046,8 @@ describe('initSectionScroll', () => {
     expect(main).toHaveClass('section-scroll-css-cover');
     expect(main.style.getPropertyValue('timeline-scope')).toBe('--section-scroll-cover-0');
     expect(main.children[1].style.getPropertyValue('view-timeline-name')).toBe('--section-scroll-cover-0');
-    expect(main.children[0].style.getPropertyValue('--section-scroll-dim-start')).toBe('40%');
+    expect(main.children[0].style.getPropertyValue('--section-scroll-dim-start')).toBe('320px');
+    expect(main.children[0].style.getPropertyValue('--section-scroll-dim-end')).toBe('800px');
     expect(main.children[0].style.getPropertyValue('--section-scroll-dim-timeline')).toBe('--section-scroll-cover-0');
     const overlay = main.querySelector('.section-scroll-overlay');
     expect(overlay).toBeTruthy();

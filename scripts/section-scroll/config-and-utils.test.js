@@ -10,7 +10,7 @@ import {
   coverPinProgress,
   coverStartPx,
   coversPrevious,
-  dimEntryStart,
+  dimCoverRange,
   FOOTER_UNCOVER_VH,
   footerCoverDistance,
   footerCoverFits,
@@ -192,15 +192,41 @@ describe('usesCssCover', () => {
   });
 });
 
-describe('dimEntryStart', () => {
-  it('maps the cover line onto a view-timeline entry percentage', () => {
-    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
-    const rounded = section('<div class="section section-rounded-blue"></div>');
-    expect(dimEntryStart(rounded)).toBe('40%');
+describe('dimCoverRange', () => {
+  /**
+   * @param {HTMLElement} el
+   * @param {number} top
+   */
+  function placeAt(el, top) {
+    el.getBoundingClientRect = () => ({ top });
+  }
 
-    const intro = section('<div class="section page-header-container"></div>');
+  it('maps the cover line onto view-timeline cover offsets', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const rounded = section(`
+      <div class="section section-rounded-blue"></div>
+      <div class="section section-rounded-default"></div>
+    `);
+    placeAt(rounded.nextElementSibling, 1500);
+    expect(dimCoverRange(rounded, rounded.nextElementSibling)).toEqual({ start: '320px', end: '800px' });
+
+    const intro = section(`
+      <div class="section page-header-container"></div>
+      <div class="section section-rounded-default"></div>
+    `);
     Object.defineProperty(intro, 'offsetHeight', { configurable: true, value: 400 });
-    expect(dimEntryStart(intro)).toBe('50%');
+    placeAt(intro.nextElementSibling, 1500);
+    expect(dimCoverRange(intro, intro.nextElementSibling)).toEqual({ start: '400px', end: '800px' });
+  });
+
+  it('starts at scroll 0 when the next section loads above the cover line', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 915 });
+    const hero = section(`
+      <div class="section hero-container"><div class="hero hero-full-screen"></div></div>
+      <div class="section section-rounded-default"></div>
+    `);
+    placeAt(hero.nextElementSibling, 519);
+    expect(dimCoverRange(hero, hero.nextElementSibling)).toEqual({ start: '396px', end: '915px' });
   });
 });
 
