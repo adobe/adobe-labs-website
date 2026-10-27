@@ -1058,6 +1058,11 @@ main > .section {
   }
 }
 
+:where(main > .section:nth-last-child(1 of .section)) {
+  position: relative;
+  z-index: 1;
+}
+
 /* Wrappers: block wrappers (`.BLOCKNAME-wrapper`) and `.default-content-wrapper`. 
    The custom property `--wrapper-max-inline-size` can be overriden by block classes.
    Low specificity is used so block wrapper classes can easily change styles without adding specificity. */
