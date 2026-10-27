@@ -39,6 +39,10 @@
   main > .section.section-scroll-next:not(.section-scroll-slow),
   main > .section.section-scroll-next:not(.section-scroll-slow) ~ .section:not(.section-scroll-slow) {
     z-index: 1;
+
+    @media (hover: none) and (pointer: coarse) {
+      will-change: transform;
+    }
   }
 
   main > .section.section-scroll-slow {
