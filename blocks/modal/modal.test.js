@@ -126,32 +126,23 @@ describe('createModal', () => {
     expect(document.querySelector('main').children).toHaveLength(0);
   });
 
-  it('closes when clicking outside the dialog box', async () => {
+  it('closes when clicking the dialog backdrop', async () => {
     const { block, showModal } = await createModal([document.createElement('p')]);
     const dialog = block.querySelector('dialog');
     showModal();
 
-    jest.spyOn(dialog, 'getBoundingClientRect').mockReturnValue({
-      left: 100, right: 200, top: 100, bottom: 200,
-    });
-    dialog.dispatchEvent(new MouseEvent('click', {
-      clientX: 0, clientY: 0, bubbles: true,
-    }));
+    dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(dialog).not.toHaveAttribute('open');
   });
 
-  it('does not close when clicking inside the dialog box', async () => {
+  it('does not close when clicking inside the dialog content', async () => {
     const { block, showModal } = await createModal([document.createElement('p')]);
     const dialog = block.querySelector('dialog');
+    const content = dialog.querySelector('.modal-content');
     showModal();
 
-    jest.spyOn(dialog, 'getBoundingClientRect').mockReturnValue({
-      left: 100, right: 200, top: 100, bottom: 200,
-    });
-    dialog.dispatchEvent(new MouseEvent('click', {
-      clientX: 150, clientY: 150, bubbles: true,
-    }));
+    content.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(dialog).toHaveAttribute('open');
   });

@@ -224,7 +224,7 @@ For blocks and other custom classes, the preference is to use BEM style classes 
 Native nesting can be used for this project. When doing so, keep the following in mind in order to increase the support for some slightly older Safari versions:
 
 1. Use `&` when referencing **base** elements, e.g. `.thing { & p { color: red; }}`. This helps support Safari 16.5 through 17.1 that enforced a strict grammar rule.
-2. If using `@supports`, keep this as a root selector and not nested within other selectors, to avoid a Webkit 
+2. If using `@supports`, keep this as a root selector and not nested within other selectors, to avoid a Webkit
    bug that breaks all the other adjacent styles and CSS custom properties. Safari versions 16.5 through 18.1 were affected by this CSS nesting hoisting bug.
 
 ### JS
@@ -297,7 +297,7 @@ npm run build:c2pa
 The following query indexes are configured for this site.
 The custom `content.json` indexes are used to render dynamic content, such as articles within the Content Grid.
 
-- **All pages**: The `sitemap.xml` is configured to point to this. 
+- **All pages**: The `sitemap.xml` is configured to point to this.
   `/query-index.json`
 - **All content**: Returns all types of single article content within specific directories (excludes index pages).
   `/content.json`
@@ -387,11 +387,15 @@ The row is omitted when the section's first content item is already a heading (`
 
 The Subscribe buttons in the header and footer open `/modals/subscribe`. That fragment holds an **Email collection** block with the `mailing-list` option: `email-collection (mailing-list)`.
 
-The block needs three rows and a Section Metadata table in the same section.
+Labs keeps its own page bootstrap and modal. `blocks/email-collection/email-collection.js` is a thin shim that initializes Milo (`setConfig` with `imsClientId: adlabs`, `loadIms`) and loads Milo’s email-collection block and CSS from Milo libs. The shim rebuilds section metadata Milo expects, restores bold hash links after Labs button decoration, and bridges the Labs `<dialog>` to Milo’s `.dialog-modal` close path.
+
+Default libs URL: `https://main--milo--adobecom.aem.live/libs`. Override with `?milolibs=local` (Milo `npm run libs` on `:6456`) or `?milolibs=<branch>`.
+
+Author the fragment like Milo’s mailing-list block: three rows and a Section Metadata table in the same section.
 
 1. Form. A heading, a short description, a blank line, then a bold link whose href is `#submit`. The live AI Research modal uses the label Subscribe.
-2. Success. The success sentence and a link whose href is `#close-form`. An optional `#show-form` link returns to an empty form.
-3. Error. The error sentence and a `#close-form` link.
+2. Success. The success sentence and a bold `#close-form` link. An optional `#show-form` link returns to an empty form.
+3. Error. The error sentence and a bold `#close-form` link.
 
 Section Metadata (not shown in the modal):
 
@@ -403,53 +407,7 @@ Section Metadata (not shown in the modal):
 | subscription-name | AI Research |
 | sign-in | off |
 
-`email`, `mps-sname`, and `subscription-name` are required. The form is guest-only. Keep `sign-in | off` for parity with Milo; other values are ignored. A submit requests an IMS guest token with the `adlabs` client id.
-
-Consent text and the “required” / “valid email” messages are loaded from federal content. Authors do not write them. `subscription-name` is inserted into the consent sentence.
-
-On preview hosts, `?email-collection-show=success` or `?email-collection-show=error` opens the modal on that state.
-
-### Troubleshooting
-
-A failed submit shows the error panel. Two causes showed up while wiring the guest path. Both happen after the visitor submits, and both are fixed in `blocks/email-collection/email-collection.js`.
-
-#### Guest token and `ims_sid`
-
-Localhost and other non-production hosts ask stage IMS for a guest token:
-
-`POST https://adobeid-na1-stg1.services.adobe.com/ims/check/v6/token`
-
-```
-guest_allowed=true
-client_id=adlabs
-scope=AdobeID,openid
-```
-
-Production uses `https://adobeid-na1.services.adobe.com/ims/check/v6/token` with the same body.
-
-`imslib` sends cookies on that request. A browser that already has an `ims_sid` cookie for the IMS host gets HTTP 200 and this body:
-
-```json
-{"error":"invalid_credentials"}
-```
-
-The library surfaces that as an expired token (`invalid_credentials`, often with a trailing space because it joins `error` and an empty `error_description`). The same request with no cookies returns a guest `access_token`. A clean browser profile succeeds for that reason, while a signed-in Adobe browser fails.
-
-The block posts the check itself with `credentials: 'omit'`, so an existing Adobe session cookie stays off the guest request. On stage, the `adlabs` client also returns a token when `fingerprint_request_id` is omitted, including a request that never loads the bot-fingerprint script.
-
-#### `aepCmp` and `aepOtherConsents`
-
-The guest token is then sent to `/form-submit` on `https://www.stage.adobe.com/milo-email-collection-api` (stage) or `https://www.adobe.com/milo-email-collection-api` (production).
-
-If `aepCmp` or `aepOtherConsents` is absent from the JSON, the API responds 400:
-
-```json
-{"error":"missing parameter(s) 'aepCmp,aepOtherConsents'"}
-```
-
-`JSON.stringify` drops a key whose value is `undefined`, and the API treats that as missing. Milo copies both fields from Alloy (`window.alloy_all.data._adobe_corpnew`). This site does not load Alloy. Sending both keys as `null` is accepted: 201 and `Email subscribed successfully`.
-
-Those two fields are separate from the newsletter consent. The newsletter consent is `consentId` from federal content (`cs4;ve1;en` when no consent key is authored).
+`email`, `mps-sname`, and `subscription-name` are required. Keep `sign-in | off` for guest-only. Consent copy and field errors come from federal content via Milo. Authors do not write them.
 
 ## Buttons
 
@@ -465,7 +423,7 @@ The paragraph must contain only the link. `decorateButtons` then adds class `but
 
 `.button-wrapper` is a `p`, so it has the default paragraph margin.
 
-You can use the same steps for a standalone button in default content and for a button in a block cell. 
+You can use the same steps for a standalone button in default content and for a button in a block cell.
 
 > [!NOTE]
 > The AEM docs incorrectly state that `p > a` (without `<strong>` or `<em>`). This is outdated, as standalone plain links do not receive the `.button` class. See [decorateButtons](https://github.com/adobe/adobe-labs-website/blob/9cd669eb7227dfea2350286db816361dc8bd55da/scripts/scripts.js#L123).

@@ -1,712 +1,271 @@
 /**
- * Newsletter form. Authors use an `email-collection (mailing-list)` table
- * plus section metadata (`email`, `mps-sname`, `subscription-name`).
- * Consent copy and field errors come from federal content.
+ * Loader shim: bootstraps Milo config and runs Milo's email-collection block
+ * inside the Labs Subscribe modal.
  */
-const FEDERAL_ROOT = 'https://main--federal--adobecom.aem.page/federal/email-collection';
-const IMS_CLIENT_ID = 'adlabs';
-const IMS_CHECK = {
-  stg1: 'https://adobeid-na1-stg1.services.adobe.com/ims/check/v6/token',
-  prod: 'https://adobeid-na1.services.adobe.com/ims/check/v6/token',
-};
-const API = {
-  stage: 'https://www.stage.adobe.com/milo-email-collection-api',
-  prod: 'https://www.adobe.com/milo-email-collection-api',
-};
-const FALLBACK_PLACEHOLDERS = {
-  required: 'This field is required.',
-  email: 'Enter a valid email.',
-};
-const FALLBACK_CONSENT_ID = 'cs4;ve1;en';
-const FALLBACK_CONSENT_HTML = '<p>The <a href="https://www.adobe.com/privacy/policy.html#info-share">Adobe family of companies</a> may keep me informed with <a href="https://www.adobe.com/privacy/marketing.html#mktg-email">personalized</a> emails about {{subscription-name}}. See our <a href="https://www.adobe.com/privacy/policy.html">Privacy Policy</a> for more details or to opt-out at any time.</p>';
-const EMAIL_PATTERN = /^[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.[\p{L}\p{N}-]{2,}$/u;
+import { loadCSS } from '../../scripts/aem.js';
 
-let fieldSeq = 0;
+const DEFAULT_MILO_LIBS = 'https://main--milo--adobecom.aem.live/libs';
+const DIALOG_MODAL_ID = 'email-collection';
+
+/** Dataset keys Labs stores → section-metadata row labels Milo `setFormData` reads. */
+const METADATA_LABELS = {
+  email: 'email',
+  country: 'country',
+  firstName: 'first-name',
+  lastName: 'last-name',
+  organization: 'organization',
+  occupation: 'occupation',
+  phoneNumber: 'phone-number',
+  phoneCountryCode: 'phone-country-code',
+  mpsSname: 'mps-sname',
+  subscriptionName: 'subscription-name',
+  signIn: 'sign-in',
+  runtimeEndpoint: 'runtime-endpoint',
+  consentId: 'consent-id',
+  emailCollectionTest: 'email-collection-test',
+};
+
+const MILO_BUTTON_HASHES = new Set(['submit', 'close-form', 'show-form']);
+
+let miloReady;
+let importModule = (url) => import(url);
 
 /**
- * @returns {boolean} True on localhost and AEM preview hosts
+ * Overrides dynamic `import` for unit tests.
+ * @param {(url: string) => Promise<unknown>} fn
  */
-function isNonProd() {
-  const { hostname } = window.location;
-  return hostname === 'localhost'
-    || hostname === '127.0.0.1'
-    || hostname.endsWith('.aem.page')
-    || hostname.endsWith('.aem.live')
-    || hostname.endsWith('.hlx.page')
-    || hostname.endsWith('.hlx.live');
+export function setModuleImporter(fn) {
+  importModule = fn;
 }
 
 /**
- * @param {string} value
+ * Resolves Milo libs URL. Same query pattern as milo-college.
+ * @param {string} [search=window.location.search]
  * @returns {string}
  */
-function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  }[char]));
+export function getMiloLibs(search = window.location.search) {
+  const branch = new URLSearchParams(search).get('milolibs') || 'main';
+  if (!/^[a-zA-Z0-9_-]+$/.test(branch)) {
+    return DEFAULT_MILO_LIBS;
+  }
+  if (branch === 'local') return 'http://localhost:6456/libs';
+  if (branch === 'main') return DEFAULT_MILO_LIBS;
+  return branch.includes('--')
+    ? `https://${branch}.aem.live/libs`
+    : `https://${branch}--milo--adobecom.aem.live/libs`;
 }
 
 /**
- * @param {string} value Label, or `Label | Placeholder`
- * @returns {{ label: string, placeholder: string }}
- */
-function splitField(value) {
-  const [label, placeholder] = String(value || '').split('|');
-  return {
-    label: label.trim(),
-    placeholder: placeholder?.trim() || '',
-  };
-}
-
-/**
- * @param {HTMLAnchorElement} anchor
+ * @param {string} href
  * @returns {string} Hash without `#`, or `''`
  */
-function linkHash(anchor) {
+function linkHash(href) {
   try {
-    return new URL(anchor.getAttribute('href'), window.location.href).hash.replace(/^#/, '');
+    return new URL(href, window.location.href).hash.replace(/^#/, '');
   } catch {
     return '';
   }
 }
 
-/**
- * @param {Element} row Authored block row
- * @returns {Element} The row's content cell
- */
-function rowCell(row) {
-  const cell = row.querySelector(':scope > div') || row;
-  cell.classList.add('email-collection__content');
-  return cell;
+function disableImsLoginRedirect() {
+  const ims = window.adobeIMS;
+  if (!ims) return;
+  ims.signIn = () => Promise.reject(new Error('Sign-in is disabled for this form'));
 }
 
 /**
- * @param {Element} root
- * @param {string} hash
- * @returns {HTMLAnchorElement|undefined}
+ * One-time Milo `setConfig` + `loadIms`.
+ * @param {string} miloLibs
+ * @returns {Promise<void>}
  */
-function findHashLink(root, hash) {
-  return [...root.querySelectorAll('a[href]')].find((anchor) => linkHash(anchor) === hash);
+async function ensureMiloBootstrap(miloLibs) {
+  if (!miloReady) {
+    miloReady = (async () => {
+      const { setConfig, loadIms } = await importModule(`${miloLibs}/utils/utils.js`);
+      setConfig({
+        miloLibs,
+        codeRoot: window.hlx?.codeBasePath || '',
+        imsClientId: 'adlabs',
+        imsScope: 'AdobeID,openid',
+        locales: { '': { ietf: 'en-US', tk: 'hah7vzn.css' } },
+        adobeid: {
+          api_parameters: { check_token: { guest_allowed: true } },
+          enableGuestAccounts: true,
+          enableGuestTokenForceRefresh: true,
+        },
+      });
+      await loadIms().catch(() => {});
+      disableImsLoginRedirect();
+    })();
+  }
+  return miloReady;
 }
 
 /**
- * @param {HTMLAnchorElement} anchor
- * @param {'submit'|'button'} type
- * @returns {HTMLButtonElement}
- */
-function replaceWithButton(anchor, type) {
-  const button = document.createElement('button');
-  button.type = type;
-  button.className = anchor.className;
-  button.textContent = anchor.textContent.trim();
-  anchor.replaceWith(button);
-  return button;
-}
-
-/**
- * Section metadata is already on `section.dataset` when decorate runs.
+ * Rebuilds a sibling `.section-metadata` table from `section.dataset`
+ * so Milo `setFormData` can read mailing-list config.
  * @param {Element} block
- * @returns {{ fields: { email?: string, country?: string }, mpsSname: string,
- *   subscriptionName: string, consentId: string,
- *   runtimeEndpoint: string }}
  */
-function readConfig(block) {
+export function rebuildSectionMetadata(block) {
+  const parent = block.parentElement;
+  if (!parent) return;
+
+  parent.querySelector(':scope > .section-metadata')?.remove();
+
   const data = block.closest('.section')?.dataset || {};
-  const fields = {};
-  if (data.email) fields.email = data.email;
-  if (data.country) fields.country = data.country;
-  return {
-    fields,
-    mpsSname: data.mpsSname || '',
-    subscriptionName: data.subscriptionName || '',
-    consentId: data.consentId || '',
-    runtimeEndpoint: data.runtimeEndpoint || '',
-  };
-}
+  const meta = document.createElement('div');
+  meta.className = 'section-metadata';
+  meta.hidden = true;
 
-/**
- * @param {ReturnType<typeof readConfig>} config
- * @returns {boolean}
- */
-function hasRequiredConfig(config) {
-  return Boolean(config.fields.email && config.mpsSname
-    && (config.subscriptionName || config.consentId));
-}
-
-/**
- * @returns {Promise<Record<string, string>>}
- */
-async function fetchPlaceholders() {
-  try {
-    const resp = await fetch(`${FEDERAL_ROOT}/form-config.json?sheet=placeholders`);
-    if (!resp.ok) return { ...FALLBACK_PLACEHOLDERS };
-    const { data } = await resp.json();
-    const placeholders = { ...FALLBACK_PLACEHOLDERS };
-    data.forEach(({ key, value }) => {
-      if (key && value) placeholders[key] = value;
-    });
-    return placeholders;
-  } catch {
-    return { ...FALLBACK_PLACEHOLDERS };
-  }
-}
-
-/**
- * @param {string} consentKey Filename key such as `cs4`. Empty uses the default.
- * @param {string} subscriptionName Injected into `{{subscription-name}}`
- * @returns {Promise<{ consentId: string, node: Element }>}
- */
-async function fetchConsent(consentKey, subscriptionName) {
-  const id = (consentKey || 'cs4').toLowerCase();
-  const applyName = (html) => html.replaceAll(
-    '{{subscription-name}}',
-    escapeHtml(subscriptionName),
-  );
-  try {
-    const resp = await fetch(`${FEDERAL_ROOT}/consents/${encodeURIComponent(id)}.plain.html`);
-    if (!resp.ok) throw new Error('consent');
-    const doc = new DOMParser().parseFromString(await resp.text(), 'text/html');
-    const [consentDiv, idDiv] = doc.querySelectorAll('body > div');
-    if (!consentDiv) throw new Error('consent');
-    consentDiv.innerHTML = applyName(consentDiv.innerHTML);
-    return {
-      consentId: idDiv?.textContent.trim() || FALLBACK_CONSENT_ID,
-      node: consentDiv,
-    };
-  } catch {
-    const node = document.createElement('div');
-    node.innerHTML = applyName(FALLBACK_CONSENT_HTML);
-    return { consentId: FALLBACK_CONSENT_ID, node };
-  }
-}
-
-/**
- * @returns {Promise<{ key: string, value: string }[]>}
- */
-async function fetchCountries() {
-  try {
-    const resp = await fetch(`${FEDERAL_ROOT}/form-config.json?sheet=countries`);
-    if (!resp.ok) return [];
-    const { data } = await resp.json();
-    return data.filter((row) => row.key && row.value);
-  } catch {
-    return [];
-  }
-}
-
-/**
- * @typedef {object} ImsToken
- * @property {string} [token] Guest access token
- */
-
-/**
- * @typedef {object} ImsGuestClient
- * @property {function(): (ImsToken|Promise<ImsToken>)} getAccessToken
- */
-
-/**
- * @param {unknown} value Token object from IMS, or a raw token string
- * @returns {string}
- */
-function accessTokenValue(value) {
-  if (!value) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'object' && 'token' in value) return value.token || '';
-  return '';
-}
-
-/**
- * @param {ImsGuestClient|undefined} ims
- * @returns {Promise<string>}
- */
-function readStoredToken(ims) {
-  try {
-    const result = ims?.getAccessToken?.();
-    if (result && typeof result.then === 'function') {
-      return result.then(accessTokenValue).catch(() => '');
-    }
-    return Promise.resolve(accessTokenValue(result));
-  } catch {
-    return Promise.resolve('');
-  }
-}
-
-/**
- * Asks stage or prod IMS for a guest access token.
- * `imslib` sends cookies, and an `ims_sid` from another Adobe login makes this
- * endpoint return `invalid_credentials` instead of a guest token.
- * @param {string} clientId
- * @returns {Promise<string>}
- */
-async function requestGuestToken(clientId) {
-  const environment = isNonProd() ? 'stg1' : 'prod';
-  const response = await fetch(IMS_CHECK[environment], {
-    method: 'POST',
-    credentials: 'omit',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-    body: new URLSearchParams({
-      guest_allowed: 'true',
-      client_id: clientId,
-      scope: 'AdobeID,openid',
-    }),
-    signal: AbortSignal.timeout(8000),
+  Object.entries(METADATA_LABELS).forEach(([camel, label]) => {
+    if (!(camel in data)) return;
+    const row = document.createElement('div');
+    const nameCell = document.createElement('div');
+    const valueCell = document.createElement('div');
+    nameCell.textContent = label;
+    valueCell.textContent = data[camel];
+    row.append(nameCell, valueCell);
+    meta.append(row);
   });
-  const payload = await response.json().catch(() => ({}));
-  const token = typeof payload.access_token === 'string' ? payload.access_token : '';
-  if (!response.ok || payload.error || !token) {
-    throw new Error('IMS did not return a guest token');
+
+  if (![...meta.children].some((row) => row.firstElementChild?.textContent === 'sign-in')) {
+    const row = document.createElement('div');
+    const nameCell = document.createElement('div');
+    const valueCell = document.createElement('div');
+    nameCell.textContent = 'sign-in';
+    valueCell.textContent = 'off';
+    row.append(nameCell, valueCell);
+    meta.append(row);
   }
-  return token;
+
+  parent.append(meta);
 }
 
 /**
- * Uses a token already held by IMS, otherwise requests a guest token.
- * @param {string} clientId IMS client id
- * @returns {Promise<string>}
+ * Labs `decorateButtons` turns authored `strong a` into `.button-wrapper` /
+ * `.button`. Milo's `decorateButtons` expects `strong a` again so it can
+ * build `.action-area` / `.button-container` for submit and close.
+ * @param {Element} block
  */
-function loadImsGuest(clientId) {
-  const existing = window.adobeIMS;
-  if (existing?.getAccessToken) {
-    return readStoredToken(existing).then((token) => token || requestGuestToken(clientId));
-  }
-  return requestGuestToken(clientId);
-}
+export function restoreMiloButtonMarkup(block) {
+  [...block.querySelectorAll('a[href]')].forEach((anchor) => {
+    const hash = linkHash(anchor.getAttribute('href'));
+    if (!MILO_BUTTON_HASHES.has(hash)) return;
 
-/**
- * @param {string} name
- * @returns {string}
- */
-function nextFieldId(name) {
-  fieldSeq += 1;
-  return `email-collection-${name}-${fieldSeq}`;
-}
+    const replaceTarget = anchor.closest('p') || anchor;
+    const next = document.createElement('a');
+    next.href = `#${hash}`;
+    next.textContent = anchor.textContent.trim();
 
-/**
- * Visible asterisk only. The `required` attribute carries the accessible name.
- * @param {string} id
- * @param {string} labelText
- * @returns {HTMLLabelElement}
- */
-function buildLabel(id, labelText) {
-  const label = document.createElement('label');
-  label.className = 'email-collection__label';
-  label.htmlFor = id;
-  label.append(document.createTextNode(labelText));
-  const required = document.createElement('span');
-  required.className = 'email-collection__required';
-  required.setAttribute('aria-hidden', 'true');
-  required.textContent = ' *';
-  label.append(required);
-  return label;
-}
-
-/**
- * @param {HTMLInputElement|HTMLSelectElement} control
- * @param {Record<string, string>} placeholders
- * @returns {boolean} True when the control is valid
- */
-function applyFieldError(control, placeholders) {
-  const field = control.closest('.email-collection__field');
-  const error = field?.querySelector('.email-collection__error');
-  const value = control.value.trim();
-  let message = '';
-  if (!value) message = placeholders.required;
-  else if (control instanceof HTMLInputElement && control.type === 'email' && !EMAIL_PATTERN.test(value)) {
-    message = placeholders.email;
-  }
-  if (error) {
-    error.textContent = message;
-    error.hidden = !message;
-  }
-  if (message) {
-    control.setAttribute('aria-invalid', 'true');
-    if (error) control.setAttribute('aria-describedby', error.id);
-    return false;
-  }
-  control.removeAttribute('aria-invalid');
-  control.removeAttribute('aria-describedby');
-  return true;
-}
-
-/**
- * @param {string} id
- * @param {string} labelText
- * @param {string} [placeholder]
- * @returns {{ field: HTMLDivElement, control: HTMLInputElement, error: HTMLParagraphElement }}
- */
-function buildEmailField(id, labelText, placeholder) {
-  const field = document.createElement('div');
-  field.className = 'email-collection__field';
-  const label = buildLabel(id, labelText);
-  const control = document.createElement('input');
-  control.className = 'email-collection__control';
-  control.id = id;
-  control.name = 'email';
-  control.type = 'email';
-  control.autocomplete = 'email';
-  control.required = true;
-  control.autofocus = true;
-  if (placeholder) control.placeholder = placeholder;
-  const error = document.createElement('p');
-  error.className = 'email-collection__error';
-  error.id = `${id}-error`;
-  error.hidden = true;
-  error.setAttribute('role', 'alert');
-  control.setAttribute('aria-errormessage', error.id);
-  field.append(label, control, error);
-  return { field, control, error };
-}
-
-/**
- * @param {string} id
- * @param {string} labelText
- * @param {{ key: string, value: string }[]} countries
- * @returns {{ field: HTMLDivElement, control: HTMLSelectElement }}
- */
-function buildCountryField(id, labelText, countries) {
-  const field = document.createElement('div');
-  field.className = 'email-collection__field';
-  const label = buildLabel(id, labelText);
-  const control = document.createElement('select');
-  control.className = 'email-collection__control';
-  control.id = id;
-  control.name = 'country';
-  control.autocomplete = 'country';
-  control.required = true;
-  const placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.disabled = true;
-  placeholder.selected = true;
-  placeholder.textContent = labelText;
-  control.append(placeholder);
-  countries.forEach(({ key, value }) => {
-    const option = document.createElement('option');
-    option.value = key;
-    option.textContent = value;
-    control.append(option);
-  });
-  const error = document.createElement('p');
-  error.className = 'email-collection__error';
-  error.id = `${id}-error`;
-  error.hidden = true;
-  error.setAttribute('role', 'alert');
-  control.setAttribute('aria-errormessage', error.id);
-  field.append(label, control, error);
-  return { field, control };
-}
-
-/**
- * First authored message in a panel, skipping the form and its buttons.
- * @param {Element} panel
- * @returns {HTMLElement|undefined}
- */
-function messageNode(panel) {
-  return [...panel.querySelectorAll('h1, h2, h3, h4, h5, h6, p')]
-    .find((node) => !node.closest('form') && !node.querySelector('button, a'));
-}
-
-/**
- * Points the parent dialog at the visible panel. A hidden heading would
- * leave the dialog unnamed after success or error.
- * @param {Element|undefined} panel
- * @returns {void}
- */
-function nameDialog(panel) {
-  const dialog = panel?.closest('dialog');
-  if (!dialog || !panel) return;
-  const heading = panel.querySelector('h1, h2, h3, h4, h5, h6');
-  if (heading) {
-    if (!heading.id) heading.id = 'email-collection-heading';
-    dialog.setAttribute('aria-labelledby', heading.id);
-    dialog.removeAttribute('aria-label');
-    const description = [...panel.querySelectorAll('p')]
-      .find((node) => !node.closest('form') && !node.querySelector('button, a'));
-    if (description) {
-      if (!description.id) description.id = 'email-collection-description';
-      dialog.setAttribute('aria-describedby', description.id);
+    const wrap = document.createElement('p');
+    if (hash === 'show-form') {
+      wrap.append(next);
     } else {
-      dialog.removeAttribute('aria-describedby');
+      const strong = document.createElement('strong');
+      strong.append(next);
+      wrap.append(strong);
     }
-    return;
-  }
-  dialog.removeAttribute('aria-describedby');
-  const label = messageNode(panel)?.textContent.trim();
-  if (!label) return;
-  dialog.removeAttribute('aria-labelledby');
-  dialog.setAttribute('aria-label', label);
-}
-
-/**
- * Moves focus to the visible message so the result is announced.
- * @param {Element|undefined} panel
- * @returns {void}
- */
-function focusMessage(panel) {
-  const target = panel && messageNode(panel);
-  if (!target) return;
-  if (!target.hasAttribute('tabindex')) target.tabIndex = -1;
-  target.focus();
-}
-
-/**
- * Shows one panel and hides the others. Success and error receive focus.
- * @param {{ form: Element, success: Element|undefined, error: Element|undefined }} panels
- * @param {HTMLElement} status Live region. Cleared so the focused message is not announced twice.
- * @param {'form'|'success'|'error'} state
- * @returns {void}
- */
-function showState(panels, status, state) {
-  Object.entries(panels).forEach(([name, panel]) => {
-    if (panel) panel.hidden = name !== state;
+    replaceTarget.replaceWith(wrap);
   });
-  const current = panels[state];
-  status.textContent = '';
-  nameDialog(current);
-  if (state !== 'form') focusMessage(current);
 }
 
 /**
- * Names and focuses the open dialog. Decorate runs before the dialog exists.
- * @param {Element} node
- * @param {(dialog: HTMLDialogElement) => void} onOpen
- * @returns {void}
+ * Wraps Labs `<dialog>` content so Milo can `closest('.dialog-modal')` and
+ * `closeModal` without destroying the native dialog shell.
+ * @param {Element} block
+ * @returns {HTMLElement|undefined} The `.dialog-modal` shell, if bridged
  */
-function whenDialogReady(node, onOpen) {
-  const attach = (dialog) => {
-    if (dialog.open) onOpen(dialog);
-    else {
-      dialog.addEventListener('toggle', () => {
-        if (dialog.open) onOpen(dialog);
-      }, { once: true });
+export function bridgeDialogModal(block) {
+  const dialog = block.closest('dialog');
+  if (!dialog) return undefined;
+
+  let shell = dialog.querySelector('.dialog-modal');
+  if (!shell) {
+    const modalContent = dialog.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.classList.add('dialog-modal');
+      if (!modalContent.id) modalContent.id = DIALOG_MODAL_ID;
+      shell = modalContent;
+    } else {
+      shell = document.createElement('div');
+      shell.className = 'dialog-modal';
+      shell.id = DIALOG_MODAL_ID;
+      while (dialog.firstChild) shell.append(dialog.firstChild);
+      dialog.append(shell);
     }
-  };
-  const tryAttach = () => {
-    const dialog = node.closest('dialog');
-    if (!dialog) return false;
-    attach(dialog);
-    return true;
-  };
-  if (tryAttach() || node.isConnected) return;
-  const timer = window.setInterval(() => {
-    if (tryAttach() || node.isConnected) {
+  } else if (!shell.id) {
+    shell.id = DIALOG_MODAL_ID;
+  }
+
+  if (dialog.dataset.miloCloseBound !== 'true') {
+    dialog.dataset.miloCloseBound = 'true';
+    const onClosed = (event) => {
+      if (event.detail?.id && event.detail.id !== shell.id) return;
+      window.removeEventListener('milo:modal:closed', onClosed);
+      dialog.close();
+    };
+    window.addEventListener('milo:modal:closed', onClosed);
+  }
+
+  return shell;
+}
+
+/**
+ * `loadFragment` finishes block decorate before `createModal` wraps content
+ * in `<dialog>`. Milo's `init` reads `closest('.dialog-modal')` synchronously,
+ * so wait until the block is inside the Labs dialog.
+ * @param {Element} block
+ * @returns {Promise<HTMLDialogElement|null>}
+ */
+function whenDialogReady(block) {
+  const existing = block.closest('dialog');
+  if (existing) return Promise.resolve(existing);
+
+  return new Promise((resolve) => {
+    const timer = window.setInterval(() => {
+      const dialog = block.closest('dialog');
+      if (!dialog) return;
       window.clearInterval(timer);
-    }
-  }, 16);
-  window.setTimeout(() => window.clearInterval(timer), 5000);
-}
-
-/**
- * Turns `#close-form` and `#show-form` links into buttons.
- * @param {Element} panel
- * @param {(button: HTMLButtonElement) => void} onClose
- * @param {() => void} [onShowForm]
- * @returns {void}
- */
-function wireMessageLinks(panel, onClose, onShowForm) {
-  const closeLink = findHashLink(panel, 'close-form');
-  if (closeLink) {
-    const button = replaceWithButton(closeLink, 'button');
-    button.classList.add('email-collection__text-button');
-    button.addEventListener('click', () => onClose(button));
-  }
-  const showLink = findHashLink(panel, 'show-form');
-  if (showLink && onShowForm) {
-    const button = replaceWithButton(showLink, 'button');
-    button.classList.add('email-collection__text-button', 'email-collection__show-form');
-    button.addEventListener('click', onShowForm);
-  }
-}
-
-/**
- * @param {ReturnType<typeof readConfig>} config
- * @param {string} consentId
- * @param {HTMLFormElement} form
- * @returns {Promise<boolean>} True when the API accepts the submission
- */
-async function postSubscription(config, consentId, form) {
-  const token = await loadImsGuest(IMS_CLIENT_ID);
-  if (!token) return false;
-
-  const email = form.querySelector('input[name="email"]')?.value.trim() || '';
-  const country = form.querySelector('select[name="country"]')?.value || '';
-  const body = {
-    email,
-    mpsSname: config.mpsSname,
-    consentId,
-    isGuest: true,
-    appClientId: IMS_CLIENT_ID,
-    // Keys must be present. This site has no Alloy CMP, and the API rejects an omitted key.
-    aepCmp: null,
-    aepOtherConsents: null,
-    ...(country && { countryCode: country }),
-  };
-  const base = (isNonProd() && config.runtimeEndpoint) || (isNonProd() ? API.stage : API.prod);
-  const endpoint = `${base}/form-submit`;
-  const resp = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
+      resolve(dialog);
+    }, 16);
+    window.setTimeout(() => {
+      window.clearInterval(timer);
+      resolve(block.closest('dialog'));
+    }, 5000);
   });
-  return resp.ok;
 }
 
 /**
- * Builds the mailing-list form from the block rows and section metadata.
+ * Bootstraps Milo and initializes the upstream email-collection block.
  * @param {Element} block
  * @returns {Promise<void>}
  */
 export default async function decorate(block) {
-  const rows = [...block.children];
-  const formRow = rows[0];
-  const successRow = rows[1];
-  const errorRow = rows[2];
-  if (!formRow) return;
+  const miloLibs = getMiloLibs();
+  await ensureMiloBootstrap(miloLibs);
 
-  const panels = {
-    form: formRow,
-    success: successRow,
-    error: errorRow,
-  };
-  Object.entries(panels).forEach(([name, panel]) => {
-    panel?.classList.add('email-collection__panel', `email-collection__panel--${name}`);
-    if (panel && panel !== formRow) panel.hidden = true;
-  });
+  rebuildSectionMetadata(block);
+  restoreMiloButtonMarkup(block);
 
-  const status = document.createElement('div');
-  status.className = 'email-collection__status visually-hidden';
-  status.setAttribute('aria-live', 'polite');
-  status.setAttribute('aria-atomic', 'true');
-  status.setAttribute('role', 'status');
-  block.append(status);
+  await loadCSS(`${miloLibs}/blocks/email-collection/email-collection.css`).catch(() => {});
+  const { default: init } = await importModule(
+    `${miloLibs}/blocks/email-collection/email-collection.js`,
+  );
 
-  const reveal = (state) => showState(panels, status, state);
-  const closeDialog = (button) => button.closest('dialog')?.close();
-  const syncDialog = () => {
-    const panel = Object.values(panels).find((item) => item && !item.hidden);
-    nameDialog(panel);
-    if (panel && panel !== formRow) focusMessage(panel);
+  const start = async () => {
+    bridgeDialogModal(block);
+    await init(block);
   };
 
-  const config = readConfig(block);
-  const formCell = rowCell(formRow);
-  const submitLink = findHashLink(formCell, 'submit');
-
-  if (successRow) {
-    rowCell(successRow);
-    wireMessageLinks(successRow, closeDialog, () => {
-      const emailInput = formCell.querySelector('input[name="email"]');
-      if (emailInput) emailInput.value = '';
-      reveal('form');
-      emailInput?.focus();
-    });
-  }
-  if (errorRow) {
-    rowCell(errorRow);
-    wireMessageLinks(errorRow, closeDialog);
-  }
-
-  if (!hasRequiredConfig(config) || !submitLink) {
-    reveal('error');
-    whenDialogReady(block, syncDialog);
+  // loadFragment decorates before createModal wraps content. Awaiting the
+  // dialog here would deadlock openModal, so only await when already mounted.
+  if (block.closest('dialog')) {
+    await start();
     return;
   }
 
-  const [placeholders, consent, countries] = await Promise.all([
-    fetchPlaceholders(),
-    fetchConsent(config.consentId, config.subscriptionName),
-    config.fields.country ? fetchCountries() : Promise.resolve([]),
-  ]);
-
-  const emailId = nextFieldId('email');
-  const emailParts = splitField(config.fields.email);
-  const emailField = buildEmailField(emailId, emailParts.label, emailParts.placeholder);
-  const controls = [emailField.control];
-  const form = document.createElement('form');
-  form.className = 'email-collection__form';
-  form.noValidate = true;
-  const heading = formRow.querySelector('h1, h2, h3, h4, h5, h6');
-  if (heading) {
-    if (!heading.id) heading.id = 'email-collection-heading';
-    form.setAttribute('aria-labelledby', heading.id);
-  }
-  form.append(emailField.field);
-
-  if (config.fields.country) {
-    const countryId = nextFieldId('country');
-    const countryField = buildCountryField(
-      countryId,
-      splitField(config.fields.country).label,
-      countries,
-    );
-    controls.push(countryField.control);
-    form.append(countryField.field);
-  }
-
-  consent.node.classList.add('email-collection__consent');
-  form.append(consent.node);
-
-  const submitButton = replaceWithButton(submitLink, 'submit');
-  submitButton.classList.add('button', 'email-collection__submit');
-  const submitWrap = submitButton.closest('p') || submitButton;
-  submitWrap.classList.add('email-collection__actions');
-  form.append(submitWrap);
-  formCell.append(form);
-
-  const watch = (control) => {
-    control.addEventListener('blur', () => applyFieldError(control, placeholders));
-    control.addEventListener('input', () => {
-      if (control.getAttribute('aria-invalid') === 'true') applyFieldError(control, placeholders);
-    });
-    control.addEventListener('change', () => {
-      if (control.getAttribute('aria-invalid') === 'true') applyFieldError(control, placeholders);
-    });
-  };
-  controls.forEach(watch);
-
-  let submitting = false;
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    if (submitting) return;
-    const invalid = controls.find((control) => !applyFieldError(control, placeholders));
-    if (invalid) {
-      invalid.focus();
-      return;
-    }
-
-    submitting = true;
-    status.textContent = 'Submitting';
-    submitButton.setAttribute('aria-busy', 'true');
-    submitButton.setAttribute('aria-disabled', 'true');
-    try {
-      const ok = await postSubscription(config, consent.consentId, form);
-      reveal(ok ? 'success' : 'error');
-    } catch {
-      reveal('error');
-    } finally {
-      submitting = false;
-      submitButton.removeAttribute('aria-busy');
-      submitButton.removeAttribute('aria-disabled');
-    }
+  whenDialogReady(block).then((dialog) => {
+    if (dialog) return start();
+    return undefined;
   });
-
-  if (isNonProd()) {
-    const preview = new URLSearchParams(window.location.search).get('email-collection-show');
-    if (preview === 'success' || preview === 'subscribed') {
-      reveal('success');
-    } else if (preview === 'error') {
-      reveal('error');
-    } else {
-      nameDialog(formRow);
-    }
-  } else {
-    nameDialog(formRow);
-  }
-  whenDialogReady(block, syncDialog);
 }
