@@ -145,6 +145,7 @@
 /*
  * Touch lag on the compositor. GSAP y on the same node as native iOS scroll
  * jitters; a view timeline does not. `--section-scroll-intro-lag` is set in JS.
+ * Without view timelines (Safari < 26), `section-motion.js` falls back to GSAP.
  * `@supports` stays at the root: nesting it breaks adjacent styles in Safari
  * 16.5 through 18.1.
  */

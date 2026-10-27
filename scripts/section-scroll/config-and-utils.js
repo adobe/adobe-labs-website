@@ -80,7 +80,7 @@ export const FOOTER_STACKED_MQ = '(width < 64rem)';
  */
 export const FOOTER_UNCOVER_VH = 0.5;
 
-/** Touch phones/tablets: skip Lenis; intro lag is CSS on the compositor. */
+/** Touch phones/tablets: skip Lenis; intro lag is CSS on the compositor where supported. */
 const TOUCH_MQ = '(hover: none) and (pointer: coarse)';
 
 /**
