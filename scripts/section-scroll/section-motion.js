@@ -195,9 +195,10 @@ export function bindPair(slow, next) {
   }
 
   // Full-screen hero: the card is pinned, so only the copy moves, and it does so
-  // against page scroll rather than against the incoming card.
+  // against page scroll rather than against the incoming card. Touch reaches
+  // here only without scroll-driven CSS, so GSAP owns the recede there too.
   if (isFullScreenHero(slow)) {
-    if (!touch) recedeHeroText(slow);
+    recedeHeroText(slow);
     dim(coverTimeline(slow, next, coverStart(slow)), overlay, heroText, FULL_SPAN);
     return;
   }

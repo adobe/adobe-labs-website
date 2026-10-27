@@ -782,7 +782,7 @@ describe('initSectionScroll', () => {
     expect(timelineTweening(main.querySelector('.hero__content'))).toBeDefined();
   });
 
-  it('does not recede full-screen hero text or lag rounded cards on a coarse pointer', async () => {
+  it('recedes full-screen hero text but does not lag rounded cards on a coarse pointer', async () => {
     mockMatchMedia(true, { touch: true });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
@@ -802,7 +802,9 @@ describe('initSectionScroll', () => {
 
     await initSectionScroll();
 
-    expect(gsap.fromTo).not.toHaveBeenCalled();
+    // Without scroll-driven CSS, GSAP recedes the copy on touch too.
+    const heroY = gsap.fromTo.mock.calls.find(([, from]) => from?.[VAR_HERO_TEXT_Y] === '0px');
+    expect(heroY[0]).toBe(main.children[0]);
     expect(timelineTweening(main.querySelector('.inner'))).toBeUndefined();
     expect(Lenis).not.toHaveBeenCalled();
     expect(timelineTweening(main.children[0].querySelector('.hero__content'))).toBeDefined();
