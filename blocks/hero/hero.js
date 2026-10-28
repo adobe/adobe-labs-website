@@ -230,12 +230,12 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     <div class="hero__media" aria-hidden="true"></div>
     <div class="hero__content">
       <div class="hero__top-row">
-        <div class="hero__eyebrow" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
+        <div class="hero__eyebrow">
+          <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none" aria-hidden="true" focusable="false">
             <circle cx="19" cy="19" r="19" fill="white"/>
           </svg>
         </div>
-        <div class="hero__date" aria-hidden="true"></div>
+        <div class="hero__date"></div>
       </div>
       <div class="hero__copy">
         <p class="hero__category"></p>

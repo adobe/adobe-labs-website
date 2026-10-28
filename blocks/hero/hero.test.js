@@ -144,18 +144,19 @@ describe('hero block', () => {
       const eyebrowText = view.getByText('ResearchTest');
       expect(eyebrowText).toHaveClass('hero__content-type');
       const eyebrow = eyebrowText.closest('.hero__eyebrow');
-      expect(eyebrow).toHaveAttribute('aria-hidden', 'true');
+      expect(eyebrow).not.toHaveAttribute('aria-hidden');
       const mark = eyebrow.querySelector('svg');
       expect(eyebrow.firstElementChild).toBe(mark);
       expect(mark).toHaveAttribute('viewBox', '0 0 38 38');
+      expect(mark).toHaveAttribute('aria-hidden', 'true');
       expect(mark.querySelector('circle')).toHaveAttribute('fill', 'white');
       const date = view.getByText('5.24.26');
       expect(date).toHaveClass('hero__date');
-      expect(date).toHaveAttribute('aria-hidden', 'true');
+      expect(date).not.toHaveAttribute('aria-hidden');
       const headline = block.querySelector('.hero__headline');
       expect(headline.tagName).toBe('P');
       expect(headline).toHaveTextContent('How AI is Redistributing Creative Work.');
-      expect(view.getByRole('link', { name: 'How AI is Redistributing Creative Work. Read' }))
+      expect(view.getByRole('link', { name: 'ResearchTest 5.24.26 How AI is Redistributing Creative Work. Read' }))
         .toHaveAttribute('href', expect.stringMatching(/\/research\/example-article-1$/));
       expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
       expect(block.querySelector('.button')).toBeNull();
