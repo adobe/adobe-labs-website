@@ -146,6 +146,13 @@
     /* With a tight line-height the last line's underline falls below
        the box, so the clip extends past the bottom edge. */
     --hero-underline-overflow: -0.5em;
+    --hero-underline-thickness: 3px;
+    --hero-underline-offset: 4px;
+
+    @media (width <= 48rem) {
+      --hero-underline-thickness: 2px;
+      --hero-underline-offset: 1px;
+    }
 
     /* Painted on top; without this it would intercept clicks and
        selection meant for the real text. */
@@ -154,8 +161,8 @@
     color: transparent;
     text-decoration-line: underline;
     text-decoration-color: var(--s2a-color-gray-25, #fff);
-    text-decoration-thickness: 3px;
-    text-underline-offset: 4px;
+    text-decoration-thickness: var(--hero-underline-thickness);
+    text-underline-offset: var(--hero-underline-offset);
     clip-path: inset(0 100% var(--hero-underline-overflow) 0);
     transition: clip-path var(--hero-underline-transition-duration) var(--hero-underline-transition-easing);
 
