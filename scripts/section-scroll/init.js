@@ -1157,6 +1157,13 @@ let boundToTouch = false;
 let boundToCssCover = false;
 /** @type {((event: MouseEvent) => void) | null} */
 let onHashClick = null;
+/**
+ * Remeasures touch dim ranges when `main` changes height, since late styles and
+ * images move the incoming section after classification.
+ *
+ * @type {ResizeObserver | null}
+ */
+let dimSizeObserver = null;
 
 /**
  * Whether the visitor has opted into motion.
@@ -1190,6 +1197,23 @@ function applySectionVars(section) {
 }
 
 /**
+ * Restarts the touch dim and hero fade. Chrome keeps a running scroll-driven
+ * animation on the range it first resolved, so a rotation would otherwise
+ * leave the hero half dimmed at the top of the page.
+ *
+ * @param {HTMLElement} section Outgoing section
+ * @returns {void}
+ */
+function restartDim(section) {
+  const nodes = [...section.querySelectorAll(`.${CLASS_OVERLAY}, .hero__content`)]
+    .filter((node) => node instanceof HTMLElement);
+  nodes.forEach((node) => { node.style.animationName = 'none'; });
+  // Reading layout commits `none`, so the restored animation resolves afresh.
+  section.getBoundingClientRect();
+  nodes.forEach((node) => node.style.removeProperty('animation-name'));
+}
+
+/**
  * Writes the touch dim range for a cover pair. Reads layout, so it runs after
  * `applySectionVars` has settled the seam margin.
  *
@@ -1200,8 +1224,12 @@ function applyDimRange(section) {
   const next = section.nextElementSibling;
   if (!(next instanceof HTMLElement)) return;
   const range = dimCoverRange(section, next);
+  const prevStart = section.style.getPropertyValue(VAR_DIM_START);
+  const prevEnd = section.style.getPropertyValue(VAR_DIM_END);
+  if (prevStart === range.start && prevEnd === range.end) return;
   section.style.setProperty(VAR_DIM_START, range.start);
   section.style.setProperty(VAR_DIM_END, range.end);
+  if (prevStart) restartDim(section);
 }
 
 /**
@@ -1259,6 +1287,8 @@ function clearOverlays(root) {
 function clear(root = document) {
   motionCtx?.revert();
   motionCtx = null;
+  dimSizeObserver?.disconnect();
+  dimSizeObserver = null;
   clearFocusReveal();
   clearFooterReveal(root);
   // Reverting the GSAP context restores inline styles, not the overlay nodes
@@ -1361,6 +1391,14 @@ export function classifySectionScroll(root = document) {
     if (boundToCssCover && coverNames.length) {
       main.classList.add(CLASS_CSS_COVER);
       main.style.setProperty('timeline-scope', coverNames.join(', '));
+      if (typeof ResizeObserver !== 'undefined') {
+        dimSizeObserver = new ResizeObserver(() => {
+          main.querySelectorAll(`:scope > .${CLASS_SLOW}`).forEach((el) => {
+            if (el instanceof HTMLElement) applyDimRange(el);
+          });
+        });
+        dimSizeObserver.observe(main);
+      }
     }
     /**
      * Scrolls by `delta` pixels. Lenis owns the position when it is attached.
