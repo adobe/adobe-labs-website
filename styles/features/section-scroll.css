@@ -119,11 +119,6 @@
     z-index: 1;
   }
 
-  body > footer.section-scroll-under {
-    position: relative;
-    z-index: 0;
-  }
-
   body > footer.section-scroll-under:not(.section-scroll-logo) .footer__inner {
     position: sticky;
     inset-block-end: 0;
