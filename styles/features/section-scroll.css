@@ -11,7 +11,8 @@
  * sets the fourth, `--section-scroll-hero-text-y`, on a full-screen hero
  * section, to recede its copy. On a coarse pointer that supports
  * scroll-driven animations, it also owns the cover dim and the page-header
- * fade, driven by `--section-scroll-dim-start` and a named view timeline.
+ * fade, driven by `--section-scroll-dim-start`, `--section-scroll-dim-end`, and
+ * a named view timeline.
  */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -199,13 +200,13 @@
     main.section-scroll-css-cover .section-scroll-overlay {
       animation: section-scroll-dim linear both;
       animation-timeline: var(--section-scroll-dim-timeline);
-      animation-range: entry var(--section-scroll-dim-start, 40%) entry 100%;
+      animation-range: cover var(--section-scroll-dim-start, 40vh) cover var(--section-scroll-dim-end, 100vh);
     }
 
     main.section-scroll-css-cover .hero__content {
       animation: section-scroll-fade-out linear both;
       animation-timeline: var(--section-scroll-dim-timeline);
-      animation-range: entry var(--section-scroll-dim-start, 40%) entry 100%;
+      animation-range: cover var(--section-scroll-dim-start, 40vh) cover var(--section-scroll-dim-end, 100vh);
     }
 
     main > .section.section-scroll-intro > .section-scroll-fade {

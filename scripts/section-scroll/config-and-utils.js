@@ -253,20 +253,22 @@ export function coverStartPx(section) {
 }
 
 /**
- * View-timeline `entry` percentage where `section` starts to dim.
- * `entry 0%` is the incoming section's top at the bottom of the viewport, and
- * `entry 100%` is that top at the viewport top. The cover line sits between them.
+ * View-timeline `cover` offsets, in px, over which `section` dims.
+ * `cover 0` is the incoming section's top at the bottom of the viewport, and a
+ * length offset is how far that top has travelled up from there. The dim
+ * starts at the cover line and ends when that top reaches the viewport top.
+ * Lengths rather than `entry` percentages: `entry 100%` arrives once a section
+ * shorter than the viewport is fully visible, which can be at scroll 0.
  *
  * @param {HTMLElement} section Outgoing section
- * @returns {string}
+ * @returns {{ start: string, end: string }}
  */
-export function dimEntryStart(section) {
+export function dimRange(section) {
   const vh = window.innerHeight;
-  if (!vh) return '0%';
-  const entry = (1 - coverStartPx(section) / vh) * 100;
-  const clamped = Math.min(100, Math.max(0, entry));
-  const rounded = Math.round(clamped * 1000) / 1000;
-  return `${rounded}%`;
+  if (!vh) return { start: '0px', end: '0px' };
+  const start = Math.min(vh, Math.max(0, vh - coverStartPx(section)));
+  const rounded = Math.round(start * 1000) / 1000;
+  return { start: `${rounded}px`, end: `${vh}px` };
 }
 
 /**
