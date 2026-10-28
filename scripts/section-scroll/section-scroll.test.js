@@ -738,7 +738,7 @@ describe('initSectionScroll', () => {
     expect(timelineTweening(headerWrap)).toBeUndefined();
   });
 
-  it('uses a CSS intro lag instead of GSAP y on a coarse pointer', async () => {
+  it('lags an intro hero with GSAP y on a coarse pointer without scroll-driven CSS', async () => {
     mockMatchMedia(true, { touch: true });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
@@ -762,7 +762,15 @@ describe('initSectionScroll', () => {
 
     const heroWrap = main.querySelector('.hero-wrapper');
     const overlay = main.querySelector('.section-scroll-overlay');
-    expect(timelineTweening(heroWrap)).toBeUndefined();
+    const cover = timelineTweening(heroWrap);
+    expect(cover.timeline).toBe(timelineTweening(overlay).timeline);
+    expect(tweenVars(cover.timeline, heroWrap).y()).toBe(400 * INTRO_LAG);
+
+    // A gap to the next section adds a hold before the lag.
+    Object.defineProperty(main.children[1], 'offsetTop', { configurable: true, value: 464 });
+    const vars = tweenVars(cover.timeline, heroWrap);
+    expect(vars.y()).toBe(64 + 400 * INTRO_LAG);
+    expect(vars.ease(64 / 400) * vars.y()).toBeCloseTo(64);
     expect(Lenis).not.toHaveBeenCalled();
     expect(gsap.ticker.add).not.toHaveBeenCalled();
     expect(loadCSS).toHaveBeenCalledWith('/styles/features/section-scroll.css');
@@ -774,7 +782,7 @@ describe('initSectionScroll', () => {
     expect(timelineTweening(main.querySelector('.hero__content'))).toBeDefined();
   });
 
-  it('does not recede full-screen hero text or lag rounded cards on a coarse pointer', async () => {
+  it('recedes full-screen hero text but does not lag rounded cards on a coarse pointer', async () => {
     mockMatchMedia(true, { touch: true });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
@@ -794,7 +802,9 @@ describe('initSectionScroll', () => {
 
     await initSectionScroll();
 
-    expect(gsap.fromTo).not.toHaveBeenCalled();
+    // Without scroll-driven CSS, GSAP recedes the copy on touch too.
+    const heroY = gsap.fromTo.mock.calls.find(([, from]) => from?.[VAR_HERO_TEXT_Y] === '0px');
+    expect(heroY[0]).toBe(main.children[0]);
     expect(timelineTweening(main.querySelector('.inner'))).toBeUndefined();
     expect(Lenis).not.toHaveBeenCalled();
     expect(timelineTweening(main.children[0].querySelector('.hero__content'))).toBeDefined();
@@ -1056,6 +1066,31 @@ describe('initSectionScroll', () => {
     expect(main).not.toHaveClass('section-scroll-css-cover');
     expect(main.style.getPropertyValue('timeline-scope')).toBe('');
     expect(document.querySelector('.section-scroll-overlay')).toBeNull();
+    delete window.CSS;
+  });
+
+  it('leaves the intro lag to CSS on a coarse pointer with scroll-driven animations', async () => {
+    mockMatchMedia(true, { touch: true });
+    window.CSS = { supports: () => true };
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const main = mountMain(`
+      <div class="section page-header-container hero-container">
+        <div class="page-header-wrapper">
+          <div class="page-header"></div>
+        </div>
+        <div class="hero-wrapper">
+          <div class="hero"></div>
+        </div>
+      </div>
+      <div class="section section-rounded-blue"></div>
+    `);
+    Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 400 });
+
+    await initSectionScroll();
+
+    expect(gsap.timeline).not.toHaveBeenCalled();
+    expect(main.children[0]).toHaveClass('section-scroll-intro');
+    expect(main.children[0].style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
     delete window.CSS;
   });
 

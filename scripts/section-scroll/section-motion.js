@@ -21,6 +21,8 @@ import {
   coverStartPx,
   headerFadeVh,
   holdThenLinear,
+  introHoldEase,
+  introHoldPx,
   introLagPx,
   isFullScreenHero,
   roundedParallax,
@@ -174,17 +176,29 @@ export function bindPair(slow, next) {
 
     const cover = coverTimeline(slow, next, coverStart(slow));
     const lagInner = [...slow.children].filter((el) => el !== overlay && el !== headerWrap);
-    if (lagInner.length && !touch) {
-      cover.fromTo(lagInner, { y: 0 }, { y: () => introLagPx(slow), duration: 1 }, 0);
+    // Touch reaches here only without scroll-driven CSS (Safari < 26), so GSAP owns the lag.
+    if (lagInner.length) {
+      const intro = { hold: 0, lag: 0, span: 0 };
+      cover.fromTo(lagInner, { y: 0 }, {
+        y: () => {
+          intro.hold = touch ? introHoldPx(slow) : 0;
+          intro.lag = introLagPx(slow);
+          intro.span = coverStartPx(slow);
+          return intro.hold + intro.lag;
+        },
+        duration: 1,
+        ease: (progress) => introHoldEase(progress, intro),
+      }, 0);
     }
     dim(cover, overlay, heroText, FULL_SPAN);
     return;
   }
 
   // Full-screen hero: the card is pinned, so only the copy moves, and it does so
-  // against page scroll rather than against the incoming card.
+  // against page scroll rather than against the incoming card. Touch reaches
+  // here only without scroll-driven CSS, so GSAP owns the recede there too.
   if (isFullScreenHero(slow)) {
-    if (!touch) recedeHeroText(slow);
+    recedeHeroText(slow);
     dim(coverTimeline(slow, next, coverStart(slow)), overlay, heroText, FULL_SPAN);
     return;
   }

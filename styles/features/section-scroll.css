@@ -15,6 +15,13 @@
  * a named view timeline.
  */
 
+/* Registered so the touch CSS path can animate it; GSAP sets it as px too. */
+@property --section-scroll-hero-text-y {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   /*
    * Lenis drives scrollTop from its own rAF loop, so the native smooth scroll
@@ -33,6 +40,10 @@
   main > .section.section-scroll-next:not(.section-scroll-slow),
   main > .section.section-scroll-next:not(.section-scroll-slow) ~ .section:not(.section-scroll-slow) {
     z-index: 1;
+
+    @media (hover: none) and (pointer: coarse) {
+      will-change: transform;
+    }
   }
 
   main > .section.section-scroll-slow {
@@ -141,10 +152,19 @@
 /*
  * Touch lag on the compositor. GSAP y on the same node as native iOS scroll
  * jitters; a view timeline does not. `--section-scroll-intro-lag` is set in JS.
+ * Without view timelines (Safari < 26), `section-motion.js` falls back to GSAP.
+ * The hold keeps the intro still across `--section-scroll-intro-hold` (the gap
+ * to the next section), so the incoming card meets it before the lag starts.
  * `@supports` stays at the root: nesting it breaks adjacent styles in Safari
  * 16.5 through 18.1.
  */
 @supports (animation-timeline: view()) and (animation-range: entry) {
+  @keyframes section-scroll-intro-hold {
+    to {
+      translate: 0 var(--section-scroll-intro-hold, 0);
+    }
+  }
+
   @keyframes section-scroll-intro-lag {
     to {
       transform: translateY(var(--section-scroll-intro-lag, 0));
@@ -158,9 +178,13 @@
     }
 
     main > .section.section-scroll-intro > :not(.section-scroll-fade, .section-scroll-overlay) {
-      animation: section-scroll-intro-lag linear both;
-      animation-timeline: --section-scroll-intro;
-      animation-range: exit 0% exit 100%;
+      animation:
+        section-scroll-intro-hold linear both,
+        section-scroll-intro-lag linear both;
+      animation-timeline: --section-scroll-intro, --section-scroll-intro;
+      animation-range:
+        exit 0% exit var(--section-scroll-intro-hold, 0),
+        exit var(--section-scroll-intro-hold, 0) exit 100%;
     }
   }
 }
@@ -196,6 +220,14 @@
     }
   }
 
+  /* Half of scroll speed, matching `HERO_TEXT_SPEED`. The hero is covered
+     before the range ends. */
+  @keyframes section-scroll-hero-text-recede {
+    to {
+      --section-scroll-hero-text-y: -50vh;
+    }
+  }
+
   @media (prefers-reduced-motion: no-preference) and (hover: none) and (pointer: coarse) {
     main.section-scroll-css-cover .section-scroll-overlay {
       animation: section-scroll-dim linear both;
@@ -207,6 +239,13 @@
       animation: section-scroll-fade-out linear both;
       animation-timeline: var(--section-scroll-dim-timeline);
       animation-range: cover var(--section-scroll-dim-start, 40vh) cover var(--section-scroll-dim-end, 100vh);
+    }
+
+    /* On the section, not the copy: the hero intro owns `animation` there. */
+    main.section-scroll-css-cover > .section-scroll-slow:has(.hero-full-screen) {
+      animation: section-scroll-hero-text-recede linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 100vh;
     }
 
     main > .section.section-scroll-intro > .section-scroll-fade {

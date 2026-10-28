@@ -16,6 +16,8 @@ import {
   footerCoverFits,
   headerFadeVh,
   holdThenLinear,
+  introHoldEase,
+  introHoldPx,
   introLagPx,
   isFullScreenHero,
   isRounded,
@@ -313,6 +315,36 @@ describe('introLagPx', () => {
 
     Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 1200 });
     expect(introLagPx(el)).toBe(800 * INTRO_LAG);
+  });
+});
+
+describe('introHoldPx', () => {
+  it('measures the gap to the next section, never negative', () => {
+    document.body.innerHTML = '<main><div class="section"></div><div class="section"></div></main>';
+    const [el, next] = document.querySelectorAll('.section');
+    Object.defineProperty(el, 'offsetTop', { configurable: true, value: 100 });
+    Object.defineProperty(el, 'offsetHeight', { configurable: true, value: 400 });
+    Object.defineProperty(next, 'offsetTop', { configurable: true, value: 564 });
+    expect(introHoldPx(el)).toBe(64);
+
+    Object.defineProperty(next, 'offsetTop', { configurable: true, value: 470 });
+    expect(introHoldPx(el)).toBe(0);
+    expect(introHoldPx(next)).toBe(0);
+  });
+});
+
+describe('introHoldEase', () => {
+  it('is linear without a hold', () => {
+    expect(introHoldEase(0.3, { hold: 0, lag: 160, span: 800 })).toBe(0.3);
+  });
+
+  it('holds still for the gap, then lags over the rest of the span', () => {
+    const geometry = { hold: 80, lag: 160, span: 800 };
+    // Holding still means moving down as fast as the page scrolls up.
+    expect(introHoldEase(0.05, geometry) * 240).toBeCloseTo(40);
+    expect(introHoldEase(0.1, geometry) * 240).toBeCloseTo(80);
+    expect(introHoldEase(0.55, geometry) * 240).toBeCloseTo(160);
+    expect(introHoldEase(1, geometry)).toBe(1);
   });
 });
 
