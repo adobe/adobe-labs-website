@@ -1045,6 +1045,7 @@ describe('initSectionScroll', () => {
       <div class="section section-rounded-default"></div>
     `);
     Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 1200 });
+    main.children[1].getBoundingClientRect = () => ({ top: 1200 });
 
     await initSectionScroll();
 

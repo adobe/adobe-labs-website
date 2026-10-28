@@ -283,22 +283,26 @@ export function coverStartPx(section) {
 }
 
 /**
- * View-timeline `cover` offsets, in px, over which `section` dims.
- * `cover 0` is the incoming section's top at the bottom of the viewport, and a
- * length offset is how far that top has travelled up from there. The dim
- * starts at the cover line and ends when that top reaches the viewport top.
- * Lengths rather than `entry` percentages: `entry 100%` arrives once a section
- * shorter than the viewport is fully visible, which can be at scroll 0.
+ * View-timeline `cover` offsets, in px, over which `next` dims `section`.
+ * `cover 0` is the incoming section's top at the bottom of the viewport, so
+ * the end, one viewport later, is that top at the viewport top. Lengths rather
+ * than `entry` percentages: `entry` ends once a section shorter than the
+ * viewport is fully in view, long before its top reaches the top. Like GSAP's
+ * `clamp()`, the start is never before scroll 0, so a card that loads above
+ * the cover line does not open dimmed.
  *
  * @param {HTMLElement} section Outgoing section
+ * @param {HTMLElement} next Incoming section
  * @returns {{ start: string, end: string }}
  */
-export function dimRange(section) {
+export function dimCoverRange(section, next) {
   const vh = window.innerHeight;
-  if (!vh) return { start: '0px', end: '0px' };
-  const start = Math.min(vh, Math.max(0, vh - coverStartPx(section)));
-  const rounded = Math.round(start * 1000) / 1000;
-  return { start: `${rounded}px`, end: `${vh}px` };
+  const nextTop = next.getBoundingClientRect().top + window.scrollY;
+  const start = Math.max(vh - coverStartPx(section), vh - nextTop);
+  return {
+    start: `${Math.round(Math.min(vh, Math.max(0, start)))}px`,
+    end: `${Math.round(vh)}px`,
+  };
 }
 
 /**

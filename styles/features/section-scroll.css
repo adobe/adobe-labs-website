@@ -193,7 +193,8 @@
  * Touch fades on the compositor. Opacity does not fight native scroll the way
  * a GSAP translate does, and these ranges match the GSAP fallback: the header
  * fades across the first 17vh (40vh below 48rem), and a cover dims from
- * `--section-scroll-dim-start` until the incoming section reaches the top.
+ * `--section-scroll-dim-start` until the incoming section reaches the top at
+ * `--section-scroll-dim-end`.
  * `0.8` matches `OVERLAY_DIM`. Named timelines are hoisted with `timeline-scope`
  * because the dim layer is not a descendant of the incoming section.
  * `@supports` stays at the root: nesting it breaks adjacent styles in Safari
