@@ -1,5 +1,7 @@
-/* Default variant. 10 columns of the full-width 12-column grid. */
+/* Default variant. Matches the paragraph width on small screens, then 10 columns of the full-width 12-column grid. */
 .media-text-wrapper {
+  --article-content-max-inline-size: var(--article-default-content-max-inline-size, 100%);
+
   @media (width >= 48rem) {
     --article-content-max-inline-size: min(10 / 12 * 100%, 97.25rem);
   }
