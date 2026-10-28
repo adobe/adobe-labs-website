@@ -175,23 +175,29 @@ function uniqueHeadingId(text) {
 }
 
 /**
- * Syncs the accordion toggle button a11y and item visibility for the current viewport.
- * Below the desktop breakpoint the button drives a collapsible panel; at and above it the
- * panel is always visible and the button is taken out of the tab order since it does nothing.
+ * Syncs the heading and item visibility for the current viewport. Below the desktop breakpoint
+ * the heading wraps a button that drives a collapsible panel. At and above it the button is
+ * removed entirely, so the heading isn't announced as a control that does nothing.
+ * @param {Element} heading Menu column h2 element
  * @param {Element} button Menu toggle button element
  * @param {Element} items Menu items container
  * @param {MediaQueryList} desktopQuery Desktop layout media query
  */
-function syncHeadline(button, items, desktopQuery) {
+function syncHeadline(heading, button, items, desktopQuery) {
   if (desktopQuery.matches) {
-    button.setAttribute('aria-expanded', 'true');
-    button.setAttribute('tabindex', '-1');
+    if (button.parentElement === heading) {
+      while (button.firstChild) heading.append(button.firstChild);
+      button.remove();
+    }
     items.hidden = false;
     return;
   }
 
+  if (button.parentElement !== heading) {
+    while (heading.firstChild) button.append(heading.firstChild);
+    heading.append(button);
+  }
   button.setAttribute('aria-expanded', 'false');
-  button.removeAttribute('tabindex');
   items.hidden = true;
 }
 
@@ -210,26 +216,22 @@ function decorateHeadline(heading, items) {
 
   const button = fromHTML('<button type="button" class="footer__menu-toggle"></button>');
   button.setAttribute('aria-controls', items.id);
-  while (heading.firstChild) button.append(heading.firstChild);
-  heading.append(button);
 
   const desktopQuery = window.matchMedia('(min-width: 64rem)');
 
   /**
-   * Toggles the accordion panel on mobile. A no-op at the desktop breakpoint,
-   * where the button is not in the tab order.
+   * Toggles the accordion panel on mobile.
    * @returns {void}
    */
   const onActivate = () => {
-    if (desktopQuery.matches) return;
     const expanded = button.getAttribute('aria-expanded') === 'true';
     button.setAttribute('aria-expanded', expanded ? 'false' : 'true');
     items.hidden = expanded;
   };
 
   button.addEventListener('click', onActivate);
-  desktopQuery.addEventListener('change', () => syncHeadline(button, items, desktopQuery));
-  syncHeadline(button, items, desktopQuery);
+  desktopQuery.addEventListener('change', () => syncHeadline(heading, button, items, desktopQuery));
+  syncHeadline(heading, button, items, desktopQuery);
 }
 
 /**

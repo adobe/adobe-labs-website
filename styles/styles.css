@@ -221,6 +221,10 @@ html {
   scroll-padding-top: var(--nav-height);
 }
 
+html:has(header :focus) {
+  scroll-padding-top: 0;
+}
+
 html.header-scroll-lock {
   overflow: hidden;
 }
@@ -1056,6 +1060,11 @@ main > .section {
     border-end-start-radius: var(--section-border-radius);
     border-end-end-radius: var(--section-border-radius);
   }
+}
+
+:where(main > .section:nth-last-child(1 of .section)) {
+  position: relative;
+  z-index: 1;
 }
 
 /* Wrappers: block wrappers (`.BLOCKNAME-wrapper`) and `.default-content-wrapper`. 

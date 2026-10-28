@@ -350,20 +350,61 @@ describe('footer block', () => {
     block.remove();
   });
 
-  it('keeps the heading role intact and disables the toggle on desktop', async () => {
+  it('renders a plain heading with no toggle button on desktop', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
 
     await decorate(block);
 
     const heading = block.querySelector('.footer__menu-column--nav .footer__menu-headline');
-    const toggle = heading.querySelector('.footer__menu-toggle');
-    const items = toggle.closest('.footer__menu-section').querySelector('.footer__menu-items');
+    const items = heading.closest('.footer__menu-section').querySelector('.footer__menu-items');
 
     expect(heading.tagName).toBe('H2');
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(toggle).toHaveAttribute('tabindex', '-1');
+    expect(heading.querySelector('button')).toBeNull();
+    expect(heading.querySelector('[aria-expanded]')).toBeNull();
+    expect(heading.textContent.trim()).not.toBe('');
     expect(items).not.toHaveAttribute('hidden');
+  });
+
+  it('adds and removes the toggle button as the desktop breakpoint changes', async () => {
+    const query = {
+      matches: false,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    };
+    window.matchMedia = jest.fn().mockReturnValue(query);
+
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    const heading = block.querySelector('.footer__menu-column--nav .footer__menu-headline');
+    const items = heading.closest('.footer__menu-section').querySelector('.footer__menu-items');
+    const text = heading.textContent;
+    const fireChange = () => {
+      query.addEventListener.mock.calls.forEach(([, listener]) => listener());
+    };
+
+    heading.querySelector('.footer__menu-toggle').click();
+    expect(items).not.toHaveAttribute('hidden');
+
+    query.matches = true;
+    fireChange();
+
+    expect(heading.querySelector('button')).toBeNull();
+    expect(heading.textContent).toBe(text);
+    expect(items).not.toHaveAttribute('hidden');
+
+    query.matches = false;
+    fireChange();
+
+    const toggle = heading.querySelector('.footer__menu-toggle');
+    expect(toggle).not.toBeNull();
+    expect(toggle.textContent).toBe(text);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAttribute('aria-controls', items.id);
+    expect(items).toHaveAttribute('hidden');
   });
 
   it('renders each nav column as its own labelled navigation landmark', async () => {

@@ -35,6 +35,7 @@ import {
   CLASS_SLOW,
   coversPrevious,
   dimCoverRange,
+  introHoldPx,
   introLagPx,
   isFullScreenHero,
   isHeaderHeroSection,
@@ -1120,6 +1121,9 @@ const VAR_PIN_TOP = '--section-scroll-slow-top';
 /** Touch-only intro lag distance, consumed by a CSS view timeline. */
 const VAR_INTRO_LAG = '--section-scroll-intro-lag';
 
+/** Touch-only scroll the intro holds still before it lags, consumed by CSS. */
+const VAR_INTRO_HOLD = '--section-scroll-intro-hold';
+
 /** View-timeline `cover` offset where a touch cover starts to dim. */
 const VAR_DIM_START = '--section-scroll-dim-start';
 
@@ -1185,8 +1189,13 @@ function applySectionVars(section) {
   const next = section.nextElementSibling;
   if (section.classList.contains(CLASS_INTRO)) {
     section.style.removeProperty(VAR_PIN_TOP);
-    if (usesTouchScroll()) section.style.setProperty(VAR_INTRO_LAG, `${introLagPx(section)}px`);
-    else section.style.removeProperty(VAR_INTRO_LAG);
+    if (usesTouchScroll()) {
+      section.style.setProperty(VAR_INTRO_LAG, `${introLagPx(section)}px`);
+      section.style.setProperty(VAR_INTRO_HOLD, `${introHoldPx(section)}px`);
+    } else {
+      section.style.removeProperty(VAR_INTRO_LAG);
+      section.style.removeProperty(VAR_INTRO_HOLD);
+    }
     if (next instanceof HTMLElement) next.classList.remove(CLASS_SEAM);
     return;
   }
@@ -1311,6 +1320,7 @@ function clear(root = document) {
       if (el instanceof HTMLElement) {
         el.style.removeProperty(VAR_PIN_TOP);
         el.style.removeProperty(VAR_INTRO_LAG);
+        el.style.removeProperty(VAR_INTRO_HOLD);
         el.style.removeProperty(VAR_DIM_START);
         el.style.removeProperty(VAR_DIM_END);
         el.style.removeProperty(VAR_DIM_TIMELINE);
