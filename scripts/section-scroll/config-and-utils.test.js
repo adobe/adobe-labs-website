@@ -230,7 +230,7 @@ describe('dimCoverRange', () => {
     placeAt(hero.nextElementSibling, 519);
     expect(dimCoverRange(hero, hero.nextElementSibling)).toEqual({ start: '396px', end: '915px' });
   });
-  
+
   it('ends when the incoming top reaches the viewport top, not when it is fully visible', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 956 });
     const hero = section(`
@@ -240,7 +240,6 @@ describe('dimCoverRange', () => {
     placeAt(hero.nextElementSibling, 1500);
     expect(dimCoverRange(hero, hero.nextElementSibling)).toEqual({ start: '382px', end: '956px' });
   });
-
 });
 
 describe('usesTouchScroll', () => {
