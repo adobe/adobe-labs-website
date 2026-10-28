@@ -221,6 +221,10 @@ html {
   scroll-padding-top: var(--nav-height);
 }
 
+html:has(header :focus) {
+  scroll-padding-top: 0;
+}
+
 html.header-scroll-lock {
   overflow: hidden;
 }
