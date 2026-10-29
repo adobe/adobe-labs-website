@@ -212,7 +212,10 @@
       inset-inline: 0;
       box-sizing: border-box;
       block-size: calc(100lvh - 100%);
-      overflow: auto;
+
+      /* The entrance slide translates each full-width item on x. `overflow: auto`
+         paints a horizontal scrollbar until that transform ends. */
+      overflow: hidden auto;
       padding: var(--s2a-spacing-md, 1rem);
       padding-block-end: calc(var(--s2a-spacing-md, 1rem) + env(safe-area-inset-bottom, 0px));
       background-color: var(--header-surface);
