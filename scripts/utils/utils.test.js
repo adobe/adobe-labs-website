@@ -470,6 +470,43 @@ describe('buildArticleMetaActions', () => {
     expect(body.querySelector(':scope > .article-meta__actions')).toBeNull();
   });
 
+  it('keeps both action groups when author metadata is empty', () => {
+    mockTemplate('article');
+    const { main } = createArticleMain();
+
+    buildArticleAuthorMeta(main);
+    buildArticleMetaActions(main);
+
+    expect(main.querySelector('.article-meta__authors')).toBeNull();
+    expect(main.querySelectorAll('.article-meta')).toHaveLength(2);
+    expect(main.querySelectorAll('.article-meta__actions')).toHaveLength(2);
+  });
+
+  it.each(['top', 'bottom'])('does not recreate a %s row that hide-metadata omitted', (position) => {
+    mockTemplate('article', { 'hide-metadata': position });
+    const { main } = createArticleMain();
+
+    buildArticleAuthorMeta(main);
+    buildArticleMetaActions(main);
+
+    expect(main.querySelector(`.article-meta--${position}`)).toBeNull();
+    const other = position === 'top' ? 'bottom' : 'top';
+    expect(main.querySelector(`.article-meta--${other} .article-meta__actions`)).not.toBeNull();
+    expect(main.querySelectorAll('.article-meta__actions')).toHaveLength(1);
+  });
+
+  it('omits both rows and the status region when hide-metadata is both', () => {
+    mockTemplate('article', { author: 'Jane Doe', 'hide-metadata': 'both' });
+    const { main } = createArticleMain();
+
+    buildArticleAuthorMeta(main);
+    buildArticleMetaActions(main);
+
+    expect(main.querySelector('.article-meta')).toBeNull();
+    expect(main.querySelector('.article-meta__actions')).toBeNull();
+    expect(main.querySelector(':scope > [data-meta-action-status]')).toBeNull();
+  });
+
   it('does not add a second pair of groups when called again', () => {
     mockTemplate('article');
     const { main } = createArticleMain();
@@ -952,13 +989,8 @@ describe('buildAuthorByline', () => {
     getMetadata.mockReturnValue('');
   });
 
-  it('falls back to Adobe Labs when there is no author metadata', () => {
-    const byline = buildAuthorByline();
-
-    expect(byline).toHaveClass('article-meta__authors');
-    expect(byline.querySelector('.article-meta__authors-label')).toHaveTextContent('Words by:');
-    const names = [...byline.querySelectorAll('.article-meta__author-name')].map((el) => el.textContent);
-    expect(names).toEqual(['Adobe Labs']);
+  it('omits the byline when there is no author metadata', () => {
+    expect(buildAuthorByline()).toBeNull();
   });
 
   it('reads one author per name from comma-separated metadata', () => {
@@ -1005,6 +1037,8 @@ describe('buildAuthorByline', () => {
   });
 
   it('returns a new element on every call', () => {
+    getMetadata.mockReturnValue('Randy Oest');
+
     expect(buildAuthorByline()).not.toBe(buildAuthorByline());
   });
 });
@@ -1108,6 +1142,63 @@ describe('buildArticleAuthorMeta', () => {
     expect(hero.nextElementSibling.querySelector('.article-meta')).not.toBeNull();
     expect(section.lastElementChild.querySelector('.article-meta')).not.toBeNull();
     expect(section.querySelectorAll('.article-meta')).toHaveLength(2);
+  });
+
+  it('places both meta shells without a byline when author metadata is empty', () => {
+    mockTemplate('article');
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelectorAll('.article-meta')).toHaveLength(2);
+    expect(main.querySelector('.article-meta__authors')).toBeNull();
+  });
+
+  it.each([
+    ['top', 'top'],
+    ['bottom', ' Bottom '],
+  ])('omits the %s meta row when hide-metadata is %s', (position, value) => {
+    mockTemplate('article', { author: 'Jane Doe', 'hide-metadata': value });
+    const hero = createSection({ hero: true });
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(hero, body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector(`.article-meta--${position}`)).toBeNull();
+    const other = position === 'top' ? 'bottom' : 'top';
+    expect(body.querySelector(`.article-meta--${other}`)).not.toBeNull();
+    expect(main.querySelector('.article-meta__authors')).not.toBeNull();
+  });
+
+  it('omits both meta rows when hide-metadata is both', () => {
+    mockTemplate('article', { author: 'Jane Doe', 'hide-metadata': 'Both' });
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector('.article-meta')).toBeNull();
+  });
+
+  it('keeps both meta rows when hide-metadata is unrecognized', () => {
+    mockTemplate('article', { author: 'Jane Doe', 'hide-metadata': 'none' });
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector('.article-meta--top')).not.toBeNull();
+    expect(main.querySelector('.article-meta--bottom')).not.toBeNull();
   });
 });
 

@@ -331,6 +331,22 @@ You can also paste a public file URL (for example an Adobe-hosted PDF).
 
 Article pages include a Feedback action with Copy link. It opens a message to labs@adobe.com. The subject is the **Title** row from the page Metadata table. After preview, AEM publishes that row as `og:title`. When Title is empty, the link has no subject.
 
+### Hide metadata rows
+
+Article pages show a metadata row at the top and again at the bottom. Each row can include the author byline and the action buttons (Copy link, Download, and Feedback).
+
+Add a **Hide Metadata** row to the page Metadata table to remove a whole row, byline and buttons included. After preview, that value is available as `meta[name="hide-metadata"]`.
+
+| Value | What it hides |
+| --- | --- |
+| `bottom` | The repeated bottom row. The top row stays. Use this on a short article. |
+| `top` | The top row only. |
+| `both` | Both rows. |
+
+Any other value, or no row, leaves both rows in place. Do not set this on the root `/metadata` sheet. Hiding is opt-in per article.
+
+An empty **Author** cell hides the "Words by" line on every remaining row and keeps the action buttons. Clear the Author cell and leave the row so it overrides a bulk author default.
+
 ### Full-bleed images in articles
 
 To use full-bleed default content in an article (for example a lone image), in the AEM editor use a section break and a Section Metadata block that includes "full-bleed" as a value for "Style". Keep that content in its own section.
@@ -339,7 +355,7 @@ To use full-bleed default content in an article (for example a lone image), in t
 
 Article pages show a "Words by:" byline built in JS from the `author` metadata (not a block — see `buildArticleAuthorMeta` in `scripts/utils/utils.js`). To make an author's photo appear, upload it to `media/authors/<slugified-name>.png` in [Document Authoring](https://da.live/#/adobe/adobe-labs-website/media/authors) and preview it. The filename must exactly match the slugified form of the name authored in the `author` field — lowercase, spaces and other non-alphanumeric characters replaced with hyphens (for example, an author named "Richard Example" needs `richard-example.png`).
 
-- No `author` metadata → the byline falls back to "Adobe Labs" and its logo (`media/authors/adobe-labs.png`).
+- No `author` metadata → no "Words by" line. Copy link, Download, and Feedback stay on the rows that are still shown.
 - A named author with no matching image uploaded → the name shows as plain text; no broken-image icon, no layout shift.
 - A named author with a matching image → the photo shows next to their name.
 
