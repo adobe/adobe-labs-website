@@ -169,9 +169,12 @@ describe('footer block', () => {
   it('renders social links with icons and accessible names', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
+    document.body.append(block);
 
     await decorate(block);
 
+    const socialNav = within(block).getByRole('navigation', { name: 'Social media' });
+    expect(socialNav.querySelector('.footer__social')).toBeTruthy();
     expect(block.querySelectorAll('.footer__social-link')).toHaveLength(4);
     expect(block.querySelector('a[aria-label^="Facebook"] .footer__social-icon use'))
       .toHaveAttribute('href', '#footer-icon-facebook');
@@ -181,6 +184,7 @@ describe('footer block', () => {
     );
     expect(block.querySelector('a[aria-label^="X"] .footer__social-icon use'))
       .toHaveAttribute('href', '#footer-icon-x');
+    block.remove();
   });
 
   it('inserts the current year in the copyright line', async () => {
@@ -193,7 +197,12 @@ describe('footer block', () => {
     expect(block).toHaveTextContent(`© ${year} Adobe Inc. All rights reserved.`);
     expect(block).toHaveTextContent('Do not sell or share my personal information');
     expect(block.querySelector('.footer__adchoices-icon')).toBeTruthy();
-    expect(block.querySelector('.footer__mark-image')).toBeTruthy();
+    const mark = block.querySelector('.footer__mark');
+    const markImage = block.querySelector('.footer__mark-image');
+    expect(mark).not.toHaveAttribute('role');
+    expect(mark).not.toHaveAttribute('aria-label');
+    expect(markImage).toHaveAttribute('alt', 'Adobe');
+    expect(within(block).getByRole('img', { name: 'Adobe' })).toBe(markImage);
 
     const privacyLinks = block.querySelectorAll('.footer__privacy-link');
     privacyLinks.forEach((link) => expect(link).not.toHaveAttribute('title'));
@@ -207,8 +216,10 @@ describe('footer block', () => {
 
     expect(block.querySelector('.footer__inner')).toBeTruthy();
     expect(block.querySelector('.footer__inner').nextElementSibling).toHaveClass('footer__logo');
-    expect(block.querySelector('.footer__logo-image')).toHaveAttribute('alt', 'Adobe');
-    expect(block.querySelector('.footer__logo')).toBeTruthy();
+    const logo = block.querySelector('.footer__logo');
+    expect(logo).toHaveAttribute('aria-hidden', 'true');
+    expect(block.querySelector('.footer__logo-image')).toHaveAttribute('alt', '');
+    expect(logo).toBeTruthy();
   });
 
   it('registers scroll listeners for the logo rise', async () => {

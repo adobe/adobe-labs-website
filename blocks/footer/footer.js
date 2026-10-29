@@ -364,7 +364,7 @@ function parseSocialSection(section) {
 }
 
 /**
- * Decorates the social links section with icon links.
+ * Decorates the social links section with icon links inside a labelled nav landmark.
  * @param {Element|null} social Social block element from the fragment
  * @returns {Element|null}
  */
@@ -399,7 +399,11 @@ function decorateSocial(social) {
     `;
   }).join('');
 
-  const socialElem = fromHTML(`<ul class="footer__social">${links}</ul>`);
+  const socialElem = fromHTML(`
+    <nav class="footer__social-nav" aria-label="Social media">
+      <ul class="footer__social">${links}</ul>
+    </nav>
+  `);
   social.replaceWith(socialElem);
   return socialElem;
 }
@@ -431,8 +435,8 @@ function decorateLegal(legal) {
   const markSrc = escapeAttr(getFooterAsset('img/adobe-logo-mark.svg'));
   const legalRow = fromHTML(`
     <div class="footer__legal-row">
-      <span class="footer__mark" role="img" aria-label="Adobe">
-        <img src="${markSrc}" alt="" loading="lazy" class="footer__mark-image">
+      <span class="footer__mark">
+        <img src="${markSrc}" alt="Adobe" loading="lazy" class="footer__mark-image">
       </span>
     </div>
   `);
@@ -558,8 +562,8 @@ function animateLogo(logo) {
 function decorateLogo(parent) {
   const src = escapeAttr(getFooterAsset('img/adobe-logo-full.svg'));
   const logo = fromHTML(`
-    <div class="footer__logo">
-      <img src="${src}" alt="Adobe" loading="lazy" class="footer__logo-image">
+    <div class="footer__logo" aria-hidden="true">
+      <img src="${src}" alt="" loading="lazy" class="footer__logo-image">
     </div>
   `);
   parent.append(logo);

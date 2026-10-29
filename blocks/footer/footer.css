@@ -246,6 +246,11 @@ body:has(main > .section:nth-last-child(1 of .section)) .footer {
   fill: currentcolor;
 }
 
+.footer__social-nav {
+  margin: 0;
+  padding: 0;
+}
+
 .footer__social {
   margin: 0;
   padding: 0;
