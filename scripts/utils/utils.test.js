@@ -810,6 +810,24 @@ describe('ensureSkipLink', () => {
     expect(document.querySelector('header').firstElementChild).toBe(skip);
     expect(document.querySelector('main')).toHaveAttribute('id', 'main');
     expect(document.querySelector('main')).toHaveAttribute('tabindex', '-1');
+    expect(document.querySelector('main')).toHaveAttribute('aria-label', 'Main content');
+  });
+
+  it('names a page main that already has an id', () => {
+    document.body.innerHTML = '<header></header><main id="main" tabindex="-1"></main>';
+
+    ensureSkipLink(document);
+
+    expect(document.querySelector('main')).toHaveAttribute('aria-label', 'Main content');
+    expect(document.querySelector('main')).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('does not name a main that is not the page landmark', () => {
+    document.body.innerHTML = '<header></header><div><main></main></div>';
+
+    ensureSkipLink(document);
+
+    expect(document.querySelector('main')).not.toHaveAttribute('aria-label');
   });
 
   it('does not add a second skip link', () => {
