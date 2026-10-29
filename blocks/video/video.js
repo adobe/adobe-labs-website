@@ -18,6 +18,8 @@ const DEFAULT_PLAY_LABEL = 'Play video';
 const TRANSCRIPT_LABEL = 'View transcript';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+let transcriptCount = 0;
+
 /**
  * Extracts an 11-character YouTube video ID from a URL.
  * Supports watch, youtu.be, embed, and shorts URLs.
@@ -209,6 +211,8 @@ function buildTranscript(cell) {
 
   const details = document.createElement('details');
   details.className = 'video__transcript';
+  transcriptCount += 1;
+  details.id = `video-transcript-${transcriptCount}`;
 
   const summary = document.createElement('summary');
   summary.append(buildTranscriptChevron(), document.createTextNode(TRANSCRIPT_LABEL));
@@ -379,6 +383,8 @@ function loadEmbed(block, { source, playLabel }) {
   iframe.src = provider.embedSrc(source.id, source.params);
   iframe.title = getPlayerTitle(playLabel);
   iframe.allow = provider.allow;
+  const transcript = block.querySelector('.video__transcript');
+  if (transcript) iframe.setAttribute('aria-describedby', transcript.id);
 
   // Announce the load to screen readers.
   const status = block.querySelector('[role="status"]') || buildStatus();
@@ -439,7 +445,10 @@ function buildVideo(data, block) {
 
   const transcript = buildTranscript(transcriptCell);
   block.replaceChildren(stage, buildStatus());
-  if (transcript) block.append(transcript);
+  if (transcript) {
+    button.setAttribute('aria-describedby', transcript.id);
+    block.append(transcript);
+  }
 
   // Fetch oEmbed data only when it's needed; when the label or poster
   // image size can be improved.
