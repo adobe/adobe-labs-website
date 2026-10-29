@@ -1261,6 +1261,16 @@ html.hero-intro:not(.hero-intro--body) .hero-container:has(.hero-full-screen) + 
 
 /* --- Articles --- */
 
+/* Hidden top metadata is not a flex item. Extra padding on the section
+   after the hero replaces that row without adding another gap. */
+body.article main > .section:has(.hero) + .section:not(:has(.article-meta--top)) {
+  padding-block-start: calc(var(--section-padding-block-start) + var(--s2a-spacing-sm));
+
+  @media (width >= 48rem) {
+    padding-block-start: calc(var(--section-padding-block-start) + var(--s2a-spacing-lg));
+  }
+}
+
 /* Block wrappers within articles. */
 :where(body.article main > .section > div) {
   /* Default max width for custom block wrappers within articles.

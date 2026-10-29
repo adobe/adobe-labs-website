@@ -343,7 +343,7 @@ Add a **Hide Metadata** row to the page Metadata table to remove a whole row, by
 | `top` | The top row only. |
 | `both` | Both rows. |
 
-Any other value, or no row, leaves both rows in place. Do not set this on the root `/metadata` sheet. Hiding is opt-in per article.
+Any other value, or no row, leaves both rows in place. Do not set this on the root `/metadata` sheet. Hiding is opt-in per article. Hiding the top row (`top` or `both`) adds extra space to the top padding of the section after the hero.
 
 An empty **Author** cell hides the "Words by" line on every remaining row and keeps the action buttons. Clear the Author cell and leave the row so it overrides a bulk author default.
 

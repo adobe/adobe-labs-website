@@ -720,18 +720,19 @@ function buildArticleMeta(position) {
  * @param {Element[]} sections `main`'s direct children
  */
 function insertTopArticleMeta(sections) {
+  const node = buildArticleMeta('top');
   const hero = sections.flatMap((section) => [...section.querySelectorAll('.hero')])[0];
   if (!hero) {
-    sections[0]?.prepend(buildArticleMeta('top'));
+    sections[0]?.prepend(node);
     return;
   }
 
   const heroSection = sections.find((section) => section.contains(hero));
   if (heroSection.children.length === 1) {
     const nextSection = sections[sections.indexOf(heroSection) + 1] || heroSection;
-    nextSection.prepend(buildArticleMeta('top'));
+    nextSection.prepend(node);
   } else {
-    hero.after(buildArticleMeta('top'));
+    hero.after(node);
   }
 }
 
@@ -749,7 +750,9 @@ export function buildArticleAuthorMeta(main) {
   if (!sections.length) return;
 
   const hidden = hiddenArticleMetaPositions();
-  if (!hidden.has('top')) insertTopArticleMeta(sections);
+  if (!hidden.has('top')) {
+    insertTopArticleMeta(sections);
+  }
   if (!hidden.has('bottom')) {
     sections[sections.length - 1].append(buildArticleMeta('bottom'));
   }
