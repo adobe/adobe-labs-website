@@ -270,12 +270,6 @@
     }
   }
 
-  @media (hover: hover) {
-    .hero__link-wrap:hover:not(:active) .hero__media::after {
-      background-color: var(--hero-scrim-hover);
-    }
-  }
-
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .hero__link-wrap:hover .hero__media img {
       transform: scale(var(--hero-image-hover-scale));
