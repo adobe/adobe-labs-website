@@ -6,7 +6,6 @@
   --hero-letter-spacing: var(--s2a-typography-letter-spacing-heading-2);
   --hero-font-weight: var(--s2a-font-weight-adobe-clean-display-black);
   --hero-scrim-regular: rgb(0 0 0 / 42%);
-  --hero-scrim-hover: rgb(0 0 0 / 58%);
   --hero-scrim-pressed: var(--s2a-color-transparent-black-72);
   --hero-scrim-transition-duration: 600ms;
   --hero-image-hover-scale: 1.05;
@@ -278,20 +277,10 @@
     }
   }
 
-  @media (hover: hover) {
-    .hero__link-wrap:hover:not(:active) .hero__media::after {
-      background-color: var(--hero-scrim-hover);
-    }
-  }
-
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .hero__link-wrap:hover .hero__media img {
       transform: scale(var(--hero-image-hover-scale));
     }
-  }
-
-  .hero__link-wrap:focus-visible:not(:active) .hero__media::after {
-    background-color: var(--hero-scrim-hover);
   }
 
   @media (prefers-reduced-motion: no-preference) {
