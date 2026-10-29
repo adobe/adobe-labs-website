@@ -11,6 +11,7 @@
   --header-bg: var(--s2a-color-background-default, #fff);
   --header-surface: var(--s2a-color-background-default, #fff);
   --header-rule: color-mix(in srgb, var(--header-link) 8%, transparent);
+  --header-animation-speed: 0.2s;
 
   position: relative;
   z-index: 2;
@@ -25,10 +26,12 @@
   }
 
   &.header--inverse {
+    --header-bg: transparent;
+  }
+
+  &.header--inverse:not(.header--nav-open) {
     --header-link: var(--s2a-color-content-knockout, #fff);
     --header-link-muted: var(--s2a-color-transparent-white-64, rgb(255 255 255 / 64%));
-    --header-bg: transparent;
-    --header-surface: var(--s2a-color-background-knockout, #000);
     --header-rule: transparent;
   }
 
@@ -56,7 +59,9 @@
     background-color: var(--header-bg);
 
     @media (prefers-reduced-motion: no-preference) {
-      transition: background-color 0.25s ease, box-shadow 0.25s ease;
+      transition:
+        background-color var(--header-animation-speed) ease,
+        box-shadow var(--header-animation-speed) ease;
     }
 
     @media (width >= 48rem) {
@@ -65,6 +70,8 @@
       padding-inline: var(--s2a-spacing-md, 1rem);
       padding-block: 0;
       border-block-end: 0;
+
+      /* Frosted looking background. */
       background-color: color-mix(in srgb, var(--header-bg) 80%, transparent);
       backdrop-filter: blur(4rem);
     }
@@ -95,6 +102,29 @@
       0 1.5rem 0.875rem rgb(0 0 0 / 4%),
       0 0.6875rem 0.6875rem rgb(0 0 0 / 7%),
       0 0.1875rem 0.375rem rgb(0 0 0 / 8%);
+  }
+
+  /* Open-menu surface behind the bar. Fades with opacity rather than background-color,
+     like the .header__nav, so both run on the compositor and stay in sync. */
+  .header__bar::before {
+    @media (width < 48rem) {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      pointer-events: none;
+      background-color: var(--header-surface);
+      opacity: 0;
+
+      @media (prefers-reduced-motion: no-preference) {
+        transition: opacity var(--header-animation-speed) ease;
+      }
+    }
+  }
+
+  &.header--nav-open .header__bar::before {
+    opacity: 1;
   }
 
   /* Homepage only. Page h1 type would enlarge the bar; the logo is the visual. */
@@ -137,6 +167,10 @@
     inline-size: 1.125rem;
     color: var(--header-link);
 
+    @media (prefers-reduced-motion: no-preference) {
+      transition: color var(--header-animation-speed) ease;
+    }
+
     @media (width >= 48rem) {
       display: none;
     }
@@ -171,6 +205,10 @@
     inline-size: var(--header-toggle-size);
     block-size: var(--header-toggle-size);
     color: var(--header-link);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition: color var(--header-animation-speed) ease;
+    }
   }
 
   .header__toggle-line {
@@ -202,7 +240,13 @@
     display: none;
     flex: 1 1 auto;
     opacity: 0;
-    transform: translateY(-0.5rem);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition:
+        display var(--header-animation-speed) allow-discrete,
+        overlay var(--header-animation-speed) allow-discrete,
+        opacity var(--header-animation-speed) ease;
+    }
 
     @media (width < 48rem) {
       position: absolute;
@@ -244,17 +288,16 @@
       opacity: 1;
       transform: none;
 
-      /* Only while open: transitioning display on the closed nav flashes the
-         overlay when crossing desktop→mobile. */
-      @media (prefers-reduced-motion: no-preference) {
-        transition:
-          display 0.2s allow-discrete,
-          overlay 0.2s allow-discrete,
-          opacity 0.2s ease,
-          transform 0.2s ease;
+      @starting-style {
+        opacity: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .header__list {
+        transform: translateY(0);
 
         @starting-style {
-          opacity: 0;
           transform: translateY(-0.5rem);
         }
       }
@@ -271,21 +314,14 @@
   }
 
   &.header--inverse:not(.header--scrolled) .header__bar {
-    background-color: transparent;
-    backdrop-filter: none;
     border-block-end-color: transparent;
+    backdrop-filter: none;
   }
 
+  /* Frosted looking background. */
   &.header--inverse.header--scrolled .header__bar {
     background-color: color-mix(in srgb, var(--header-bg) 80%, transparent);
     backdrop-filter: blur(4rem);
-  }
-
-  &.header--inverse .header__nav {
-    @media (width < 48rem) {
-      z-index: -1;
-      box-shadow: 0 calc(-1 * var(--header-bar-height)) 0 var(--header-surface);
-    }
   }
 
   .header__list,
@@ -299,6 +335,13 @@
   }
 
   .header__list {
+    @media (width < 48rem) {
+      @media (prefers-reduced-motion: no-preference) {
+        transform: translateY(-0.5rem);
+        transition: transform var(--header-animation-speed) ease;
+      }
+    }
+
     @media (width >= 48rem) {
       flex-direction: row;
       align-items: center;

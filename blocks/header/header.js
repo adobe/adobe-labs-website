@@ -653,6 +653,12 @@ function setDrawerOpen(block, open, restoreTo) {
   const lock = open && !isDesktop();
   setMenuToggle(toggle, open);
   block.classList.toggle('header--nav-open', open);
+
+  // Open menu uses the default button regardless if closed menu is in the inverse state.
+  if (block.classList.contains('header--inverse')) {
+    block.querySelector('.header__cta')?.classList.toggle('button--static-white', !open);
+  }
+
   setScrollLock(lock, block);
   setPageInert(lock, liveRoot);
   if (!open) restoreTo?.focus();
