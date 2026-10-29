@@ -125,6 +125,11 @@
 
   &.header--nav-open .header__bar::before {
     opacity: 1;
+
+    /* Only transition on open. */
+    @media (prefers-reduced-motion: no-preference) {
+      transition: opacity var(--header-animation-speed) ease;
+    }
   }
 
   /* Homepage only. Page h1 type would enlarge the bar; the logo is the visual. */
@@ -293,18 +298,17 @@
       }
     }
 
-    @media (prefers-reduced-motion: no-preference) {
-      .header__list {
-        transform: translateY(0);
-
-        @starting-style {
-          transform: translateY(-0.5rem);
-        }
-      }
-    }
-
     @media (width < 48rem) {
       @media (prefers-reduced-motion: no-preference) {
+        .header__list {
+          transform: translateY(0);
+          transition-delay: 0s;
+
+          @starting-style {
+            transform: translateY(-0.5rem);
+          }
+        }
+
         .header__list > .header__item {
           animation: header-item-in 0.28s ease both;
           animation-delay: calc(0.04s * sibling-index());
@@ -338,7 +342,10 @@
     @media (width < 48rem) {
       @media (prefers-reduced-motion: no-preference) {
         transform: translateY(-0.5rem);
-        transition: transform var(--header-animation-speed) ease;
+        transition: transform var(--header-animation-speed) ease-out;
+
+        /* On nav close, avoid distracting look of text sliding back up to its starting position. */
+        transition-delay: var(--header-animation-speed);
       }
     }
 

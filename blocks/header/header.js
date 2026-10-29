@@ -696,6 +696,22 @@ function syncMenuItem(item, mobile) {
 }
 
 /**
+ * Applies the breakpoint's nav styles without transitioning to them, so the
+ * mobile overlay, with its transitions, doesn't cause a flash while resizing
+ * the browser and crossing the mobile nav breakpoint.
+ *
+ * @param {Element} block Header block
+ * @returns {void}
+ */
+function skipNavTransition(block) {
+  const nav = block.querySelector('.header__nav');
+  if (!nav) return;
+  nav.style.transition = 'none';
+  nav.getBoundingClientRect(); // Flush styles so the resize change is untransitioned.
+  nav.style.removeProperty('transition');
+}
+
+/**
  * Aligns mega-menu triggers with the current viewport.
  *
  * @param {Element} block Header block
@@ -707,6 +723,7 @@ function syncViewport(block) {
     syncMenuItem(item, mobile);
   });
   if (!mobile) closeDrawer(block);
+  skipNavTransition(block);
 }
 
 /**
