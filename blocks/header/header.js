@@ -878,6 +878,10 @@ function bindHeader(block) {
  * @returns {Promise<void>}
  */
 export default async function decorate(block) {
+  // The <header> landmark itself is page-shell markup, not authored content this block
+  // owns, so label it here rather than in a template this repo doesn't control.
+  block.closest('header')?.setAttribute('aria-label', 'Site header');
+
   ensureSkipLink(document);
 
   const overlayHero = Boolean(firstSectionFullScreenHero());

@@ -1603,6 +1603,9 @@ export function ensureSkipLink(doc = document) {
   if (main) {
     if (!main.id) main.id = 'main';
     if (!main.hasAttribute('tabindex')) main.tabIndex = -1;
+    // Page-shell landmark, not authored content. A detached fragment <main>
+    // never matches `body > main`, so only the document landmark is named.
+    main.setAttribute('aria-label', 'Main content');
   }
 
   const skip = doc.createElement('a');

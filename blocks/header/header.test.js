@@ -206,6 +206,12 @@ describe('header block', () => {
     expect(loadFragment).toHaveBeenCalledWith('/fragments/nav');
   });
 
+  it('labels the surrounding header landmark for assistive tech', async () => {
+    const block = await decorateHeader();
+
+    expect(block.closest('header')).toHaveAttribute('aria-label', 'Site header');
+  });
+
   it('loads a custom nav fragment from nav metadata', async () => {
     getMetadata.mockReturnValue('/fragments/custom-nav');
 
