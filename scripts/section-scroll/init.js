@@ -1162,6 +1162,18 @@ let boundToCssCover = false;
 /** @type {((event: MouseEvent) => void) | null} */
 let onHashClick = null;
 /**
+ * True while Lenis is paused for the mobile menu. Tracks the last lock we
+ * applied so unrelated `class` changes on `html` do not call `stop`/`start`.
+ */
+let lenisPausedForMenu = false;
+/**
+ * Watches `html.header-scroll-lock`. The header sets that class when the
+ * mobile drawer opens; Lenis would otherwise keep scrolling underneath it.
+ *
+ * @type {MutationObserver | null}
+ */
+let scrollLockObserver = null;
+/**
  * Remeasures touch dim ranges when `main` changes height, since late styles and
  * images move the incoming section after classification.
  *
@@ -1543,6 +1555,52 @@ function handleHashClick(event) {
 }
 
 /**
+ * Pauses Lenis while the mobile menu holds `html.header-scroll-lock`.
+ *
+ * `overflow: hidden` does not stop Lenis: it scrolls by assigning the position.
+ * `stop()` cancels an in-flight lerp and ignores later wheel events, so the
+ * page behind the open menu stays put.
+ *
+ * @returns {void}
+ */
+function syncLenisToScrollLock() {
+  if (!lenis) return;
+  const locked = document.documentElement.classList.contains('header-scroll-lock');
+  if (locked === lenisPausedForMenu) return;
+  lenisPausedForMenu = locked;
+  if (locked) lenis.stop();
+  else lenis.start();
+}
+
+/**
+ * Applies the current menu lock, then keeps Lenis in step with it.
+ * The class may already be on `html` if the drawer opened before Lenis loaded.
+ *
+ * @returns {void}
+ */
+function watchHeaderScrollLock() {
+  syncLenisToScrollLock();
+  if (scrollLockObserver) return;
+  scrollLockObserver = new MutationObserver(syncLenisToScrollLock);
+  scrollLockObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class'],
+  });
+}
+
+/**
+ * Drops the menu-lock observer. Does not call `lenis.start()`; teardown is
+ * about to destroy the instance.
+ *
+ * @returns {void}
+ */
+function disconnectScrollLockObserver() {
+  scrollLockObserver?.disconnect();
+  scrollLockObserver = null;
+  lenisPausedForMenu = false;
+}
+
+/**
  * Loads the vendored bundles and the tweens that need them, then hands scroll to
  * Lenis everywhere except touch.
  *
@@ -1583,6 +1641,7 @@ async function attach() {
   // Lenis drives its own rAF from this ticker, so smoothing a lagging frame
   // would desync it from the scroll position. `stop()` puts this back.
   gsap.ticker.lagSmoothing(0);
+  watchHeaderScrollLock();
   if (!onHashClick) {
     onHashClick = handleHashClick;
     document.addEventListener('click', onHashClick, true);
@@ -1643,6 +1702,7 @@ function stop() {
     if (ScrollTrigger) lenis.off('scroll', ScrollTrigger.update);
     lenis.destroy();
     lenis = null;
+    disconnectScrollLockObserver();
     // Global to GSAP, so leaving it off would strip lag smoothing from every
     // other animation on the page for the rest of the visit.
     gsap?.ticker.lagSmoothing(LAG_THRESHOLD_MS, LAG_STEP_MS);

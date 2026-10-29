@@ -268,6 +268,10 @@ function sectionAfterHero(hero) {
 /**
  * Locks or unlocks document scroll while the mobile drawer is open.
  *
+ * `header-scroll-lock` sets `overflow: hidden`. That does not stop Lenis,
+ * which writes the scroll position itself. Section scroll watches this class
+ * and pauses Lenis for as long as it is present.
+ *
  * @param {boolean} lock Whether to lock
  * @returns {void}
  */
