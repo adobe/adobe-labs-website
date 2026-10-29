@@ -414,6 +414,11 @@ pre {
   margin-block: 1.0rem;
 }
 
+/* An authored break already chooses the line. Pretty adds an extra break around it in Safari. */
+p:has(br) {
+  text-wrap: wrap;
+}
+
 /* Authored quote. The user agent indents blockquote. */
 blockquote {
   display: flex;
@@ -463,6 +468,12 @@ blockquote {
   margin-block: var(--s2a-spacing-lg) var(--s2a-spacing-4xl);
   overflow-wrap: break-word;
   text-wrap: pretty;
+
+  /* Same Safari conflict as `p:has(br)`: an authored break should win. */
+  &:has(br) {
+    text-wrap: wrap;
+  }
+
   color: var(--s2a-color-content-default);
   font-family: var(--heading-font-family);
   font-size: var(--s2a-typography-font-size-heading-6);
