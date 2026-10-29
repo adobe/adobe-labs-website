@@ -1,0 +1,71 @@
+/* 404. The halftone canvas is the picture. Copy sits under it. */
+
+main.error {
+  --dot-color: var(--s2a-color-content-default);
+
+  display: flex;
+  flex-direction: column;
+  min-height: calc(80dvh - var(--nav-height));
+}
+
+main.error > .section {
+  gap: var(--s2a-spacing-xl);
+
+  @media (width >= 48rem) {
+    gap: var(--s2a-spacing-3xl);
+  }
+
+  @media (width >= 64rem) {
+    gap: var(--s2a-spacing-4xl);
+  }
+}
+
+/* Beat the first-section and last-section padding so the stack can sit in the middle. */
+main.error > .section:first-of-type:not([class*="section-rounded-"], .hero-container:has(.hero-full-screen)) {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding-block: var(--s2a-spacing-2xl);
+  padding-inline: var(--s2a-spacing-2xl);
+}
+
+main.error .error-dots {
+  display: block;
+  flex: none;
+  align-self: center;
+  aspect-ratio: 1612 / 634;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  block-size: auto;
+  touch-action: none;
+
+  @media (width >= 48rem) {
+    inline-size: 600px;
+  }
+
+  @media (width >= 64rem) {
+    inline-size: 700px;
+  }
+
+  @media (width >= 90rem) {
+    inline-size: 806px;
+  }
+}
+
+main.error .default-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2a-spacing-xs);
+  margin-block: 0;
+  padding-inline: 0;
+  text-align: center;
+
+  :is(h1, p) {
+    margin-block: 0;
+  }
+}
+
+main.error .error-message {
+  color: var(--s2a-color-content-body-subtle);
+}
