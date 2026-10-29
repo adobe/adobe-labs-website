@@ -67,6 +67,8 @@ jest.mock('../../deps/lenis/dist/index.js', () => {
     raf: jest.fn(),
     scroll: 0,
     scrollTo: jest.fn(),
+    stop: jest.fn(),
+    start: jest.fn(),
   };
   const MockLenis = jest.fn(() => instance);
   return { __esModule: true, default: MockLenis };
@@ -173,6 +175,7 @@ beforeEach(() => {
 afterEach(() => {
   teardownSectionScroll();
   document.body.innerHTML = '';
+  document.documentElement.classList.remove('header-scroll-lock');
 });
 
 describe('classifySectionScroll', () => {
@@ -439,6 +442,47 @@ describe('initSectionScroll', () => {
     expect(gsap.ticker.lagSmoothing).toHaveBeenCalledWith(0);
     expect(gsap.context).toHaveBeenCalled();
     expect(document.querySelector('.section-rounded-blue')).toHaveClass('section-scroll-slow');
+  });
+
+  it('pauses Lenis while the mobile menu scroll lock is on', async () => {
+    mockMatchMedia(true);
+    mountMain(`
+      <div class="section section-rounded-blue">
+        <div class="inner">Card</div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+    const instance = Lenis.mock.results[0].value;
+    expect(instance.stop).not.toHaveBeenCalled();
+
+    document.documentElement.classList.add('header-scroll-lock');
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+    expect(instance.stop).toHaveBeenCalledTimes(1);
+    expect(instance.start).not.toHaveBeenCalled();
+
+    document.documentElement.classList.remove('header-scroll-lock');
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+    expect(instance.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses Lenis when the mobile menu locked the page before Lenis loaded', async () => {
+    mockMatchMedia(true);
+    document.documentElement.classList.add('header-scroll-lock');
+    mountMain(`
+      <div class="section section-rounded-blue">
+        <div class="inner">Card</div>
+      </div>
+      <div class="section section-rounded-default"></div>
+    `);
+
+    await initSectionScroll();
+
+    expect(Lenis.mock.results[0].value.stop).toHaveBeenCalledTimes(1);
+    expect(Lenis.mock.results[0].value.start).not.toHaveBeenCalled();
   });
 
   it('smooth-scrolls an in-page hash to the target layout offset, not its sticky box', async () => {
