@@ -9,6 +9,23 @@ function buildCell(headerRow, headerColumn, rowIndex, colIndex) {
   return cell;
 }
 
+// A fully bold first row is a column header row. A data first row stays row headers.
+function firstRowIsColumnHeader(row) {
+  const cells = [...(row?.children || [])];
+  if (!cells.length) return false;
+
+  return cells.every((cell) => {
+    const text = cell.textContent.replace(/\s+/g, ' ').trim();
+    if (!text) return false;
+    const boldText = [...cell.querySelectorAll('strong, b')]
+      .map((el) => el.textContent)
+      .join('')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return boldText === text;
+  });
+}
+
 function isScrolledToEnd(tableWrapper) {
   return tableWrapper.scrollLeft + tableWrapper.clientWidth >= tableWrapper.scrollWidth - 1;
 }
@@ -35,7 +52,9 @@ function bindOverflowUi(block) {
 
 export default function decorate(block) {
   const headerColumn = block.classList.contains('header-column');
-  const headerRow = !headerColumn || block.classList.contains('header-row');
+  const headerRow = !headerColumn
+    || block.classList.contains('header-row')
+    || firstRowIsColumnHeader(block.children[0]);
 
   const table = document.createElement('table');
   const thead = document.createElement('thead');
