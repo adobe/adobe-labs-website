@@ -216,6 +216,10 @@
       /* The entrance slide translates each full-width item on x. `overflow: auto`
          paints a horizontal scrollbar until that transform ends. */
       overflow: hidden auto;
+
+      /* A long menu scrolls inside the overlay. Containment stops that scroll
+         from chaining into the page once the menu hits either end. */
+      overscroll-behavior: contain;
       padding: var(--s2a-spacing-md, 1rem);
       padding-block-end: calc(var(--s2a-spacing-md, 1rem) + env(safe-area-inset-bottom, 0px));
       background-color: var(--header-surface);

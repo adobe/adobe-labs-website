@@ -557,6 +557,23 @@ describe('header block', () => {
     expect(document.documentElement).not.toHaveClass('header-scroll-lock');
   });
 
+  it('lets the open mobile nav scroll while Lenis is paused', async () => {
+    desktopMatches = false;
+    const block = await decorateHeader();
+    const nav = within(block).getByRole('navigation', { name: 'Main' });
+    const toggle = within(block).getByRole('button', { name: 'Menu' });
+
+    expect(nav).not.toHaveAttribute('data-lenis-prevent');
+
+    toggle.click();
+
+    expect(nav).toHaveAttribute('data-lenis-prevent');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(nav).not.toHaveAttribute('data-lenis-prevent');
+  });
+
   it('inerts page content while the mobile drawer is open', async () => {
     desktopMatches = false;
     const main = document.createElement('main');

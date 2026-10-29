@@ -270,16 +270,22 @@ function sectionAfterHero(hero) {
  *
  * `header-scroll-lock` sets `overflow: hidden`. That does not stop Lenis,
  * which writes the scroll position itself. Section scroll watches this class
- * and pauses Lenis for as long as it is present.
+ * and pauses Lenis for as long as it is present. Pausing Lenis also swallows
+ * wheel events inside the drawer, so the open nav is marked
+ * `data-lenis-prevent` and keeps native scrolling.
  *
  * @param {boolean} lock Whether to lock
+ * @param {Element} [block] Header block whose nav should scroll natively
  * @returns {void}
  */
-function setScrollLock(lock) {
+function setScrollLock(lock, block) {
+  const nav = block?.querySelector('.header__nav');
   if (lock) {
     document.documentElement.classList.add('header-scroll-lock');
+    nav?.setAttribute('data-lenis-prevent', '');
     return;
   }
+  nav?.removeAttribute('data-lenis-prevent');
   if (!document.querySelector('.header.header--nav-open')) {
     document.documentElement.classList.remove('header-scroll-lock');
   }
@@ -647,7 +653,7 @@ function setDrawerOpen(block, open, restoreTo) {
   const lock = open && !isDesktop();
   setMenuToggle(toggle, open);
   block.classList.toggle('header--nav-open', open);
-  setScrollLock(lock);
+  setScrollLock(lock, block);
   setPageInert(lock, liveRoot);
   if (!open) restoreTo?.focus();
 }
@@ -800,7 +806,7 @@ function bindHeader(block) {
   const { signal } = headerAbort;
   const liveRoot = block.closest('header') || block;
   signal.addEventListener('abort', () => {
-    setScrollLock(false);
+    setScrollLock(false, block);
     setPageInert(false, liveRoot);
   }, { once: true });
 
