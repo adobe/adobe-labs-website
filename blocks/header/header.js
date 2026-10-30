@@ -90,8 +90,7 @@ let headerAbort;
  * Inlined header icons used to paint the bar.
  *
  * @typedef {object} HeaderIcons
- * @property {string} logoDesktopSvg Desktop logo markup
- * @property {string} logoMobileSvg Mobile logo markup
+ * @property {string} logoSvg Logo markup
  * @property {string} menuSvg Menu toggle markup
  * @property {string} chevronSvg Mega-menu chevron markup
  */
@@ -504,26 +503,21 @@ function itemMarkup(item, index, chevronSvg) {
 }
 
 /**
- * Brand logo markup: authored image when safe, otherwise inlined SVGs.
+ * Brand logo markup: authored image when safe, otherwise the inlined SVG.
  *
  * @param {HeaderBrand} brand Parsed brand
- * @param {string} logoDesktopSvg Desktop logo SVG
- * @param {string} logoMobileSvg Mobile logo SVG
- * @returns {string} Authored image and/or inlined SVG markup
+ * @param {string} logoSvg Logo SVG
+ * @returns {string} Authored image or inlined SVG markup
  */
-function brandMediaMarkup(brand, logoDesktopSvg, logoMobileSvg) {
-  const fallback = `${logoDesktopSvg}${logoMobileSvg}`;
+function brandMediaMarkup(brand, logoSvg) {
   const authoredImage = brand.image;
-  if (!authoredImage) return fallback;
+  if (!authoredImage) return logoSvg;
   const img = authoredImage.tagName === 'PICTURE'
     ? authoredImage.querySelector('img')
     : authoredImage;
   const src = toSafeHttpUrl(img?.getAttribute('src'));
-  if (!src) return fallback;
-  return `
-    <img class="header__logo-desktop" src="${escapeAttr(src)}" alt="">
-    ${logoMobileSvg}
-  `;
+  if (!src) return logoSvg;
+  return `<img class="header__logo" src="${escapeAttr(src)}" alt="">`;
 }
 
 /**
@@ -537,7 +531,7 @@ function brandMediaMarkup(brand, logoDesktopSvg, logoMobileSvg) {
 function buildHeaderBar(data, icons) {
   const brandName = escapeAttr(data.brand.label || 'Adobe Labs');
   const brandHref = escapeAttr(data.brand.href || '/');
-  const brandMedia = brandMediaMarkup(data.brand, icons.logoDesktopSvg, icons.logoMobileSvg);
+  const brandMedia = brandMediaMarkup(data.brand, icons.logoSvg);
   const home = isHomePage();
   const brand = home
     ? `<h1 class="header__site-title"><a class="header__brand" href="${brandHref}"><span class="visually-hidden">${brandName}</span>${brandMedia}</a></h1>`
@@ -888,8 +882,7 @@ export default async function decorate(block) {
   if (overlayHero) block.classList.add('header--inverse');
 
   const iconsPromise = Promise.all([
-    loadHeaderIcon('img/logo-desktop.svg', 'header__logo-desktop'),
-    loadHeaderIcon('img/logo-mobile.svg', 'header__logo-mobile'),
+    loadHeaderIcon('img/logo.svg', 'header__logo'),
     loadHeaderIcon('img/menu.svg', 'header__toggle-icon'),
     loadHeaderIcon('img/chevron-down.svg', 'header__chevron'),
   ]);
@@ -900,10 +893,9 @@ export default async function decorate(block) {
     return;
   }
 
-  const [logoDesktopSvg, logoMobileSvg, menuSvg, chevronSvg] = await iconsPromise;
+  const [logoSvg, menuSvg, chevronSvg] = await iconsPromise;
   block.replaceChildren(buildHeaderBar(parseNavFragment(fragment), {
-    logoDesktopSvg,
-    logoMobileSvg,
+    logoSvg,
     menuSvg,
     chevronSvg,
   }));
