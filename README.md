@@ -305,7 +305,7 @@ See [AEM metadata block docs](https://www.aem.live/developer/block-collection/me
 
 ### Dataset download
 
-Article pages show a Download action next to Copy link when the page Metadata table includes a **Download Link** row. After preview, that value is available as `meta[name="download-link"]`.
+Article pages show a Download action next to Copy URL when the page Metadata table includes a **Download Link** row. After preview, that value is available as `meta[name="download-link"]`.
 
 #### Add a PDF from the DA media folder
 
@@ -329,11 +329,11 @@ You can also paste a public file URL (for example an Adobe-hosted PDF).
 
 ### Feedback
 
-Article pages include a Feedback action with Copy link. It opens a message to labs@adobe.com. The subject is the **Title** row from the page Metadata table. After preview, AEM publishes that row as `og:title`. When Title is empty, the link has no subject.
+Article pages include a Feedback action with Copy URL. It opens a message to labs@adobe.com. The subject is the **Title** row from the page Metadata table. After preview, AEM publishes that row as `og:title`. When Title is empty, the link has no subject.
 
 ### Hide metadata rows
 
-Article pages show a metadata row at the top and again at the bottom. Each row can include the author byline and the action buttons (Copy link, Download, and Feedback).
+Article pages show a metadata row at the top and again at the bottom. Each row can include the author byline and the action buttons (Copy URL, Download, and Feedback).
 
 Add a **Hide Metadata** row to the page Metadata table to remove a whole row, byline and buttons included. After preview, that value is available as `meta[name="hide-metadata"]`.
 
@@ -355,7 +355,7 @@ To use full-bleed default content in an article (for example a lone image), in t
 
 Article pages show a "Words by:" byline built in JS from the `author` metadata (not a block — see `buildArticleAuthorMeta` in `scripts/utils/utils.js`). To make an author's photo appear, upload it to `media/authors/<slugified-name>.png` in [Document Authoring](https://da.live/#/adobe/adobe-labs-website/media/authors) and preview it. The filename must exactly match the slugified form of the name authored in the `author` field — lowercase, spaces and other non-alphanumeric characters replaced with hyphens (for example, an author named "Richard Example" needs `richard-example.png`).
 
-- No `author` metadata → no "Words by" line. Copy link, Download, and Feedback stay on the rows that are still shown.
+- No `author` metadata → no "Words by" line. Copy URL, Download, and Feedback stay on the rows that are still shown.
 - A named author with no matching image uploaded → the name shows as plain text; no broken-image icon, no layout shift.
 - A named author with a matching image → the photo shows next to their name.
 
