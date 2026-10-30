@@ -1138,7 +1138,7 @@ describe('content-grid block', () => {
         expect(titlesFromCards()).toEqual(['Pinned sneak']);
       });
 
-      it('shows the content-type label on each pick', async () => {
+      it('labels every card when picks mix content types', async () => {
         mockMetadata({
           'related-articles': '/sneaks/pinned-sneak, /research/shared-category',
         });
@@ -1148,6 +1148,49 @@ describe('content-grid block', () => {
 
         expect(dataFromCall(0).contentType).toBe('Sneaks');
         expect(dataFromCall(1).contentType).toBe('Research');
+      });
+
+      it('labels picks that all share a content type other than the current page', async () => {
+        mockMetadata({
+          'related-articles': '/sneaks/pinned-sneak, /playground/pinned-playground',
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '1' });
+
+        await decorate(block);
+
+        expect(dataFromCall(0).contentType).toBe('Sneaks');
+      });
+
+      it('omits labels when every pick matches the current page content type', async () => {
+        mockMetadata({
+          'related-articles': '/research/shared-category, /research/no-shared-category',
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '2' });
+
+        await decorate(block);
+
+        expect(dataFromCall(0).contentType).toBe('');
+        expect(dataFromCall(1).contentType).toBe('');
+      });
+
+      it('keeps labels on same-type picks when show-content-type is set', async () => {
+        mockMetadata({ 'related-articles': '/research/shared-category' });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '1' });
+        block.classList.add('show-content-type');
+
+        await decorate(block);
+
+        expect(dataFromCall(0).contentType).toBe('Research');
+      });
+
+      it('labels picks on a page outside any content type', async () => {
+        window.history.pushState({}, '', '/drafts/article-test');
+        mockMetadata({ 'related-articles': '/research/shared-category' });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '1' });
+
+        await decorate(block);
+
+        expect(dataFromCall(0).contentType).toBe('Research');
       });
 
       it.each([

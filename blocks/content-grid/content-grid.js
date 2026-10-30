@@ -353,6 +353,18 @@ function compareNewestFirst(a, b) {
 }
 
 /**
+ * Whether an index row can appear in a grid at all.
+ * @param {ContentItem} item
+ * @param {string} [excludePath] Extra path to omit (the current page, in related grids)
+ * @returns {boolean}
+ */
+function isListable(item, excludePath) {
+  return !/noindex/i.test(String(item.robots || ''))
+    && !isExcludedPath(item.path)
+    && (!excludePath || normalizePath(item.path) !== normalizePath(excludePath));
+}
+
+/**
  * Filter, sort, and slice index rows for the authored config.
  * @param {ContentItem[]} data
  * @param {object} options
@@ -365,10 +377,7 @@ function selectItems(data, {
   category, count, excludePath,
 }) {
   return data
-    .filter((item) => !/noindex/i.test(String(item.robots || ''))
-      && !isExcludedPath(item.path)
-      && (!excludePath || normalizePath(item.path) !== normalizePath(excludePath))
-      && matchesCategory(item, category))
+    .filter((item) => isListable(item, excludePath) && matchesCategory(item, category))
     .sort(compareNewestFirst)
     .slice(0, count);
 }
@@ -421,14 +430,88 @@ function getRelatedArticlePaths() {
  */
 function selectPinnedItems(data, paths, { count, excludePath }) {
   const byPath = new Map(data
-    .filter((item) => !/noindex/i.test(String(item.robots || ''))
-      && !isExcludedPath(item.path)
-      && (!excludePath || normalizePath(item.path) !== normalizePath(excludePath)))
+    .filter((item) => isListable(item, excludePath))
     .map((item) => [normalizePath(item.path), item]));
   return [...new Set(paths)]
     .map((path) => byPath.get(path))
     .filter(Boolean)
     .slice(0, count);
+}
+
+/**
+ * Where a grid's cards come from.
+ * @typedef {object} GridSource
+ * @property {boolean} isRelated Whether this is a related content grid
+ * @property {object} [section] Content type the grid belongs to
+ * @property {string} endpoint Index to fetch
+ * @property {string} [category]
+ * @property {string} excludePath Path to omit, or ''
+ * @property {string[]} pinnedPaths Paths the page chose; empty for automatic results
+ */
+
+/**
+ * Read a grid's source from its config, or from the current page in related mode.
+ * @param {object} config Block config from {@link readBlockConfig}
+ * @returns {GridSource}
+ */
+function getGridSource(config) {
+  const { allContent } = dataStore.commonEndpoints;
+  const endpointFor = (section) => (section ? dataStore.commonEndpoints[section.slug] : allContent);
+
+  if (!/^(true|yes|1)$/i.test(String(config['related-content'] || '').trim())) {
+    const section = getSection(config['content-type']);
+    return {
+      isRelated: false,
+      section,
+      endpoint: endpointFor(section),
+      category: config.category,
+      excludePath: '',
+      pinnedPaths: [],
+    };
+  }
+
+  const currentPath = window.location.pathname;
+  const section = getSectionFromPath(currentPath);
+  const pinnedPaths = getRelatedArticlePaths();
+  return {
+    isRelated: true,
+    section,
+    // Picks can be any content type, so they resolve against the all-content index.
+    endpoint: pinnedPaths.length ? allContent : endpointFor(section),
+    category: getMetadata('category'),
+    excludePath: currentPath,
+    pinnedPaths,
+  };
+}
+
+/**
+ * Index rows a grid should show.
+ * @param {ContentItem[]} data
+ * @param {GridSource} source
+ * @param {number} count
+ * @returns {ContentItem[]}
+ */
+function selectGridItems(data, {
+  isRelated, category, excludePath, pinnedPaths,
+}, count) {
+  if (pinnedPaths.length) return selectPinnedItems(data, pinnedPaths, { count, excludePath });
+
+  const items = selectItems(data, { category, count, excludePath });
+  if (items.length || !isRelated || !category) return items;
+  // A related grid with no category match widens to its whole content type.
+  return selectItems(data, { category: '', count, excludePath });
+}
+
+/**
+ * Whether any picked row is from another content type than the grid's own,
+ * in which case the cards need labels to tell them apart.
+ * @param {ContentItem[]} items
+ * @param {GridSource} source
+ * @returns {boolean}
+ */
+function picksNeedContentType(items, { section, pinnedPaths }) {
+  return pinnedPaths.length > 0
+    && items.some((item) => getSectionFromPath(item.path)?.slug !== section?.slug);
 }
 
 /**
@@ -571,8 +654,9 @@ async function renderGrid(block, gridItems, header) {
  * without being re-authored per page.
  *
  * A page can choose its own cards with `Related Articles` metadata (links,
- * any content type). The grid then shows only those, in authored order with
- * their content-type label, and hides itself when none of them resolve.
+ * any content type). The grid then shows only those, in authored order, and
+ * hides itself when none of them resolve. Cards get content-type labels when
+ * a pick is from another content type than the current page.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
@@ -580,24 +664,13 @@ export default async function decorate(block) {
   const intro = takeIntro(block);
 
   const config = readBlockConfig(block);
-  const isRelated = /^(true|yes|1)$/i.test(String(config['related-content'] || '').trim());
-  const currentPath = window.location.pathname;
-
-  const pinnedPaths = isRelated ? getRelatedArticlePaths() : [];
-  const hasPicks = pinnedPaths.length > 0;
-
-  const section = isRelated
-    ? getSectionFromPath(currentPath)
-    : getSection(config['content-type']);
-  // Picks can be any content type, so they resolve against the all-content index.
-  const endpoint = section && !hasPicks
-    ? dataStore.commonEndpoints[section.slug]
-    : dataStore.commonEndpoints.allContent;
+  const source = getGridSource(config);
+  const {
+    isRelated, section, endpoint, category,
+  } = source;
   const parsedCount = Number.parseInt(String(config.count || '').trim(), 10);
   const count = Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : DEFAULT_COUNT;
   const subheadDescription = block.classList.contains('subhead-description');
-  const category = isRelated ? getMetadata('category') : config.category;
-  const excludePath = isRelated ? currentPath : '';
 
   block.classList.toggle('content-grid--related', isRelated);
   // The shared pre-footer is authored once. The page path picks the
@@ -620,16 +693,9 @@ export default async function decorate(block) {
   }
 
   const data = Array.isArray(payload.data) ? payload.data : [];
-  let items;
-  if (hasPicks) {
-    items = selectPinnedItems(data, pinnedPaths, { count, excludePath });
-  } else {
-    items = selectItems(data, { category, count, excludePath });
-    if (isRelated && category && !items.length) {
-      items = selectItems(data, { category: '', count, excludePath });
-    }
-  }
-  const showContentType = block.classList.contains('show-content-type') || hasPicks;
+  const items = selectGridItems(data, source, count);
+  const showContentType = block.classList.contains('show-content-type')
+    || picksNeedContentType(items, source);
   await renderGrid(
     block,
     items.map((entry) => createGridItem(entry, { subheadDescription, showContentType })),
