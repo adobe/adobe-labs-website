@@ -1,11 +1,26 @@
-/* 404. The halftone canvas is the picture. Copy sits under it. */
+/* 404. The particle canvas is the picture. Copy sits under it. */
 
 main.error {
-  --dot-color: var(--s2a-color-content-default);
+  --particle-color: #000;
 
   display: flex;
   flex-direction: column;
   min-height: calc(80dvh - var(--nav-height));
+}
+
+@media (prefers-color-scheme: dark) {
+  main.error {
+    --particle-color: #fff;
+  }
+}
+
+/* The site theme can disagree with the OS preference. The attribute wins. */
+:root[data-theme="light"] main.error {
+  --particle-color: #000;
+}
+
+:root[data-theme="dark"] main.error {
+  --particle-color: #fff;
 }
 
 main.error > .section {
@@ -33,23 +48,12 @@ main.error .error-dots {
   display: block;
   flex: none;
   align-self: center;
-  aspect-ratio: 1612 / 634;
-  inline-size: 100%;
-  max-inline-size: 100%;
-  block-size: auto;
-  touch-action: none;
+  inline-size: min(100%, 64rem);
+  block-size: clamp(14rem, 36vw, 24rem);
+  touch-action: pan-y;
 
-  @media (width >= 48rem) {
-    inline-size: 600px;
-  }
-
-  @media (width >= 64rem) {
-    inline-size: 700px;
-  }
-
-  @media (width >= 90rem) {
-    inline-size: 806px;
-  }
+  /* Typekit id for Adobe Clean Spectrum VF, then the prototype family name. */
+  font-family: adobe-clean-spectrum-vf, "Adobe Clean Spectrum VF", system-ui, sans-serif;
 }
 
 main.error .default-content-wrapper {

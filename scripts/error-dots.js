@@ -1,58 +1,17 @@
 /**
- * Halftone "404" for the error page. Dots are sampled from Adobe Clean Display
- * and spring away from the pointer.
- *
- * Replace CONFIG when a new config arrives. maxWidth and maxHeight are 1 so
- * the word fills the canvas frame. The pen used 0.85 and 0.6 on a full-viewport stage.
+ * Particle "404" for the error page. Dots are sampled from Adobe Clean
+ * Spectrum VF (Typekit family adobe-clean-spectrum-vf) and spring away
+ * from the pointer. Sampling and physics match the client prototype.
  */
 
-const CONFIG = {
-  text: '404',
-  fontFamily: 'Adobe Clean Display Black',
-  fontWeight: 600,
-  fontSize: 'auto',
-  maxWidth: 1,
-  maxHeight: 1,
-  letterSpacing: 0.08,
-  spacing: 6,
-  minRadius: 0.6,
-  maxRadius: 2.6,
-  shimmerSpeed: 1.4,
-  shimmerAmount: 0.45,
-  pushRadius: 120,
-  pushStrength: 9,
-  spring: 0.07,
-  damping: 0.84,
-};
-
-const MOTION_QUERY = '(prefers-reduced-motion: no-preference)';
+const TEXT = '404';
+const SAMPLE_GAP = 6;
+const FONT_FACE = '"adobe-clean-spectrum-vf"';
+const MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const COLOR_QUERY = '(prefers-color-scheme: dark)';
 
 /**
- * @param {number} size Font size in pixels
- * @returns {string}
- */
-function fontString(size) {
-  return `${CONFIG.fontWeight} ${size}px "${CONFIG.fontFamily}", sans-serif`;
-}
-
-/**
- * Width of CONFIG.text at a given size, including letter spacing.
- * @param {CanvasRenderingContext2D} context
- * @param {number} size
- * @returns {number}
- */
-function measure(context, size) {
-  const sample = context;
-  sample.font = fontString(size);
-  const chars = [...CONFIG.text];
-  const gap = CONFIG.letterSpacing * size;
-  const width = chars.reduce((sum, ch) => sum + sample.measureText(ch).width, 0);
-  return width + (gap * Math.max(chars.length - 1, 0));
-}
-
-/**
- * Mount the halftone canvas in the error section and run it.
+ * Mount the particle canvas in the error section and run it.
  * @returns {Promise<void>}
  */
 async function boot() {
@@ -67,243 +26,176 @@ async function boot() {
   if (copy) section.insertBefore(canvas, copy);
   else section.append(canvas);
 
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  const context = canvas.getContext('2d');
+  if (!context) return;
 
-  const pointer = { x: -9999, y: -9999, active: false };
-  const motionQuery = window.matchMedia(MOTION_QUERY);
-  const colorQuery = window.matchMedia(COLOR_QUERY);
-  let dots = [];
+  const pointer = { x: -10000, y: -10000 };
+  const motionPreference = window.matchMedia(MOTION_QUERY);
+  const colorSchemePreference = window.matchMedia(COLOR_QUERY);
+  let particles = [];
   let width = 0;
   let height = 0;
-  let dotColor = '#000';
-  let rafId = 0;
-  let resizeTimer = 0;
-  let usingFace = false;
+  let frame = 0;
+  let reducedMotion = motionPreference.matches;
+  let fontReady = false;
 
-  function readColors() {
-    const probe = document.createElement('span');
-    probe.style.color = 'var(--dot-color)';
-    main.append(probe);
-    dotColor = getComputedStyle(probe).color;
-    probe.remove();
-  }
+  function draw() {
+    frame = 0;
+    context.clearRect(0, 0, width, height);
+    context.fillStyle = getComputedStyle(canvas).getPropertyValue('--particle-color').trim() || '#000';
+    let particlesMoving = false;
 
-  function draw(seconds, animate) {
-    const {
-      pushRadius,
-      pushStrength,
-      spring,
-      damping,
-      shimmerAmount,
-      shimmerSpeed,
-      minRadius,
-      maxRadius,
-    } = CONFIG;
-    const reach = pushRadius * pushRadius;
-    const sizeRange = maxRadius - minRadius;
-
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = dotColor;
-    ctx.beginPath();
-
-    dots.forEach((dot) => {
-      if (animate && pointer.active) {
-        const dx = dot.x - pointer.x;
-        const dy = dot.y - pointer.y;
-        const dist2 = (dx * dx) + (dy * dy);
-        if (dist2 < reach && dist2 > 0.01) {
-          const dist = Math.sqrt(dist2);
-          const force = ((1 - (dist / pushRadius)) ** 2) * pushStrength;
-          dot.vx += (dx / dist) * force;
-          dot.vy += (dy / dist) * force;
-        }
-      }
-
-      if (animate) {
-        dot.vx += (dot.hx - dot.x) * spring;
-        dot.vy += (dot.hy - dot.y) * spring;
-        dot.vx *= damping;
-        dot.vy *= damping;
-        dot.x += dot.vx;
-        dot.y += dot.vy;
+    particles.forEach((particle) => {
+      if (reducedMotion) {
+        particle.x = particle.originX;
+        particle.y = particle.originY;
+        particle.velocityX = 0;
+        particle.velocityY = 0;
       } else {
-        dot.x = dot.hx;
-        dot.y = dot.hy;
-        dot.vx = 0;
-        dot.vy = 0;
+        const deltaX = particle.x - pointer.x;
+        const deltaY = particle.y - pointer.y;
+        const distance = Math.hypot(deltaX, deltaY);
+        const influence = distance > 110 ? 0 : (1 - (distance / 110)) * 24;
+        const targetX = particle.originX + (distance ? (deltaX / distance) * influence : 0);
+        const targetY = particle.originY + (distance ? (deltaY / distance) * influence : 0);
+
+        particle.velocityX = (particle.velocityX + ((targetX - particle.x) * 0.075)) * 0.82;
+        particle.velocityY = (particle.velocityY + ((targetY - particle.y) * 0.075)) * 0.82;
+        particle.x += particle.velocityX;
+        particle.y += particle.velocityY;
+        // Velocity crosses the 0.02 line at the end of a swing, while the
+        // dot is still away from its target. Keep going until it arrives.
+        particlesMoving = particlesMoving
+          || Math.abs(particle.velocityX) > 0.02
+          || Math.abs(particle.velocityY) > 0.02
+          || Math.abs(targetX - particle.x) > 0.05
+          || Math.abs(targetY - particle.y) > 0.05;
       }
 
-      const pulse = animate
-        ? Math.sin((seconds * shimmerSpeed * dot.speed) + dot.phase)
-        : 1;
-      const base = minRadius + (dot.rand * sizeRange);
-      const radius = animate
-        ? base * (1 - (shimmerAmount * (0.5 - (0.5 * pulse))))
-        : base;
-      if (radius >= 0.15) {
-        ctx.moveTo(dot.x + radius, dot.y);
-        ctx.arc(dot.x, dot.y, radius, 0, Math.PI * 2);
-      }
+      context.beginPath();
+      context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+      context.fill();
     });
 
-    ctx.fill();
-  }
-
-  function drawStill() {
-    draw(0, false);
-  }
-
-  function tick(timestamp) {
-    if (!motionQuery.matches || document.hidden) {
-      rafId = 0;
-      return;
+    if (!reducedMotion && particlesMoving && !document.hidden) {
+      frame = requestAnimationFrame(draw);
     }
-    draw(timestamp / 1000, true);
-    rafId = requestAnimationFrame(tick);
   }
 
-  function startLoop() {
-    if (rafId || !motionQuery.matches || document.hidden) return;
-    rafId = requestAnimationFrame(tick);
-  }
+  function resize() {
+    if (!fontReady) return;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    const bounds = canvas.getBoundingClientRect();
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    width = bounds.width;
+    height = bounds.height;
+    if (width < 1 || height < 1) return;
 
-  function stopLoop() {
-    if (!rafId) return;
-    cancelAnimationFrame(rafId);
-    rafId = 0;
-  }
+    canvas.width = Math.round(width * pixelRatio);
+    canvas.height = Math.round(height * pixelRatio);
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-  function buildDots() {
-    const nextWidth = Math.floor(canvas.clientWidth);
-    const nextHeight = Math.floor(canvas.clientHeight);
-    if (nextWidth < 1 || nextHeight < 1) return;
-    if (nextWidth === width && nextHeight === height && dots.length) return;
-    width = nextWidth;
-    height = nextHeight;
+    const stencil = document.createElement('canvas');
+    stencil.width = Math.ceil(width);
+    stencil.height = Math.ceil(height);
+    const stencilContext = stencil.getContext('2d', { willReadFrequently: true });
+    if (!stencilContext) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const fontSize = Math.min(width * 0.48, height * 1.14, 420);
+    stencilContext.font = `700 ${fontSize}px ${getComputedStyle(canvas).fontFamily}`;
+    stencilContext.textAlign = 'center';
+    stencilContext.textBaseline = 'middle';
+    stencilContext.fillText(TEXT, width / 2, height / 2);
 
-    const offscreen = document.createElement('canvas');
-    offscreen.width = width;
-    offscreen.height = height;
-    const sample = offscreen.getContext('2d', { willReadFrequently: true });
-    if (!sample) return;
+    const pixels = stencilContext.getImageData(0, 0, stencil.width, stencil.height).data;
+    particles = [];
 
-    let size = CONFIG.fontSize;
-    if (size === 'auto') {
-      const base = 100;
-      const widthAtBase = measure(sample, base);
-      const byWidth = widthAtBase
-        ? ((width * CONFIG.maxWidth) / widthAtBase) * base
-        : base;
-      const byHeight = (height * CONFIG.maxHeight) / 0.72;
-      size = Math.min(byWidth, byHeight);
-    }
-
-    sample.font = fontString(size);
-    sample.fillStyle = '#000';
-    sample.textBaseline = 'alphabetic';
-    const total = measure(sample, size);
-    const metrics = sample.measureText(CONFIG.text);
-    const ascent = metrics.actualBoundingBoxAscent || size * 0.72;
-    const descent = metrics.actualBoundingBoxDescent || 0;
-    let cursorX = (width - total) / 2;
-    const cursorY = (height / 2) + ((ascent - descent) / 2);
-    const gap = CONFIG.letterSpacing * size;
-    [...CONFIG.text].forEach((ch) => {
-      sample.fillText(ch, cursorX, cursorY);
-      cursorX += sample.measureText(ch).width + gap;
-    });
-
-    const { data } = sample.getImageData(0, 0, width, height);
-    const step = CONFIG.spacing;
-    dots = [];
-    for (let gy = step / 2; gy < height; gy += step) {
-      for (let gx = step / 2; gx < width; gx += step) {
-        const pixel = ((Math.floor(gy) * width) + Math.floor(gx)) * 4;
-        if (data[pixel + 3] > 128) {
-          dots.push({
-            hx: gx,
-            hy: gy,
-            x: gx,
-            y: gy,
-            vx: 0,
-            vy: 0,
-            rand: Math.random(),
-            phase: Math.random() * Math.PI * 2,
-            speed: 0.6 + (Math.random() * 0.8),
+    for (let y = 0; y < height; y += SAMPLE_GAP) {
+      for (let x = 0; x < width; x += SAMPLE_GAP) {
+        if (pixels[(((y * stencil.width) + x) * 4) + 3] > 100) {
+          particles.push({
+            x: x + ((Math.random() - 0.5) * SAMPLE_GAP),
+            y: y + ((Math.random() - 0.5) * SAMPLE_GAP),
+            originX: x,
+            originY: y,
+            velocityX: 0,
+            velocityY: 0,
+            radius: 0.8 + (Math.random() * 0.8),
           });
         }
       }
     }
-
-    if (!motionQuery.matches || document.hidden) drawStill();
+    draw();
   }
 
-  function setPointer(event) {
-    const rect = canvas.getBoundingClientRect();
-    pointer.x = event.clientX - rect.left;
-    pointer.y = event.clientY - rect.top;
-    pointer.active = true;
+  function handlePointerMove(event) {
+    const bounds = canvas.getBoundingClientRect();
+    pointer.x = event.clientX - bounds.left;
+    pointer.y = event.clientY - bounds.top;
+    if (!reducedMotion && !frame && !document.hidden) frame = requestAnimationFrame(draw);
   }
 
-  canvas.addEventListener('pointermove', setPointer);
-  canvas.addEventListener('pointerdown', setPointer);
-  canvas.addEventListener('pointerleave', () => {
-    pointer.active = false;
-  });
-  canvas.addEventListener('pointerup', (event) => {
-    if (event.pointerType !== 'mouse') pointer.active = false;
-  });
+  function handlePointerLeave() {
+    pointer.x = -10000;
+    pointer.y = -10000;
+    if (!reducedMotion && !frame && !document.hidden) frame = requestAnimationFrame(draw);
+  }
 
-  const resizeObserver = new ResizeObserver(() => {
-    window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(buildDots, 150);
-  });
-  resizeObserver.observe(canvas);
+  function handleMotionPreferenceChange(event) {
+    reducedMotion = event.matches;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    draw();
+  }
 
-  motionQuery.addEventListener('change', () => {
-    if (motionQuery.matches && !document.hidden) startLoop();
-    else {
-      stopLoop();
-      drawStill();
-    }
-  });
+  function handleColorSchemeChange() {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    draw();
+  }
 
-  colorQuery.addEventListener('change', () => {
-    readColors();
-    if (!motionQuery.matches || document.hidden) drawStill();
+  canvas.addEventListener('pointermove', handlePointerMove);
+  canvas.addEventListener('pointerleave', handlePointerLeave);
+  motionPreference.addEventListener('change', handleMotionPreferenceChange);
+  colorSchemePreference.addEventListener('change', handleColorSchemeChange);
+
+  const themeObserver = new MutationObserver(handleColorSchemeChange);
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stopLoop();
-    else if (motionQuery.matches) startLoop();
-    else drawStill();
+    if (document.hidden) {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      return;
+    }
+    if (!reducedMotion && !frame) frame = requestAnimationFrame(draw);
   });
 
-  readColors();
+  const resizeObserver = new ResizeObserver(resize);
+  resizeObserver.observe(canvas);
+
   try {
-    await document.fonts.load(fontString(100), CONFIG.text);
+    await document.fonts.load(`700 100px ${FONT_FACE}`, TEXT);
     await document.fonts.ready;
   } catch {
     // Sample with the fallback face if the webfont never arrives.
   }
-  usingFace = document.fonts.check(fontString(100), CONFIG.text);
+
+  fontReady = true;
+  let usingFace = document.fonts.check(`700 100px ${FONT_FACE}`, TEXT);
   if (!usingFace) {
     document.fonts.addEventListener('loadingdone', () => {
-      if (usingFace || !document.fonts.check(fontString(100), CONFIG.text)) return;
+      if (usingFace || !document.fonts.check(`700 100px ${FONT_FACE}`, TEXT)) return;
       usingFace = true;
-      buildDots();
+      resize();
     });
   }
 
-  buildDots();
-  if (motionQuery.matches && !document.hidden) startLoop();
-  else drawStill();
+  resize();
 }
 
 /**
