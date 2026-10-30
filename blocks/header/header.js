@@ -653,6 +653,12 @@ function setDrawerOpen(block, open, restoreTo) {
   const lock = open && !isDesktop();
   setMenuToggle(toggle, open);
   block.classList.toggle('header--nav-open', open);
+
+  // Open menu uses the default button regardless if closed menu is in the inverse state.
+  if (block.classList.contains('header--inverse')) {
+    block.querySelector('.header__cta')?.classList.toggle('button--static-white', !open);
+  }
+
   setScrollLock(lock, block);
   setPageInert(lock, liveRoot);
   if (!open) restoreTo?.focus();
@@ -690,6 +696,22 @@ function syncMenuItem(item, mobile) {
 }
 
 /**
+ * Applies the breakpoint's nav styles without transitioning to them, so the
+ * mobile overlay, with its transitions, doesn't cause a flash while resizing
+ * the browser and crossing the mobile nav breakpoint.
+ *
+ * @param {Element} block Header block
+ * @returns {void}
+ */
+function skipNavTransition(block) {
+  const nav = block.querySelector('.header__nav');
+  if (!nav) return;
+  nav.style.transition = 'none';
+  nav.getBoundingClientRect(); // Flush styles so the resize change is untransitioned.
+  nav.style.removeProperty('transition');
+}
+
+/**
  * Aligns mega-menu triggers with the current viewport.
  *
  * @param {Element} block Header block
@@ -701,6 +723,7 @@ function syncViewport(block) {
     syncMenuItem(item, mobile);
   });
   if (!mobile) closeDrawer(block);
+  skipNavTransition(block);
 }
 
 /**
