@@ -570,9 +570,9 @@ async function renderGrid(block, gridItems, header) {
  * (e.g. the article pre-footer fragment) that renders differently per page
  * without being re-authored per page.
  *
- * A page can pin its own picks with `Related Articles` metadata (links,
- * any content type). Pinned cards come first in authored order and show
- * their content-type label; the automatic results fill any remaining slots.
+ * A page can choose its own cards with `Related Articles` metadata (links,
+ * any content type). The grid then shows only those, in authored order with
+ * their content-type label, and hides itself when none of them resolve.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
@@ -583,10 +583,14 @@ export default async function decorate(block) {
   const isRelated = /^(true|yes|1)$/i.test(String(config['related-content'] || '').trim());
   const currentPath = window.location.pathname;
 
+  const pinnedPaths = isRelated ? getRelatedArticlePaths() : [];
+  const hasPicks = pinnedPaths.length > 0;
+
   const section = isRelated
     ? getSectionFromPath(currentPath)
     : getSection(config['content-type']);
-  const endpoint = section
+  // Picks can be any content type, so they resolve against the all-content index.
+  const endpoint = section && !hasPicks
     ? dataStore.commonEndpoints[section.slug]
     : dataStore.commonEndpoints.allContent;
   const parsedCount = Number.parseInt(String(config.count || '').trim(), 10);
@@ -594,7 +598,6 @@ export default async function decorate(block) {
   const subheadDescription = block.classList.contains('subhead-description');
   const category = isRelated ? getMetadata('category') : config.category;
   const excludePath = isRelated ? currentPath : '';
-  const pinnedPaths = isRelated ? getRelatedArticlePaths() : [];
 
   block.classList.toggle('content-grid--related', isRelated);
   // The shared pre-footer is authored once. The page path picks the
@@ -607,11 +610,7 @@ export default async function decorate(block) {
   else delete block.dataset.category;
   block.replaceChildren();
 
-  const [payload, pinnedPayload] = await Promise.all([
-    dataStore.getData(endpoint),
-    // Picks can be any content type, so they resolve against the all-content index.
-    pinnedPaths.length ? dataStore.getData(dataStore.commonEndpoints.allContent) : null,
-  ]);
+  const payload = await dataStore.getData(endpoint);
   if (!payload) {
     // eslint-disable-next-line no-console
     console.error(`content-grid: failed to load ${endpoint}`);
@@ -621,23 +620,16 @@ export default async function decorate(block) {
   }
 
   const data = Array.isArray(payload.data) ? payload.data : [];
-  const pinned = selectPinnedItems(
-    Array.isArray(pinnedPayload?.data) ? pinnedPayload.data : [],
-    pinnedPaths,
-    { count, excludePath },
-  );
-  // Ask for extra rows so pinned duplicates can be dropped without leaving gaps.
-  const fillCount = count + pinned.length;
-  let items = selectItems(data, { category, count: fillCount, excludePath });
-  if (isRelated && category && !items.length) {
-    items = selectItems(data, { category: '', count: fillCount, excludePath });
+  let items;
+  if (hasPicks) {
+    items = selectPinnedItems(data, pinnedPaths, { count, excludePath });
+  } else {
+    items = selectItems(data, { category, count, excludePath });
+    if (isRelated && category && !items.length) {
+      items = selectItems(data, { category: '', count, excludePath });
+    }
   }
-  if (pinned.length) {
-    const pinnedSet = new Set(pinned.map((item) => normalizePath(item.path)));
-    items = [...pinned, ...items.filter((item) => !pinnedSet.has(normalizePath(item.path)))];
-  }
-  items = items.slice(0, count);
-  const showContentType = block.classList.contains('show-content-type') || pinned.length > 0;
+  const showContentType = block.classList.contains('show-content-type') || hasPicks;
   await renderGrid(
     block,
     items.map((entry) => createGridItem(entry, { subheadDescription, showContentType })),
