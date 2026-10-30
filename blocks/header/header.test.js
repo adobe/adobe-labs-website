@@ -217,7 +217,7 @@ describe('header block', () => {
   it('renders the logo, links, and Subscribe', async () => {
     const block = await decorateHeader();
 
-    expect(block.querySelector('.header__logo-desktop')).toHaveAttribute('alt', '');
+    expect(block.querySelector('.header__logo')).toHaveAttribute('alt', '');
     const heading = within(block).getByRole('heading', { level: 1, name: 'Adobe Labs' });
     expect(heading).toHaveClass('header__site-title');
     expect(heading.querySelector('.header__brand')).toHaveAttribute('href', '/');
@@ -358,8 +358,8 @@ describe('header block', () => {
 
     const block = await decorateHeader();
 
-    expect(block.querySelector('img.header__logo-desktop')).toBeNull();
-    expect(block.querySelector('svg.header__logo-desktop')).toHaveAttribute('aria-hidden', 'true');
+    expect(block.querySelector('img.header__logo')).toBeNull();
+    expect(block.querySelector('svg.header__logo')).toHaveAttribute('aria-hidden', 'true');
     expect(within(block).getByRole('link', { name: 'Adobe Labs' })).toBeInTheDocument();
   });
 
