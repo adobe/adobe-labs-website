@@ -298,6 +298,8 @@ See [AEM bulk metadata docs](https://www.aem.live/docs/bulk-metadata) for more i
 
 Article detail pages (`/research/*`, `/workflows/*`, `/sneaks/*`, `/playground/*`) get `template: article` from that spreadsheet. The article pre-footer autoblock keys off this metadata, not a hardcoded path list. A page-level metadata block can still add or omit `article` for an exception.
 
+The pre-footer's related content grid shows articles of the same content type, filtered by the page's `Category`. To choose them instead, add a `Related Articles` row to the article's metadata block with one or more links (site URLs, paths, or DA editor links) as a bulleted list or separated by commas. The grid then shows only those articles, up to its `Count`, with no automatic results added: listing two shows two cards. Picks can be any content type and appear in the order listed. Cards show their content-type label when a pick is from a different content type than the article. Picks must be published and indexable to appear, and any that aren't are skipped. If none of them can be shown, the whole section is hidden. Paste the URL or path itself: AEM keeps only a link's visible text in metadata, so a link with custom text (e.g. "Beyond the prompt") won't resolve and is skipped. Articles without the row keep the automatic results.
+
 Article headings keep the site `h1`–`h6` / `heading-*` tokens (s2a heading-1 through heading-6). Default-content paragraphs and lists use Adobe Clean Spectrum Serif at 16px/20px below 64rem (1024px), then 20px/27px. Font stacks and grayscale smoothing rules are in [Typography](#typography).
 
 Individual pages can then set metadata values via a `metadata` block, including overriding any of those default values.
