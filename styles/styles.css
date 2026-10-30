@@ -692,16 +692,15 @@ main:focus-visible::after {
   }
 }
 
-/* Shared container for the top and bottom meta sections of an article: the
-   author byline today, action buttons (copy/download/feedback) join it in
-   the same container later (ADBLABS-144/ADBLABS-155).
-   For ADBLABS-155: append the actions markup as a second child of
-   `.article-meta` (sibling to `.article-meta__authors`, e.g. wrapped in
-   `.article-meta__actions`) — `justify-content: space-between` below
-   already pushes a second child to the right, no extra alignment or
-   width/centering CSS needed. `.article-meta` exists twice per page (top
-   and bottom byline), so iterate `main.querySelectorAll('.article-meta')`
-   rather than assuming one instance. See `buildArticleMeta` in utils.js. */
+/* Shared container for the top and bottom meta sections of an article.
+   Append the actions markup as a second child of `.article-meta` (sibling
+   to `.article-meta__authors`, wrapped in `.article-meta__actions`).
+   `justify-content: space-between` pushes that second child to the inline
+   end when the byline is present. When the byline is absent, the top row
+   keeps the actions at the inline end with `margin-inline-start: auto`.
+   `.article-meta` can appear twice per page (top and bottom), so iterate
+   `main.querySelectorAll('.article-meta')` rather than assuming one
+   instance. See `buildArticleMeta` in utils.js. */
 .article-meta {
   display: flex;
   flex-wrap: wrap;
@@ -754,6 +753,17 @@ main:focus-visible::after {
 @media (width < 64rem) {
   .article-meta--top .article-meta__actions {
     display: none;
+  }
+
+  /* Top actions are hidden here, so a byline-less top row is an empty landmark. */
+  .article-meta-section:has(.article-meta--top):not(:has(.article-meta__authors)) {
+    display: none;
+  }
+}
+
+@media (width >= 64rem) {
+  .article-meta--top .article-meta__actions {
+    margin-inline-start: auto;
   }
 }
 
@@ -1262,6 +1272,16 @@ html.hero-intro:not(.hero-intro--body) .hero-container:has(.hero-full-screen) + 
 
 /* --- Articles --- */
 
+/* Hidden top metadata is not a flex item. Extra padding on the section
+   after the hero replaces that row without adding another gap. */
+body.article main > .section:has(.hero) + .section:not(:has(.article-meta--top)) {
+  padding-block-start: calc(var(--section-padding-block-start) + var(--s2a-spacing-sm));
+
+  @media (width >= 48rem) {
+    padding-block-start: calc(var(--section-padding-block-start) + var(--s2a-spacing-lg));
+  }
+}
+
 /* Block wrappers within articles. */
 :where(body.article main > .section > div) {
   /* Default max width for custom block wrappers within articles.
@@ -1392,10 +1412,10 @@ body.article main [class*="section-rounded-"] > * > :is(p, ul, ol):last-child {
   margin-block-end: 0;
 }
 
-/* First .article-meta-section in the article (the top byline). */
+/* First top byline in the article. A bottom-only page does not match. */
 body.article main > [class*="section-rounded-"]:not(
   :has(> .article-meta-section) ~ [class*="section-rounded-"]
-) > .article-meta-section:nth-child(1 of .article-meta-section) {
+) > .article-meta-section:has(.article-meta--top):nth-child(1 of .article-meta-section) {
   margin-block-end: calc(-1 * (var(--s2a-spacing-2xl) - var(--s2a-spacing-xl)));
 
   @media (width >= 64rem) {

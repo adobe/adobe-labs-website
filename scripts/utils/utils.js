@@ -569,22 +569,33 @@ export function buildArticlePreFooter(main) {
   }
 }
 
-const DEFAULT_AUTHOR_NAME = 'Adobe Labs';
 // DA-managed folder; photos uploaded there, not authored per-page.
 const AUTHOR_IMAGE_DIR = '/media/authors';
 
 /**
+ * Rows named by page `hide-metadata`: `top`, `bottom`, or `both`.
+ * Any other value leaves both rows in place.
+ *
+ * @returns {Set<'top'|'bottom'>}
+ */
+function hiddenArticleMetaPositions() {
+  const value = getMetadata('hide-metadata').trim().toLowerCase();
+  if (value === 'both') return new Set(['top', 'bottom']);
+  if (value === 'top' || value === 'bottom') return new Set([value]);
+  return new Set();
+}
+
+/**
  * Author names from page `author` metadata (comma-separated for multiple
- * authors). Falls back to "Adobe Labs" when none is authored.
+ * authors). An empty field yields no names, so the byline is omitted.
  *
  * @returns {string[]}
  */
 function getAuthorNames() {
-  const names = getMetadata('author')
+  return getMetadata('author')
     .split(',')
     .map((name) => name.trim())
     .filter(Boolean);
-  return names.length ? names : [DEFAULT_AUTHOR_NAME];
 }
 
 /**
@@ -631,12 +642,15 @@ function buildAuthorItem(name) {
 
 /**
  * Builds the "Words by: <author>, <author>" byline from page metadata.
- * Returns a new element on every call so it can be placed in both the
- * top and bottom meta sections of an article.
+ * Returns null when no author is authored, and a new element on every
+ * other call so it can be placed in both meta sections of an article.
  *
- * @returns {HTMLDivElement}
+ * @returns {HTMLDivElement|null}
  */
 export function buildAuthorByline() {
+  const names = getAuthorNames();
+  if (!names.length) return null;
+
   const byline = document.createElement('div');
   byline.className = 'article-meta__authors';
 
@@ -647,7 +661,7 @@ export function buildAuthorByline() {
 
   const list = document.createElement('ul');
   list.className = 'article-meta__author-list';
-  getAuthorNames().forEach((name) => list.append(buildAuthorItem(name)));
+  names.forEach((name) => list.append(buildAuthorItem(name)));
   byline.append(list);
 
   return byline;
@@ -687,7 +701,8 @@ export function buildAuthorByline() {
 function buildArticleMeta(position) {
   const meta = document.createElement('aside');
   meta.className = `article-meta article-meta--${position}`;
-  meta.append(buildAuthorByline());
+  const byline = buildAuthorByline();
+  if (byline) meta.append(byline);
 
   const wrapper = document.createElement('div');
   wrapper.append(meta);
@@ -705,18 +720,19 @@ function buildArticleMeta(position) {
  * @param {Element[]} sections `main`'s direct children
  */
 function insertTopArticleMeta(sections) {
+  const node = buildArticleMeta('top');
   const hero = sections.flatMap((section) => [...section.querySelectorAll('.hero')])[0];
   if (!hero) {
-    sections[0]?.prepend(buildArticleMeta('top'));
+    sections[0]?.prepend(node);
     return;
   }
 
   const heroSection = sections.find((section) => section.contains(hero));
   if (heroSection.children.length === 1) {
     const nextSection = sections[sections.indexOf(heroSection) + 1] || heroSection;
-    nextSection.prepend(buildArticleMeta('top'));
+    nextSection.prepend(node);
   } else {
-    hero.after(buildArticleMeta('top'));
+    hero.after(node);
   }
 }
 
@@ -733,8 +749,13 @@ export function buildArticleAuthorMeta(main) {
   const sections = [...main.children];
   if (!sections.length) return;
 
-  insertTopArticleMeta(sections);
-  sections[sections.length - 1].append(buildArticleMeta('bottom'));
+  const hidden = hiddenArticleMetaPositions();
+  if (!hidden.has('top')) {
+    insertTopArticleMeta(sections);
+  }
+  if (!hidden.has('bottom')) {
+    sections[sections.length - 1].append(buildArticleMeta('bottom'));
+  }
 }
 
 const SECTION_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
@@ -1191,19 +1212,29 @@ function insertTopArticleMetaWrapper(sections, wrapper) {
  * @returns {Element[]}
  */
 function ensureArticleMetaElements(main) {
-  const existing = [...main.querySelectorAll('.article-meta')];
+  const hidden = hiddenArticleMetaPositions();
+  const existing = [...main.querySelectorAll('.article-meta')].filter((meta) => {
+    if (meta.classList.contains('article-meta--bottom')) return !hidden.has('bottom');
+    if (meta.classList.contains('article-meta--top')) return !hidden.has('top');
+    return true;
+  });
   if (existing.length) return existing;
 
   const sections = [...main.children];
   if (!sections.length) return [];
 
-  const top = createArticleMetaWrapper('top');
-  insertTopArticleMetaWrapper(sections, top.wrapper);
-
-  const bottom = createArticleMetaWrapper('bottom');
-  sections[sections.length - 1].append(bottom.wrapper);
-
-  return [top.meta, bottom.meta];
+  const created = [];
+  if (!hidden.has('top')) {
+    const top = createArticleMetaWrapper('top');
+    insertTopArticleMetaWrapper(sections, top.wrapper);
+    created.push(top.meta);
+  }
+  if (!hidden.has('bottom')) {
+    const bottom = createArticleMetaWrapper('bottom');
+    sections[sections.length - 1].append(bottom.wrapper);
+    created.push(bottom.meta);
+  }
+  return created;
 }
 
 /**
@@ -1768,8 +1799,7 @@ function buildOrganization() {
 }
 
 /**
- * One Person per authored name. The byline fallback "Adobe Labs" is not a name
- * here: an empty author field yields an empty list.
+ * One Person per authored name. An empty author field yields an empty list.
  * @param {Document} doc
  * @returns {object[]}
  */
