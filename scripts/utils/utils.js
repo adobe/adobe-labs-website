@@ -335,8 +335,10 @@ export function formatCardDate(value) {
 
 const DEFAULT_ARTICLE_PRE_FOOTER = '/fragments/article-pre-footer';
 
-const COPY_LINK_LABEL = 'Copy link';
+const COPY_LINK_LABEL = 'Copy URL';
 const COPIED_LABEL = 'Copied';
+const COPY_SUCCESS_STATUS = 'URL copied';
+const COPY_FAILURE_STATUS = 'Unable to copy URL';
 const COPY_LINK_REVERT_MS = 2000;
 
 const LINK_ICON_SVG = `
@@ -469,7 +471,7 @@ function getFeedbackHref() {
 }
 
 /**
- * Article meta action buttons. Copy link and Feedback always ship. Download
+ * Article meta action buttons. Copy URL and Feedback always ship. Download
  * is gated on `download-link` metadata.
  *
  * @type {Array<{
@@ -849,7 +851,7 @@ export function decorateVisuallyHiddenHeadings(main) {
 }
 
 /**
- * Share URL for Copy link: canonical when present, otherwise the current
+ * Share URL for the Copy URL action: canonical when present, otherwise the current
  * location, with the hash stripped so in-page jumps are not part of the link.
  *
  * @returns {string}
@@ -960,7 +962,7 @@ function announceMetaAction(main, message) {
  */
 function clearCopiedStatus(main) {
   const status = main.querySelector(':scope > [data-meta-action-status]');
-  if (status?.textContent === 'Link copied') status.textContent = '';
+  if (status?.textContent === COPY_SUCCESS_STATUS) status.textContent = '';
 }
 
 /**
@@ -979,9 +981,9 @@ function setActionIcon(iconEl, svgMarkup) {
 }
 
 /**
- * Sets or clears the Copy link success state on one button.
+ * Sets or clears the Copy URL success state on one button.
  *
- * @param {Element} button Copy link button
+ * @param {Element} button Copy URL button
  * @param {boolean} copied Whether to show Copied
  */
 function setCopiedState(button, copied) {
@@ -992,9 +994,9 @@ function setCopiedState(button, copied) {
 }
 
 /**
- * Reverts a Copy link button to its default label and icon.
+ * Reverts a Copy URL button to its default label and icon.
  *
- * @param {Element} button Copy link button
+ * @param {Element} button Copy URL button
  */
 function revertCopied(button) {
   const timer = copyRevertTimers.get(button);
@@ -1006,7 +1008,7 @@ function revertCopied(button) {
 /**
  * Shows Copied on the clicked button and reverts after a short delay.
  *
- * @param {Element} button Copy link button
+ * @param {Element} button Copy URL button
  * @param {Element} main The page's main element
  */
 function showCopied(button, main) {
@@ -1024,17 +1026,17 @@ function showCopied(button, main) {
  * Copies the article URL and updates the clicked button plus live region.
  *
  * @param {Element} main The page's main element
- * @param {Element} button Copy link button
+ * @param {Element} button Copy URL button
  * @returns {Promise<void>}
  */
 async function handleCopyLink(main, button) {
   const ok = await copyText(getShareUrl(), button);
   if (ok) {
     showCopied(button, main);
-    announceMetaAction(main, 'Link copied');
+    announceMetaAction(main, COPY_SUCCESS_STATUS);
     return;
   }
-  announceMetaAction(main, 'Unable to copy link');
+  announceMetaAction(main, COPY_FAILURE_STATUS);
 }
 
 /**
@@ -1238,7 +1240,7 @@ function ensureArticleMetaElements(main) {
 }
 
 /**
- * Injects Copy link, a metadata-gated Download, and Feedback into each `.article-meta`
+ * Injects Copy URL, a metadata-gated Download, and Feedback into each `.article-meta`
  * on the article (top and bottom). If the byline has not created those
  * containers yet, builds the same aside+wrapper fallback. No-op on
  * non-article pages or fragment mains.
