@@ -267,14 +267,24 @@ function sectionAfterHero(hero) {
 /**
  * Locks or unlocks document scroll while the mobile drawer is open.
  *
+ * `header-scroll-lock` sets `overflow: hidden`. That does not stop Lenis,
+ * which writes the scroll position itself. Section scroll watches this class
+ * and pauses Lenis for as long as it is present. Pausing Lenis also swallows
+ * wheel events inside the drawer, so the open nav is marked
+ * `data-lenis-prevent` and keeps native scrolling.
+ *
  * @param {boolean} lock Whether to lock
+ * @param {Element} [block] Header block whose nav should scroll natively
  * @returns {void}
  */
-function setScrollLock(lock) {
+function setScrollLock(lock, block) {
+  const nav = block?.querySelector('.header__nav');
   if (lock) {
     document.documentElement.classList.add('header-scroll-lock');
+    nav?.setAttribute('data-lenis-prevent', '');
     return;
   }
+  nav?.removeAttribute('data-lenis-prevent');
   if (!document.querySelector('.header.header--nav-open')) {
     document.documentElement.classList.remove('header-scroll-lock');
   }
@@ -637,7 +647,13 @@ function setDrawerOpen(block, open, restoreTo) {
   const lock = open && !isDesktop();
   setMenuToggle(toggle, open);
   block.classList.toggle('header--nav-open', open);
-  setScrollLock(lock);
+
+  // Open menu uses the default button regardless if closed menu is in the inverse state.
+  if (block.classList.contains('header--inverse')) {
+    block.querySelector('.header__cta')?.classList.toggle('button--static-white', !open);
+  }
+
+  setScrollLock(lock, block);
   setPageInert(lock, liveRoot);
   if (!open) restoreTo?.focus();
 }
@@ -674,6 +690,22 @@ function syncMenuItem(item, mobile) {
 }
 
 /**
+ * Applies the breakpoint's nav styles without transitioning to them, so the
+ * mobile overlay, with its transitions, doesn't cause a flash while resizing
+ * the browser and crossing the mobile nav breakpoint.
+ *
+ * @param {Element} block Header block
+ * @returns {void}
+ */
+function skipNavTransition(block) {
+  const nav = block.querySelector('.header__nav');
+  if (!nav) return;
+  nav.style.transition = 'none';
+  nav.getBoundingClientRect(); // Flush styles so the resize change is untransitioned.
+  nav.style.removeProperty('transition');
+}
+
+/**
  * Aligns mega-menu triggers with the current viewport.
  *
  * @param {Element} block Header block
@@ -685,6 +717,7 @@ function syncViewport(block) {
     syncMenuItem(item, mobile);
   });
   if (!mobile) closeDrawer(block);
+  skipNavTransition(block);
 }
 
 /**
@@ -790,7 +823,7 @@ function bindHeader(block) {
   const { signal } = headerAbort;
   const liveRoot = block.closest('header') || block;
   signal.addEventListener('abort', () => {
-    setScrollLock(false);
+    setScrollLock(false, block);
     setPageInert(false, liveRoot);
   }, { once: true });
 
@@ -862,6 +895,10 @@ function bindHeader(block) {
  * @returns {Promise<void>}
  */
 export default async function decorate(block) {
+  // The <header> landmark itself is page-shell markup, not authored content this block
+  // owns, so label it here rather than in a template this repo doesn't control.
+  block.closest('header')?.setAttribute('aria-label', 'Site header');
+
   ensureSkipLink(document);
 
   const overlayHero = Boolean(firstSectionFullScreenHero());

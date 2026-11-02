@@ -335,8 +335,10 @@ export function formatCardDate(value) {
 
 const DEFAULT_ARTICLE_PRE_FOOTER = '/fragments/article-pre-footer';
 
-const COPY_LINK_LABEL = 'Copy link';
+const COPY_LINK_LABEL = 'Copy URL';
 const COPIED_LABEL = 'Copied';
+const COPY_SUCCESS_STATUS = 'URL copied';
+const COPY_FAILURE_STATUS = 'Unable to copy URL';
 const COPY_LINK_REVERT_MS = 2000;
 
 const LINK_ICON_SVG = `
@@ -469,7 +471,7 @@ function getFeedbackHref() {
 }
 
 /**
- * Article meta action buttons. Copy link and Feedback always ship. Download
+ * Article meta action buttons. Copy URL and Feedback always ship. Download
  * is gated on `download-link` metadata.
  *
  * @type {Array<{
@@ -569,22 +571,33 @@ export function buildArticlePreFooter(main) {
   }
 }
 
-const DEFAULT_AUTHOR_NAME = 'Adobe Labs';
 // DA-managed folder; photos uploaded there, not authored per-page.
 const AUTHOR_IMAGE_DIR = '/media/authors';
 
 /**
+ * Rows named by page `hide-metadata`: `top`, `bottom`, or `both`.
+ * Any other value leaves both rows in place.
+ *
+ * @returns {Set<'top'|'bottom'>}
+ */
+function hiddenArticleMetaPositions() {
+  const value = getMetadata('hide-metadata').trim().toLowerCase();
+  if (value === 'both') return new Set(['top', 'bottom']);
+  if (value === 'top' || value === 'bottom') return new Set([value]);
+  return new Set();
+}
+
+/**
  * Author names from page `author` metadata (comma-separated for multiple
- * authors). Falls back to "Adobe Labs" when none is authored.
+ * authors). An empty field yields no names, so the byline is omitted.
  *
  * @returns {string[]}
  */
 function getAuthorNames() {
-  const names = getMetadata('author')
+  return getMetadata('author')
     .split(',')
     .map((name) => name.trim())
     .filter(Boolean);
-  return names.length ? names : [DEFAULT_AUTHOR_NAME];
 }
 
 /**
@@ -631,12 +644,15 @@ function buildAuthorItem(name) {
 
 /**
  * Builds the "Words by: <author>, <author>" byline from page metadata.
- * Returns a new element on every call so it can be placed in both the
- * top and bottom meta sections of an article.
+ * Returns null when no author is authored, and a new element on every
+ * other call so it can be placed in both meta sections of an article.
  *
- * @returns {HTMLDivElement}
+ * @returns {HTMLDivElement|null}
  */
 export function buildAuthorByline() {
+  const names = getAuthorNames();
+  if (!names.length) return null;
+
   const byline = document.createElement('div');
   byline.className = 'article-meta__authors';
 
@@ -647,7 +663,7 @@ export function buildAuthorByline() {
 
   const list = document.createElement('ul');
   list.className = 'article-meta__author-list';
-  getAuthorNames().forEach((name) => list.append(buildAuthorItem(name)));
+  names.forEach((name) => list.append(buildAuthorItem(name)));
   byline.append(list);
 
   return byline;
@@ -687,7 +703,8 @@ export function buildAuthorByline() {
 function buildArticleMeta(position) {
   const meta = document.createElement('aside');
   meta.className = `article-meta article-meta--${position}`;
-  meta.append(buildAuthorByline());
+  const byline = buildAuthorByline();
+  if (byline) meta.append(byline);
 
   const wrapper = document.createElement('div');
   wrapper.append(meta);
@@ -705,18 +722,19 @@ function buildArticleMeta(position) {
  * @param {Element[]} sections `main`'s direct children
  */
 function insertTopArticleMeta(sections) {
+  const node = buildArticleMeta('top');
   const hero = sections.flatMap((section) => [...section.querySelectorAll('.hero')])[0];
   if (!hero) {
-    sections[0]?.prepend(buildArticleMeta('top'));
+    sections[0]?.prepend(node);
     return;
   }
 
   const heroSection = sections.find((section) => section.contains(hero));
   if (heroSection.children.length === 1) {
     const nextSection = sections[sections.indexOf(heroSection) + 1] || heroSection;
-    nextSection.prepend(buildArticleMeta('top'));
+    nextSection.prepend(node);
   } else {
-    hero.after(buildArticleMeta('top'));
+    hero.after(node);
   }
 }
 
@@ -733,8 +751,13 @@ export function buildArticleAuthorMeta(main) {
   const sections = [...main.children];
   if (!sections.length) return;
 
-  insertTopArticleMeta(sections);
-  sections[sections.length - 1].append(buildArticleMeta('bottom'));
+  const hidden = hiddenArticleMetaPositions();
+  if (!hidden.has('top')) {
+    insertTopArticleMeta(sections);
+  }
+  if (!hidden.has('bottom')) {
+    sections[sections.length - 1].append(buildArticleMeta('bottom'));
+  }
 }
 
 const SECTION_HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
@@ -828,7 +851,7 @@ export function decorateVisuallyHiddenHeadings(main) {
 }
 
 /**
- * Share URL for Copy link: canonical when present, otherwise the current
+ * Share URL for the Copy URL action: canonical when present, otherwise the current
  * location, with the hash stripped so in-page jumps are not part of the link.
  *
  * @returns {string}
@@ -939,7 +962,7 @@ function announceMetaAction(main, message) {
  */
 function clearCopiedStatus(main) {
   const status = main.querySelector(':scope > [data-meta-action-status]');
-  if (status?.textContent === 'Link copied') status.textContent = '';
+  if (status?.textContent === COPY_SUCCESS_STATUS) status.textContent = '';
 }
 
 /**
@@ -958,9 +981,9 @@ function setActionIcon(iconEl, svgMarkup) {
 }
 
 /**
- * Sets or clears the Copy link success state on one button.
+ * Sets or clears the Copy URL success state on one button.
  *
- * @param {Element} button Copy link button
+ * @param {Element} button Copy URL button
  * @param {boolean} copied Whether to show Copied
  */
 function setCopiedState(button, copied) {
@@ -971,9 +994,9 @@ function setCopiedState(button, copied) {
 }
 
 /**
- * Reverts a Copy link button to its default label and icon.
+ * Reverts a Copy URL button to its default label and icon.
  *
- * @param {Element} button Copy link button
+ * @param {Element} button Copy URL button
  */
 function revertCopied(button) {
   const timer = copyRevertTimers.get(button);
@@ -985,7 +1008,7 @@ function revertCopied(button) {
 /**
  * Shows Copied on the clicked button and reverts after a short delay.
  *
- * @param {Element} button Copy link button
+ * @param {Element} button Copy URL button
  * @param {Element} main The page's main element
  */
 function showCopied(button, main) {
@@ -1003,17 +1026,17 @@ function showCopied(button, main) {
  * Copies the article URL and updates the clicked button plus live region.
  *
  * @param {Element} main The page's main element
- * @param {Element} button Copy link button
+ * @param {Element} button Copy URL button
  * @returns {Promise<void>}
  */
 async function handleCopyLink(main, button) {
   const ok = await copyText(getShareUrl(), button);
   if (ok) {
     showCopied(button, main);
-    announceMetaAction(main, 'Link copied');
+    announceMetaAction(main, COPY_SUCCESS_STATUS);
     return;
   }
-  announceMetaAction(main, 'Unable to copy link');
+  announceMetaAction(main, COPY_FAILURE_STATUS);
 }
 
 /**
@@ -1191,23 +1214,33 @@ function insertTopArticleMetaWrapper(sections, wrapper) {
  * @returns {Element[]}
  */
 function ensureArticleMetaElements(main) {
-  const existing = [...main.querySelectorAll('.article-meta')];
+  const hidden = hiddenArticleMetaPositions();
+  const existing = [...main.querySelectorAll('.article-meta')].filter((meta) => {
+    if (meta.classList.contains('article-meta--bottom')) return !hidden.has('bottom');
+    if (meta.classList.contains('article-meta--top')) return !hidden.has('top');
+    return true;
+  });
   if (existing.length) return existing;
 
   const sections = [...main.children];
   if (!sections.length) return [];
 
-  const top = createArticleMetaWrapper('top');
-  insertTopArticleMetaWrapper(sections, top.wrapper);
-
-  const bottom = createArticleMetaWrapper('bottom');
-  sections[sections.length - 1].append(bottom.wrapper);
-
-  return [top.meta, bottom.meta];
+  const created = [];
+  if (!hidden.has('top')) {
+    const top = createArticleMetaWrapper('top');
+    insertTopArticleMetaWrapper(sections, top.wrapper);
+    created.push(top.meta);
+  }
+  if (!hidden.has('bottom')) {
+    const bottom = createArticleMetaWrapper('bottom');
+    sections[sections.length - 1].append(bottom.wrapper);
+    created.push(bottom.meta);
+  }
+  return created;
 }
 
 /**
- * Injects Copy link, a metadata-gated Download, and Feedback into each `.article-meta`
+ * Injects Copy URL, a metadata-gated Download, and Feedback into each `.article-meta`
  * on the article (top and bottom). If the byline has not created those
  * containers yet, builds the same aside+wrapper fallback. No-op on
  * non-article pages or fragment mains.
@@ -1603,6 +1636,9 @@ export function ensureSkipLink(doc = document) {
   if (main) {
     if (!main.id) main.id = 'main';
     if (!main.hasAttribute('tabindex')) main.tabIndex = -1;
+    // Page-shell landmark, not authored content. A detached fragment <main>
+    // never matches `body > main`, so only the document landmark is named.
+    main.setAttribute('aria-label', 'Main content');
   }
 
   const skip = doc.createElement('a');
@@ -1765,8 +1801,7 @@ function buildOrganization() {
 }
 
 /**
- * One Person per authored name. The byline fallback "Adobe Labs" is not a name
- * here: an empty author field yields an empty list.
+ * One Person per authored name. An empty author field yields an empty list.
  * @param {Document} doc
  * @returns {object[]}
  */

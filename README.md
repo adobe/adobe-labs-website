@@ -298,6 +298,8 @@ See [AEM bulk metadata docs](https://www.aem.live/docs/bulk-metadata) for more i
 
 Article detail pages (`/research/*`, `/workflows/*`, `/sneaks/*`, `/playground/*`) get `template: article` from that spreadsheet. The article pre-footer autoblock keys off this metadata, not a hardcoded path list. A page-level metadata block can still add or omit `article` for an exception.
 
+The pre-footer's related content grid shows articles of the same content type, filtered by the page's `Category`. To choose them instead, add a `Related Articles` row to the article's metadata block with one or more links (site URLs, paths, or DA editor links) as a bulleted list or separated by commas. The grid then shows only those articles, up to its `Count`, with no automatic results added: listing two shows two cards. Picks can be any content type and appear in the order listed. Cards show their content-type label when a pick is from a different content type than the article. Picks must be published and indexable to appear, and any that aren't are skipped. If none of them can be shown, the whole section is hidden. Paste the URL or path itself: AEM keeps only a link's visible text in metadata, so a link with custom text (e.g. "Beyond the prompt") won't resolve and is skipped. Articles without the row keep the automatic results.
+
 Article headings keep the site `h1`–`h6` / `heading-*` tokens (s2a heading-1 through heading-6). Default-content paragraphs and lists use Adobe Clean Spectrum Serif at 16px/20px below 64rem (1024px), then 20px/27px. Font stacks and grayscale smoothing rules are in [Typography](#typography).
 
 Individual pages can then set metadata values via a `metadata` block, including overriding any of those default values.
@@ -305,7 +307,7 @@ See [AEM metadata block docs](https://www.aem.live/developer/block-collection/me
 
 ### Dataset download
 
-Article pages show a Download action next to Copy link when the page Metadata table includes a **Download Link** row. After preview, that value is available as `meta[name="download-link"]`.
+Article pages show a Download action next to Copy URL when the page Metadata table includes a **Download Link** row. After preview, that value is available as `meta[name="download-link"]`.
 
 #### Add a PDF from the DA media folder
 
@@ -329,7 +331,23 @@ You can also paste a public file URL (for example an Adobe-hosted PDF).
 
 ### Feedback
 
-Article pages include a Feedback action with Copy link. It opens a message to labs@adobe.com. The subject is the **Title** row from the page Metadata table. After preview, AEM publishes that row as `og:title`. When Title is empty, the link has no subject.
+Article pages include a Feedback action. It opens a message to labs@adobe.com. The subject is the **Title** row from the page Metadata table. After preview, AEM publishes that row as `og:title`. When Title is empty, the link has no subject.
+
+### Hide metadata rows
+
+Article pages show a metadata row at the top and again at the bottom. Each row can include the author byline and the action buttons (Copy URL, Download, and Feedback).
+
+Add a **Hide Metadata** row to the page Metadata table to remove a whole row, byline and buttons included. After preview, that value is available as `meta[name="hide-metadata"]`.
+
+| Value | What it hides |
+| --- | --- |
+| `bottom` | The repeated bottom row. The top row stays. Use this on a short article. |
+| `top` | The top row only. |
+| `both` | Both rows. |
+
+Any other value, or no row, leaves both rows in place. Do not set this on the root `/metadata` sheet. Hiding is opt-in per article. Hiding the top row (`top` or `both`) adds extra space to the top padding of the section after the hero.
+
+An empty **Author** cell hides the "Words by" line on every remaining row and keeps the action buttons. Clear the Author cell and leave the row so it overrides a bulk author default.
 
 ### Full-bleed images in articles
 
@@ -339,7 +357,7 @@ To use full-bleed default content in an article (for example a lone image), in t
 
 Article pages show a "Words by:" byline built in JS from the `author` metadata (not a block — see `buildArticleAuthorMeta` in `scripts/utils/utils.js`). To make an author's photo appear, upload it to `media/authors/<slugified-name>.png` in [Document Authoring](https://da.live/#/adobe/adobe-labs-website/media/authors) and preview it. The filename must exactly match the slugified form of the name authored in the `author` field — lowercase, spaces and other non-alphanumeric characters replaced with hyphens (for example, an author named "Richard Example" needs `richard-example.png`).
 
-- No `author` metadata → the byline falls back to "Adobe Labs" and its logo (`media/authors/adobe-labs.png`).
+- No `author` metadata → no "Words by" line. Copy URL, Download, and Feedback stay on the rows that are still shown.
 - A named author with no matching image uploaded → the name shows as plain text; no broken-image icon, no layout shift.
 - A named author with a matching image → the photo shows next to their name.
 
@@ -472,7 +490,7 @@ This library is bundled into deps, following the documented convention used by o
 
 If credentials are found on an image, it will have a wrapper added around it, and an absolutely positioned CR pin button will be displayed in the upper right corner. The CR pin button can be activated on hover (requested behavior), and also can be activated by keyboard. When activated, it will display a popover containing info from the credentials data.
 
-Pins are added to images in image blocks, side-by-side image blocks, and article text. Images inside other blocks, such as linkboxes and content grids, are not read.
+Pins are added to images in image blocks, side-by-side image blocks, media text blocks, and article text. Images inside other blocks, such as linkboxes and content grids, are not read.
 
 Article hero images work differently:
 

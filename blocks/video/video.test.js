@@ -330,6 +330,51 @@ describe('video block', () => {
     expect(block.querySelector('.video__transcript-panel')).toHaveTextContent('Hello from the talk.');
   });
 
+  it('describes the play control and player by the transcript', () => {
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+      Transcript: '<p>Hello from the talk.</p>',
+    });
+
+    decorate(block);
+    const details = block.querySelector('.video__transcript');
+    const button = within(block).getByRole('button', { name: `Play video ${VIDEO_ID}` });
+
+    expect(details.id).toBeTruthy();
+    expect(button).toHaveAttribute('aria-describedby', details.id);
+
+    button.click();
+
+    expect(block.querySelector('iframe')).toHaveAttribute('aria-describedby', details.id);
+  });
+
+  it('gives each transcript a unique ID', () => {
+    const blocks = [1, 2].map(() => createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+      Transcript: 'Hello from the talk.',
+    }));
+
+    blocks.forEach((block) => decorate(block));
+    const [first, second] = blocks.map((block) => block.querySelector('.video__transcript').id);
+
+    expect(first).not.toBe(second);
+  });
+
+  it('omits aria-describedby without a transcript', () => {
+    const block = createBlock({
+      'YouTube URL': youtubeLink(WATCH_URL),
+    });
+
+    decorate(block);
+    const button = within(block).getByRole('button', { name: `Play video ${VIDEO_ID}` });
+
+    expect(button).not.toHaveAttribute('aria-describedby');
+
+    button.click();
+
+    expect(block.querySelector('iframe')).not.toHaveAttribute('aria-describedby');
+  });
+
   it('opens the transcript disclosure on summary click', () => {
     const block = createBlock({
       'YouTube URL': youtubeLink(WATCH_URL),

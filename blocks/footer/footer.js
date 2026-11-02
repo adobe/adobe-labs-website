@@ -364,7 +364,7 @@ function parseSocialSection(section) {
 }
 
 /**
- * Decorates the social links section with icon links.
+ * Decorates the social links section with icon links inside a labelled nav landmark.
  * @param {Element|null} social Social block element from the fragment
  * @returns {Element|null}
  */
@@ -399,7 +399,11 @@ function decorateSocial(social) {
     `;
   }).join('');
 
-  const socialElem = fromHTML(`<ul class="footer__social">${links}</ul>`);
+  const socialElem = fromHTML(`
+    <nav class="footer__social-nav" aria-label="Social media">
+      <ul class="footer__social">${links}</ul>
+    </nav>
+  `);
   social.replaceWith(socialElem);
   return socialElem;
 }
@@ -410,6 +414,7 @@ function decorateSocial(social) {
  * ==================================================================
  */
 
+const FIRST_PUBLICATION_YEAR = 2026;
 const LEGAL_SELECTOR = 'p > em, a[href*="opt-out"], a[href*="privacy"]';
 
 /**
@@ -431,23 +436,22 @@ function decorateLegal(legal) {
   const markSrc = escapeAttr(getFooterAsset('img/adobe-logo-mark.svg'));
   const legalRow = fromHTML(`
     <div class="footer__legal-row">
-      <span class="footer__mark" role="img" aria-label="Adobe">
-        <img src="${markSrc}" alt="" loading="lazy" class="footer__mark-image">
-      </span>
+      <a href="https://www.adobe.com" class="footer__mark">
+        <img src="${markSrc}" alt="Adobe" loading="lazy" class="footer__mark-image">
+      </a>
     </div>
   `);
 
   if (!legal) return legalRow;
 
-  const year = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
+  const years = currentYear > FIRST_PUBLICATION_YEAR
+    ? `${FIRST_PUBLICATION_YEAR}–${currentYear}`
+    : `${FIRST_PUBLICATION_YEAR}`;
   const content = fromHTML(`
     <div class="footer__legal">
       <ul class="footer__privacy">
-        <li class="footer__privacy-item">© ${year} Adobe Inc. All rights reserved.</li>
-        <li class="footer__privacy-item">
-          <button type="button" aria-haspopup="dialog" id="cmp-cookie-preferences"
-            class="footer__privacy-link link-button" data-lenis-prevent>Cookie preferences</a>
-        </li>
+        <li class="footer__privacy-item">© ${years} Adobe. All rights reserved.</li>
       </ul>
     </div>
   `);
@@ -466,6 +470,16 @@ function decorateLegal(legal) {
     item.append(link);
     list.append(item);
   });
+
+  // Cookie preferences sits fourth, or last when there are fewer authored links.
+  const thirdItem = list.children[3] ?? null;
+  const cookieItem = fromHTML(`
+    <li class="footer__privacy-item">
+      <button type="button" aria-haspopup="dialog" id="cmp-cookie-preferences"
+        class="footer__privacy-link link-button" data-lenis-prevent>Cookie preferences</button>
+    </li>
+  `);
+  list.insertBefore(cookieItem, thirdItem);
 
   legalRow.prepend(content);
   return legalRow;
@@ -558,85 +572,13 @@ function animateLogo(logo) {
 function decorateLogo(parent) {
   const src = escapeAttr(getFooterAsset('img/adobe-logo-full.svg'));
   const logo = fromHTML(`
-    <div class="footer__logo">
-      <img src="${src}" alt="Adobe" loading="lazy" class="footer__logo-image">
+    <div class="footer__logo" aria-hidden="true">
+      <img src="${src}" alt="" loading="lazy" class="footer__logo-image">
     </div>
   `);
   parent.append(logo);
   animateLogo(logo);
   return logo;
-}
-
-/**
- * ==================================================================
- * SKIP LINKS
- * ==================================================================
- */
-
-/**
- * Opens the header's mobile nav drawer if it's currently closed (`display: none`
- * below the desktop breakpoint), so focus below has something visible to land on.
- * @param {Element} nav Header primary nav element
- * @returns {void}
- */
-function openNavIfClosed(nav) {
-  if (getComputedStyle(nav).display !== 'none') return;
-  document.querySelector(`.header__toggle[aria-controls="${nav.id}"]`)?.click();
-}
-
-/**
- * Opens the mobile drawer, if closed, ahead of the click that's about to follow.
- * @returns {void}
- */
-function preopenHeaderNav() {
-  const nav = document.getElementById('header-nav');
-  if (nav) openNavIfClosed(nav);
-}
-
-/**
- * Moves focus into the header's primary nav landmark.
- * @param {MouseEvent} event Click event from the "Skip to navigation" link
- * @returns {void}
- */
-function focusHeaderNav(event) {
-  const nav = document.getElementById('header-nav');
-  if (!nav) return;
-
-  event.preventDefault();
-  event.stopPropagation();
-  if (!nav.hasAttribute('tabindex')) nav.tabIndex = -1;
-  nav.focus();
-}
-
-/**
- * Scrolls the footer landmark into view.
- * @returns {void}
- */
-function scrollFooterIntoView() {
-  document.querySelector('footer')?.scrollIntoView({ block: 'start' });
-}
-
-/**
- * Builds the footer's "Skip to content" and "Skip to navigation" links, hidden
- * until focused via keyboard, wrapped in their own landmark.
- * @returns {Element}
- */
-function buildFooterSkipLinks() {
-  const wrapper = fromHTML(`
-    <nav class="footer__skip-links" aria-label="Skip links">
-      <a class="footer__skip" href="#main">Skip to content</a>
-      <a class="footer__skip" href="#header-nav">Skip to navigation</a>
-    </nav>
-  `);
-  const [toContent, toNav] = wrapper.children;
-  toContent.addEventListener('focus', scrollFooterIntoView);
-  toNav.addEventListener('focus', scrollFooterIntoView);
-  toNav.addEventListener('pointerdown', preopenHeaderNav);
-  toNav.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') preopenHeaderNav();
-  });
-  toNav.addEventListener('click', focusHeaderNav);
-  return wrapper;
 }
 
 /**
@@ -718,7 +660,6 @@ export default async function decorate(block) {
   if (social) options.append(social);
 
   block.append(wrapper);
-  block.closest('footer')?.before(buildFooterSkipLinks());
   decorateLogo(block);
   await loadFooterIcons(block);
 }

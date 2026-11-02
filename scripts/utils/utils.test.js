@@ -369,7 +369,7 @@ describe('buildArticleMetaActions', () => {
     expect(main.querySelector('.article-meta__actions')).toBeNull();
   });
 
-  it('injects Copy link into fallback .article-meta shells at the top and bottom', () => {
+  it('injects Copy URL into fallback .article-meta shells at the top and bottom', () => {
     mockTemplate('article');
     const { main, body } = createArticleMain();
 
@@ -395,7 +395,7 @@ describe('buildArticleMetaActions', () => {
     groups.forEach((group) => {
       expect(group.tagName).toBe('DIV');
       expect(group.parentElement).toHaveClass('article-meta');
-      expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
+      expect(within(group).getByRole('button', { name: 'Copy URL' })).toBeTruthy();
       expect(group.querySelector('[data-meta-action="download"]')).toBeNull();
       const feedback = within(group).getByRole('link', { name: 'Feedback (opens email)' });
       expect(feedback.querySelector('.action-button__label').textContent).toBe('Feedback');
@@ -470,6 +470,43 @@ describe('buildArticleMetaActions', () => {
     expect(body.querySelector(':scope > .article-meta__actions')).toBeNull();
   });
 
+  it('keeps both action groups when author metadata is empty', () => {
+    mockTemplate('article');
+    const { main } = createArticleMain();
+
+    buildArticleAuthorMeta(main);
+    buildArticleMetaActions(main);
+
+    expect(main.querySelector('.article-meta__authors')).toBeNull();
+    expect(main.querySelectorAll('.article-meta')).toHaveLength(2);
+    expect(main.querySelectorAll('.article-meta__actions')).toHaveLength(2);
+  });
+
+  it.each(['top', 'bottom'])('does not recreate a %s row that hide-metadata omitted', (position) => {
+    mockTemplate('article', { 'hide-metadata': position });
+    const { main } = createArticleMain();
+
+    buildArticleAuthorMeta(main);
+    buildArticleMetaActions(main);
+
+    expect(main.querySelector(`.article-meta--${position}`)).toBeNull();
+    const other = position === 'top' ? 'bottom' : 'top';
+    expect(main.querySelector(`.article-meta--${other} .article-meta__actions`)).not.toBeNull();
+    expect(main.querySelectorAll('.article-meta__actions')).toHaveLength(1);
+  });
+
+  it('omits both rows and the status region when hide-metadata is both', () => {
+    mockTemplate('article', { author: 'Jane Doe', 'hide-metadata': 'both' });
+    const { main } = createArticleMain();
+
+    buildArticleAuthorMeta(main);
+    buildArticleMetaActions(main);
+
+    expect(main.querySelector('.article-meta')).toBeNull();
+    expect(main.querySelector('.article-meta__actions')).toBeNull();
+    expect(main.querySelector(':scope > [data-meta-action-status]')).toBeNull();
+  });
+
   it('does not add a second pair of groups when called again', () => {
     mockTemplate('article');
     const { main } = createArticleMain();
@@ -488,38 +525,38 @@ describe('buildArticleMetaActions', () => {
     buildArticleMetaActions(main);
 
     const groups = [...main.querySelectorAll('.article-meta__actions')];
-    within(groups[0]).getByRole('button', { name: 'Copy link' }).click();
+    within(groups[0]).getByRole('button', { name: 'Copy URL' }).click();
     await waitForCopy();
 
     expect(writeText).toHaveBeenCalledWith('https://labs.adobe.com/research/foo');
     expect(within(groups[0]).getByRole('button', { name: 'Copied' })).toBeTruthy();
     expect(groups[0].querySelector('[data-meta-action="copy-link"] svg'))
       .toHaveAttribute('aria-hidden', 'true');
-    expect(within(groups[1]).getByRole('button', { name: 'Copy link' })).toBeTruthy();
-    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Link copied');
+    expect(within(groups[1]).getByRole('button', { name: 'Copy URL' })).toBeTruthy();
+    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('URL copied');
 
-    within(groups[1]).getByRole('button', { name: 'Copy link' }).click();
+    within(groups[1]).getByRole('button', { name: 'Copy URL' }).click();
     await waitForCopy();
 
     expect(writeText).toHaveBeenCalledTimes(2);
     expect(within(groups[1]).getByRole('button', { name: 'Copied' })).toBeTruthy();
   });
 
-  it('reverts Copied back to Copy link after the delay', async () => {
+  it('reverts Copied back to Copy URL after the delay', async () => {
     jest.useFakeTimers();
     mockTemplate('article');
     setCanonical('https://labs.adobe.com/research/foo');
     const { main } = createArticleMain();
     buildArticleMetaActions(main);
 
-    const button = within(main).getAllByRole('button', { name: 'Copy link' })[0];
+    const button = within(main).getAllByRole('button', { name: 'Copy URL' })[0];
     button.click();
     await waitForCopy();
 
     expect(button).toHaveAccessibleName('Copied');
-    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Link copied');
+    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('URL copied');
     jest.advanceTimersByTime(2000);
-    expect(button).toHaveAccessibleName('Copy link');
+    expect(button).toHaveAccessibleName('Copy URL');
     expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('');
   });
 
@@ -534,7 +571,7 @@ describe('buildArticleMetaActions', () => {
     const { main } = createArticleMain();
     buildArticleMetaActions(main);
 
-    const button = within(main).getAllByRole('button', { name: 'Copy link' })[0];
+    const button = within(main).getAllByRole('button', { name: 'Copy URL' })[0];
     button.focus();
     button.click();
     await waitForCopy();
@@ -551,15 +588,15 @@ describe('buildArticleMetaActions', () => {
     const { main } = createArticleMain();
     buildArticleMetaActions(main);
 
-    const button = within(main).getAllByRole('button', { name: 'Copy link' })[0];
+    const button = within(main).getAllByRole('button', { name: 'Copy URL' })[0];
     button.click();
     await waitForCopy();
 
-    expect(button).toHaveAccessibleName('Copy link');
-    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Unable to copy link');
+    expect(button).toHaveAccessibleName('Copy URL');
+    expect(main.querySelector(':scope > [data-meta-action-status]')).toHaveTextContent('Unable to copy URL');
   });
 
-  it('adds Download next to Copy link when download-link metadata is set', () => {
+  it('adds Download next to Copy URL when download-link metadata is set', () => {
     mockTemplate('article', { 'download-link': 'https://example.com/data.zip' });
     const { main } = createArticleMain();
 
@@ -568,7 +605,7 @@ describe('buildArticleMetaActions', () => {
     const groups = main.querySelectorAll('.article-meta__actions');
     expect(groups).toHaveLength(2);
     groups.forEach((group) => {
-      expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
+      expect(within(group).getByRole('button', { name: 'Copy URL' })).toBeTruthy();
       const download = within(group).getByRole('link', { name: 'Download' });
       expect(download).toHaveAccessibleName('Download');
       expect(download).toHaveAttribute('href', 'https://example.com/data.zip');
@@ -698,7 +735,7 @@ describe('buildArticleMetaActions', () => {
       groups.forEach((group) => {
         expect(within(group).queryByRole('link', { name: 'Download' })).toBeNull();
         expect(group.querySelector('[data-meta-action="download"]')).toBeNull();
-        expect(within(group).getByRole('button', { name: 'Copy link' })).toBeTruthy();
+        expect(within(group).getByRole('button', { name: 'Copy URL' })).toBeTruthy();
       });
     });
   });
@@ -810,6 +847,24 @@ describe('ensureSkipLink', () => {
     expect(document.querySelector('header').firstElementChild).toBe(skip);
     expect(document.querySelector('main')).toHaveAttribute('id', 'main');
     expect(document.querySelector('main')).toHaveAttribute('tabindex', '-1');
+    expect(document.querySelector('main')).toHaveAttribute('aria-label', 'Main content');
+  });
+
+  it('names a page main that already has an id', () => {
+    document.body.innerHTML = '<header></header><main id="main" tabindex="-1"></main>';
+
+    ensureSkipLink(document);
+
+    expect(document.querySelector('main')).toHaveAttribute('aria-label', 'Main content');
+    expect(document.querySelector('main')).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('does not name a main that is not the page landmark', () => {
+    document.body.innerHTML = '<header></header><div><main></main></div>';
+
+    ensureSkipLink(document);
+
+    expect(document.querySelector('main')).not.toHaveAttribute('aria-label');
   });
 
   it('does not add a second skip link', () => {
@@ -952,13 +1007,8 @@ describe('buildAuthorByline', () => {
     getMetadata.mockReturnValue('');
   });
 
-  it('falls back to Adobe Labs when there is no author metadata', () => {
-    const byline = buildAuthorByline();
-
-    expect(byline).toHaveClass('article-meta__authors');
-    expect(byline.querySelector('.article-meta__authors-label')).toHaveTextContent('Words by:');
-    const names = [...byline.querySelectorAll('.article-meta__author-name')].map((el) => el.textContent);
-    expect(names).toEqual(['Adobe Labs']);
+  it('omits the byline when there is no author metadata', () => {
+    expect(buildAuthorByline()).toBeNull();
   });
 
   it('reads one author per name from comma-separated metadata', () => {
@@ -1005,6 +1055,8 @@ describe('buildAuthorByline', () => {
   });
 
   it('returns a new element on every call', () => {
+    getMetadata.mockReturnValue('Randy Oest');
+
     expect(buildAuthorByline()).not.toBe(buildAuthorByline());
   });
 });
@@ -1108,6 +1160,63 @@ describe('buildArticleAuthorMeta', () => {
     expect(hero.nextElementSibling.querySelector('.article-meta')).not.toBeNull();
     expect(section.lastElementChild.querySelector('.article-meta')).not.toBeNull();
     expect(section.querySelectorAll('.article-meta')).toHaveLength(2);
+  });
+
+  it('places both meta shells without a byline when author metadata is empty', () => {
+    mockTemplate('article');
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelectorAll('.article-meta')).toHaveLength(2);
+    expect(main.querySelector('.article-meta__authors')).toBeNull();
+  });
+
+  it.each([
+    ['top', 'top'],
+    ['bottom', ' Bottom '],
+  ])('omits the %s meta row when hide-metadata is %s', (position, value) => {
+    mockTemplate('article', { author: 'Jane Doe', 'hide-metadata': value });
+    const hero = createSection({ hero: true });
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(hero, body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector(`.article-meta--${position}`)).toBeNull();
+    const other = position === 'top' ? 'bottom' : 'top';
+    expect(body.querySelector(`.article-meta--${other}`)).not.toBeNull();
+    expect(main.querySelector('.article-meta__authors')).not.toBeNull();
+  });
+
+  it('omits both meta rows when hide-metadata is both', () => {
+    mockTemplate('article', { author: 'Jane Doe', 'hide-metadata': 'Both' });
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector('.article-meta')).toBeNull();
+  });
+
+  it('keeps both meta rows when hide-metadata is unrecognized', () => {
+    mockTemplate('article', { author: 'Jane Doe', 'hide-metadata': 'none' });
+    const body = createSection();
+    const main = document.createElement('main');
+    main.append(body);
+    document.body.append(main);
+
+    buildArticleAuthorMeta(main);
+
+    expect(main.querySelector('.article-meta--top')).not.toBeNull();
+    expect(main.querySelector('.article-meta--bottom')).not.toBeNull();
   });
 });
 

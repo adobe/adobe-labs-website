@@ -1,4 +1,5 @@
 import { buildHero } from '../../../blocks/hero/hero.js';
+import { buildMediaText } from '../../../blocks/media-text/media-text.js';
 import { createC2pa, Reader } from '../../../deps/c2pa-web/index.js';
 import initContentCredentials from './content-credentials.js';
 
@@ -114,6 +115,32 @@ describe('content credentials', () => {
 
     expect(hero.querySelector('.cr-pin-image')).toBeNull();
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('wraps a media-text image for its pin', async () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'media-text-wrapper';
+    const block = document.createElement('div');
+    block.className = 'media-text';
+    wrapper.append(block);
+    document.body.append(wrapper);
+    const copy = document.createElement('p');
+    copy.textContent = 'How the image was made.';
+    buildMediaText({
+      image: createPicture('A red rock canyon'),
+      caption: 'Image: Bernardo Ramoning',
+      content: [copy],
+    }, block);
+
+    await initContentCredentials();
+
+    const pinWrapper = block.querySelector('.media-text__media .cr-pin-image');
+    expect(pinWrapper).not.toHaveClass('cr-pin-image--hero');
+    expect(pinWrapper.querySelector(':scope > picture')).not.toBeNull();
+    expect(pinWrapper.querySelector(':scope > .cr-pin-button'))
+      .toHaveAttribute('aria-label', 'View content credentials for this image: A red rock canyon');
+    expect(block.querySelector('.media-text__content .cr-pin-image')).toBeNull();
+    expect(block.querySelector('.media-text__caption')).toHaveTextContent('Image: Bernardo Ramoning');
   });
 
   it('still wraps content images for their pin', async () => {

@@ -167,6 +167,53 @@ describe('table block', () => {
     expect(table.querySelectorAll('tbody td')).toHaveLength(4);
   });
 
+  it('treats a fully bold first row as column headers when header-column is set', () => {
+    const [header, ...body] = WAGE_SUMMARY;
+    const block = createBlock([
+      header.map((cell) => cell.replace('<p>', '<p><strong>').replace('</p>', '</strong></p>')),
+      ...body,
+    ], 'table header-column');
+
+    decorate(block);
+
+    const table = within(block).getByRole('table');
+    expect(table.querySelectorAll('thead th[scope="col"]')).toHaveLength(5);
+    expect(within(table).getAllByRole('columnheader').map((el) => el.textContent))
+      .toEqual(['Occupation', 'SOC', 'Median', 'Mean', 'U.S. employment']);
+    expect(within(table).getAllByRole('rowheader').map((el) => el.textContent))
+      .toEqual([
+        'Art Directors',
+        'Graphic Designers',
+        'Web and Digital Interface Designers',
+      ]);
+    expect(table.querySelector('thead th')).toHaveAttribute('scope', 'col');
+    expect(table.querySelectorAll('tbody th[scope="row"]')).toHaveLength(3);
+    expect(table.querySelectorAll('tbody td')).toHaveLength(12);
+  });
+
+  it('keeps header-column row headers when the first row is data', () => {
+    const block = createBlock([
+      [
+        '<a href="https://www.bls.gov/oes/">BLS OEWS</a>',
+        '<p>National wage percentiles</p>',
+        '<p>May 2025</p>',
+      ],
+      [
+        '<a href="https://www.bls.gov/cpi/">BLS CPI-U</a>',
+        '<p>Inflation index</p>',
+        '<p>2015 to 2025</p>',
+      ],
+    ], 'table header-column');
+
+    decorate(block);
+
+    const table = within(block).getByRole('table');
+    expect(table.querySelector('thead')).toBeNull();
+    expect(within(table).queryByRole('columnheader')).not.toBeInTheDocument();
+    expect(within(table).getAllByRole('rowheader').map((el) => el.textContent))
+      .toEqual(['BLS OEWS', 'BLS CPI-U']);
+  });
+
   it('renders column headers and row headers when both options are set', () => {
     const block = createBlock(WAGE_SUMMARY, 'table header-row header-column');
 

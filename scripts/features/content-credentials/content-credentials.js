@@ -28,6 +28,7 @@ let c2paReady = null;
 const CR_IMAGE_SELECTORS = [
   'body.article .image-wrapper picture > img',
   'body.article .side-by-side-image-wrapper picture > img',
+  'body.article .media-text-wrapper picture > img',
   'body.article .default-content-wrapper picture > img',
   'body.article .hero .hero__media picture > img',
 ].join(', ');

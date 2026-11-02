@@ -1,3 +1,4 @@
+import { within } from '@testing-library/dom';
 import decorate from './table-of-contents.js';
 
 /**
@@ -205,17 +206,26 @@ describe('table of contents block', () => {
     expect(heading.id).toBe('table-of-contents-heading');
   });
 
-  it('exposes itself as a navigation landmark labelled by its own heading', () => {
+  it('wraps the list in a nav labelled by the Table of Contents heading', () => {
     const main = document.createElement('main');
     const { section: blockSection, block } = createBlockSection();
     main.append(createHeadedSection('A', 'a'), blockSection);
+    document.body.append(main);
 
     decorate(block);
 
-    expect(block).toHaveAttribute('role', 'navigation');
-    const headingId = block.querySelector('.table-of-contents__heading').id;
-    expect(headingId).toBe('table-of-contents-heading');
-    expect(block).toHaveAttribute('aria-labelledby', headingId);
+    const heading = within(block).getByRole('heading', { name: 'Table of Contents' });
+    const nav = within(block).getByRole('navigation', { name: 'Table of Contents' });
+    const list = block.querySelector('.table-of-contents__list');
+
+    expect(heading.id).toBe('table-of-contents-heading');
+    expect(nav).toHaveAttribute('aria-labelledby', heading.id);
+    expect(nav).toContainElement(list);
+    expect(nav).not.toContainElement(heading);
+    expect(block).not.toHaveAttribute('role');
+    expect(block).not.toHaveAttribute('aria-labelledby');
+
+    document.body.removeChild(main);
   });
 
   it('marks the list with role="list" (Safari/VoiceOver drops it for list-style: none)', () => {

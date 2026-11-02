@@ -121,6 +121,10 @@ function dataFromCall(callIndex) {
   return buildGridItem.mock.calls[callIndex][0];
 }
 
+function mockCategory(category) {
+  getMetadata.mockImplementation((name) => (name === 'category' ? category : ''));
+}
+
 describe('content-grid block', () => {
   let consoleError;
 
@@ -961,7 +965,7 @@ describe('content-grid block', () => {
 
     it('derives the category from page metadata instead of an authored value when Related content is true', async () => {
       window.history.pushState({}, '', '/research/current');
-      getMetadata.mockReturnValue('Future of Creative Work');
+      mockCategory('Future of Creative Work');
       dataStore.getData.mockResolvedValue(RELATED_INDEX);
       const block = createBlock({
         'Related content:': 'true', 'Content Type:': 'Research', 'Category:': 'Standards & Practices', 'Count:': '8',
@@ -975,7 +979,7 @@ describe('content-grid block', () => {
 
     it('excludes the current page from its own results when Related content is true', async () => {
       window.history.pushState({}, '', '/research/current');
-      getMetadata.mockReturnValue('Future of Creative Work');
+      mockCategory('Future of Creative Work');
       dataStore.getData.mockResolvedValue(RELATED_INDEX);
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
 
@@ -986,7 +990,7 @@ describe('content-grid block', () => {
 
     it('excludes the current page even when the URL and the index disagree about a trailing slash', async () => {
       window.history.pushState({}, '', '/research/current/');
-      getMetadata.mockReturnValue('Future of Creative Work');
+      mockCategory('Future of Creative Work');
       dataStore.getData.mockResolvedValue(RELATED_INDEX);
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
 
@@ -1007,7 +1011,7 @@ describe('content-grid block', () => {
 
     it('falls back to the same content type when Related content matches no category', async () => {
       window.history.pushState({}, '', '/research/current');
-      getMetadata.mockReturnValue('A Topic Nothing Has');
+      mockCategory('A Topic Nothing Has');
       dataStore.getData.mockResolvedValue(RELATED_INDEX);
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
 
@@ -1020,7 +1024,7 @@ describe('content-grid block', () => {
 
     it('hides the block when the Related content fallback also has nothing to show', async () => {
       window.history.pushState({}, '', '/research/current');
-      getMetadata.mockReturnValue('A Topic Nothing Has');
+      mockCategory('A Topic Nothing Has');
       dataStore.getData.mockResolvedValue({
         data: [{
           path: '/research/current',
@@ -1035,6 +1039,229 @@ describe('content-grid block', () => {
 
       expect(block.children).toHaveLength(0);
       expect(block.parentElement.hidden).toBe(true);
+    });
+
+    describe('Related Articles metadata (pinned picks)', () => {
+      const ALL_CONTENT = {
+        data: [
+          ...RELATED_INDEX.data,
+          {
+            path: '/sneaks/pinned-sneak',
+            title: 'Pinned sneak',
+            category: 'Sneaks',
+            publicationDate: '2025-01-01',
+          },
+          {
+            path: '/playground/pinned-playground',
+            title: 'Pinned playground',
+            category: 'Playground',
+            publicationDate: '2025-02-01',
+          },
+          {
+            path: '/workflows/hidden-pick',
+            title: 'Noindex pick',
+            publicationDate: '2025-03-01',
+            robots: 'noindex',
+          },
+        ],
+      };
+
+      function mockMetadata(values) {
+        getMetadata.mockImplementation((name) => values[name] || '');
+      }
+
+      beforeEach(() => {
+        window.history.pushState({}, '', '/research/current');
+        dataStore.getData.mockImplementation(async (endpoint) => (
+          endpoint === '/content.json' ? ALL_CONTENT : RELATED_INDEX
+        ));
+      });
+
+      it('does not fetch all content when no picks are authored', async () => {
+        mockMetadata({ category: 'Future of Creative Work' });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '3' });
+
+        await decorate(block);
+
+        expect(dataStore.getData).toHaveBeenCalledTimes(1);
+        expect(dataStore.getData).toHaveBeenCalledWith('/research/content.json');
+        expect(titlesFromCards()).toEqual(['Shares a category']);
+        expect(dataFromCall(0).contentType).toBe('');
+      });
+
+      it('shows picks from any content type in authored order, from the all-content index only', async () => {
+        mockMetadata({
+          category: 'Future of Creative Work',
+          'related-articles': '/playground/pinned-playground, /sneaks/pinned-sneak, /research/no-shared-category',
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '3' });
+
+        await decorate(block);
+
+        expect(dataStore.getData).toHaveBeenCalledTimes(1);
+        expect(dataStore.getData).toHaveBeenCalledWith('/content.json');
+        expect(titlesFromCards()).toEqual(['Pinned playground', 'Pinned sneak', 'No shared category']);
+      });
+
+      it('caps picks at the authored count', async () => {
+        mockMetadata({
+          'related-articles': '/sneaks/pinned-sneak /playground/pinned-playground /research/shared-category',
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '2' });
+
+        await decorate(block);
+
+        expect(titlesFromCards()).toEqual(['Pinned sneak', 'Pinned playground']);
+      });
+
+      it('shows only the picks, without automatic results, when there are fewer than the count', async () => {
+        mockMetadata({
+          category: 'Future of Creative Work',
+          'related-articles': '/sneaks/pinned-sneak',
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '3' });
+
+        await decorate(block);
+
+        expect(titlesFromCards()).toEqual(['Pinned sneak']);
+      });
+
+      it('does not replace a skipped pick with an automatic result', async () => {
+        mockMetadata({
+          category: 'Future of Creative Work',
+          'related-articles': '/sneaks/pinned-sneak, /research/does-not-exist',
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '3' });
+
+        await decorate(block);
+
+        expect(titlesFromCards()).toEqual(['Pinned sneak']);
+      });
+
+      it('skips duplicates, missing, noindex, and current-page picks', async () => {
+        mockMetadata({
+          'related-articles': [
+            '/sneaks/pinned-sneak',
+            '/sneaks/pinned-sneak/',
+            '/research/does-not-exist',
+            '/workflows/hidden-pick',
+            '/research/current',
+          ].join(','),
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '1' });
+
+        await decorate(block);
+
+        expect(titlesFromCards()).toEqual(['Pinned sneak']);
+      });
+
+      it.each([
+        ['a DA editor URL', 'https://da.live/edit#/adobe/adobe-labs-website/sneaks/pinned-sneak'],
+        ['a preview URL', 'https://main--adobe-labs-website--adobe.aem.page/sneaks/pinned-sneak'],
+        ['a live URL with a query string', 'https://main--adobe-labs-website--adobe.aem.live/sneaks/pinned-sneak?x=1'],
+        ['a path without a leading slash', 'sneaks/pinned-sneak'],
+        ['an .html path', '/sneaks/pinned-sneak.html'],
+      ])('resolves a pick authored as %s', async (_, link) => {
+        mockMetadata({ 'related-articles': link });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '1' });
+
+        await decorate(block);
+
+        expect(titlesFromCards()).toEqual(['Pinned sneak']);
+      });
+
+      it('labels every card when picks mix content types', async () => {
+        mockMetadata({
+          'related-articles': '/sneaks/pinned-sneak, /research/shared-category',
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '2' });
+
+        await decorate(block);
+
+        expect(dataFromCall(0).contentType).toBe('Sneaks');
+        expect(dataFromCall(1).contentType).toBe('Research');
+      });
+
+      it('labels picks that all share a content type other than the current page', async () => {
+        mockMetadata({
+          'related-articles': '/sneaks/pinned-sneak, /playground/pinned-playground',
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '1' });
+
+        await decorate(block);
+
+        expect(dataFromCall(0).contentType).toBe('Sneaks');
+      });
+
+      it('omits labels when every pick matches the current page content type', async () => {
+        mockMetadata({
+          'related-articles': '/research/shared-category, /research/no-shared-category',
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '2' });
+
+        await decorate(block);
+
+        expect(dataFromCall(0).contentType).toBe('');
+        expect(dataFromCall(1).contentType).toBe('');
+      });
+
+      it('keeps labels on same-type picks when show-content-type is set', async () => {
+        mockMetadata({ 'related-articles': '/research/shared-category' });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '1' });
+        block.classList.add('show-content-type');
+
+        await decorate(block);
+
+        expect(dataFromCall(0).contentType).toBe('Research');
+      });
+
+      it('labels picks on a page outside any content type', async () => {
+        window.history.pushState({}, '', '/drafts/article-test');
+        mockMetadata({ 'related-articles': '/research/shared-category' });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '1' });
+
+        await decorate(block);
+
+        expect(dataFromCall(0).contentType).toBe('Research');
+      });
+
+      it.each([
+        ['a missing article', '/research/does-not-exist'],
+        ['a noindex article', '/workflows/hidden-pick'],
+        ['the current article', '/research/current'],
+        ['a link with custom text', 'Beyond the prompt'],
+      ])('hides the section when the only pick is %s', async (_, link) => {
+        mockMetadata({
+          category: 'Future of Creative Work',
+          'related-articles': link,
+        });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '3' });
+
+        await decorate(block);
+
+        expect(buildGridItem).not.toHaveBeenCalled();
+        expect(block.children).toHaveLength(0);
+        expect(block.parentElement.hidden).toBe(true);
+      });
+
+      it('keeps the current page surface when picks are another content type', async () => {
+        mockMetadata({ 'related-articles': '/sneaks/pinned-sneak' });
+        const block = createBlock({ 'Related content:': 'true', 'Count:': '3' });
+
+        await decorate(block);
+
+        expect(block.dataset.contentType).toBe('research');
+      });
+
+      it('ignores Related Articles on a grid without Related content', async () => {
+        mockMetadata({ 'related-articles': '/sneaks/pinned-sneak' });
+        const block = createBlock({ 'Content Type:': 'Research', 'Category:': 'All', 'Count:': '8' });
+
+        await decorate(block);
+
+        expect(dataStore.getData).toHaveBeenCalledTimes(1);
+        expect(titlesFromCards()).not.toContain('Pinned sneak');
+      });
     });
 
     it('adds content-grid--related for the fixed intro heading style, and removes it otherwise', async () => {
@@ -1090,7 +1317,7 @@ describe('content-grid block', () => {
       ['Standards & Practices', 'standards-and-practices'],
     ])('marks a research related grid in %s as %s', async (category, slug) => {
       window.history.pushState({}, '', '/research/current');
-      getMetadata.mockReturnValue(category);
+      mockCategory(category);
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
 
       await decorate(block);
@@ -1101,7 +1328,7 @@ describe('content-grid block', () => {
 
     it('uses the first category when a research article lists several', async () => {
       window.history.pushState({}, '', '/research/current');
-      getMetadata.mockReturnValue('Standards and Practices, Economic Impact');
+      mockCategory('Standards and Practices, Economic Impact');
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
 
       await decorate(block);
@@ -1111,7 +1338,7 @@ describe('content-grid block', () => {
 
     it('marks any category on a research related grid', async () => {
       window.history.pushState({}, '', '/research/current');
-      getMetadata.mockReturnValue('Something Else');
+      mockCategory('Something Else');
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
 
       await decorate(block);
@@ -1122,7 +1349,7 @@ describe('content-grid block', () => {
 
     it('marks the category on a non-research related grid', async () => {
       window.history.pushState({}, '', '/workflows/clip');
-      getMetadata.mockReturnValue('Future of Creative Work');
+      mockCategory('Future of Creative Work');
       const block = createBlock({ 'Related content:': 'true', 'Count:': '8' });
 
       await decorate(block);
