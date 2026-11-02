@@ -329,7 +329,7 @@ You can also paste a public file URL (for example an Adobe-hosted PDF).
 
 ### Feedback
 
-Article pages include a Feedback action with Copy URL. It opens a message to labs@adobe.com. The subject is the **Title** row from the page Metadata table. After preview, AEM publishes that row as `og:title`. When Title is empty, the link has no subject.
+Article pages include a Feedback action. It opens a message to labs@adobe.com. The subject is the **Title** row from the page Metadata table. After preview, AEM publishes that row as `og:title`. When Title is empty, the link has no subject.
 
 ### Hide metadata rows
 
