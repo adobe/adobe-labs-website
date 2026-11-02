@@ -90,7 +90,8 @@ function removeBlock(block) {
  * instead builds an ordered list from sibling sections marked via
  * `Section Metadata` (see `decorateSectionMetadata` in scripts/utils/utils.js).
  * A section qualifies when its metadata row is named `Table of Contents` or
- * `TOC`. Removes itself when the page has no such sections.
+ * `TOC`. The list sits in a nav labelled by the "Table of Contents" heading.
+ * Removes itself when the page has no such sections.
  *
  * @param {Element} block The Table of Contents block
  */
@@ -114,7 +115,10 @@ export default function decorate(block) {
   list.setAttribute('role', 'list');
   sections.forEach((section, index) => list.append(buildItem(section, index)));
 
-  block.setAttribute('role', 'navigation');
-  block.setAttribute('aria-labelledby', 'table-of-contents-heading');
-  block.replaceChildren(heading, list);
+  const nav = document.createElement('nav');
+  nav.className = 'table-of-contents__nav';
+  nav.setAttribute('aria-labelledby', heading.id);
+  nav.append(list);
+
+  block.replaceChildren(heading, nav);
 }
