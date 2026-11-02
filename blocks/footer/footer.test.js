@@ -418,7 +418,7 @@ describe('footer block', () => {
     expect(items).toHaveAttribute('hidden');
   });
 
-  it('renders each nav column as its own labelled navigation landmark', async () => {
+  it('renders each nav column as a headed list, not a landmark', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
 
@@ -428,42 +428,27 @@ describe('footer block', () => {
     expect(columns.length).toBeGreaterThan(0);
 
     columns.forEach((column) => {
-      const nav = column.querySelector('.footer__menu-section');
-      const heading = nav.querySelector(':scope > h2');
-      expect(nav.tagName).toBe('NAV');
-      expect(heading.id).toBeTruthy();
-      expect(nav).toHaveAttribute('aria-labelledby', heading.id);
+      const section = column.querySelector('.footer__menu-section');
+      expect(section.tagName).toBe('DIV');
+      expect(section).not.toHaveAttribute('aria-labelledby');
+      expect(section.querySelector(':scope > h2')).toBeTruthy();
 
-      const items = nav.querySelector('.footer__menu-items');
+      const items = section.querySelector('.footer__menu-items');
       expect(items.tagName).toBe('UL');
       expect(items.querySelectorAll(':scope > li').length).toBeGreaterThan(0);
       expect(items.querySelector('li > .footer__menu-link')).toBeTruthy();
     });
-
-    const headingIds = [...columns].map((c) => c.querySelector('h2').id);
-    expect(new Set(headingIds).size).toBe(headingIds.length);
   });
 
-  it('does not collide with a same-named heading id elsewhere on the page', async () => {
-    const pageHeading = document.createElement('h2');
-    pageHeading.id = 'explore';
-    document.body.append(pageHeading);
-
+  it('leaves social media as the only navigation landmark in the footer', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
 
-    try {
-      await decorate(block);
+    await decorate(block);
 
-      const exploreColumn = [...block.querySelectorAll('.footer__menu-column--nav')]
-        .find((column) => column.querySelector('h2').textContent === 'Explore');
-      const footerHeading = exploreColumn.querySelector('h2');
-
-      expect(footerHeading.id).not.toBe(pageHeading.id);
-      expect(footerHeading.id).toMatch(/^footer-explore(-\d+)?$/);
-    } finally {
-      pageHeading.remove();
-    }
+    const navs = within(block).getAllByRole('navigation');
+    expect(navs).toHaveLength(1);
+    expect(navs[0]).toHaveAccessibleName('Social media');
   });
 
   it('does not add skip links around the footer landmark', async () => {
