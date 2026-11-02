@@ -35,20 +35,24 @@ main.error > .section {
   }
 }
 
-/* Beat the first-section and last-section padding so the stack sits a fixed distance below the nav. */
+/* Beat the first-section and last-section padding so the digit ink matches the Figma frames. */
 main.error > .section:first-of-type:not([class*="section-rounded-"], .hero-container:has(.hero-full-screen)) {
   flex: 1;
   align-items: center;
   justify-content: flex-start;
-  padding-block: var(--s2a-spacing-2xl) var(--s2a-spacing-4xl);
+  padding-block: 28px var(--s2a-spacing-4xl);
   padding-inline: var(--s2a-spacing-2xl);
 
   @media (width >= 48rem) {
-    padding-block: var(--s2a-spacing-4xl) var(--s2a-spacing-96);
+    padding-block: 62px var(--s2a-spacing-96);
   }
 
   @media (width >= 64rem) {
-    padding-block: var(--s2a-spacing-96) var(--s2a-spacing-160);
+    padding-block: 58px var(--s2a-spacing-160);
+  }
+
+  @media (width >= 90rem) {
+    padding-block: 100px var(--s2a-spacing-160);
   }
 }
 
