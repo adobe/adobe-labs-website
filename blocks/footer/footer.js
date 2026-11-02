@@ -414,6 +414,7 @@ function decorateSocial(social) {
  * ==================================================================
  */
 
+const FIRST_PUBLICATION_YEAR = 2026;
 const LEGAL_SELECTOR = 'p > em, a[href*="opt-out"], a[href*="privacy"]';
 
 /**
@@ -435,23 +436,22 @@ function decorateLegal(legal) {
   const markSrc = escapeAttr(getFooterAsset('img/adobe-logo-mark.svg'));
   const legalRow = fromHTML(`
     <div class="footer__legal-row">
-      <span class="footer__mark">
+      <a href="https://www.adobe.com" class="footer__mark">
         <img src="${markSrc}" alt="Adobe" loading="lazy" class="footer__mark-image">
-      </span>
+      </a>
     </div>
   `);
 
   if (!legal) return legalRow;
 
-  const year = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
+  const years = currentYear > FIRST_PUBLICATION_YEAR
+    ? `${FIRST_PUBLICATION_YEAR}–${currentYear}`
+    : `${FIRST_PUBLICATION_YEAR}`;
   const content = fromHTML(`
     <div class="footer__legal">
       <ul class="footer__privacy">
-        <li class="footer__privacy-item">© ${year} Adobe Inc. All rights reserved.</li>
-        <li class="footer__privacy-item">
-          <button type="button" aria-haspopup="dialog" id="cmp-cookie-preferences"
-            class="footer__privacy-link link-button" data-lenis-prevent>Cookie preferences</a>
-        </li>
+        <li class="footer__privacy-item">© ${years} Adobe. All rights reserved.</li>
       </ul>
     </div>
   `);
@@ -470,6 +470,16 @@ function decorateLegal(legal) {
     item.append(link);
     list.append(item);
   });
+
+  // Cookie preferences sits fourth, or last when there are fewer authored links.
+  const thirdItem = list.children[3] ?? null;
+  const cookieItem = fromHTML(`
+    <li class="footer__privacy-item">
+      <button type="button" aria-haspopup="dialog" id="cmp-cookie-preferences"
+        class="footer__privacy-link link-button" data-lenis-prevent>Cookie preferences</button>
+    </li>
+  `);
+  list.insertBefore(cookieItem, thirdItem);
 
   legalRow.prepend(content);
   return legalRow;
