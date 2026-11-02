@@ -490,7 +490,7 @@ This library is bundled into deps, following the documented convention used by o
 
 If credentials are found on an image, it will have a wrapper added around it, and an absolutely positioned CR pin button will be displayed in the upper right corner. The CR pin button can be activated on hover (requested behavior), and also can be activated by keyboard. When activated, it will display a popover containing info from the credentials data.
 
-Pins are added to images in image blocks, side-by-side image blocks, and article text. Images inside other blocks, such as linkboxes and content grids, are not read.
+Pins are added to images in image blocks, side-by-side image blocks, media text blocks, and article text. Images inside other blocks, such as linkboxes and content grids, are not read.
 
 Article hero images work differently:
 
