@@ -187,14 +187,15 @@ describe('footer block', () => {
     block.remove();
   });
 
-  it('inserts the current year in the copyright line', async () => {
+  it('inserts the publication year range in the copyright line', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
     const year = new Date().getFullYear();
+    const years = year > 2026 ? `2026–${year}` : '2026';
 
     await decorate(block);
 
-    expect(block).toHaveTextContent(`© ${year} Adobe Inc. All rights reserved.`);
+    expect(block).toHaveTextContent(`© ${years} Adobe. All rights reserved.`);
     expect(block).toHaveTextContent('Do not sell or share my personal information');
     expect(block.querySelector('.footer__adchoices-icon')).toBeTruthy();
     const mark = block.querySelector('.footer__mark');
@@ -203,7 +204,6 @@ describe('footer block', () => {
     expect(mark).not.toHaveAttribute('aria-label');
     expect(markImage).toHaveAttribute('alt', 'Adobe');
     expect(within(block).getByRole('img', { name: 'Adobe' })).toBe(markImage);
-
     const privacyLinks = block.querySelectorAll('.footer__privacy-link');
     privacyLinks.forEach((link) => expect(link).not.toHaveAttribute('title'));
   });

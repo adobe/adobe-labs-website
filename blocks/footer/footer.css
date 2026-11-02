@@ -195,6 +195,7 @@ body:has(main > .section:nth-last-child(1 of .section)) .footer {
 }
 
 .footer__mark {
+  inline-size: fit-content;
   line-height: 0;
   order: 1;
 }
