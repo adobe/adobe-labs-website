@@ -1,6 +1,11 @@
 import { getMetadata } from '../../scripts/aem.js';
 import { entryProgress, logoEntryHeld } from '../../scripts/utils/entry-progress.js';
-import { escapeAttr, fromHTML, isExternalLink } from '../../scripts/utils/utils.js';
+import {
+  escapeAttr,
+  fromHTML,
+  isExternalLink,
+  trackInteraction,
+} from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
 /**
@@ -659,6 +664,12 @@ export default async function decorate(block) {
   if (social) options.append(social);
 
   block.append(wrapper);
+
+  const subscribe = block.querySelector('a[href$="/modals/subscribe"]');
+  subscribe?.addEventListener('click', () => {
+    trackInteraction('subscribe-footer', window.location.href);
+  });
+
   decorateLogo(block);
   await loadFooterIcons(block);
 }

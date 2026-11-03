@@ -5,6 +5,7 @@ import {
   getCellMedia,
   getCellText,
   toSafeHttpUrl,
+  trackInteraction,
 } from '../../scripts/utils/utils.js';
 
 const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
@@ -435,6 +436,7 @@ function buildVideo(data, block) {
   button.append(icon);
 
   button.addEventListener('click', () => {
+    trackInteraction('video-play', window.location.href);
     loadEmbed(block, { source, playLabel });
   });
 

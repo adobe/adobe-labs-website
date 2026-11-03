@@ -869,6 +869,36 @@ export function getShareUrl() {
 }
 
 /**
+ * Reports a user interaction to Adobe Launch as an `event` call. No-op until
+ * marketingtech has loaded `_satellite` (or when consent blocks it), and never
+ * throws, so tracking cannot break the control that was clicked.
+ *
+ * @param {string} name Interaction identifier
+ * @param {string} [url] Href related to the interaction
+ */
+export function trackInteraction(name, url = '') {
+  try {
+    // eslint-disable-next-line no-underscore-dangle
+    window._satellite?.track?.('event', {
+      xdm: {},
+      data: {
+        web: {
+          webInteraction: {
+            name,
+            URL: url,
+          },
+        },
+        _adobe_corpnew: {
+          digitalData: {},
+        },
+      },
+    });
+  } catch {
+    /* analytics must not affect the page */
+  }
+}
+
+/**
  * Copies text with a hidden textarea and `document.execCommand('copy')`.
  * Restores focus to `restoreFocusTo` (or the previously focused element)
  * so removing the textarea does not dump focus to `body`.
@@ -1127,9 +1157,16 @@ function bindArticleMetaActions(main) {
   if (main.dataset.metaActionsBound === 'true') return;
   main.dataset.metaActionsBound = 'true';
   main.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-meta-action="copy-link"]');
-    if (!button || !main.contains(button)) return;
-    handleCopyLink(main, button);
+    const control = event.target.closest('[data-meta-action]');
+    if (!control || !main.contains(control)) return;
+
+    // Track button clicks in analytics.
+    trackInteraction(`article-${control.dataset.metaAction}`, window.location.href);
+
+    // Action specific functionality.
+    if (control.dataset.metaAction === 'copy-link') {
+      handleCopyLink(main, control);
+    }
   });
 }
 

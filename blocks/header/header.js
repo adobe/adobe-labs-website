@@ -14,6 +14,7 @@ import {
   escapeAttr,
   fromHTML,
   toSafeHttpUrl,
+  trackInteraction,
 } from '../../scripts/utils/utils.js';
 import { loadFragment } from '../fragment/fragment.js';
 
@@ -870,6 +871,11 @@ function bindHeader(block) {
     if (!openItem || openItem.contains(event.relatedTarget)) return;
     const trigger = openItem.querySelector(':scope > button.header__link');
     if (trigger) setPanelOpen(block, trigger, false);
+  }, { signal });
+
+  const subscribe = block.querySelector('a.header__cta[href$="/modals/subscribe"]');
+  subscribe?.addEventListener('click', () => {
+    trackInteraction('subscribe-header', window.location.href);
   }, { signal });
 
   document.querySelector('a.header__skip')?.addEventListener('click', () => {
