@@ -156,8 +156,8 @@ let menuItemsId = 0;
 const usedHeadingIds = new Set();
 
 /**
- * Builds a document-unique id for a menu column heading, slugified from its text so it stays
- * meaningful (used to label the column's nav landmark via aria-labelledby).
+ * Builds a document-unique id for a menu column heading, slugified from its text. The authored
+ * id (e.g. "explore") would otherwise duplicate a same-named heading elsewhere on the page.
  * @param {string} text Heading text
  * @returns {string}
  */
@@ -261,18 +261,18 @@ function decorateExternalLink(link) {
 }
 
 /**
- * Decorates a single nav menu column with headline and links. The column is its own nav
- * landmark, labelled by its own heading, so each topic (Connect, Explore, ...) is a distinct,
- * self-labelled region rather than one generic "Footer" region covering every column.
+ * Decorates a single nav menu column with headline and links. The column is a plain group,
+ * not a landmark: its heading and list already convey the structure, and the footer is the
+ * one landmark for the whole region.
  * @param {Element} column Authored menu column element
  * @returns {Element}
  */
 function decorateColumn(column) {
   const wrapper = fromHTML(`
     <div class="footer__menu-column footer__menu-column--nav">
-      <nav class="footer__menu-section">
+      <div class="footer__menu-section">
         <ul class="footer__menu-items"></ul>
-      </nav>
+      </div>
     </div>
   `);
 
@@ -282,7 +282,6 @@ function decorateColumn(column) {
 
   if (heading) {
     heading.id = uniqueHeadingId(heading.textContent);
-    section.setAttribute('aria-labelledby', heading.id);
     section.prepend(heading);
     decorateHeadline(heading, items);
     column.querySelectorAll('p a').forEach((link) => {
