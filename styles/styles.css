@@ -1355,7 +1355,7 @@ body.article main {
        from the paragraph edge. Keep only enough for the marker. Nested
        lists keep the browser indent. */
     & > :is(ul, ol) {
-      padding-inline-start: calc(var(--s2a-spacing-md) + 3px);
+      padding-inline-start: 1em;
     }
 
     /* List items use half the gap between paragraphs (spacing-sm is
