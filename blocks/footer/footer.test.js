@@ -438,6 +438,32 @@ describe('footer block', () => {
       expect(items.querySelectorAll(':scope > li').length).toBeGreaterThan(0);
       expect(items.querySelector('li > .footer__menu-link')).toBeTruthy();
     });
+
+    const headingIds = [...columns].map((c) => c.querySelector('h2').id);
+    expect(headingIds.every((id) => id.startsWith('footer-'))).toBe(true);
+    expect(new Set(headingIds).size).toBe(headingIds.length);
+  });
+
+  it('does not collide with a same-named heading id elsewhere on the page', async () => {
+    const pageHeading = document.createElement('h2');
+    pageHeading.id = 'explore';
+    document.body.append(pageHeading);
+
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    try {
+      await decorate(block);
+
+      const exploreColumn = [...block.querySelectorAll('.footer__menu-column--nav')]
+        .find((column) => column.querySelector('h2').textContent === 'Explore');
+      const footerHeading = exploreColumn.querySelector('h2');
+
+      expect(footerHeading.id).not.toBe(pageHeading.id);
+      expect(footerHeading.id).toMatch(/^footer-explore(-\d+)?$/);
+    } finally {
+      pageHeading.remove();
+    }
   });
 
   it('leaves social media as the only navigation landmark in the footer', async () => {

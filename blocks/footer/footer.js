@@ -153,6 +153,26 @@ function parseMenuSection(section) {
 }
 
 let menuItemsId = 0;
+const usedHeadingIds = new Set();
+
+/**
+ * Builds a document-unique id for a menu column heading, slugified from its text. The authored
+ * id (e.g. "explore") would otherwise duplicate a same-named heading elsewhere on the page.
+ * @param {string} text Heading text
+ * @returns {string}
+ */
+function uniqueHeadingId(text) {
+  const slug = text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const base = `footer-${slug || 'menu-heading'}`;
+  let id = base;
+  let suffix = 1;
+  while (usedHeadingIds.has(id)) {
+    suffix += 1;
+    id = `${base}-${suffix}`;
+  }
+  usedHeadingIds.add(id);
+  return id;
+}
 
 /**
  * Syncs the heading and item visibility for the current viewport. Below the desktop breakpoint
@@ -261,6 +281,7 @@ function decorateColumn(column) {
   const heading = column.querySelector('h2');
 
   if (heading) {
+    heading.id = uniqueHeadingId(heading.textContent);
     section.prepend(heading);
     decorateHeadline(heading, items);
     column.querySelectorAll('p a').forEach((link) => {
