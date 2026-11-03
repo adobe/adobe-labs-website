@@ -873,6 +873,7 @@ function bindHeader(block) {
     if (trigger) setPanelOpen(block, trigger, false);
   }, { signal });
 
+  // Track newsletter signup button click in analytics.
   const subscribe = block.querySelector('a.header__cta[href$="/modals/subscribe"]');
   subscribe?.addEventListener('click', () => {
     trackInteraction('subscribe-header', window.location.href);

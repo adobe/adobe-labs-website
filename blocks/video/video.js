@@ -435,6 +435,7 @@ function buildVideo(data, block) {
   const { icon } = buildPlayIcon();
   button.append(icon);
 
+  // Track video play button click in analytics.
   button.addEventListener('click', () => {
     trackInteraction('video-play', window.location.href);
     loadEmbed(block, { source, playLabel });

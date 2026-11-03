@@ -665,6 +665,7 @@ export default async function decorate(block) {
 
   block.append(wrapper);
 
+  // Track newsletter signup button click in analytics.
   const subscribe = block.querySelector('a[href$="/modals/subscribe"]');
   subscribe?.addEventListener('click', () => {
     trackInteraction('subscribe-footer', window.location.href);
