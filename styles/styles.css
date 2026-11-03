@@ -1351,6 +1351,13 @@ body.article main {
       margin-block-start: var(--s2a-spacing-lg);
     }
 
+    /* The user-agent start padding is 40px, which shoves article lists in
+       from the paragraph edge. Keep only enough for the marker. Nested
+       lists keep the browser indent. */
+    & > :is(ul, ol) {
+      padding-inline-start: calc(var(--s2a-spacing-md) + 3px);
+    }
+
     /* List items use half the gap between paragraphs (spacing-sm is
        half of spacing-lg). A paragraph inside an item would otherwise
        collapse its 1rem margin through the item and override that gap. */
