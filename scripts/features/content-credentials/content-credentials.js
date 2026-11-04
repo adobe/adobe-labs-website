@@ -34,19 +34,29 @@ const CR_IMAGE_SELECTORS = [
 ].join(', ');
 
 /**
- * The image's original source, without the optimisation/resize query parameters. The
- * resized renditions the CDN returns do not currently carry the manifest, so this is
- * both the URL to read credentials from and the one Verify must be pointed at.
+ * Whether server optimized image URLs contain the manifest data for display.
+ * When false, the original image URL needs to be fetched to get manifest data.
+ */
+const OPTIMIZED_IMAGES_CONTAIN_MANIFEST = true;
+
+/**
+ * The image's source URL.
+ * This is both the URL to read credentials from and the one Verify must be pointed at.
  *
  * @param {HTMLImageElement} img
- * @returns {string} The original image URL, or an empty string if `src` is unusable.
+ * @returns {string} The image src URL, or an empty string if `src` is unusable.
  */
-const getOriginalImageUrl = (img) => {
+const getImageUrl = (img) => {
   if (!img?.src) return '';
 
   try {
     const url = new URL(img.src);
-    url.search = '';
+
+    // If optimized image does not contain manifest data, fetch original image URL without params.
+    if (!OPTIMIZED_IMAGES_CONTAIN_MANIFEST) {
+      url.search = '';
+    }
+
     return url.toString();
   } catch {
     return '';
@@ -79,7 +89,7 @@ const readCredentials = async (img) => {
   await c2paReady;
 
   // Fetch the image from its original source.
-  const response = await fetch(getOriginalImageUrl(img), { priority: 'low' });
+  const response = await fetch(getImageUrl(img), { priority: 'low' });
 
   // Read the response body as a Blob.
   const blob = await response.blob();
@@ -861,7 +871,7 @@ const addContentCredentials = async (crImageSelector) => {
     const crPinWrapper = hero ? createHeroPinWrapper(hero) : createImagePinWrapper(img);
     if (!crPinWrapper) return;
 
-    buildCRPinPopoverComponent(crPinWrapper, activeManifest, getOriginalImageUrl(img), img.alt);
+    buildCRPinPopoverComponent(crPinWrapper, activeManifest, getImageUrl(img), img.alt);
   }));
 };
 
