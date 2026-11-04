@@ -1134,14 +1134,8 @@ const VAR_INTRO_LAG = '--section-scroll-intro-lag';
 /** Touch-only scroll the intro holds still before it lags. */
 const VAR_INTRO_HOLD = '--section-scroll-intro-hold';
 
-/** Hold plus lag. One `translateY` so the two phases cannot composite apart. */
+/** Hold plus lag. One `translate` so the two phases cannot composite apart. */
 const VAR_INTRO_SHIFT = '--section-scroll-intro-shift';
-
-/** Document scroll where the intro section's top meets the viewport top. */
-const VAR_INTRO_FROM = '--section-scroll-intro-from';
-
-/** Document scroll where the intro section's bottom meets the viewport top. */
-const VAR_INTRO_TO = '--section-scroll-intro-to';
 
 /** `linear()` easing that stays 1:1 across the hold, then adds the lag. */
 const VAR_INTRO_EASE = '--section-scroll-intro-ease';
@@ -1222,8 +1216,6 @@ function clearIntroShift(section) {
   section.style.removeProperty(VAR_INTRO_LAG);
   section.style.removeProperty(VAR_INTRO_HOLD);
   section.style.removeProperty(VAR_INTRO_SHIFT);
-  section.style.removeProperty(VAR_INTRO_FROM);
-  section.style.removeProperty(VAR_INTRO_TO);
   section.style.removeProperty(VAR_INTRO_EASE);
 }
 
@@ -1242,12 +1234,9 @@ function applySectionVars(section) {
       const hold = introHoldPx(section);
       const lag = introLagPx(section);
       const span = section.offsetHeight;
-      const from = layoutTop(section);
       section.style.setProperty(VAR_INTRO_LAG, `${lag}px`);
       section.style.setProperty(VAR_INTRO_HOLD, `${hold}px`);
       section.style.setProperty(VAR_INTRO_SHIFT, `${introShiftPx(hold, lag, span)}px`);
-      section.style.setProperty(VAR_INTRO_FROM, `${Math.round(from)}px`);
-      section.style.setProperty(VAR_INTRO_TO, `${Math.round(from + span)}px`);
       section.style.setProperty(VAR_INTRO_EASE, introShiftEase(hold, lag, span));
     } else {
       clearIntroShift(section);

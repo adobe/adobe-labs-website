@@ -6,8 +6,8 @@
  * This file owns the parts that need no JS: sticky positioning, stacking order,
  * the dim layer's box, and the touch-only intro lag. `scripts/section-scroll/init.js`
  * classifies sections and sets the custom properties read below —
- * `--section-scroll-slow-top`, the intro shift (`--section-scroll-intro-shift`,
- * its scroll range, and its easing), and `--section-scroll-inner-progress`.
+ * `--section-scroll-slow-top`, the intro shift (`--section-scroll-intro-shift`
+ * and its easing), and `--section-scroll-inner-progress`.
  * `scripts/section-scroll/section-motion.js`
  * sets the fourth, `--section-scroll-hero-text-y`, on a full-screen hero
  * section, to recede its copy. On a coarse pointer that supports
@@ -151,35 +151,37 @@
 }
 
 /*
- * Touch lag on the compositor, driven by document scroll. A view timeline
- * remeasures against the visual viewport, so iOS showing the toolbar on the
- * way back up moves the hero for a frame and then snaps it back. `scroll(root)`
- * follows the same scroll offset as the rest of the page. One transform covers
- * the hold and the lag: `translate` and `transform` on two animations composite
- * a frame apart at the handoff. The easing stays 1:1 across the gap, then adds
- * the lag. The range is the section exiting, top at the viewport top through
- * bottom at the viewport top. Without scroll timelines, `section-motion.js`
- * falls back to GSAP. `@supports` stays at the root: nesting it breaks
- * adjacent styles in Safari 16.5 through 18.1.
+ * Touch lag on the compositor. One view-timeline `translate` on the section's
+ * exit: the easing holds the card still across the gap, then adds the lag.
+ * A `scroll(root)` transform tracks document scroll and pins the card on iOS
+ * once that shift catches the scroll. Two animations (`translate` plus
+ * `transform`) composite a frame apart when the toolbar shows on the way up.
+ * The range is percentages of the exit, not a length, so the toolbar resize
+ * does not remeasure it. Without view timelines, `section-motion.js` falls
+ * back to GSAP. `@supports` stays at the root: nesting it breaks adjacent
+ * styles in Safari 16.5 through 18.1.
  */
-@supports (animation-timeline: scroll()) and (animation-range: 0% 100%) {
+@supports (animation-timeline: view()) and (animation-range: entry) {
   @keyframes section-scroll-intro-shift {
     to {
-      transform: translateY(var(--section-scroll-intro-shift, 0));
+      translate: 0 var(--section-scroll-intro-shift, 0);
     }
   }
 
   @media (prefers-reduced-motion: no-preference) and (hover: none) and (pointer: coarse) {
+    main > .section.section-scroll-intro {
+      view-timeline-name: --section-scroll-intro;
+      view-timeline-axis: block;
+    }
+
     main > .section.section-scroll-intro > :not(.section-scroll-fade, .section-scroll-overlay) {
       /* Longhands, not the `animation` shorthand: a `linear()` easing contains
          commas, and the shorthand would split them into extra animations. */
       animation-name: section-scroll-intro-shift;
       animation-timing-function: var(--section-scroll-intro-ease, linear);
       animation-fill-mode: both;
-      animation-timeline: scroll(root block);
-      animation-range:
-        var(--section-scroll-intro-from, 0)
-        var(--section-scroll-intro-to, 0);
+      animation-timeline: --section-scroll-intro;
+      animation-range: exit 0% exit 100%;
     }
   }
 }

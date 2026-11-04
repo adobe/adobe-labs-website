@@ -309,11 +309,8 @@ describe('classifySectionScroll', () => {
     expect(header.style.getPropertyValue('--section-scroll-slow-top')).toBe('');
     expect(header.style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
     expect(header.style.getPropertyValue('--section-scroll-intro-hold')).toBe('64px');
-    // Scroll timeline, not a view timeline: the range is the section's exit
-    // in document pixels, and one shift covers the hold and the lag.
+    // One shift covers the hold and the lag. The view timeline owns the range.
     expect(header.style.getPropertyValue('--section-scroll-intro-shift')).toBe(`${64 + 400 * INTRO_LAG}px`);
-    expect(header.style.getPropertyValue('--section-scroll-intro-from')).toBe('0px');
-    expect(header.style.getPropertyValue('--section-scroll-intro-to')).toBe('400px');
     expect(header.style.getPropertyValue('--section-scroll-intro-ease')).toBe('linear(0, 0.4444 16%, 1)');
   });
 
