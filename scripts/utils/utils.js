@@ -532,6 +532,18 @@ export function isArticleDetailPage(doc = document) {
 }
 
 /**
+ * Whether the visitor has not asked to reduce data.
+ * False when the browser's Save-Data setting is on or the visitor prefers
+ * reduced data (`prefers-reduced-data`, where supported).
+ *
+ * @returns {boolean}
+ */
+export function isReducedDataOff() {
+  if (navigator.connection?.saveData) return false;
+  return !window.matchMedia?.('(prefers-reduced-data: reduce)').matches;
+}
+
+/**
  * Appends a synthetic fragment block for the shared article pre-footer.
  * The block is wrapped in a `div` so `decorateSections` treats it as its own
  * section (a bare block as a `main` child would be misread as the section).
