@@ -249,54 +249,6 @@ export function introHoldEase(progress, { hold, lag, span }) {
 }
 
 /**
- * Rounds for a CSS number. Trailing zeroes from the round are dropped.
- *
- * @param {number} value
- * @param {number} places
- * @returns {string}
- */
-function cssNumber(value, places) {
-  const factor = 10 ** places;
-  return String(Math.round(value * factor) / factor);
-}
-
-/**
- * How far the intro translates, in px, across its exit.
- * The hold is capped at the exit length: past that there is no scroll left
- * to lag through.
- *
- * @param {number} hold Gap before the next section
- * @param {number} lag Distance held back after the hold
- * @param {number} span Section border-box height, the exit length
- * @returns {number}
- */
-export function introShiftPx(hold, lag, span) {
-  if (!(span > 0)) return 0;
-  const held = Math.min(Math.max(hold, 0), span);
-  return held + Math.max(lag, 0);
-}
-
-/**
- * Easing for {@link introShiftPx}. Linear when there is no hold.
- * The first `hold / span` of the exit maps to `hold / (hold + lag)` of the
- * shift, which is 1:1 with scroll, so the card stays put across the gap.
- *
- * @param {number} hold
- * @param {number} lag
- * @param {number} span
- * @returns {string} A CSS `linear()` easing, or `linear`
- */
-export function introShiftEase(hold, lag, span) {
-  if (!(span > 0)) return 'linear';
-  const held = Math.min(Math.max(hold, 0), span);
-  const shift = introShiftPx(hold, lag, span);
-  if (!(held > 0) || held >= span || !(shift > 0)) return 'linear';
-  const at = cssNumber((held / span) * 100, 2);
-  const out = cssNumber(held / shift, 4);
-  return `linear(0, ${out} ${at}%, 1)`;
-}
-
-/**
  * Cover line for a rounded card, in px. `COVER_START_VH` of the viewport,
  * unless the card is shorter than that line. A short card meets the next
  * section at its own bottom, so the pin can sit at the top of a tall viewport

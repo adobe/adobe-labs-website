@@ -35,10 +35,6 @@ import {
   CLASS_SLOW,
   coversPrevious,
   dimCoverRange,
-  introHoldPx,
-  introLagPx,
-  introShiftEase,
-  introShiftPx,
   isFullScreenHero,
   isHeaderHeroSection,
   isRounded,
@@ -1128,18 +1124,6 @@ const MOTION_MQ = '(prefers-reduced-motion: no-preference)';
 /** Sticky offset for a pinned rounded card. */
 const VAR_PIN_TOP = '--section-scroll-slow-top';
 
-/** Touch-only intro lag distance. The scroll-timeline shift is hold plus this. */
-const VAR_INTRO_LAG = '--section-scroll-intro-lag';
-
-/** Touch-only scroll the intro holds still before it lags. */
-const VAR_INTRO_HOLD = '--section-scroll-intro-hold';
-
-/** Hold plus lag. One `translate` so the two phases cannot composite apart. */
-const VAR_INTRO_SHIFT = '--section-scroll-intro-shift';
-
-/** `linear()` easing that stays 1:1 across the hold, then adds the lag. */
-const VAR_INTRO_EASE = '--section-scroll-intro-ease';
-
 /** View-timeline `cover` offset where a touch cover starts to dim. */
 const VAR_DIM_START = '--section-scroll-dim-start';
 
@@ -1207,19 +1191,6 @@ function prefersMotion() {
 }
 
 /**
- * Drops the touch intro shift. A fine pointer runs that motion in GSAP.
- *
- * @param {HTMLElement} section
- * @returns {void}
- */
-function clearIntroShift(section) {
-  section.style.removeProperty(VAR_INTRO_LAG);
-  section.style.removeProperty(VAR_INTRO_HOLD);
-  section.style.removeProperty(VAR_INTRO_SHIFT);
-  section.style.removeProperty(VAR_INTRO_EASE);
-}
-
-/**
  * Geometry that CSS reads. Recomputed on resize without rebuilding tweens.
  *
  * @param {Element} section Classified outgoing section
@@ -1230,17 +1201,6 @@ function applySectionVars(section) {
   const next = section.nextElementSibling;
   if (section.classList.contains(CLASS_INTRO)) {
     section.style.removeProperty(VAR_PIN_TOP);
-    if (usesTouchScroll()) {
-      const hold = introHoldPx(section);
-      const lag = introLagPx(section);
-      const span = section.offsetHeight;
-      section.style.setProperty(VAR_INTRO_LAG, `${lag}px`);
-      section.style.setProperty(VAR_INTRO_HOLD, `${hold}px`);
-      section.style.setProperty(VAR_INTRO_SHIFT, `${introShiftPx(hold, lag, span)}px`);
-      section.style.setProperty(VAR_INTRO_EASE, introShiftEase(hold, lag, span));
-    } else {
-      clearIntroShift(section);
-    }
     if (next instanceof HTMLElement) next.classList.remove(CLASS_SEAM);
     return;
   }
@@ -1364,7 +1324,6 @@ function clear(root = document) {
       el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE, CLASS_SEAM);
       if (el instanceof HTMLElement) {
         el.style.removeProperty(VAR_PIN_TOP);
-        clearIntroShift(el);
         el.style.removeProperty(VAR_DIM_START);
         el.style.removeProperty(VAR_DIM_END);
         el.style.removeProperty(VAR_DIM_TIMELINE);

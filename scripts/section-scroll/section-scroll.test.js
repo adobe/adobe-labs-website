@@ -284,7 +284,7 @@ describe('classifySectionScroll', () => {
     expect(next).not.toHaveClass('section-scroll-next');
   });
 
-  it('lags an intro hero with a CSS var on a coarse pointer instead of pinning', () => {
+  it('does not counter-scroll an intro hero on a coarse pointer', () => {
     mockMatchMedia(true, { touch: true });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
@@ -307,11 +307,8 @@ describe('classifySectionScroll', () => {
     const header = main.children[0];
     expect(header).toHaveClass('section-scroll-intro');
     expect(header.style.getPropertyValue('--section-scroll-slow-top')).toBe('');
-    expect(header.style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
-    expect(header.style.getPropertyValue('--section-scroll-intro-hold')).toBe('64px');
-    // One shift covers the hold and the lag. The view timeline owns the range.
-    expect(header.style.getPropertyValue('--section-scroll-intro-shift')).toBe(`${64 + 400 * INTRO_LAG}px`);
-    expect(header.style.getPropertyValue('--section-scroll-intro-ease')).toBe('linear(0, 0.4444 16%, 1)');
+    expect(header.style.getPropertyValue('--section-scroll-intro-lag')).toBe('');
+    expect(header.style.getPropertyValue('--section-scroll-intro-shift')).toBe('');
   });
 
   it('stacks slow/next through a color/default chain', () => {
@@ -825,7 +822,7 @@ describe('initSectionScroll', () => {
     expect(gsap.ticker.add).not.toHaveBeenCalled();
     expect(loadCSS).toHaveBeenCalledWith('/styles/features/section-scroll.css');
     expect(loadCSS).not.toHaveBeenCalledWith('/deps/lenis/dist/lenis.css');
-    expect(main.children[0].style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
+    expect(main.children[0].style.getPropertyValue('--section-scroll-intro-lag')).toBe('');
 
     // The dim still runs: it is opacity, not a translate fighting native scroll.
     expect(timelineTweening(overlay)).toBeDefined();
@@ -1120,7 +1117,7 @@ describe('initSectionScroll', () => {
     delete window.CSS;
   });
 
-  it('leaves the intro lag to CSS on a coarse pointer with scroll-driven animations', async () => {
+  it('does not run a scroll-linked intro shift when scroll-driven animations exist', async () => {
     mockMatchMedia(true, { touch: true });
     window.CSS = { supports: () => true };
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
@@ -1141,7 +1138,7 @@ describe('initSectionScroll', () => {
 
     expect(gsap.timeline).not.toHaveBeenCalled();
     expect(main.children[0]).toHaveClass('section-scroll-intro');
-    expect(main.children[0].style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
+    expect(main.children[0].style.getPropertyValue('--section-scroll-intro-lag')).toBe('');
     delete window.CSS;
   });
 

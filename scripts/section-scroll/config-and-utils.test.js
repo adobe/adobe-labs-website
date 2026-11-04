@@ -19,8 +19,6 @@ import {
   introHoldEase,
   introHoldPx,
   introLagPx,
-  introShiftEase,
-  introShiftPx,
   isFullScreenHero,
   isRounded,
   pinTopPx,
@@ -375,39 +373,6 @@ describe('introHoldEase', () => {
     expect(introHoldEase(0.1, geometry) * 240).toBeCloseTo(80);
     expect(introHoldEase(0.55, geometry) * 240).toBeCloseTo(160);
     expect(introHoldEase(1, geometry)).toBe(1);
-  });
-});
-
-describe('introShiftPx', () => {
-  it('adds the hold and the lag across the exit', () => {
-    expect(introShiftPx(64, 80, 400)).toBe(144);
-  });
-
-  it('is the lag alone when there is no gap', () => {
-    expect(introShiftPx(0, 80, 400)).toBe(80);
-  });
-
-  it('stops at the exit when the gap is longer than the section', () => {
-    expect(introShiftPx(900, 80, 400)).toBe(480);
-  });
-
-  it('is zero before the section has a height', () => {
-    expect(introShiftPx(64, 80, 0)).toBe(0);
-  });
-});
-
-describe('introShiftEase', () => {
-  it('is linear without a hold', () => {
-    expect(introShiftEase(0, 80, 400)).toBe('linear');
-  });
-
-  it('reaches the hold at 1:1, then the lag', () => {
-    // 64px of a 400px exit is 16%. 64 of the 144px shift is the output there.
-    expect(introShiftEase(64, 80, 400)).toBe('linear(0, 0.4444 16%, 1)');
-  });
-
-  it('is linear when the hold covers the whole exit', () => {
-    expect(introShiftEase(900, 80, 400)).toBe('linear');
   });
 });
 
