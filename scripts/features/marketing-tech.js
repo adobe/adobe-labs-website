@@ -13,7 +13,7 @@
  */
 
 import { loadScript } from '../aem.js';
-import { PRODUCTION_HOSTS } from '../utils/utils.js';
+import { PRODUCTION_HOSTS, trackInteraction } from '../utils/utils.js';
 
 /**
  * Adobe marketingtech "bootstrap" script.
@@ -79,12 +79,24 @@ const setMarketingTechConfig = () => {
 };
 
 /**
+ * Track clicks on specific links/buttons in the main page content.
+ */
+const trackContentBasedActions = () => {
+  document.querySelector('main')?.addEventListener('click', (event) => {
+    // Subscribe modal links
+    const subscribe = event.target.closest('a[href$="/modals/subscribe"]');
+    if (subscribe) trackInteraction('subscribe-content', window.location.href);
+  });
+};
+
+/**
  * Configure and load Adobe Experience Platform (marketingtech) scripts.
  * Run once on page load.
  */
 const loadMarketingTech = () => {
   setAlloyData();
   setMarketingTechConfig();
+  trackContentBasedActions();
   return loadScript(MARKETING_TECH_URL);
 };
 
