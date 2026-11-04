@@ -78,6 +78,10 @@
   color: var(--s2a-color-content-label);
   text-decoration: none;
 
+  @media (width < 48rem) {
+    gap: var(--s2a-spacing-2xs);
+  }
+
   &:focus-visible {
     outline: var(--s2a-border-width-md) solid var(--s2a-color-focus-ring-default);
     outline-offset: var(--s2a-border-width-md);
@@ -100,6 +104,7 @@
      stays first for screen readers regardless of viewport. */
   @media (width < 48rem) {
     order: -1;
+    margin-block-end: calc(var(--s2a-spacing-xs) - var(--s2a-spacing-2xs));
   }
 
   /* From 48rem, height is fixed to the *row's* width (25% of it, at a 3:2
