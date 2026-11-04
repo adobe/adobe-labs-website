@@ -65,8 +65,14 @@ const getImageUrl = (img) => {
 
 /**
  * Read content credentials of image element and return the manifest data if it exists.
+ *
+ * Alongside the active manifest, the manifest of its parent ingredient is returned. An
+ * image re-signed by a server edit, such as a Fastly resize, has an active manifest that
+ * only describes that edit, while the original credentials live on the parent.
+ *
  * @param {HTMLImageElement} img
- * @returns {Promise<object|false>} The image's active C2PA manifest, or false if none was found.
+ * @returns {Promise<{manifest: object, sourceManifest: object|null}|false>} The image's
+ * active and source C2PA manifests, or false if none was found.
  */
 const readCredentials = async (img) => {
   // Make sure image exists and has a `src` value.
@@ -101,12 +107,21 @@ const readCredentials = async (img) => {
   }
 
   // Read the manifest store from the fetched image.
-  const activeManifest = await reader.activeManifest();
+  const store = await reader.manifestStore();
 
   // Free the reader to release WASM memory.
   await reader.free();
 
-  return activeManifest;
+  const manifests = store?.manifests ?? {};
+  const manifest = manifests[store?.active_manifest];
+  if (!manifest) return false;
+
+  // The ingredient this image was derived from, when its own manifest is in the store.
+  const parent = (Array.isArray(manifest.ingredients) ? manifest.ingredients : [])
+    .find((ingredient) => ingredient?.relationship === 'parentOf' && ingredient.active_manifest);
+  const sourceManifest = manifests[parent?.active_manifest] ?? null;
+
+  return { manifest, sourceManifest };
 };
 
 /**
@@ -398,6 +413,15 @@ const getManifestSummaryData = (manifest) => {
 };
 
 /**
+ * Whether a manifest summary has anything to show beyond the tool that recorded it.
+ *
+ * @param {ReturnType<typeof getManifestSummaryData>} summary
+ * @returns {boolean}
+ */
+const hasDisplayableData = ({ authorName, socialAccounts, doNotTrain }) => Boolean(
+  authorName || socialAccounts.length || doNotTrain,
+);
+
 /**
  * Whether a pin's panel is open. `aria-expanded` is the single source of truth, so what
  * assistive tech is told and what the page shows cannot drift apart.
@@ -506,11 +530,12 @@ const getCrPinLabel = (imageAlt = '') => {
  * displays the image's content credentials data and an inspect button.
 
  * @param {HTMLElement} pinWrapper The wrapper element to append the button to.
- * @param {object} manifest The image's active C2PA manifest.
+ * @param {{manifest: object, sourceManifest: object|null}} credentials The image's active
+ * C2PA manifest, and its parent ingredient's manifest if there is one.
  * @param {string} sourceUrl The image's original URL, handed to Verify for inspection.
  * @param {string} [imageAlt] Alt text of the image this pin belongs to.
  */
-const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl, imageAlt = '') => {
+const buildCRPinPopoverComponent = (pinWrapper, credentials, sourceUrl, imageAlt = '') => {
   const popoverId = `cr-popover-${crypto.randomUUID()}`;
   const groupClass = 'cr-pin-popover__group';
   const itemClass = 'cr-pin-popover__item';
@@ -538,17 +563,28 @@ const buildCRPinPopoverComponent = (pinWrapper, manifest, sourceUrl, imageAlt = 
   popover.hidden = true;
   popover.innerHTML = `<div class="cr-pin-popover__group"><h3 class="cr-pin-popover__heading" id="${headingId}">Content Credentials</h3></div>`;
 
-  // Build groups of items based on the CR data in the manifest.
+  // Build groups of items based on the CR data in the manifest. When the active manifest
+  // only records a server edit, such as a resize, show its source content's data instead.
   // Manifest values are third-party data: always set them as text, never as markup.
+  let summary = getManifestSummaryData(credentials.manifest);
+  let isFromSource = false;
+  if (!hasDisplayableData(summary) && credentials.sourceManifest) {
+    summary = getManifestSummaryData(credentials.sourceManifest);
+    isFromSource = true;
+  }
   const {
     recordedBy, authorName, authorUrl, nameIsVerified, socialAccounts, doNotTrain,
-  } = getManifestSummaryData(manifest);
+  } = summary;
 
   // The tool that recorded the credentials, alongside the heading.
   if (recordedBy) {
     const subheading = document.createElement('p');
     subheading.classList.add('cr-pin-popover__subheading');
-    subheading.textContent = `Recorded by ${recordedBy}`;
+    if (isFromSource) {
+      subheading.append('Source content recorded by: ', document.createElement('br'), recordedBy);
+    } else {
+      subheading.append(`Recorded by ${recordedBy}`);
+    }
     popover.firstElementChild.append(subheading);
   }
 
@@ -865,13 +901,13 @@ const addContentCredentials = async (crImageSelector) => {
     if (hero && img.closest('a')) return;
 
     // Get CR data.
-    const activeManifest = await readCredentials(img);
-    if (!activeManifest) return;
+    const credentials = await readCredentials(img);
+    if (!credentials) return;
 
     const crPinWrapper = hero ? createHeroPinWrapper(hero) : createImagePinWrapper(img);
     if (!crPinWrapper) return;
 
-    buildCRPinPopoverComponent(crPinWrapper, activeManifest, getImageUrl(img), img.alt);
+    buildCRPinPopoverComponent(crPinWrapper, credentials, getImageUrl(img), img.alt);
   }));
 };
 
