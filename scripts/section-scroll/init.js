@@ -135,6 +135,12 @@ function skipsReveal(el) {
 /**
  * Document Y of `el` from in-flow sibling heights, ignoring a sticky offset.
  *
+ * A `position: fixed`/`absolute` sibling takes no space in flow and is not a
+ * flex/grid item, so it gets neither a height contribution nor a gap: the
+ * AEM Sidekick extension injects one such element (`<aem-sidekick>`) as the
+ * first child of `<body>`, and counting its height here sent every jump
+ * hundreds of pixels past its target whenever Sidekick was active.
+ *
  * @param {HTMLElement} el
  * @returns {number}
  */
@@ -160,6 +166,8 @@ function measureLayoutTop(el) {
     const previous = children.slice(0, index).reduce((sum, child) => {
       if (!(child instanceof HTMLElement)) return sum;
       const cs = getComputedStyle(child);
+      const { position } = cs;
+      if (position === 'fixed' || position === 'absolute') return sum;
       return {
         y: sum.y
           + (parseFloat(cs.marginTop) || 0)

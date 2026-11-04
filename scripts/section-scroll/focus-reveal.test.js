@@ -111,6 +111,24 @@ describe('layoutTop', () => {
 
     expect(layoutTop(two)).toBe(1080);
   });
+
+  it('ignores a fixed/absolute sibling, such as the AEM Sidekick extension', () => {
+    document.body.innerHTML = `
+      <aem-sidekick></aem-sidekick>
+      <header></header>
+      <main>
+        <div class="section" id="one"></div>
+      </main>
+    `;
+    const sidekick = document.querySelector('aem-sidekick');
+    const header = document.querySelector('header');
+    const one = document.getElementById('one');
+    sidekick.style.position = 'fixed';
+    Object.defineProperty(sidekick, 'offsetHeight', { configurable: true, value: 1176 });
+    Object.defineProperty(header, 'offsetHeight', { configurable: true, value: 80 });
+
+    expect(layoutTop(one)).toBe(80);
+  });
 });
 
 describe('revealDelta', () => {
