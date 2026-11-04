@@ -299,6 +299,8 @@ describe('classifySectionScroll', () => {
       <div class="section section-rounded-blue"></div>
     `);
     Object.defineProperty(main.children[0], 'offsetHeight', { configurable: true, value: 400 });
+    Object.defineProperty(main.children[0], 'offsetTop', { configurable: true, value: 0 });
+    Object.defineProperty(main.children[1], 'offsetTop', { configurable: true, value: 464 });
 
     classifySectionScroll();
 
@@ -306,6 +308,13 @@ describe('classifySectionScroll', () => {
     expect(header).toHaveClass('section-scroll-intro');
     expect(header.style.getPropertyValue('--section-scroll-slow-top')).toBe('');
     expect(header.style.getPropertyValue('--section-scroll-intro-lag')).toBe(`${400 * INTRO_LAG}px`);
+    expect(header.style.getPropertyValue('--section-scroll-intro-hold')).toBe('64px');
+    // Scroll timeline, not a view timeline: the range is the section's exit
+    // in document pixels, and one shift covers the hold and the lag.
+    expect(header.style.getPropertyValue('--section-scroll-intro-shift')).toBe(`${64 + 400 * INTRO_LAG}px`);
+    expect(header.style.getPropertyValue('--section-scroll-intro-from')).toBe('0px');
+    expect(header.style.getPropertyValue('--section-scroll-intro-to')).toBe('400px');
+    expect(header.style.getPropertyValue('--section-scroll-intro-ease')).toBe('linear(0, 0.4444 16%, 1)');
   });
 
   it('stacks slow/next through a color/default chain', () => {
