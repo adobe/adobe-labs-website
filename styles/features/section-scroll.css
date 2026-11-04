@@ -165,7 +165,7 @@
 @supports (animation-timeline: scroll()) and (animation-range: 0% 100%) {
   @keyframes section-scroll-intro-shift {
     to {
-      transform: translateY(var(--section-scroll-intro-shift, 0px));
+      transform: translateY(var(--section-scroll-intro-shift, 0));
     }
   }
 
@@ -178,8 +178,8 @@
       animation-fill-mode: both;
       animation-timeline: scroll(root block);
       animation-range:
-        var(--section-scroll-intro-from, 0px)
-        var(--section-scroll-intro-to, 0px);
+        var(--section-scroll-intro-from, 0)
+        var(--section-scroll-intro-to, 0);
     }
   }
 }
