@@ -1734,6 +1734,22 @@ export function ensureArticleBackToTop(doc = document) {
   main.after(link);
 }
 
+const TITLE_SUFFIX = ' | Adobe Labs';
+
+/**
+ * Appends " | Adobe Labs" to the `<title>` of article detail pages. Authored
+ * Titles stay unsuffixed so cards, `og:title` and structured data read
+ * cleanly. No-ops on an empty title or one that already has the suffix.
+ *
+ * @param {Document} [doc=document]
+ */
+export function addArticleTitleSuffix(doc = document) {
+  if (!isArticleDetailPage(doc)) return;
+  const title = doc.title.trim();
+  if (!title || title.endsWith(TITLE_SUFFIX.trim())) return;
+  doc.title = `${title}${TITLE_SUFFIX}`;
+}
+
 const SITE_ORIGIN = 'https://labs.adobe.com';
 const ORG_ID = `${SITE_ORIGIN}/#organization`;
 

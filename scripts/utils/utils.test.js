@@ -1,6 +1,7 @@
 import { within } from '@testing-library/dom';
 import { buildBlock, getMetadata } from '../aem.js';
 import {
+  addArticleTitleSuffix,
   buildArticleAuthorMeta,
   buildArticleMetaActions,
   buildArticlePreFooter,
@@ -193,6 +194,38 @@ describe('isArticleDetailPage', () => {
   it('returns true when template metadata lists article among others', () => {
     getMetadata.mockReturnValue('Dark, Article');
     expect(isArticleDetailPage()).toBe(true);
+  });
+});
+
+describe('addArticleTitleSuffix', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getMetadata.mockReturnValue('article');
+    document.title = 'Project Moonlight';
+  });
+
+  it('appends the suffix on article detail pages', () => {
+    addArticleTitleSuffix();
+    expect(document.title).toBe('Project Moonlight | Adobe Labs');
+  });
+
+  it('leaves non-article pages unchanged', () => {
+    getMetadata.mockReturnValue('home');
+    addArticleTitleSuffix();
+    expect(document.title).toBe('Project Moonlight');
+  });
+
+  it('does not double the suffix', () => {
+    document.title = 'Project Moonlight | Adobe Labs';
+    addArticleTitleSuffix();
+    addArticleTitleSuffix();
+    expect(document.title).toBe('Project Moonlight | Adobe Labs');
+  });
+
+  it('skips an empty title', () => {
+    document.title = '';
+    addArticleTitleSuffix();
+    expect(document.title).toBe('');
   });
 });
 
