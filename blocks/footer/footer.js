@@ -1,6 +1,7 @@
 import { getMetadata } from '../../scripts/aem.js';
 import { entryProgress, logoEntryHeld } from '../../scripts/utils/entry-progress.js';
 import {
+  createExternalIcon,
   escapeAttr,
   fromHTML,
   isExternalLink,
@@ -240,25 +241,15 @@ function decorateHeadline(heading, items) {
 }
 
 /**
- * External-link arrow from the PR review. The ink stops near 8.3,
- * so the viewBox matches the path and the arrow fills the icon box.
- */
-const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V7.296L7.28 8.288V1.792L1.056 8.016Z';
-
-/**
- * Appends the external-link arrow. When the link opens a new tab, adds hidden text
- * so the accessible name matches the social links.
+ * Appends the external-link arrow to off-site and mailto links. When the link opens a new
+ * tab, adds hidden text so the accessible name matches the social links.
  * @param {Element} link Menu anchor element
  * @returns {void}
  */
 function decorateExternalLink(link) {
-  if (!isExternalLink(link)) return;
+  if (!isExternalLink(link) && link.protocol !== 'mailto:') return;
 
-  link.append(fromHTML(`
-    <svg class="footer__external-icon" viewBox="0 0 8.288 8.288" aria-hidden="true" focusable="false">
-      <path fill="currentColor" d="${EXTERNAL_ICON_PATH}"></path>
-    </svg>
-  `));
+  link.append(createExternalIcon('footer__external-icon'));
 
   if (link.target === '_blank') {
     link.append(fromHTML('<span class="visually-hidden"> (opens in a new tab)</span>'));

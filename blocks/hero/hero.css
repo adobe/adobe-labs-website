@@ -128,6 +128,14 @@
     text-wrap: balance;
   }
 
+  .hero__external-icon {
+    display: inline-block;
+    inline-size: 0.5em;
+    block-size: 0.5em;
+    margin-inline-start: 0.25em;
+    vertical-align: 0.1em;
+  }
+
   /* Two stacked copies share wrapping. Ghost's real underline gets
      correct position and skip-ink; mask reveals it when the whole
      hero link is hovered or focused. */

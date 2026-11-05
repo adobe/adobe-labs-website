@@ -175,6 +175,27 @@ export function createExternalArrow() {
   return svg;
 }
 
+/** Thin external-link arrow. The viewBox matches the ink so the arrow fills the icon box. */
+const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V7.296L7.28 8.288V1.792L1.056 8.016Z';
+
+/**
+ * Decorative thin external-link arrow for inline text links. `currentColor` tracks the text.
+ * @param {string} className Class for the block's sizing rule
+ * @returns {SVGSVGElement}
+ */
+export function createExternalIcon(className) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', className);
+  svg.setAttribute('viewBox', '0 0 8.288 8.288');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', EXTERNAL_ICON_PATH);
+  path.setAttribute('fill', 'currentColor');
+  svg.append(path);
+  return svg;
+}
+
 /**
  * Marks one external link so it opens in a new tab.
  * @param {Element} link Anchor element

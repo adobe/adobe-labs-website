@@ -1,6 +1,7 @@
 import { getMetadata } from '../../scripts/aem.js';
 import {
   buildPlayIcon,
+  createExternalIcon,
   getAuthoredCells,
   getAuthoredVideoCell,
   getCellLinkHref,
@@ -300,6 +301,8 @@ export function buildHero(data = {}, root = document.createElement('div')) {
     // accessibility tree. The name is the visible text, once, so the
     // external-link pass can append "(opens in a new tab)" to it.
     if (isExternalLink(wrapperLink)) {
+      wrapperLink.querySelector('.hero__headline')
+        ?.append(createExternalIcon('hero__external-icon'));
       const name = [
         isVideo ? 'Video article' : '',
         pageCategory,
