@@ -509,12 +509,21 @@ img {
   height: auto;
 }
 
+/* Citation and code samples. The surface follows the page theme, including
+   pages that force dark mode. color is set with color-scheme so the text
+   and scrollbar stay on that surface. */
 pre {
   padding: 1.0rem;
   border-radius: 0.5rem;
-  background-color: var(--light-color);
+  background-color: var(--s2a-color-background-subtle);
+  color: var(--s2a-color-content-default);
+  color-scheme: light;
   overflow-x: auto;
   white-space: pre;
+}
+
+:root[data-theme="dark"] pre {
+  color-scheme: dark;
 }
 
 /* --- Main / containers --- */
