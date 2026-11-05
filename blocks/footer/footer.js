@@ -1,5 +1,6 @@
 import { getMetadata } from '../../scripts/aem.js';
 import { entryProgress, logoEntryHeld } from '../../scripts/utils/entry-progress.js';
+import { usesCssCover } from '../../scripts/section-scroll/config-and-utils.js';
 import {
   escapeAttr,
   fromHTML,
@@ -499,7 +500,8 @@ function decorateLegal(legal) {
  * Drives `--footer-logo-entry-progress` so the image can rise from below the
  * clip as `.footer__inner` uncovers it. The rise itself is the transform in
  * `footer.css`, and that rule only applies when motion is allowed. Height is
- * cached across scroll frames and dropped on resize.
+ * cached across scroll frames and dropped on resize. Touch rises in CSS and
+ * only gets `--footer-logo-height`.
  *
  * @param {Element|null} logo Footer logo element
  * @returns {void}
@@ -557,6 +559,15 @@ function animateLogo(logo) {
       updateLogoProgress();
     });
   };
+
+  if (usesCssCover() && typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => {
+      logoHeight = logo.offsetHeight;
+      if (logoHeight) logo.style.setProperty('--footer-logo-height', `${logoHeight}px`);
+      updateLogoProgress();
+    }).observe(logo);
+    return;
+  }
 
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onResize);

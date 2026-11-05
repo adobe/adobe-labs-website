@@ -384,6 +384,43 @@ describe('bindFooterReveal', () => {
     }
   });
 
+  it('leaves the touch rise to CSS and only writes the garage-door distance', () => {
+    const { matchMedia } = window;
+    const { CSS: css } = window;
+    window.matchMedia = jest.fn((query) => ({
+      matches: query.includes('pointer: coarse') || query.includes('width < 64rem'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }));
+    window.CSS = { supports: () => true };
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
+    const card = main.children[0];
+    const inner = footer.querySelector('.footer__inner');
+    menuHeight(inner, 700);
+    cardBottom(card, 800);
+
+    try {
+      bindFooterReveal(main, document);
+      expect(footer).toHaveClass('section-scroll-under');
+      // Viewport 800: a stacked menu clears after half of it.
+      expect(inner.style.getPropertyValue('--section-scroll-footer-cover')).toBe('400px');
+
+      cardBottom(card, 0);
+      scroll();
+
+      expect(frames).toHaveLength(0);
+      expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('');
+      expect(footer).not.toHaveClass('section-scroll-logo');
+
+      clearFooterReveal(document);
+      expect(inner.style.getPropertyValue('--section-scroll-footer-cover')).toBe('');
+    } finally {
+      window.matchMedia = matchMedia;
+      window.CSS = css;
+    }
+  });
+
   it('scrolls a focused control to the stacked mid-viewport line', () => {
     const { matchMedia } = window;
     window.matchMedia = jest.fn((query) => ({
