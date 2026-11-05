@@ -35,6 +35,8 @@ import {
   CLASS_SLOW,
   coversPrevious,
   dimCoverRange,
+  introHoldPx,
+  introLagPx,
   isFullScreenHero,
   isHeaderHeroSection,
   isRounded,
@@ -1124,6 +1126,19 @@ const MOTION_MQ = '(prefers-reduced-motion: no-preference)';
 /** Sticky offset for a pinned rounded card. */
 const VAR_PIN_TOP = '--section-scroll-slow-top';
 
+/**
+ * How far an intro hero lags, in px, while the next card covers it.
+ * The gap plus the lag, spread across the cover. Never the whole cover:
+ * matching the scroll distance holds the hero still.
+ */
+const VAR_INTRO_SHIFT = '--section-scroll-intro-shift';
+
+/** Document scroll where the incoming card reaches the cover line. */
+const VAR_INTRO_FROM = '--section-scroll-intro-from';
+
+/** Document scroll where the incoming card reaches the top of the viewport. */
+const VAR_INTRO_TO = '--section-scroll-intro-to';
+
 /** View-timeline `cover` offset where a touch cover starts to dim. */
 const VAR_DIM_START = '--section-scroll-dim-start';
 
@@ -1191,6 +1206,43 @@ function prefersMotion() {
 }
 
 /**
+ * Drops the touch intro overlap. A fine pointer runs that motion in GSAP.
+ *
+ * @param {HTMLElement} section
+ * @returns {void}
+ */
+function clearIntroCover(section) {
+  section.style.removeProperty(VAR_INTRO_SHIFT);
+  section.style.removeProperty(VAR_INTRO_FROM);
+  section.style.removeProperty(VAR_INTRO_TO);
+}
+
+/**
+ * Lag for an intro hero while `next` covers it. The shift closes the gap and
+ * then overlaps, but it stays under half the cover so the hero keeps moving.
+ *
+ * @param {HTMLElement} section Intro section
+ * @param {HTMLElement} next Incoming section
+ * @returns {void}
+ */
+function applyIntroCover(section, next) {
+  const span = coverStartPx(section);
+  const nextTop = layoutTop(next);
+  const from = Math.max(0, Math.round(nextTop - span));
+  const to = Math.round(Math.max(nextTop, from + span));
+  const distance = to - from;
+  const desired = introHoldPx(section) + introLagPx(section);
+  const shift = Math.min(desired, distance / 2);
+  if (!(shift > 0) || !(distance > 0)) {
+    clearIntroCover(section);
+    return;
+  }
+  section.style.setProperty(VAR_INTRO_SHIFT, `${Math.round(shift)}px`);
+  section.style.setProperty(VAR_INTRO_FROM, `${from}px`);
+  section.style.setProperty(VAR_INTRO_TO, `${to}px`);
+}
+
+/**
  * Geometry that CSS reads. Recomputed on resize without rebuilding tweens.
  *
  * @param {Element} section Classified outgoing section
@@ -1202,6 +1254,8 @@ function applySectionVars(section) {
   if (section.classList.contains(CLASS_INTRO)) {
     section.style.removeProperty(VAR_PIN_TOP);
     if (next instanceof HTMLElement) next.classList.remove(CLASS_SEAM);
+    if (usesCssCover() && next instanceof HTMLElement) applyIntroCover(section, next);
+    else clearIntroCover(section);
     return;
   }
   section.style.setProperty(VAR_PIN_TOP, `${pinTopPx(section)}px`);
@@ -1324,6 +1378,7 @@ function clear(root = document) {
       el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE, CLASS_SEAM);
       if (el instanceof HTMLElement) {
         el.style.removeProperty(VAR_PIN_TOP);
+        clearIntroCover(el);
         el.style.removeProperty(VAR_DIM_START);
         el.style.removeProperty(VAR_DIM_END);
         el.style.removeProperty(VAR_DIM_TIMELINE);

@@ -284,8 +284,9 @@ describe('classifySectionScroll', () => {
     expect(next).not.toHaveClass('section-scroll-next');
   });
 
-  it('does not counter-scroll an intro hero on a coarse pointer', () => {
+  it('lags an intro hero across the cover on a coarse pointer', () => {
     mockMatchMedia(true, { touch: true });
+    window.CSS = { supports: () => true };
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const main = mountMain(`
       <div class="section page-header-container hero-container">
@@ -305,10 +306,16 @@ describe('classifySectionScroll', () => {
     classifySectionScroll();
 
     const header = main.children[0];
+    const from = parseFloat(header.style.getPropertyValue('--section-scroll-intro-from'));
+    const to = parseFloat(header.style.getPropertyValue('--section-scroll-intro-to'));
+    const shift = parseFloat(header.style.getPropertyValue('--section-scroll-intro-shift'));
     expect(header).toHaveClass('section-scroll-intro');
     expect(header.style.getPropertyValue('--section-scroll-slow-top')).toBe('');
-    expect(header.style.getPropertyValue('--section-scroll-intro-lag')).toBe('');
-    expect(header.style.getPropertyValue('--section-scroll-intro-shift')).toBe('');
+    // Gap plus lag, and always less than the cover, so the hero keeps moving.
+    expect(shift).toBe(64 + 400 * INTRO_LAG);
+    expect(to - from).toBe(400);
+    expect(shift).toBeLessThan(to - from);
+    delete window.CSS;
   });
 
   it('stacks slow/next through a color/default chain', () => {
@@ -1117,7 +1124,7 @@ describe('initSectionScroll', () => {
     delete window.CSS;
   });
 
-  it('does not run a scroll-linked intro shift when scroll-driven animations exist', async () => {
+  it('overlaps an intro hero in CSS on a coarse pointer with scroll-driven animations', async () => {
     mockMatchMedia(true, { touch: true });
     window.CSS = { supports: () => true };
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
@@ -1138,7 +1145,11 @@ describe('initSectionScroll', () => {
 
     expect(gsap.timeline).not.toHaveBeenCalled();
     expect(main.children[0]).toHaveClass('section-scroll-intro');
-    expect(main.children[0].style.getPropertyValue('--section-scroll-intro-lag')).toBe('');
+    const shift = parseFloat(main.children[0].style.getPropertyValue('--section-scroll-intro-shift'));
+    const from = parseFloat(main.children[0].style.getPropertyValue('--section-scroll-intro-from'));
+    const to = parseFloat(main.children[0].style.getPropertyValue('--section-scroll-intro-to'));
+    expect(shift).toBeGreaterThan(0);
+    expect(shift).toBeLessThanOrEqual((to - from) / 2);
     delete window.CSS;
   });
 

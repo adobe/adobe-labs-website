@@ -5,7 +5,8 @@
  *
  * This file owns the parts that need no JS: sticky positioning, stacking order,
  * and the dim layer's box. `scripts/section-scroll/init.js` classifies sections
- * and sets the custom properties read below — `--section-scroll-slow-top` and
+ * and sets the custom properties read below — `--section-scroll-slow-top`,
+ * the intro overlap (`--section-scroll-intro-shift` and its scroll range), and
  * `--section-scroll-inner-progress`.
  * `scripts/section-scroll/section-motion.js`
  * sets `--section-scroll-hero-text-y` on a full-screen hero
@@ -146,6 +147,35 @@
 
   body > footer.section-scroll-under:not(.section-scroll-logo) .footer__content {
     transform: translateY(calc((var(--section-scroll-inner-progress, -100) / 100) * 50%));
+  }
+}
+
+/*
+ * Touch overlap on the compositor. The hero lags by `--section-scroll-intro-shift`
+ * while the next card travels from the cover line to the top, so the card
+ * climbs over it. The shift stays under half that distance, and one `translate`
+ * is tied to document scroll: a view timeline remeasures when the iOS toolbar
+ * shows, and a shift that matches the scroll holds the hero still. Without
+ * scroll timelines, `section-motion.js` falls back to GSAP. `@supports` stays
+ * at the root: nesting it breaks adjacent styles in Safari 16.5 through 18.1.
+ */
+@supports (animation-timeline: scroll()) and (animation-range: 0% 100%) {
+  @keyframes section-scroll-intro-lag {
+    to {
+      translate: 0 var(--section-scroll-intro-shift, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (hover: none) and (pointer: coarse) {
+    main > .section.section-scroll-intro > :not(.section-scroll-fade, .section-scroll-overlay) {
+      animation-name: section-scroll-intro-lag;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root block);
+      animation-range:
+        var(--section-scroll-intro-from, 0)
+        var(--section-scroll-intro-to, 0);
+    }
   }
 }
 
