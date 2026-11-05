@@ -47,10 +47,11 @@ const OPTIMIZED_IMAGES_CONTAIN_MANIFEST = true;
  * @returns {string} The image src URL, or an empty string if `src` is unusable.
  */
 const getImageUrl = (img) => {
-  if (!img?.src) return '';
+  const src = img?.currentSrc || img?.src;
+  if (!src) return '';
 
   try {
-    const url = new URL(img.src);
+    const url = new URL(src);
 
     // If optimized image does not contain manifest data, fetch original image URL without params.
     if (!OPTIMIZED_IMAGES_CONTAIN_MANIFEST) {
