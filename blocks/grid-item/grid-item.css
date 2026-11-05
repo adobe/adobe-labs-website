@@ -171,11 +171,6 @@
     grid-area: 1 / 1;
   }
 
-  .grid-item__title-text {
-    font-family: var(--body-font-family);
-    font-weight: var(--s2a-font-weight-adobe-clean-extrabold);
-  }
-
   .grid-item__title-underline {
     /* Painted on top; without this it would intercept clicks and
        selection meant for the real text. */

@@ -32,8 +32,7 @@
 
 .page-header__aside {
   max-width: 31.25rem;
-  font-family: var(--body-font-family);
-  font-weight: var(--s2a-font-weight-adobe-clean-extrabold);
+  font-weight: var(--s2a-font-weight-adobe-clean-regular);
   color: var(--s2a-color-content-heading);
 
   & p {
@@ -46,12 +45,6 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--s2a-spacing-2xs);
-}
-
-.page-header__jump-label,
-.page-header__jump-list {
-  font-family: var(--body-font-family);
-  font-weight: var(--s2a-font-weight-adobe-clean-extrabold);
 }
 
 .page-header__jump-label {
