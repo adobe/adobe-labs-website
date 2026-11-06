@@ -1601,9 +1601,8 @@ export function decorateBlockquotes(main) {
 }
 
 /**
- * Makes each code sample that scrolls sideways a named Tab stop, so keyboard
- * users can scroll it with the arrow keys. Safari won't Tab into a scroll box
- * on its own. Samples that fit stay out of the Tab order.
+ * Makes overflowing code samples Tab stops. Safari won't Tab into a scroll box
+ * on its own.
  * @param {Element} main The container element
  */
 export function decorateCodeBlocks(main) {
@@ -1622,7 +1621,6 @@ export function decorateCodeBlocks(main) {
     }
   };
 
-  // Widths settle after fonts load and change on resize.
   const resizeObserver = new ResizeObserver((entries) => {
     entries.forEach(({ target }) => update(target));
   });

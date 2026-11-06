@@ -30,6 +30,19 @@ function isScrolledToEnd(tableWrapper) {
   return tableWrapper.scrollLeft + tableWrapper.clientWidth >= tableWrapper.scrollWidth - 1;
 }
 
+// Safari won't Tab into a scroll box on its own.
+function setScrollerFocusable(tableWrapper, scrollable) {
+  if (scrollable) {
+    tableWrapper.tabIndex = 0;
+    tableWrapper.setAttribute('role', 'region');
+    tableWrapper.setAttribute('aria-label', 'Scrollable table');
+  } else {
+    tableWrapper.removeAttribute('tabindex');
+    tableWrapper.removeAttribute('role');
+    tableWrapper.removeAttribute('aria-label');
+  }
+}
+
 function bindOverflowUi(block) {
   const tableWrapper = block.parentElement?.classList.contains('table-wrapper')
     ? block.parentElement
@@ -39,6 +52,7 @@ function bindOverflowUi(block) {
     const table = block.querySelector('table');
     const scrollable = table.scrollWidth > tableWrapper.clientWidth;
     block.classList.toggle('table--scrollable', scrollable);
+    setScrollerFocusable(tableWrapper, scrollable);
     block.classList.toggle('table--scrolled-end', isScrolledToEnd(tableWrapper));
   };
 
