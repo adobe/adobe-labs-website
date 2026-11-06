@@ -562,7 +562,7 @@ const buildCRPinPopoverComponent = (pinWrapper, credentials, sourceUrl, imageAlt
   popover.setAttribute('aria-labelledby', headingId);
   popover.tabIndex = -1;
   popover.hidden = true;
-  popover.innerHTML = `<div class="cr-pin-popover__group"><h3 class="cr-pin-popover__heading" id="${headingId}">Content Credentials</h3></div>`;
+  popover.innerHTML = `<div class="cr-pin-popover__group"><p class="cr-pin-popover__heading heading-3" id="${headingId}">Content Credentials</p></div>`;
 
   // Build groups of items based on the CR data in the manifest. When the active manifest
   // only records a server edit, such as a resize, show its source content's data instead.

@@ -253,7 +253,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
 
   const template = document.createElement('template');
   template.innerHTML = `
-    <div class="hero__media" aria-hidden="true"></div>
+    <div class="hero__media"></div>
     <div class="hero__content">
       <div class="hero__top-row">
         <div class="hero__eyebrow">
@@ -324,6 +324,9 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (wrapperLink) {
     wrapperLink.classList.add('hero__link-wrap');
     blockChildren.forEach((child) => wrapperLink.appendChild(child));
+    // The link is named by its text, so the image inside it is decorative.
+    // Avoids overly verbose and confusing link text for screen reader users.
+    wrapperLink.querySelectorAll('.hero__media img').forEach((img) => { img.alt = ''; });
     // A visually-hidden hint inside this card is clipped out of the
     // accessibility tree. The name is the visible text, once, so the
     // external-link pass can append "(opens in a new tab)" to it.
@@ -333,7 +336,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
         pageCategory,
         headline,
         linkLabel,
-      ].filter(Boolean).join(' • ');
+      ].filter(Boolean).join(', ');
       if (name) wrapperLink.setAttribute('aria-label', name);
     }
     wrappedContent = wrapperLink;
