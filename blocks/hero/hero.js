@@ -336,7 +336,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
         pageCategory,
         headline,
         linkLabel,
-      ].filter(Boolean).join(' • ');
+      ].filter(Boolean).join(', ');
       if (name) wrapperLink.setAttribute('aria-label', name);
     }
     wrappedContent = wrapperLink;

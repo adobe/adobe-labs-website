@@ -538,9 +538,9 @@ describe('hero block', () => {
 
     expect(block.querySelector('.hero__headline-text')).toHaveTextContent(/^External link tests$/);
     expect(block.querySelector('.hero__headline-underline')).toHaveTextContent(/^External link tests$/);
-    expect(link).toHaveAttribute('aria-label', 'External link tests • Read (opens in a new tab)');
+    expect(link).toHaveAttribute('aria-label', 'External link tests, Read (opens in a new tab)');
     expect(link.querySelector('.visually-hidden')).toBeNull();
-    expect(within(block).getByRole('link', { name: 'External link tests • Read (opens in a new tab)' }))
+    expect(within(block).getByRole('link', { name: 'External link tests, Read (opens in a new tab)' }))
       .toBe(link);
   });
 
@@ -567,7 +567,7 @@ describe('hero block', () => {
     expect(external.querySelector('.hero__headline-underline .hero__headline-end .hero__external-icon'))
       .toBeTruthy();
     expect(external.querySelector('.hero__link-wrap'))
-      .toHaveAttribute('aria-label', 'Project Custom Filters • Try now');
+      .toHaveAttribute('aria-label', 'Project Custom Filters, Try now');
     expect(internal.querySelector('.hero__external-icon')).toBeNull();
   });
 
