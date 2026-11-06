@@ -543,6 +543,33 @@ describe('hero block', () => {
       .toBe(link);
   });
 
+  it('keeps the external-link arrow with the last headline word only for off-site links', async () => {
+    const external = createHeroBlock([
+      [
+        '',
+        'Exp. 1',
+        '<a href="https://projectcustomfilters.adobelabs.com/">Project Custom Filters</a>',
+        'Try now',
+      ],
+    ]);
+    const internal = createHeroBlock([
+      ['<a href="/research/story">Internal story</a>', 'Read'],
+    ]);
+
+    await decorate(external);
+    await decorate(internal);
+
+    const end = external.querySelector('.hero__headline-text .hero__headline-end');
+    expect(end).toHaveTextContent(/^Filters$/);
+    expect(end.querySelector('.hero__external-icon')).toHaveAttribute('aria-hidden', 'true');
+    expect(external.querySelector('.hero__headline-text')).toHaveTextContent(/^Project Custom Filters$/);
+    expect(external.querySelector('.hero__headline-underline .hero__headline-end .hero__external-icon'))
+      .toBeTruthy();
+    expect(external.querySelector('.hero__link-wrap'))
+      .toHaveAttribute('aria-label', 'Project Custom Filters • Try now');
+    expect(internal.querySelector('.hero__external-icon')).toBeNull();
+  });
+
   it('does not link the headline or CTA when the URL is not http(s)', async () => {
     const block = createHeroBlock([
       ['<a href="javascript:alert(1)">Unsafe headline</a>', 'Read'],
