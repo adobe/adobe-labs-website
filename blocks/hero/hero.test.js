@@ -543,7 +543,7 @@ describe('hero block', () => {
       .toBe(link);
   });
 
-  it('adds an external-link icon after the headline only for off-site links', async () => {
+  it('keeps the external-link arrow with the last headline word only for off-site links', async () => {
     const external = createHeroBlock([
       [
         '',
@@ -559,9 +559,12 @@ describe('hero block', () => {
     await decorate(external);
     await decorate(internal);
 
-    const icon = external.querySelector('.hero__headline > .hero__external-icon');
-    expect(icon).toHaveAttribute('aria-hidden', 'true');
-    expect(external.querySelector('.hero__headline-stack .hero__external-icon')).toBeNull();
+    const end = external.querySelector('.hero__headline-text .hero__headline-end');
+    expect(end).toHaveTextContent(/^Filters$/);
+    expect(end.querySelector('.hero__external-icon')).toHaveAttribute('aria-hidden', 'true');
+    expect(external.querySelector('.hero__headline-text')).toHaveTextContent(/^Project Custom Filters$/);
+    expect(external.querySelector('.hero__headline-underline .hero__headline-end .hero__external-icon'))
+      .toBeTruthy();
     expect(external.querySelector('.hero__link-wrap'))
       .toHaveAttribute('aria-label', 'Project Custom Filters • Try now');
     expect(internal.querySelector('.hero__external-icon')).toBeNull();

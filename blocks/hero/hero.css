@@ -128,12 +128,16 @@
     text-wrap: balance;
   }
 
+  .hero__headline-end {
+    white-space: nowrap;
+  }
+
   .hero__external-icon {
     display: inline-block;
-    inline-size: 0.5em;
-    block-size: 0.5em;
-    margin-inline-start: 0.25em;
-    vertical-align: 0.1em;
+    inline-size: 0.6em;
+    block-size: 0.6em;
+    margin-inline-start: 0.2em;
+    vertical-align: 0;
   }
 
   /* Two stacked copies share wrapping. Ghost's real underline gets

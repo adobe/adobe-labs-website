@@ -1,7 +1,7 @@
 import { getMetadata } from '../../scripts/aem.js';
 import {
   buildPlayIcon,
-  createExternalIcon,
+  createExternalArrow,
   getAuthoredCells,
   getAuthoredVideoCell,
   getCellLinkHref,
@@ -125,23 +125,47 @@ function getHeadlineTag(cell) {
 }
 
 /**
+ * Fills one copy of the stack. The external arrow is kept with the last
+ * word so it cannot wrap onto its own line.
+ *
+ * @param {HTMLElement} el Copy to fill
+ * @param {string} text
+ * @param {boolean} external Append the external-link arrow
+ */
+function fillStackCopy(el, text, external) {
+  if (!external) {
+    el.textContent = text;
+    return;
+  }
+  const trimmed = text.trim();
+  const i = trimmed.lastIndexOf(' ');
+  const end = document.createElement('span');
+  end.className = 'hero__headline-end';
+  const arrow = createExternalArrow();
+  arrow.classList.add('hero__external-icon');
+  end.append(trimmed.slice(i + 1), arrow);
+  el.append(trimmed.slice(0, i + 1), end);
+}
+
+/**
  * Visible text stacked with an aria-hidden underline copy so both wrap
  * the same way. The underline is revealed in CSS.
  *
  * @param {string} text
  * @param {{ stack: string, text: string, underline: string }} classNames
+ * @param {boolean} [external] Append the external-link arrow to both copies
  * @returns {HTMLSpanElement}
  */
-function createUnderlineStack(text, classNames) {
+function createUnderlineStack(text, classNames, external = false) {
   const stack = document.createElement('span');
   stack.className = classNames.stack;
   const textEl = document.createElement('span');
   textEl.className = classNames.text;
-  textEl.textContent = text;
+  fillStackCopy(textEl, text, external);
   const underline = document.createElement('span');
   underline.className = classNames.underline;
   underline.setAttribute('aria-hidden', 'true');
-  underline.textContent = text;
+  fillStackCopy(underline, text, external);
   stack.append(textEl, underline);
   return stack;
 }
@@ -152,16 +176,17 @@ function createUnderlineStack(text, classNames) {
  *
  * @param {string} tag `h1`–`h6` or `p`
  * @param {string} text Headline text
+ * @param {boolean} [external] Headline links off-site
  * @returns {HTMLElement}
  */
-function createHeadline(tag, text) {
+function createHeadline(tag, text, external = false) {
   const el = document.createElement(HEADLINE_TAGS.has(tag) ? tag : 'p');
   el.className = 'hero__headline';
   el.append(createUnderlineStack(text, {
     stack: 'hero__headline-stack',
     text: 'hero__headline-text',
     underline: 'hero__headline-underline',
-  }));
+  }, external));
   return el;
 }
 
@@ -281,8 +306,12 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (pageCategory) pageCategoryEl.textContent = pageCategory;
   else pageCategoryEl.remove();
 
+  const wrapperLink = href ? document.createElement('a') : null;
+  if (wrapperLink) wrapperLink.href = href;
+  const external = isExternalLink(wrapperLink);
+
   const copy = fragment.querySelector('.hero__copy');
-  if (headline) copy.append(createHeadline(headlineTag, headline));
+  if (headline) copy.append(createHeadline(headlineTag, headline, external));
   if (!copy.querySelector('.hero__category, .hero__headline')) copy.remove();
 
   const ctaText = fragment.querySelector('.hero__cta-text');
@@ -292,17 +321,13 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   const blockChildren = [...fragment.children];
 
   let wrappedContent;
-  if (href) {
-    const wrapperLink = document.createElement('a');
-    wrapperLink.href = href;
+  if (wrapperLink) {
     wrapperLink.classList.add('hero__link-wrap');
     blockChildren.forEach((child) => wrapperLink.appendChild(child));
     // A visually-hidden hint inside this card is clipped out of the
     // accessibility tree. The name is the visible text, once, so the
     // external-link pass can append "(opens in a new tab)" to it.
-    if (isExternalLink(wrapperLink)) {
-      wrapperLink.querySelector('.hero__headline')
-        ?.append(createExternalIcon('hero__external-icon'));
+    if (external) {
       const name = [
         isVideo ? 'Video article' : '',
         pageCategory,
