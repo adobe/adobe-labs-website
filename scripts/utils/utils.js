@@ -1757,6 +1757,7 @@ export function ensureArticleBackToTop(doc = document) {
 
 const SITE_ORIGIN = 'https://labs.adobe.com';
 const ORG_ID = `${SITE_ORIGIN}/#organization`;
+const ORG_NAME = 'Adobe Labs';
 
 /**
  * Absolute http(s) image URL. A relative path on localhost or an AEM preview
@@ -1860,7 +1861,7 @@ function buildOrganization() {
   return {
     '@type': 'Organization',
     '@id': ORG_ID,
-    name: 'Adobe Labs',
+    name: ORG_NAME,
     url: `${SITE_ORIGIN}/`,
     parentOrganization: {
       '@type': 'Organization',
@@ -1871,13 +1872,17 @@ function buildOrganization() {
 }
 
 /**
- * One Person per authored name. An empty author field yields an empty list.
+ * One Person per authored name, plus author ids in authored order. An author
+ * named "Adobe Labs" is the Organization, not a Person. An empty author field
+ * yields empty lists.
  * @param {Document} doc
- * @returns {object[]}
+ * @returns {{ people: object[], refs: object[] }}
  */
-function buildPeople(doc) {
+function buildAuthors(doc) {
+  const orgSlug = toClassName(ORG_NAME);
   const seen = new Set();
   const people = [];
+  const refs = [];
   getMetadata('author', doc)
     .split(',')
     .map((name) => name.trim())
@@ -1886,23 +1891,29 @@ function buildPeople(doc) {
       const slug = toClassName(name);
       if (!slug || seen.has(slug)) return;
       seen.add(slug);
-      people.push({
+      if (slug === orgSlug) {
+        refs.push({ '@id': ORG_ID });
+        return;
+      }
+      const person = {
         '@type': 'Person',
         '@id': `${SITE_ORIGIN}/#person-${slug}`,
         name,
-      });
+      };
+      people.push(person);
+      refs.push({ '@id': person['@id'] });
     });
-  return people;
+  return { people, refs };
 }
 
 /**
- * Article author: one person id, a list of person ids, or the Organization.
- * @param {object[]} people
+ * Article author: one id, a list of ids, or the Organization when no author
+ * is authored.
+ * @param {object[]} refs
  * @returns {object|object[]}
  */
-function authorReference(people) {
-  if (!people.length) return { '@id': ORG_ID };
-  const refs = people.map((person) => ({ '@id': person['@id'] }));
+function authorReference(refs) {
+  if (!refs.length) return { '@id': ORG_ID };
   return refs.length === 1 ? refs[0] : refs;
 }
 
@@ -1940,7 +1951,7 @@ function buildArticleGraph(doc) {
   if (!headline) return [];
 
   const url = getShareUrl();
-  const people = buildPeople(doc);
+  const { people, refs } = buildAuthors(doc);
   const article = {
     '@type': 'Article',
     headline,
@@ -1962,7 +1973,7 @@ function buildArticleGraph(doc) {
   article.mainEntityOfPage = { '@type': 'WebPage', '@id': url };
   article.publisher = { '@id': ORG_ID };
   article.inLanguage = 'en';
-  article.author = authorReference(people);
+  article.author = authorReference(refs);
 
   return [...people, article];
 }
