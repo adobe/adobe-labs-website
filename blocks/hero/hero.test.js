@@ -161,7 +161,8 @@ describe('hero block', () => {
       expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
       expect(block.querySelector('.button')).toBeNull();
       const media = block.querySelector('.hero__media');
-      expect(media).toHaveAttribute('aria-hidden', 'true');
+      expect(media).not.toHaveAttribute('aria-hidden');
+      expect(media.querySelector('img')).toHaveAttribute('alt', '');
       expect(media.querySelector('picture img')).toHaveAttribute('src', expect.stringMatching(/hero\.jpg$/));
       expect(block.querySelector('.play-icon')).toBeNull();
     } finally {
@@ -491,7 +492,7 @@ describe('hero block', () => {
       expect(block.querySelector('.hero__date').closest('a')).toBe(link);
       expect(block.querySelector('.hero__content-type').closest('a')).toBe(link);
       expect(block.querySelector('.hero__media').closest('a')).toBe(link);
-      expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
+      expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', '');
       expect(block.querySelector('canvas')).toBeNull();
     } finally {
       main.remove();
@@ -581,6 +582,18 @@ describe('hero block', () => {
     expect(block.querySelector('.hero__headline').tagName).toBe('P');
     expect(block.querySelector('.hero__headline')).toHaveTextContent('Unsafe headline');
     expect(block.querySelector('.hero__cta-text')).toBeNull();
+  });
+
+  it('keeps the authored image alt when the hero is not linked', async () => {
+    const block = createHeroBlock([
+      ['Unlinked headline'],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+
+    await decorate(block);
+
+    expect(block.querySelector('a')).toBeNull();
+    expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
   });
 
   describe('full-screen loading intro', () => {
