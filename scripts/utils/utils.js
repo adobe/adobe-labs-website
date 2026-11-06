@@ -1601,6 +1601,36 @@ export function decorateBlockquotes(main) {
 }
 
 /**
+ * Makes overflowing code samples Tab stops. Safari won't Tab into a scroll box
+ * on its own.
+ * @param {Element} main The container element
+ */
+export function decorateCodeBlocks(main) {
+  const blocks = [...main.querySelectorAll('pre')];
+  if (!blocks.length) return;
+
+  const update = (pre) => {
+    if (pre.scrollWidth > pre.clientWidth) {
+      pre.tabIndex = 0;
+      pre.setAttribute('role', 'region');
+      pre.setAttribute('aria-label', 'Code sample');
+    } else {
+      pre.removeAttribute('tabindex');
+      pre.removeAttribute('role');
+      pre.removeAttribute('aria-label');
+    }
+  };
+
+  const resizeObserver = new ResizeObserver((entries) => {
+    entries.forEach(({ target }) => update(target));
+  });
+  blocks.forEach((pre) => {
+    update(pre);
+    resizeObserver.observe(pre);
+  });
+}
+
+/**
  * Authored cell that flags a video article.
  * Canonical authoring name is **Is Video**; **Show Video Icon** is an alias.
  *

@@ -294,6 +294,25 @@ describe('table block', () => {
     wrapper.remove();
   });
 
+  it('makes the wrapper a named Tab stop only while the table overflows', () => {
+    const block = createBlock(WAGE_SUMMARY);
+    const wrapper = decorateInWrapper(block, { tableScrollWidth: 900, clientWidth: 400 });
+
+    expect(wrapper).toHaveAttribute('tabindex', '0');
+    expect(wrapper).toHaveAttribute('role', 'region');
+    expect(wrapper).toHaveAttribute('aria-label', 'Scrollable table');
+
+    block.querySelector('table').scrollWidth = 300;
+    wrapper.scrollWidth = 300;
+    triggerResize();
+
+    expect(wrapper).not.toHaveAttribute('tabindex');
+    expect(wrapper).not.toHaveAttribute('role');
+    expect(wrapper).not.toHaveAttribute('aria-label');
+
+    wrapper.remove();
+  });
+
   it('keeps a table fitted when it only fills the padded column', () => {
     const block = createBlock(WAGE_SUMMARY);
     const wrapper = decorateInWrapper(block, {
