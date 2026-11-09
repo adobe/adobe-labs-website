@@ -46,7 +46,8 @@ describe('linkbox block', () => {
     expect(link.querySelector('.linkbox__media')).toContainElement(img);
     expect(block.querySelector('.linkbox__text')).toHaveTextContent('Launch experiment');
     const underline = block.querySelector('.linkbox__underline');
-    expect(underline).toHaveTextContent('Launch experiment');
+    expect(underline).toHaveAttribute('data-ghost-text', 'Launch experiment');
+    expect(underline).toHaveTextContent(/^$/);
     expect(underline).toHaveAttribute('aria-hidden', 'true');
     expect(block.querySelector('.linkbox__arrow')).toHaveAttribute('aria-hidden', 'true');
     expect(block.querySelector('.linkbox__arrow svg')).toBeTruthy();

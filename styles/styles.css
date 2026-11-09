@@ -643,6 +643,12 @@ main:focus-visible::after {
   white-space: nowrap !important;
 }
 
+/* Decorative underline copies draw their text here so it is not repeated in the DOM. */
+[data-ghost-text]::before {
+  content: attr(data-ghost-text);
+  content: attr(data-ghost-text) / "";
+}
+
 /* --- Play icon ---
    Decorative overlay for video articles. Blocks override size, svg size,
    radius, and blur via custom properties; they keep placement to themselves. */

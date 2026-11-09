@@ -484,7 +484,8 @@ describe('hero block', () => {
       expect(block.querySelector('.hero__headline-link')).toBeNull();
       expect(block.querySelector('.hero__headline').tagName).toBe('P');
       expect(block.querySelector('.hero__headline-underline')).toHaveAttribute('aria-hidden', 'true');
-      expect(block.querySelector('.hero__headline-underline')).toHaveTextContent('Headline');
+      expect(block.querySelector('.hero__headline-underline')).toHaveAttribute('data-ghost-text', 'Headline');
+      expect(block.querySelector('.hero__headline')).toHaveTextContent(/^Headline$/);
       const cta = block.querySelector('.hero__cta-text');
       expect(cta.tagName).toBe('P');
       expect(cta).toHaveTextContent('Read');
@@ -537,7 +538,10 @@ describe('hero block', () => {
     markExternalLink(link);
 
     expect(block.querySelector('.hero__headline-text')).toHaveTextContent(/^External link tests$/);
-    expect(block.querySelector('.hero__headline-underline')).toHaveTextContent(/^External link tests$/);
+    const underline = block.querySelector('.hero__headline-underline');
+    expect(underline).toHaveAttribute('data-ghost-text', 'External link ');
+    expect(underline.querySelector('.hero__headline-end')).toHaveAttribute('data-ghost-text', 'tests');
+    expect(underline).toHaveTextContent(/^$/);
     expect(link).toHaveAttribute('aria-label', 'External link tests, Read (opens in a new tab)');
     expect(link.querySelector('.visually-hidden')).toBeNull();
     expect(within(block).getByRole('link', { name: 'External link tests, Read (opens in a new tab)' }))

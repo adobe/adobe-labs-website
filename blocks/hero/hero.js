@@ -10,6 +10,7 @@ import {
   isArticleDetailPage,
   isAuthoredTrue,
   isExternalLink,
+  setGhostText,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
@@ -131,10 +132,15 @@ function getHeadlineTag(cell) {
  * @param {HTMLElement} el Copy to fill
  * @param {string} text
  * @param {boolean} external Append the external-link arrow
+ * @param {boolean} [ghost] Decorative copy; text is drawn by CSS
  */
-function fillStackCopy(el, text, external) {
+function fillStackCopy(el, text, external, ghost = false) {
+  const fill = (target, value) => {
+    if (ghost) setGhostText(target, value);
+    else target.prepend(value);
+  };
   if (!external) {
-    el.textContent = text;
+    fill(el, text);
     return;
   }
   const trimmed = text.trim();
@@ -143,13 +149,15 @@ function fillStackCopy(el, text, external) {
   end.className = 'hero__headline-end';
   const arrow = createExternalArrow();
   arrow.classList.add('hero__external-icon');
-  end.append(trimmed.slice(i + 1), arrow);
-  el.append(trimmed.slice(0, i + 1), end);
+  end.append(arrow);
+  fill(end, trimmed.slice(i + 1));
+  el.append(end);
+  fill(el, trimmed.slice(0, i + 1));
 }
 
 /**
  * Visible text stacked with an aria-hidden underline copy so both wrap
- * the same way. The underline is revealed in CSS.
+ * the same way. The copy's text and underline reveal live in CSS.
  *
  * @param {string} text
  * @param {{ stack: string, text: string, underline: string }} classNames
@@ -165,7 +173,7 @@ function createUnderlineStack(text, classNames, external = false) {
   const underline = document.createElement('span');
   underline.className = classNames.underline;
   underline.setAttribute('aria-hidden', 'true');
-  fillStackCopy(underline, text, external);
+  fillStackCopy(underline, text, external, true);
   stack.append(textEl, underline);
   return stack;
 }
