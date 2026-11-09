@@ -1264,6 +1264,75 @@ describe('content-grid block', () => {
       });
     });
 
+    describe('Related Heading metadata', () => {
+      beforeEach(() => {
+        window.history.pushState({}, '', '/sneaks/current');
+        dataStore.getData.mockResolvedValue(RELATED_INDEX);
+      });
+
+      it('replaces the intro heading text and keeps its level and id', async () => {
+        getMetadata.mockImplementation((name) => (name === 'related-heading' ? ' Latest Sneaks ' : ''));
+        const block = createBlock({
+          'Related content:': 'true',
+          'Count:': '8',
+          Intro: '<h2 id="related-content">Related content</h2><p>More to explore.</p>',
+        });
+
+        await decorate(block);
+
+        const heading = block.querySelector('.content-grid__intro h2');
+        expect(heading).toHaveTextContent(/^Latest Sneaks$/);
+        expect(heading).toHaveAttribute('id', 'related-content');
+        expect(block.querySelector('.content-grid__intro p')).toHaveTextContent('More to explore.');
+      });
+
+      it('keeps the small heading style', async () => {
+        getMetadata.mockImplementation((name) => (name === 'related-heading' ? 'Latest Sneaks' : ''));
+        const block = createBlock({
+          'Related content:': 'true', 'Count:': '8', Intro: '<h3><em>Related content</em></h3>',
+        });
+
+        await decorate(block);
+
+        const heading = block.querySelector('.content-grid__intro h3');
+        expect(heading).toHaveClass('content-grid__intro-heading--small');
+        expect(heading).toHaveTextContent('Latest Sneaks');
+      });
+
+      it('keeps the authored heading when the metadata is empty', async () => {
+        const block = createBlock({
+          'Related content:': 'true', 'Count:': '8', Intro: '<h2>Related content</h2>',
+        });
+
+        await decorate(block);
+
+        expect(block.querySelector('.content-grid__intro h2')).toHaveTextContent('Related content');
+      });
+
+      it('leaves an intro without a heading unchanged', async () => {
+        getMetadata.mockImplementation((name) => (name === 'related-heading' ? 'Latest Sneaks' : ''));
+        const block = createBlock({
+          'Related content:': 'true', 'Count:': '8', Intro: '<p>More to explore.</p>',
+        });
+
+        await decorate(block);
+
+        const intro = block.querySelector('.content-grid__intro');
+        expect(intro).toHaveTextContent(/^More to explore\.$/);
+      });
+
+      it('ignores the metadata on a grid without Related content', async () => {
+        getMetadata.mockImplementation((name) => (name === 'related-heading' ? 'Latest Sneaks' : ''));
+        const block = createBlock({
+          'Content Type:': 'All', 'Count:': '8', Intro: '<h2>Explore Workflows</h2>',
+        });
+
+        await decorate(block);
+
+        expect(block.querySelector('.content-grid__intro h2')).toHaveTextContent('Explore Workflows');
+      });
+    });
+
     it('adds content-grid--related for the fixed intro heading style, and removes it otherwise', async () => {
       window.history.pushState({}, '', '/research/current');
       dataStore.getData.mockResolvedValue(RELATED_INDEX);

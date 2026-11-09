@@ -87,6 +87,17 @@ function takeIntro(block) {
 }
 
 /**
+ * Replace the intro's first heading text with the page's `Related Heading`
+ * metadata, keeping the authored level, id, and small style.
+ * @param {Element|null} intro
+ */
+function applyRelatedHeading(intro) {
+  const text = getMetadata('related-heading').trim();
+  const heading = intro?.querySelector('h1, h2, h3, h4, h5, h6');
+  if (text && heading) heading.textContent = text;
+}
+
+/**
  * Consecutive sibling content-grid that can take a pager.
  * @typedef {object} StackedGrid
  * @property {Element} block
@@ -672,6 +683,9 @@ async function renderGrid(block, gridItems, header) {
  * any content type). The grid then shows only those, in authored order, and
  * hides itself when none of them resolve. Cards get content-type labels when
  * a pick is from another content type than the current page.
+ *
+ * A page's `Related Heading` metadata (often set per folder in bulk metadata)
+ * replaces the text of the related grid's intro heading.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
@@ -688,6 +702,7 @@ export default async function decorate(block) {
   const subheadDescription = block.classList.contains('subhead-description');
 
   block.classList.toggle('content-grid--related', isRelated);
+  if (isRelated) applyRelatedHeading(intro);
   // The shared pre-footer is authored once. The page path picks the
   // section surface; a research page also uses its category
   // (see `.section-rounded-related` in styles.css).
