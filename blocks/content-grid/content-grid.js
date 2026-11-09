@@ -422,15 +422,43 @@ function toPagePath(value) {
 }
 
 /**
- * Paths from the page's `Related Articles` metadata, in authored order.
- * Links may be comma- or whitespace-separated.
+ * Paths from comma- or whitespace-separated links, in authored order.
+ * @param {string} text
  * @returns {string[]}
  */
-function getRelatedArticlePaths() {
-  return getMetadata('related-articles')
+function toPagePaths(text) {
+  return text
     .split(/[\s,]+/)
     .map(toPagePath)
     .filter((path) => path && path !== '/');
+}
+
+/**
+ * Paths from the page's `Related Articles` metadata, in authored order.
+ * @returns {string[]}
+ */
+function getRelatedArticlePaths() {
+  return toPagePaths(getMetadata('related-articles'));
+}
+
+/**
+ * Paths from the block's `Articles` row, in authored order.
+ * A link counts by its href, not its text; plain-text paths work too.
+ * @param {Element} block
+ * @returns {string[]}
+ */
+function takeArticlePaths(block) {
+  const cell = takeConfigCell(block, 'articles');
+  if (!cell) return [];
+  const tokens = [];
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) tokens.push(node.textContent);
+    else if (node.tagName === 'A') tokens.push(node.getAttribute('href') || '');
+    else node.childNodes.forEach(walk);
+  };
+  walk(cell);
+  // Joining with a space keeps list items and paragraphs apart.
+  return toPagePaths(tokens.join(' '));
 }
 
 /**
@@ -461,15 +489,16 @@ function selectPinnedItems(data, paths, { count, excludePath }) {
  * @property {string} endpoint Index to fetch
  * @property {string} [category]
  * @property {string} excludePath Path to omit, or ''
- * @property {string[]} pinnedPaths Paths the page chose; empty for automatic results
+ * @property {string[]} pinnedPaths Paths the author chose; empty for automatic results
  */
 
 /**
  * Read a grid's source from its config, or from the current page in related mode.
  * @param {object} config Block config from {@link readBlockConfig}
+ * @param {string[]} articlePaths Paths from the block's `Articles` row
  * @returns {GridSource}
  */
-function getGridSource(config) {
+function getGridSource(config, articlePaths) {
   const { allContent } = dataStore.commonEndpoints;
   const endpointFor = (section) => (section ? dataStore.commonEndpoints[section.slug] : allContent);
 
@@ -478,10 +507,10 @@ function getGridSource(config) {
     return {
       isRelated: false,
       section,
-      endpoint: endpointFor(section),
+      endpoint: articlePaths.length ? allContent : endpointFor(section),
       category: config.category,
       excludePath: '',
-      pinnedPaths: [],
+      pinnedPaths: articlePaths,
     };
   }
 
@@ -518,14 +547,16 @@ function selectGridItems(data, {
 }
 
 /**
- * Whether any picked row is from another content type than the grid's own,
- * in which case the cards need labels to tell them apart.
+ * Whether any related pick is from another content type than the current page,
+ * in which case the cards need labels to tell them apart. Other grids leave
+ * labels to `show-content-type`.
  * @param {ContentItem[]} items
  * @param {GridSource} source
  * @returns {boolean}
  */
-function picksNeedContentType(items, { section, pinnedPaths }) {
-  return pinnedPaths.length > 0
+function picksNeedContentType(items, { isRelated, section, pinnedPaths }) {
+  return isRelated
+    && pinnedPaths.length > 0
     && items.some((item) => getSectionFromPath(item.path)?.slug !== section?.slug);
 }
 
@@ -672,14 +703,19 @@ async function renderGrid(block, gridItems, header) {
  * any content type). The grid then shows only those, in authored order, and
  * hides itself when none of them resolve. Cards get content-type labels when
  * a pick is from another content type than the current page.
+ *
+ * Any other grid can choose its cards with an `Articles` row (links, any
+ * content type). It then shows only those, in authored order, ignoring
+ * Content Type and Category, and hides itself when none of them resolve.
  * @param {Element} block The content-grid block element
  * @returns {Promise<void>}
  */
 export default async function decorate(block) {
   const intro = takeIntro(block);
+  const articlePaths = takeArticlePaths(block);
 
   const config = readBlockConfig(block);
-  const source = getGridSource(config);
+  const source = getGridSource(config, articlePaths);
   const {
     isRelated, section, endpoint, category,
   } = source;

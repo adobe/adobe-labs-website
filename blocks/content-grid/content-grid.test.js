@@ -1378,6 +1378,151 @@ describe('content-grid block', () => {
     });
   });
 
+  describe('Articles row (picked articles)', () => {
+    const ALL_CONTENT = {
+      data: [
+        ...INDEX.data,
+        {
+          path: '/sneaks/picked-sneak',
+          title: 'Picked sneak',
+          publicationDate: '2025-01-01',
+        },
+        {
+          path: '/playground/picked-playground',
+          title: 'Picked playground',
+          publicationDate: '2025-02-01',
+        },
+      ],
+    };
+
+    beforeEach(() => {
+      dataStore.getData.mockImplementation(async (endpoint) => (
+        endpoint === '/content.json' ? ALL_CONTENT : INDEX
+      ));
+    });
+
+    it('shows picks from any content type in authored order, from the all-content index', async () => {
+      const block = createBlock({
+        'Content Type': 'Research',
+        Category: 'Research',
+        Count: '8',
+        Articles: '/playground/picked-playground, /research/older, /sneaks/picked-sneak',
+      });
+
+      await decorate(block);
+
+      expect(dataStore.getData).toHaveBeenCalledTimes(1);
+      expect(dataStore.getData).toHaveBeenCalledWith('/content.json');
+      expect(titlesFromCards()).toEqual(['Picked playground', 'Older research', 'Picked sneak']);
+    });
+
+    it('reads links by href from a bulleted list, ignoring link text', async () => {
+      const block = createBlock({
+        Count: '8',
+        Articles: '<ul><li><a href="/sneaks/picked-sneak">Picked sneak</a></li>'
+          + '<li><a href="https://main--adobe-labs-website--adobe.aem.page/research/newer">Beyond the prompt</a></li></ul>',
+      });
+
+      await decorate(block);
+
+      expect(titlesFromCards()).toEqual(['Picked sneak', 'Newer research']);
+    });
+
+    it('keeps adjacent paragraphs and plain-text paths apart', async () => {
+      const block = createBlock({
+        Count: '8',
+        Articles: '<p>/sneaks/picked-sneak</p><p><a href="/research/older">Older</a></p><p>playground/picked-playground</p>',
+      });
+
+      await decorate(block);
+
+      expect(titlesFromCards()).toEqual(['Picked sneak', 'Older research', 'Picked playground']);
+    });
+
+    it('caps picks at the authored count', async () => {
+      const block = createBlock({
+        Count: '2',
+        Articles: '/sneaks/picked-sneak /playground/picked-playground /research/newer',
+      });
+
+      await decorate(block);
+
+      expect(titlesFromCards()).toEqual(['Picked sneak', 'Picked playground']);
+    });
+
+    it('shows only the picks, without automatic results, when some are skipped', async () => {
+      const block = createBlock({
+        Count: '8',
+        Articles: [
+          '/sneaks/picked-sneak',
+          '/sneaks/picked-sneak/',
+          '/research/does-not-exist',
+          '/sneaks/hidden',
+          '/research/',
+        ].join(','),
+      });
+
+      await decorate(block);
+
+      expect(titlesFromCards()).toEqual(['Picked sneak']);
+    });
+
+    it('hides the grid when no pick resolves', async () => {
+      const block = createBlock({ Count: '8', Articles: '/research/does-not-exist' });
+
+      await decorate(block);
+
+      expect(buildGridItem).not.toHaveBeenCalled();
+      expect(block.parentElement.hidden).toBe(true);
+    });
+
+    it('does not treat the Articles row as a config filter', async () => {
+      const block = createBlock({ Count: '8', Articles: '/sneaks/picked-sneak' });
+
+      await decorate(block);
+
+      expect(readBlockConfig.mock.calls[0][0].textContent).not.toContain('picked-sneak');
+    });
+
+    it('leaves labels off picks from mixed content types', async () => {
+      const block = createBlock({ Count: '8', Articles: '/sneaks/picked-sneak, /research/newer' });
+
+      await decorate(block);
+
+      expect(dataFromCall(0).contentType).toBe('');
+      expect(dataFromCall(1).contentType).toBe('');
+    });
+
+    it('labels picks when show-content-type is set', async () => {
+      const block = createBlock({ Count: '8', Articles: '/sneaks/picked-sneak, /research/newer' });
+      block.classList.add('show-content-type');
+
+      await decorate(block);
+
+      expect(dataFromCall(0).contentType).toBe('Sneaks');
+      expect(dataFromCall(1).contentType).toBe('Research');
+    });
+
+    it('stays automatic when the Articles row is empty', async () => {
+      const block = createBlock({ 'Content Type': 'Research', Count: '8', Articles: '' });
+
+      await decorate(block);
+
+      expect(dataStore.getData).toHaveBeenCalledWith('/research/content.json');
+      expect(titlesFromCards()).toEqual(['Newer research', 'Workflow video', 'Older research']);
+    });
+
+    it('ignores the Articles row on a related content grid', async () => {
+      window.history.pushState({}, '', '/research/current');
+      const block = createBlock({ 'Related content': 'true', Count: '8', Articles: '/sneaks/picked-sneak' });
+
+      await decorate(block);
+
+      expect(dataStore.getData).toHaveBeenCalledWith('/research/content.json');
+      expect(titlesFromCards()).not.toContain('Picked sneak');
+    });
+  });
+
   describe('stacked jump links', () => {
     function createStackedPage(specs) {
       const main = document.createElement('main');
