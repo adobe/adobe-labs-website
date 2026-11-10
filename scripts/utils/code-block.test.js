@@ -35,7 +35,37 @@ describe('decorateCodeBlocks', () => {
 
     expect(pre).toHaveAttribute('tabindex', '0');
     expect(pre).toHaveAttribute('role', 'region');
-    expect(pre).toHaveAttribute('aria-label', 'Code sample');
+    expect(pre).toHaveAttribute('aria-label', 'Scrollable code sample');
+  });
+
+  it('names each sample from the closest heading or paragraph above it', () => {
+    const main = document.createElement('main');
+    main.innerHTML = `
+      <h2>How to cite</h2>
+      <p>Otherwise, use this format:</p>
+      <pre><code>citation</code></pre>
+      <p>BibTeX:</p>
+      <pre><code>bibtex</code></pre>`;
+    const [citation, bibtex] = main.querySelectorAll('pre');
+    mockWidths(citation, { scrollWidth: 900, clientWidth: 400 });
+    mockWidths(bibtex, { scrollWidth: 900, clientWidth: 400 });
+
+    decorateCodeBlocks(main);
+
+    expect(citation).toHaveAttribute('aria-label', 'Otherwise, use this format (scrollable code sample)');
+    expect(bibtex).toHaveAttribute('aria-label', 'BibTeX (scrollable code sample)');
+  });
+
+  it('shortens a long intro to whole words', () => {
+    const main = document.createElement('main');
+    main.innerHTML = `<p>Changed it? Start with "Adapted from" and say what you changed in your version:</p>
+      <pre><code>sample</code></pre>`;
+    const pre = main.querySelector('pre');
+    mockWidths(pre, { scrollWidth: 900, clientWidth: 400 });
+
+    decorateCodeBlocks(main);
+
+    expect(pre).toHaveAttribute('aria-label', 'Changed it? Start with "Adapted from" and say what you… (scrollable code sample)');
   });
 
   it('leaves a code sample that fits out of the Tab order', () => {

@@ -1601,6 +1601,27 @@ export function decorateBlockquotes(main) {
 }
 
 /**
+ * Name for a code sample from the closest heading or paragraph above it,
+ * e.g. "BibTeX (scrollable code sample)". Long intros are cut at a word.
+ * @param {Element} pre
+ * @returns {string}
+ */
+function codeBlockLabel(pre) {
+  let sibling = pre.previousElementSibling;
+  while (sibling) {
+    const text = sibling.matches('p, h2, h3, h4, h5, h6')
+      ? sibling.textContent.replace(/\s+/g, ' ').trim().replace(/:$/, '')
+      : '';
+    if (text) {
+      const name = text.length > 60 ? `${text.slice(0, 60).replace(/\s+\S*$/, '')}…` : text;
+      return `${name} (scrollable code sample)`;
+    }
+    sibling = sibling.previousElementSibling;
+  }
+  return 'Scrollable code sample';
+}
+
+/**
  * Makes overflowing code samples Tab stops. Safari won't Tab into a scroll box
  * on its own.
  * @param {Element} main The container element
@@ -1613,7 +1634,7 @@ export function decorateCodeBlocks(main) {
     if (pre.scrollWidth > pre.clientWidth) {
       pre.tabIndex = 0;
       pre.setAttribute('role', 'region');
-      pre.setAttribute('aria-label', 'Code sample');
+      pre.setAttribute('aria-label', codeBlockLabel(pre));
     } else {
       pre.removeAttribute('tabindex');
       pre.removeAttribute('role');
