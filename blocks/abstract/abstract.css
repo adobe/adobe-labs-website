@@ -56,6 +56,11 @@
     font-size: var(--s2a-typography-font-size-heading-5);
     line-height: var(--s2a-typography-line-height-heading-5);
     letter-spacing: var(--s2a-font-letter-spacing-4xl);
+
+    /* Regular DPI adjustment for readability */
+    @media (resolution <= 1x) {
+      letter-spacing: var(--s2a-font-letter-spacing-6xl);
+    }
   }
 
   .abstract__number {
