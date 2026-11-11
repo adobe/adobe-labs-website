@@ -201,6 +201,57 @@ Native nesting can be used for this project. When doing so, keep the following i
 2. If using `@supports`, keep this as a root selector and not nested within other selectors, to avoid a Webkit 
    bug that breaks all the other adjacent styles and CSS custom properties. Safari versions 16.5 through 18.1 were affected by this CSS nesting hoisting bug.
 
+### Animated underlines
+
+Linked titles in the hero, elastic-router, hover-list, linkbox, and grid-item blocks show an underline that wipes in on hover or keyboard focus. The block's JS builds the markup, and two pieces of shared code fill in the decorative copy.
+
+#### How it works
+
+Each title is a stack of two copies in the same grid cell:
+
+```html
+<span class="hero__headline-stack">
+  <span class="hero__headline-text">Headline</span>
+  <span class="hero__headline-underline" aria-hidden="true" data-ghost-text="Headline"></span>
+</span>
+```
+
+- The text copy is the visible title.
+- The underline copy sits on top of it. Its text is `color: transparent` and has `text-decoration: underline`, so only the underline shows. A `clip-path: inset()` hides it, then reveals it from the inline start.
+
+Because both copies hold the same text, they wrap the same way. Each wrapped line gets its own underline, with the font's skip-ink and underline position.
+
+The underline copy has no text in the DOM. `setGhostText(el, text)` in `scripts/utils/utils.js` stores the text in `data-ghost-text`. A global rule in `styles/styles.css` draws it:
+
+```css
+[data-ghost-text]::before {
+  content: attr(data-ghost-text);
+  content: attr(data-ghost-text) / "";
+}
+```
+
+This keeps headings from repeating their text for crawlers, SEO tools, and `textContent`. `aria-hidden="true"` and the empty alt text (`/ ""`) keep the copy out of the accessibility tree. The alt text syntax needs Safari 17.4 or later; older browsers use the first declaration.
+
+#### Where it lives
+
+| Block | Stack | Underline copy | Shown on |
+| --- | --- | --- | --- |
+| hero | `.hero__headline-stack` | `.hero__headline-underline` | `.hero__link-wrap` hover and focus |
+| elastic-router | `.elastic-router__title-stack` | `.elastic-router__title-underline` | `.elastic-router__item` hover and `:focus-within` |
+| hover-list | `.hover-list__headline-stack` | `.hover-list__headline-underline` | `.hover-list__link` hover and focus |
+| linkbox | `.linkbox__stack` | `.linkbox__underline` | `a.linkbox__surface` hover, focus, and press |
+| grid-item | `.grid-item__title-stack` | `.grid-item__title-underline` | `.grid-item__main` hover and focus |
+
+Timing comes from `--underline-transition-duration` (enter), `--underline-transition-duration-exit`, and `--underline-transition-easing` on `:root`. Each block maps these to its own duration property and turns the wipe off when the user prefers reduced motion.
+
+#### Adding the effect to a block
+
+1. Build the text copy with real text. Build the underline copy with `aria-hidden="true"` and fill it with `setGhostText()`, never `textContent`.
+2. Give both copies the same structure. When the last word is kept with an arrow, as in hero and hover-list, the underline copy needs the same wrapper and arrow. Call `setGhostText()` on each part. The `::before` text renders before the element's children, so the arrow stays after the word.
+3. In CSS, place both copies in one cell (`display: inline-grid`, `grid-area: 1 / 1`). On the underline copy, set `color: transparent`, `pointer-events: none`, and `user-select: none`, then animate `clip-path`. Flip the inset for `:dir(rtl)`.
+4. With a tight line height, the last line's underline can fall outside the box. Extend the clip below the box, as hero does with `--hero-underline-overflow`.
+5. In tests, assert the underline copy has `data-ghost-text` and no text, and that the title's text appears once.
+
 ### JS
 
 Make sure all code is documented with JSDOC style comments. Including functions, their parameters, and return values.
