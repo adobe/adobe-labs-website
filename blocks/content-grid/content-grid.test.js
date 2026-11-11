@@ -1629,14 +1629,16 @@ describe('content-grid block', () => {
     });
   });
 
-  describe('card entrance', () => {
+  describe('card stagger', () => {
     /** @type {Array<{ callback: Function, observe: jest.Mock, disconnect: jest.Mock }>} */
-    let observers;
+    let resizes;
     let reducedMotion;
+    let supportsView;
 
     beforeEach(() => {
-      observers = [];
+      resizes = [];
       reducedMotion = false;
+      supportsView = true;
       window.matchMedia = jest.fn((query) => ({
         get matches() {
           return String(query).includes('prefers-reduced-motion') ? reducedMotion : false;
@@ -1645,27 +1647,31 @@ describe('content-grid block', () => {
         addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
       }));
-      global.IntersectionObserver = jest.fn(function MockIntersectionObserver(callback, options) {
+      CSS.supports = jest.fn(() => supportsView);
+      global.ResizeObserver = jest.fn(function MockResizeObserver(callback) {
         this.callback = callback;
-        this.options = options;
         this.observe = jest.fn();
         this.disconnect = jest.fn();
-        observers.push(this);
+        resizes.push(this);
       });
     });
 
     afterEach(() => {
-      document.documentElement.classList.remove('hero-intro');
       delete window.matchMedia;
-      delete global.IntersectionObserver;
+      delete CSS.supports;
+      delete global.ResizeObserver;
     });
 
     function cards(block) {
       return [...block.querySelectorAll('.content-grid__item')];
     }
 
-    function riseIndex(item) {
-      return item.style.getPropertyValue('--content-grid-rise-index');
+    function staggerIndex(item) {
+      return item.style.getPropertyValue('--content-grid-stagger-index');
+    }
+
+    function staggerRow(item) {
+      return item.style.getPropertyValue('--content-grid-stagger-row');
     }
 
     /**
@@ -1681,16 +1687,15 @@ describe('content-grid block', () => {
           const item = items[index];
           index += 1;
           const { top, height } = row;
-          const left = i * 100;
           Object.defineProperty(item, 'offsetTop', { configurable: true, get: () => top });
           item.getBoundingClientRect = () => ({
             top,
             bottom: top + height,
-            left,
-            right: left + 80,
+            left: i * 100,
+            right: (i * 100) + 80,
             width: 80,
             height,
-            x: left,
+            x: i * 100,
             y: top,
             toJSON() { return this; },
           });
@@ -1698,29 +1703,20 @@ describe('content-grid block', () => {
       });
     }
 
-    function entered(block) {
-      observers[0].callback([{ target: block, isIntersecting: true }]);
-    }
-
-    it('stages the grid and staggers a row that is already on screen', async () => {
+    it('assigns a left-to-right column step before layout', async () => {
       const block = createBlock({ 'Content Type:': 'All' });
       await decorate(block);
       const items = cards(block);
 
-      expect(block).toHaveClass('content-grid--staged');
-      expect(items.some((item) => item.classList.contains('content-grid__item--in'))).toBe(false);
-      expect(observers[0].observe).toHaveBeenCalledWith(block);
-
-      entered(block);
-
-      items.forEach((item, index) => {
-        expect(item).toHaveClass('content-grid__item--in');
-        expect(riseIndex(item)).toBe(String(index + 1));
-      });
-      expect(observers[0].disconnect).toHaveBeenCalledTimes(1);
+      expect(staggerIndex(items[0])).toBe('1.5');
+      expect(staggerIndex(items[1])).toBe('3.25');
+      expect(staggerIndex(items[2])).toBe('5.5');
+      expect(staggerRow(items[0])).toBe('0');
+      expect(block.querySelector('.content-grid__list')).not.toHaveClass('content-grid__list--stagger-rows');
+      expect(resizes[0].observe).toHaveBeenCalled();
     });
 
-    it('staggers only the row that has entered', async () => {
+    it('restarts the column step on the next visual row', async () => {
       const block = createBlock({ 'Content Type:': 'All' });
       await decorate(block);
       const items = cards(block);
@@ -1729,17 +1725,17 @@ describe('content-grid block', () => {
         { top: 900, height: 360, count: items.length - 2 },
       ]);
 
-      entered(block);
+      resizes[0].callback();
 
-      expect(items[0]).toHaveClass('content-grid__item--in');
-      expect(items[1]).toHaveClass('content-grid__item--in');
-      expect(riseIndex(items[0])).toBe('1');
-      expect(riseIndex(items[1])).toBe('2');
-      expect(items[2]).not.toHaveClass('content-grid__item--in');
-      expect(observers[0].disconnect).not.toHaveBeenCalled();
+      expect(staggerIndex(items[0])).toBe('1.5');
+      expect(staggerIndex(items[1])).toBe('3.25');
+      expect(staggerRow(items[0])).toBe('0');
+      expect(staggerIndex(items[2])).toBe('1.5');
+      expect(staggerRow(items[2])).toBe('1');
+      expect(block.querySelector('.content-grid__list')).toHaveClass('content-grid__list--stagger-rows');
     });
 
-    it('staggers the next row from the start when that row enters', async () => {
+    it('drops the longer range when the grid wraps back to one row', async () => {
       const block = createBlock({ 'Content Type:': 'All' });
       await decorate(block);
       const items = cards(block);
@@ -1747,104 +1743,46 @@ describe('content-grid block', () => {
         { top: 80, height: 360, count: 2 },
         { top: 900, height: 360, count: items.length - 2 },
       ]);
-      entered(block);
+      resizes[0].callback();
 
-      stubRows(block, [
-        { top: -400, height: 360, count: 2 },
-        { top: 120, height: 360, count: items.length - 2 },
-      ]);
-      window.dispatchEvent(new Event('scroll'));
-
-      expect(items[2]).toHaveClass('content-grid__item--in');
-      expect(riseIndex(items[2])).toBe('1');
-      expect(riseIndex(items[0])).toBe('1');
-      expect(observers[0].disconnect).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not replay a row that has already entered', async () => {
-      const block = createBlock({ 'Content Type:': 'All' });
-      await decorate(block);
-      const items = cards(block);
       stubRows(block, [{ top: 80, height: 360, count: items.length }]);
-      entered(block);
-      const firstIndex = riseIndex(items[0]);
+      resizes[0].callback();
 
-      observers[0].callback([{ target: block, isIntersecting: false }]);
-      observers[0].callback([{ target: block, isIntersecting: true }]);
-
-      expect(items[0]).toHaveClass('content-grid__item--in');
-      expect(riseIndex(items[0])).toBe(firstIndex);
+      expect(staggerRow(items[2])).toBe('0');
+      expect(staggerIndex(items[2])).toBe('5.5');
+      expect(block.querySelector('.content-grid__list')).not.toHaveClass('content-grid__list--stagger-rows');
     });
 
-    it('holds a row under the hero intro, then starts it when the intro ends', async () => {
-      document.documentElement.classList.add('hero-intro');
-      const block = createBlock({ 'Content Type:': 'All' });
-      await decorate(block);
-      const items = cards(block);
-      stubRows(block, [{ top: 640, height: 400, count: items.length }]);
-
-      entered(block);
-      expect(items.some((item) => item.classList.contains('content-grid__item--in'))).toBe(false);
-
-      document.documentElement.classList.remove('hero-intro');
-      await new Promise((resolve) => { setTimeout(resolve, 0); });
-
-      expect(items[0]).toHaveClass('content-grid__item--in');
-    });
-
-    it('starts a row during the hero intro once the reader scrolls it up', async () => {
-      document.documentElement.classList.add('hero-intro');
-      const block = createBlock({ 'Content Type:': 'All' });
-      await decorate(block);
-      const items = cards(block);
-      stubRows(block, [{ top: 640, height: 400, count: items.length }]);
-      entered(block);
-
-      stubRows(block, [{ top: 120, height: 400, count: items.length }]);
-      window.dispatchEvent(new Event('scroll'));
-
-      expect(items[0]).toHaveClass('content-grid__item--in');
-    });
-
-    it('ignores intersection records for a different target', async () => {
-      const block = createBlock({ 'Content Type:': 'All' });
-      await decorate(block);
-
-      observers[0].callback([{ target: document.createElement('div'), isIntersecting: true }]);
-      expect(cards(block).some((item) => item.classList.contains('content-grid__item--in'))).toBe(false);
-    });
-
-    it('does not stage the grid when reduced motion is preferred', async () => {
+    it('does not assign steps when reduced motion is preferred', async () => {
       reducedMotion = true;
       const block = createBlock({ 'Content Type:': 'All' });
       await decorate(block);
 
-      expect(block).not.toHaveClass('content-grid--staged');
-      expect(global.IntersectionObserver).not.toHaveBeenCalled();
+      expect(staggerIndex(cards(block)[0])).toBe('');
+      expect(global.ResizeObserver).not.toHaveBeenCalled();
     });
 
-    it('clears the stagger when reduced motion is turned on', async () => {
+    it('clears the steps when reduced motion is turned on', async () => {
       const block = createBlock({ 'Content Type:': 'All' });
       await decorate(block);
-      entered(block);
 
       const motion = window.matchMedia.mock.results[0].value;
       reducedMotion = true;
       const change = motion.addEventListener.mock.calls.find(([event]) => event === 'change');
       change[1]();
 
-      expect(observers[0].disconnect).toHaveBeenCalled();
-      expect(block).not.toHaveClass('content-grid--staged');
-      expect(cards(block).some((item) => item.classList.contains('content-grid__item--in'))).toBe(false);
+      expect(resizes[0].disconnect).toHaveBeenCalled();
+      expect(staggerIndex(cards(block)[0])).toBe('');
+      expect(staggerRow(cards(block)[0])).toBe('');
     });
 
-    it('does not stage the grid without IntersectionObserver', async () => {
-      delete global.IntersectionObserver;
+    it('does not assign steps without a view timeline', async () => {
+      supportsView = false;
       const block = createBlock({ 'Content Type:': 'All' });
       await decorate(block);
 
-      expect(block).not.toHaveClass('content-grid--staged');
-      expect(riseIndex(cards(block)[0])).toBe('');
+      expect(staggerIndex(cards(block)[0])).toBe('');
+      expect(global.ResizeObserver).not.toHaveBeenCalled();
     });
   });
 });

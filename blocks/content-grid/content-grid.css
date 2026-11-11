@@ -7,12 +7,9 @@
   --content-grid-pager-background: var(--s2a-color-transparent-black-08);
   --content-grid-pager-background-hover: var(--s2a-color-transparent-black-16);
 
-  /* 650ms matches the hero copy fade. 70ms keeps a row one gesture.
-     The settle curve is written on the animation itself: a custom property
-     holding cubic-bezier() is ignored by animation-timing-function. */
-  --content-grid-rise-distance: 100px;
-  --content-grid-rise-duration: 650ms;
-  --content-grid-rise-stagger: 125ms;
+  /* Step size for the scroll stagger. The left card travels 1.5 steps,
+     the next 3.25, then 5.5. Scroll position sets the speed. */
+  --content-grid-stagger-drift: 48px;
 
   :root[data-theme="dark"] & {
     --content-grid-pager-background: var(--s2a-color-transparent-white-08);
@@ -65,29 +62,6 @@
   .content-grid__item,
   .content-grid__intro {
     min-inline-size: 0;
-  }
-
-  /* Each visual row is held at the rise start until that row enters.
-     Cards in the row stagger once, in reading order. A focused card shows immediately. */
-  @media (prefers-reduced-motion: no-preference) {
-    &.content-grid--staged .content-grid__item--in {
-      animation-name: content-grid-rise;
-      animation-duration: var(--content-grid-rise-duration);
-      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-      animation-fill-mode: both;
-      animation-delay: calc((var(--content-grid-rise-index, 1) - 1) * var(--content-grid-rise-stagger));
-    }
-
-    &.content-grid--staged .content-grid__item:not(.content-grid__item--in) {
-      opacity: 0;
-      transform: translateY(var(--content-grid-rise-distance));
-    }
-
-    &.content-grid--staged .content-grid__item:focus-within {
-      opacity: 1;
-      transform: none;
-      animation: none;
-    }
   }
 
   .content-grid__intro {
@@ -247,11 +221,53 @@
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  @keyframes content-grid-rise {
+/*
+ * Scroll-linked stagger, matching adobe.com `parallax-stagger-ltr`.
+ * Cards share the list's view timeline and rise from a column offset.
+ * The left card travels less. Each card to the right starts further down,
+ * and they meet as the list moves through the viewport. A second row
+ * lengthens the range so the grid settles when its top reaches the viewport.
+ * `@supports` stays at the root: nesting it breaks adjacent styles in
+ * Safari 16.5 through 18.1.
+ */
+@supports ((animation-timeline: view()) and (animation-range: entry)) {
+  @keyframes content-grid-stagger {
     from {
-      opacity: 0;
-      transform: translateY(var(--content-grid-rise-distance, 1.25rem));
+      transform: translate3d(0, var(--content-grid-stagger-from, 0), 0);
+    }
+
+    to {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (width >= 48rem) {
+    .content-grid__list {
+      view-timeline-name: --content-grid-stagger;
+      view-timeline-axis: block;
+      view-timeline-inset: 40% 10%;
+    }
+
+    .content-grid__list--stagger-rows {
+      view-timeline-inset: 0 10%;
+    }
+
+    .content-grid__list > .content-grid__item {
+      --content-grid-stagger-from: calc(
+        (var(--content-grid-stagger-index, 1.5) + var(--content-grid-stagger-row, 0))
+        * var(--content-grid-stagger-drift, 48px)
+      );
+
+      animation-name: content-grid-stagger;
+      animation-duration: auto;
+      animation-timing-function: cubic-bezier(0.42, 0, 0, 1);
+      animation-fill-mode: both;
+      animation-timeline: --content-grid-stagger;
+      animation-range: entry 0% entry 100%;
+    }
+
+    .content-grid__list--stagger-rows > .content-grid__item {
+      animation-range: entry 0% exit-crossing 0%;
     }
   }
 }

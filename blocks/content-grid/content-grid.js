@@ -16,10 +16,15 @@ import { buildGridItem } from '../grid-item/grid-item.js';
 
 const DEFAULT_COUNT = 8;
 const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
-/** Enough of a row to read the rise, not a hairline under the hero. */
-const CARD_VISIBLE_PX = 64;
+/** View timelines, including the `entry` range check for partial implementations. */
+const VIEW_TIMELINE_SUPPORT = '(animation-timeline: view()) and (animation-range: entry)';
 /** Cards in one wrapped line share a top within this slop. */
 const ROW_TOP_TOLERANCE_PX = 8;
+/**
+ * Column travel steps from adobe.com `parallax-stagger-ltr`.
+ * Left to right: 1.5, 3.25, 5.5, 7.75. Later columns continue in 2.25 steps.
+ */
+const STAGGER_COL_INDEX = [1.5, 3.25, 5.5, 7.75];
 /** /content.json still includes `/`. */
 const HOME_PATHS = new Set(['', '/', '/index']);
 const DEFAULT_ASPECT_CLASS = 'aspect-1-1';
@@ -611,18 +616,31 @@ function setWrapperHidden(block, hidden) {
 }
 
 /**
- * Cards still waiting to rise, in DOM order.
- * @param {Element} list
- * @returns {Element[]}
+ * Whether this browser can run the scroll-linked stagger.
+ * A missing `entry` range means a partial implementation, so that stays off too.
+ * @returns {boolean}
  */
-function pendingCards(list) {
-  return [...list.children].filter((item) => !item.classList.contains('content-grid__item--in'));
+function viewTimelineSupported() {
+  return typeof CSS !== 'undefined'
+    && typeof CSS.supports === 'function'
+    && CSS.supports(VIEW_TIMELINE_SUPPORT);
+}
+
+/**
+ * Travel step for a column, matching adobe.com left-to-right stagger.
+ * @param {number} colIndex
+ * @returns {number}
+ */
+function staggerColumnIndex(colIndex) {
+  if (colIndex < STAGGER_COL_INDEX.length) return STAGGER_COL_INDEX[colIndex];
+  const last = STAGGER_COL_INDEX[STAGGER_COL_INDEX.length - 1];
+  return last + ((colIndex - (STAGGER_COL_INDEX.length - 1)) * 2.25);
 }
 
 /**
  * Visual rows from the current wrap. Column count comes from the container,
- * so a row is every pending card that shares a top. A list with no layout
- * box yet is one row in DOM order.
+ * so a row is every card that shares a top. A list with no layout box yet
+ * is one row in DOM order.
  * @param {Element[]} items
  * @returns {Element[][]}
  */
@@ -636,7 +654,7 @@ function cardRows(items) {
   /** @type {{ top: number, items: Element[] }[]} */
   const rows = [];
   items.forEach((item) => {
-    // offsetTop ignores the rise transform, so a card already moving
+    // offsetTop ignores the stagger transform, so a card already moving
     // stays in the row it was laid out in.
     const { offsetTop: top } = item;
     const row = rows.find((entry) => Math.abs(entry.top - top) <= ROW_TOP_TOLERANCE_PX);
@@ -647,110 +665,62 @@ function cardRows(items) {
 }
 
 /**
- * @param {DOMRect} rect
- * @returns {boolean}
+ * Write each card's column and row step. The view timeline in CSS turns
+ * those steps into a scroll-linked translate. A second row lengthens the range.
+ * @param {Element} list
  */
-function rowIsVisible(rect) {
-  if (rect.width === 0 && rect.height === 0) return true;
-  const vh = window.innerHeight || document.documentElement.clientHeight;
-  const visible = Math.min(rect.bottom, vh) - Math.max(rect.top, 0);
-  return visible >= CARD_VISIBLE_PX && rect.bottom > 0 && rect.top < vh;
-}
-
-/**
- * The homepage grid peeks in while the hero intro is still running.
- * A row already on screen, or one the reader has scrolled up, does not wait.
- * @param {DOMRect} rect
- * @returns {boolean}
- */
-function heroIntroIsCovering(rect) {
-  if (!document.documentElement.classList.contains('hero-intro')) return false;
-  if (window.scrollY >= 8) return false;
-  if (rect.width === 0 && rect.height === 0) return false;
-  const vh = window.innerHeight || document.documentElement.clientHeight;
-  return rect.top > vh * 0.5;
-}
-
-/**
- * @param {Element[]} row
- */
-function revealRow(row) {
-  row.forEach((item, index) => {
-    item.style.setProperty('--content-grid-rise-index', String(index + 1));
-    item.classList.add('content-grid__item--in');
+function assignStagger(list) {
+  const items = [...list.children];
+  const rows = cardRows(items);
+  list.classList.toggle('content-grid__list--stagger-rows', rows.length > 1);
+  rows.forEach((row, rowIndex) => {
+    row.forEach((item, colIndex) => {
+      item.style.setProperty('--content-grid-stagger-index', String(staggerColumnIndex(colIndex)));
+      item.style.setProperty('--content-grid-stagger-row', String(rowIndex));
+    });
   });
 }
 
 /**
- * Play each visual row once, when that row is on screen. Cards in the row
- * stagger in reading order. Later rows wait their turn. A row already on
- * screen starts on the first callback.
- * Reduced motion, or no IntersectionObserver, leaves the cards still.
+ * Drop the stagger steps so a reduced-motion change leaves every card still.
+ * @param {Element} list
+ */
+function clearStagger(list) {
+  list.classList.remove('content-grid__list--stagger-rows');
+  [...list.children].forEach((item) => {
+    item.style.removeProperty('--content-grid-stagger-index');
+    item.style.removeProperty('--content-grid-stagger-row');
+  });
+}
+
+/**
+ * Measure the grid once, then again when the column count changes.
+ * Scroll progress stays in CSS. Reduced motion, or no view timeline, leaves
+ * the cards in place.
  * @param {Element} block
  */
-function stageGridReveal(block) {
+function stageGridStagger(block) {
   const list = block.querySelector('.content-grid__list');
   if (!list?.children.length) return;
 
   const motion = window.matchMedia?.(REDUCED_MOTION_MQ);
-  if (!motion || motion.matches || typeof IntersectionObserver !== 'function') return;
+  if (!motion || motion.matches || !viewTimelineSupported()) return;
 
-  let blockInView = false;
+  const apply = () => assignStagger(list);
   const watch = {};
 
-  function stopWatching() {
-    watch.observer.disconnect();
-    watch.intro.disconnect();
-    window.removeEventListener('scroll', watch.onScroll);
-    window.removeEventListener('resize', watch.onResize);
-  }
-
-  function syncReveal() {
-    if (!blockInView) return;
-    const pending = pendingCards(list);
-    if (!pending.length) {
-      stopWatching();
-      return;
-    }
-    cardRows(pending).forEach((row) => {
-      const rect = row[0].getBoundingClientRect();
-      if (heroIntroIsCovering(rect) || !rowIsVisible(rect)) return;
-      revealRow(row);
-    });
-    if (!pendingCards(list).length) stopWatching();
-  }
-
-  watch.onScroll = () => syncReveal();
-  watch.onResize = () => syncReveal();
-  // The block stays intersecting while later rows scroll in, and the hero
-  // intro can end without a scroll. Those listeners come off once every row
-  // has played.
-  watch.observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.target !== block) return;
-      blockInView = entry.isIntersecting;
-      syncReveal();
-    });
-  });
-  watch.intro = new MutationObserver(syncReveal);
-  window.addEventListener('scroll', watch.onScroll, { passive: true });
-  window.addEventListener('resize', watch.onResize);
-  watch.intro.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-  const stopForReducedMotion = () => {
+  function stopForReducedMotion() {
     if (!motion.matches) return;
-    stopWatching();
+    watch.resize?.disconnect();
     motion.removeEventListener('change', stopForReducedMotion);
-    block.classList.remove('content-grid--staged');
-    list.querySelectorAll('.content-grid__item--in').forEach((item) => {
-      item.classList.remove('content-grid__item--in');
-      item.style.removeProperty('--content-grid-rise-index');
-    });
-  };
+    clearStagger(list);
+  }
 
   motion.addEventListener('change', stopForReducedMotion);
-  block.classList.add('content-grid--staged');
-  watch.observer.observe(block);
+  apply();
+  if (typeof ResizeObserver !== 'function') return;
+  watch.resize = new ResizeObserver(apply);
+  watch.resize.observe(list);
 }
 
 /**
@@ -797,7 +767,7 @@ async function renderGrid(block, gridItems, header) {
   nodes.push(list);
 
   block.replaceChildren(...nodes);
-  stageGridReveal(block);
+  stageGridStagger(block);
   await Promise.all(
     [...block.querySelectorAll('.grid-item')].map((gridItem) => loadBlock(gridItem)),
   );
