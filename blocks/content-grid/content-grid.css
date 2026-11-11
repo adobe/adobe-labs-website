@@ -7,6 +7,13 @@
   --content-grid-pager-background: var(--s2a-color-transparent-black-08);
   --content-grid-pager-background-hover: var(--s2a-color-transparent-black-16);
 
+  /* 650ms matches the hero copy fade. 70ms keeps a row one gesture.
+     The settle curve is written on the animation itself: a custom property
+     holding cubic-bezier() is ignored by animation-timing-function. */
+  --content-grid-rise-distance: 100px;
+  --content-grid-rise-duration: 650ms;
+  --content-grid-rise-stagger: 125ms;
+
   :root[data-theme="dark"] & {
     --content-grid-pager-background: var(--s2a-color-transparent-white-08);
     --content-grid-pager-background-hover: var(--s2a-color-transparent-white-24);
@@ -58,6 +65,29 @@
   .content-grid__item,
   .content-grid__intro {
     min-inline-size: 0;
+  }
+
+  /* Each visual row is held at the rise start until that row enters.
+     Cards in the row stagger once, in reading order. A focused card shows immediately. */
+  @media (prefers-reduced-motion: no-preference) {
+    &.content-grid--staged .content-grid__item--in {
+      animation-name: content-grid-rise;
+      animation-duration: var(--content-grid-rise-duration);
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+      animation-fill-mode: both;
+      animation-delay: calc((var(--content-grid-rise-index, 1) - 1) * var(--content-grid-rise-stagger));
+    }
+
+    &.content-grid--staged .content-grid__item:not(.content-grid__item--in) {
+      opacity: 0;
+      transform: translateY(var(--content-grid-rise-distance));
+    }
+
+    &.content-grid--staged .content-grid__item:focus-within {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
   }
 
   .content-grid__intro {
@@ -213,6 +243,15 @@
 
     &.content-grid--has-intro .content-grid__intro {
       padding-inline-end: var(--s2a-spacing-4xl);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes content-grid-rise {
+    from {
+      opacity: 0;
+      transform: translateY(var(--content-grid-rise-distance, 1.25rem));
     }
   }
 }

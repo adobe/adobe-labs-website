@@ -15,6 +15,11 @@ import {
 import { buildGridItem } from '../grid-item/grid-item.js';
 
 const DEFAULT_COUNT = 8;
+const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)';
+/** Enough of a row to read the rise, not a hairline under the hero. */
+const CARD_VISIBLE_PX = 64;
+/** Cards in one wrapped line share a top within this slop. */
+const ROW_TOP_TOLERANCE_PX = 8;
 /** /content.json still includes `/`. */
 const HOME_PATHS = new Set(['', '/', '/index']);
 const DEFAULT_ASPECT_CLASS = 'aspect-1-1';
@@ -606,6 +611,149 @@ function setWrapperHidden(block, hidden) {
 }
 
 /**
+ * Cards still waiting to rise, in DOM order.
+ * @param {Element} list
+ * @returns {Element[]}
+ */
+function pendingCards(list) {
+  return [...list.children].filter((item) => !item.classList.contains('content-grid__item--in'));
+}
+
+/**
+ * Visual rows from the current wrap. Column count comes from the container,
+ * so a row is every pending card that shares a top. A list with no layout
+ * box yet is one row in DOM order.
+ * @param {Element[]} items
+ * @returns {Element[][]}
+ */
+function cardRows(items) {
+  const unlaid = items.every((item) => {
+    const rect = item.getBoundingClientRect();
+    return rect.width === 0 && rect.height === 0;
+  });
+  if (unlaid) return [items];
+
+  /** @type {{ top: number, items: Element[] }[]} */
+  const rows = [];
+  items.forEach((item) => {
+    // offsetTop ignores the rise transform, so a card already moving
+    // stays in the row it was laid out in.
+    const { offsetTop: top } = item;
+    const row = rows.find((entry) => Math.abs(entry.top - top) <= ROW_TOP_TOLERANCE_PX);
+    if (row) row.items.push(item);
+    else rows.push({ top, items: [item] });
+  });
+  return rows.map((row) => row.items);
+}
+
+/**
+ * @param {DOMRect} rect
+ * @returns {boolean}
+ */
+function rowIsVisible(rect) {
+  if (rect.width === 0 && rect.height === 0) return true;
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  const visible = Math.min(rect.bottom, vh) - Math.max(rect.top, 0);
+  return visible >= CARD_VISIBLE_PX && rect.bottom > 0 && rect.top < vh;
+}
+
+/**
+ * The homepage grid peeks in while the hero intro is still running.
+ * A row already on screen, or one the reader has scrolled up, does not wait.
+ * @param {DOMRect} rect
+ * @returns {boolean}
+ */
+function heroIntroIsCovering(rect) {
+  if (!document.documentElement.classList.contains('hero-intro')) return false;
+  if (window.scrollY >= 8) return false;
+  if (rect.width === 0 && rect.height === 0) return false;
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  return rect.top > vh * 0.5;
+}
+
+/**
+ * @param {Element[]} row
+ */
+function revealRow(row) {
+  row.forEach((item, index) => {
+    item.style.setProperty('--content-grid-rise-index', String(index + 1));
+    item.classList.add('content-grid__item--in');
+  });
+}
+
+/**
+ * Play each visual row once, when that row is on screen. Cards in the row
+ * stagger in reading order. Later rows wait their turn. A row already on
+ * screen starts on the first callback.
+ * Reduced motion, or no IntersectionObserver, leaves the cards still.
+ * @param {Element} block
+ */
+function stageGridReveal(block) {
+  const list = block.querySelector('.content-grid__list');
+  if (!list?.children.length) return;
+
+  const motion = window.matchMedia?.(REDUCED_MOTION_MQ);
+  if (!motion || motion.matches || typeof IntersectionObserver !== 'function') return;
+
+  let blockInView = false;
+  const watch = {};
+
+  function stopWatching() {
+    watch.observer.disconnect();
+    watch.intro.disconnect();
+    window.removeEventListener('scroll', watch.onScroll);
+    window.removeEventListener('resize', watch.onResize);
+  }
+
+  function syncReveal() {
+    if (!blockInView) return;
+    const pending = pendingCards(list);
+    if (!pending.length) {
+      stopWatching();
+      return;
+    }
+    cardRows(pending).forEach((row) => {
+      const rect = row[0].getBoundingClientRect();
+      if (heroIntroIsCovering(rect) || !rowIsVisible(rect)) return;
+      revealRow(row);
+    });
+    if (!pendingCards(list).length) stopWatching();
+  }
+
+  watch.onScroll = () => syncReveal();
+  watch.onResize = () => syncReveal();
+  // The block stays intersecting while later rows scroll in, and the hero
+  // intro can end without a scroll. Those listeners come off once every row
+  // has played.
+  watch.observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.target !== block) return;
+      blockInView = entry.isIntersecting;
+      syncReveal();
+    });
+  });
+  watch.intro = new MutationObserver(syncReveal);
+  window.addEventListener('scroll', watch.onScroll, { passive: true });
+  window.addEventListener('resize', watch.onResize);
+  watch.intro.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+  const stopForReducedMotion = () => {
+    if (!motion.matches) return;
+    stopWatching();
+    motion.removeEventListener('change', stopForReducedMotion);
+    block.classList.remove('content-grid--staged');
+    list.querySelectorAll('.content-grid__item--in').forEach((item) => {
+      item.classList.remove('content-grid__item--in');
+      item.style.removeProperty('--content-grid-rise-index');
+    });
+  };
+
+  motion.addEventListener('change', stopForReducedMotion);
+  block.classList.add('content-grid--staged');
+  watch.observer.observe(block);
+}
+
+/**
  * Hide the block and its section wrapper when the query returns no cards.
  * @param {Element} block
  */
@@ -649,6 +797,7 @@ async function renderGrid(block, gridItems, header) {
   nodes.push(list);
 
   block.replaceChildren(...nodes);
+  stageGridReveal(block);
   await Promise.all(
     [...block.querySelectorAll('.grid-item')].map((gridItem) => loadBlock(gridItem)),
   );
