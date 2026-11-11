@@ -226,7 +226,10 @@
       animation-range: cover var(--section-scroll-dim-start, 40vh) cover var(--section-scroll-dim-end, 100vh);
     }
 
-    main.section-scroll-css-cover .hero__content {
+    /* The outgoing section only. Another hero on the page has no
+       timeline name, so this 0s animation would hold its end state
+       and the copy would stay at opacity 0. */
+    main.section-scroll-css-cover > .section-scroll-slow .hero__content {
       animation: section-scroll-fade-out linear both;
       animation-timeline: var(--section-scroll-dim-timeline);
       animation-range: cover var(--section-scroll-dim-start, 40vh) cover var(--section-scroll-dim-end, 100vh);
