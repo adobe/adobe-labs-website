@@ -660,10 +660,11 @@ function buildAuthorImage(name) {
  * Author information is not a link.
  *
  * @param {string} name Author name
- * @returns {HTMLLIElement}
+ * @param {string} tagName `li` inside a list, `div` for a lone author
+ * @returns {HTMLElement}
  */
-function buildAuthorItem(name) {
-  const item = document.createElement('li');
+function buildAuthorItem(name, tagName) {
+  const item = document.createElement(tagName);
   item.className = 'article-meta__author';
   item.append(buildAuthorImage(name));
 
@@ -694,9 +695,11 @@ export function buildAuthorByline() {
   label.textContent = 'Words by:';
   byline.append(label);
 
-  const list = document.createElement('ul');
+  // A one-item list makes screen readers announce "list, 1 item".
+  const isList = names.length > 1;
+  const list = document.createElement(isList ? 'ul' : 'div');
   list.className = 'article-meta__author-list';
-  names.forEach((name) => list.append(buildAuthorItem(name)));
+  names.forEach((name) => list.append(buildAuthorItem(name, isList ? 'li' : 'div')));
   byline.append(list);
 
   return byline;
