@@ -149,6 +149,7 @@
     --color-section-surface-default-variant: #1C1C1C;
     --color-section-surface-gray: #2e2b2b;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
+    --link-hover-color: var(--s2a-color-blue-500);
     --color-section-surface-related: #111F2F;
     --color-section-surface-related-research: #111F2F;
     --color-section-surface-related-workflows: #312b27;
@@ -1405,6 +1406,15 @@ body.article main {
   font-family: var(--serif-font-family);
   font-size: var(--serif-body-font-size);
   line-height: var(--serif-body-line-height);
+}
+
+body.article .default-content-wrapper a:not(.button) {
+  transition: color var(--underline-transition-duration-exit) ease-out;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--link-hover-color);
+  }
 }
 
 /* Quote copy stays heading-3. The serif rule above would otherwise win on inner paragraphs. */
