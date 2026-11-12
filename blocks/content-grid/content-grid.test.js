@@ -1712,7 +1712,6 @@ describe('content-grid block', () => {
       expect(staggerIndex(items[1])).toBe('3.25');
       expect(staggerIndex(items[2])).toBe('5.5');
       expect(staggerRow(items[0])).toBe('0');
-      expect(block.querySelector('.content-grid__list')).not.toHaveClass('content-grid__list--stagger-rows');
       expect(resizes[0].observe).toHaveBeenCalled();
     });
 
@@ -1732,10 +1731,9 @@ describe('content-grid block', () => {
       expect(staggerRow(items[0])).toBe('0');
       expect(staggerIndex(items[2])).toBe('1.5');
       expect(staggerRow(items[2])).toBe('1');
-      expect(block.querySelector('.content-grid__list')).toHaveClass('content-grid__list--stagger-rows');
     });
 
-    it('drops the longer range when the grid wraps back to one row', async () => {
+    it('puts a single wrapped row back on the first step', async () => {
       const block = createBlock({ 'Content Type:': 'All' });
       await decorate(block);
       const items = cards(block);
@@ -1750,7 +1748,6 @@ describe('content-grid block', () => {
 
       expect(staggerRow(items[2])).toBe('0');
       expect(staggerIndex(items[2])).toBe('5.5');
-      expect(block.querySelector('.content-grid__list')).not.toHaveClass('content-grid__list--stagger-rows');
     });
 
     it('does not assign steps when reduced motion is preferred', async () => {

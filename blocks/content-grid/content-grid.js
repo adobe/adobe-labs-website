@@ -664,15 +664,16 @@ function cardRows(items) {
   return rows.map((row) => row.items);
 }
 
+/** A row this far into the viewport at first paint is shown in place. */
+const PLACED_ROW_PX = 64;
+
 /**
  * Write each card's column and row step. The view timeline in CSS turns
- * those steps into a scroll-linked translate. A second row lengthens the range.
+ * those steps into a scroll-linked translate across the card's entry.
  * @param {Element} list
  */
 function assignStagger(list) {
-  const items = [...list.children];
-  const rows = cardRows(items);
-  list.classList.toggle('content-grid__list--stagger-rows', rows.length > 1);
+  const rows = cardRows([...list.children]);
   rows.forEach((row, rowIndex) => {
     row.forEach((item, colIndex) => {
       item.style.setProperty('--content-grid-stagger-index', String(staggerColumnIndex(colIndex)));
@@ -682,11 +683,41 @@ function assignStagger(list) {
 }
 
 /**
+ * Vertical shift already applied, so a placed check uses the layout top.
+ * @param {Element} item
+ * @returns {number}
+ */
+function currentShift(item) {
+  const { transform } = getComputedStyle(item);
+  if (!transform || transform === 'none' || typeof DOMMatrix === 'undefined') return 0;
+  return new DOMMatrix(transform).m42 || 0;
+}
+
+/**
+ * Mark rows that are already on screen so their stagger does not hide them.
+ * Rows still below the fold keep animating in.
+ * @param {Element} list
+ * @returns {boolean} Whether the list had a layout box to measure
+ */
+function placeRowsInView(list) {
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  let sawBox = false;
+  cardRows([...list.children]).forEach((row) => {
+    const rect = row[0].getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    sawBox = true;
+    const layoutTop = rect.top - currentShift(row[0]);
+    if (vh - layoutTop < PLACED_ROW_PX) return;
+    row.forEach((item) => item.classList.add('content-grid__item--placed'));
+  });
+  return sawBox;
+}
+
+/**
  * Drop the stagger steps so a reduced-motion change leaves every card still.
  * @param {Element} list
  */
 function clearStagger(list) {
-  list.classList.remove('content-grid__list--stagger-rows');
   [...list.children].forEach((item) => {
     item.style.removeProperty('--content-grid-stagger-index');
     item.style.removeProperty('--content-grid-stagger-row');
@@ -706,18 +737,36 @@ function stageGridStagger(block) {
   const motion = window.matchMedia?.(REDUCED_MOTION_MQ);
   if (!motion || motion.matches || !viewTimelineSupported()) return;
 
-  const apply = () => assignStagger(list);
   const watch = {};
+  let placed = false;
+
+  function settleVisibleRows() {
+    if (placed || document.documentElement.classList.contains('hero-intro')) return;
+    if (!placeRowsInView(list)) return;
+    placed = true;
+    watch.intro?.disconnect();
+  }
+
+  const apply = () => {
+    assignStagger(list);
+    settleVisibleRows();
+  };
 
   function stopForReducedMotion() {
     if (!motion.matches) return;
     watch.resize?.disconnect();
+    watch.intro?.disconnect();
     motion.removeEventListener('change', stopForReducedMotion);
     clearStagger(list);
   }
 
   motion.addEventListener('change', stopForReducedMotion);
   apply();
+
+  watch.intro = new MutationObserver(settleVisibleRows);
+  watch.intro.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  requestAnimationFrame(() => requestAnimationFrame(settleVisibleRows));
+
   if (typeof ResizeObserver !== 'function') return;
   watch.resize = new ResizeObserver(apply);
   watch.resize.observe(list);
