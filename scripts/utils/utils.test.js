@@ -1021,6 +1021,25 @@ describe('buildAuthorByline', () => {
     expect(byline.querySelectorAll('.article-meta__author')).toHaveLength(2);
   });
 
+  it('renders multiple authors as a list', () => {
+    getMetadata.mockReturnValue('Randy Oest, Josh Winn');
+
+    const list = buildAuthorByline().querySelector('.article-meta__author-list');
+
+    expect(list.tagName).toBe('UL');
+    expect(list.querySelectorAll(':scope > li.article-meta__author')).toHaveLength(2);
+  });
+
+  it('does not render a single author as a list', () => {
+    getMetadata.mockReturnValue('Adobe Labs');
+
+    const byline = buildAuthorByline();
+
+    expect(byline.querySelector('ul, li')).toBeNull();
+    expect(byline.querySelector('.article-meta__author-list > .article-meta__author'))
+      .toHaveTextContent('Adobe Labs');
+  });
+
   it('requests each author image by slugified name and hides it until it loads', () => {
     getMetadata.mockReturnValue('Randy Oest');
 
