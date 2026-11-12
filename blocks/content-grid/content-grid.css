@@ -253,7 +253,7 @@
       animation-timing-function: linear;
       animation-fill-mode: both;
       animation-timeline: view();
-      animation-range: entry 0% entry 180%;
+      animation-range: entry 0% entry 70%;
     }
   }
 }
