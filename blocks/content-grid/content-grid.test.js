@@ -1660,6 +1660,7 @@ describe('content-grid block', () => {
       delete window.matchMedia;
       delete CSS.supports;
       delete global.ResizeObserver;
+      document.documentElement.classList.remove('hero-intro', 'hero-intro--body');
     });
 
     function cards(block) {
@@ -1703,16 +1704,96 @@ describe('content-grid block', () => {
       });
     }
 
-    it('assigns a left-to-right column step before layout', async () => {
+    function viewportHeight() {
+      return window.innerHeight || document.documentElement.clientHeight || 768;
+    }
+
+    it('does not assign steps before the grid has a layout box', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+
+      expect(staggerIndex(cards(block)[0])).toBe('');
+      expect(cards(block)[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(resizes[0].observe).toHaveBeenCalled();
+    });
+
+    it('assigns a left-to-right column step to rows below the viewport', async () => {
       const block = createBlock({ 'Content Type:': 'All' });
       await decorate(block);
       const items = cards(block);
+      stubRows(block, [{ top: viewportHeight() + 80, height: 360, count: items.length }]);
+
+      resizes[0].callback();
 
       expect(staggerIndex(items[0])).toBe('1.5');
       expect(staggerIndex(items[1])).toBe('3.25');
       expect(staggerIndex(items[2])).toBe('5.5');
       expect(staggerRow(items[0])).toBe('0');
-      expect(resizes[0].observe).toHaveBeenCalled();
+      expect(items[0]).toHaveClass('content-grid__item--stagger');
+      expect(items[2]).toHaveClass('content-grid__item--stagger');
+    });
+
+    it('leaves the first visible row still and staggers the rows below it', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [
+        { top: 40, height: 360, count: 2 },
+        { top: viewportHeight() + 80, height: 360, count: items.length - 2 },
+      ]);
+
+      resizes[0].callback();
+
+      expect(items[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(items[1]).not.toHaveClass('content-grid__item--stagger');
+      expect(staggerIndex(items[0])).toBe('1.5');
+      expect(items[2]).toHaveClass('content-grid__item--stagger');
+      expect(staggerIndex(items[2])).toBe('1.5');
+    });
+
+    it('staggers the second row even when it is also in the viewport', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [
+        { top: 40, height: 200, count: 2 },
+        { top: 280, height: 200, count: items.length - 2 },
+      ]);
+
+      resizes[0].callback();
+
+      expect(items[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(items[1]).not.toHaveClass('content-grid__item--stagger');
+      expect(items[2]).toHaveClass('content-grid__item--stagger');
+      expect(staggerRow(items[2])).toBe('1');
+    });
+
+    it('uses the hero resting position so the second row still staggers', async () => {
+      const vh = viewportHeight();
+      const main = document.createElement('main');
+      main.innerHTML = `
+        <div class="section hero-container"><div class="hero hero-full-screen"></div></div>
+        <div class="section"></div>
+      `;
+      const parked = main.querySelectorAll('.section')[1];
+      parked.style.marginTop = `${vh + 200}px`;
+      parked.style.setProperty('--hero-margin-negative-offset', '0px');
+      document.body.append(main);
+      document.documentElement.classList.add('hero-intro');
+
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [
+        { top: vh + 80, height: 180, count: 2 },
+        { top: vh + 300, height: 180, count: items.length - 2 },
+      ]);
+      resizes[0].callback();
+
+      expect(items[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(items[2]).toHaveClass('content-grid__item--stagger');
+
+      main.remove();
     });
 
     it('restarts the column step on the next visual row', async () => {
@@ -1762,6 +1843,10 @@ describe('content-grid block', () => {
     it('clears the steps when reduced motion is turned on', async () => {
       const block = createBlock({ 'Content Type:': 'All' });
       await decorate(block);
+      const items = cards(block);
+      stubRows(block, [{ top: viewportHeight() + 80, height: 360, count: items.length }]);
+      resizes[0].callback();
+      expect(items[0]).toHaveClass('content-grid__item--stagger');
 
       const motion = window.matchMedia.mock.results[0].value;
       reducedMotion = true;
@@ -1769,8 +1854,9 @@ describe('content-grid block', () => {
       change[1]();
 
       expect(resizes[0].disconnect).toHaveBeenCalled();
-      expect(staggerIndex(cards(block)[0])).toBe('');
-      expect(staggerRow(cards(block)[0])).toBe('');
+      expect(items[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(staggerIndex(items[0])).toBe('');
+      expect(staggerRow(items[0])).toBe('');
     });
 
     it('does not assign steps without a view timeline', async () => {

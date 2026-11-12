@@ -664,13 +664,14 @@ function cardRows(items) {
   return rows.map((row) => row.items);
 }
 
-/** A row this far into the viewport at first paint is shown in place. */
-const PLACED_ROW_PX = 64;
+/** Opt-in for the scroll-linked stagger. In-view rows never receive it. */
+const STAGGER_ITEM_CLASS = 'content-grid__item--stagger';
 
 /**
  * Write each card's column and row step. The view timeline in CSS turns
  * those steps into a scroll-linked translate across the card's entry.
  * @param {Element} list
+ * @returns {Element[][]}
  */
 function assignStagger(list) {
   const rows = cardRows([...list.children]);
@@ -680,37 +681,101 @@ function assignStagger(list) {
       item.style.setProperty('--content-grid-stagger-row', String(rowIndex));
     });
   });
+  return rows;
 }
 
 /**
- * Vertical shift already applied, so a placed check uses the layout top.
+ * @param {Element} list
+ * @returns {boolean}
+ */
+function listHasBox(list) {
+  return [...list.children].some((item) => {
+    const rect = item.getBoundingClientRect();
+    return rect.width !== 0 || rect.height !== 0;
+  });
+}
+
+/**
+ * Vertical shift already applied, so a row check uses the layout edge.
  * @param {Element} item
  * @returns {number}
  */
-function currentShift(item) {
+function translateY(item) {
   const { transform } = getComputedStyle(item);
   if (!transform || transform === 'none' || typeof DOMMatrix === 'undefined') return 0;
   return new DOMMatrix(transform).m42 || 0;
 }
 
 /**
- * Mark rows that are already on screen so their stagger does not hide them.
- * Rows still below the fold keep animating in.
+ * The section after a full-screen hero is pushed down during the intro.
+ * @returns {Element|null}
+ */
+function parkedSection() {
+  const hero = document.querySelector('.hero-full-screen')?.closest('.hero-container');
+  const next = hero?.nextElementSibling;
+  if (!next?.classList.contains('section')) return null;
+  return next;
+}
+
+/**
+ * Resolve a CSS length against an element that inherits the section's variables.
+ * @param {Element} el
+ * @param {string} value
+ * @returns {number}
+ */
+function cssPx(el, value) {
+  const raw = value.trim();
+  if (!raw) return 0;
+  if (/^-?[\d.]+px$/.test(raw)) return parseFloat(raw);
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;visibility:hidden;margin-top:0';
+  probe.style.marginTop = raw;
+  el.append(probe);
+  const px = parseFloat(getComputedStyle(probe).marginTop) || 0;
+  probe.remove();
+  return px;
+}
+
+/**
+ * How far the intro still holds the page below its resting position.
+ * `null` means the parked margin is not measurable yet.
+ * @returns {number|null}
+ */
+function restingShift() {
+  if (!document.documentElement.classList.contains('hero-intro')) return 0;
+  const section = parkedSection();
+  if (!section) return 0;
+  const current = parseFloat(getComputedStyle(section).marginTop) || 0;
+  const rest = cssPx(section, getComputedStyle(section).getPropertyValue('--hero-margin-negative-offset'));
+  const shift = current - rest;
+  if (shift === 0 && !document.documentElement.classList.contains('hero-intro--body')) return null;
+  return shift;
+}
+
+/**
+ * Arm the stagger on every row except the first one that rests in the viewport.
+ * Later rows keep animating, even when a tall screen also shows the second row.
+ * The hero intro's parked margin is removed so the check uses the resting layout.
  * @param {Element} list
+ * @param {number} shift
  * @returns {boolean} Whether the list had a layout box to measure
  */
-function placeRowsInView(list) {
+function armOffscreenRows(list, shift) {
+  if (!listHasBox(list)) return false;
   const vh = window.innerHeight || document.documentElement.clientHeight;
-  let sawBox = false;
-  cardRows([...list.children]).forEach((row) => {
-    const rect = row[0].getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) return;
-    sawBox = true;
-    const layoutTop = rect.top - currentShift(row[0]);
-    if (vh - layoutTop < PLACED_ROW_PX) return;
-    row.forEach((item) => item.classList.add('content-grid__item--placed'));
+  let held = false;
+  assignStagger(list).forEach((row) => {
+    const sample = row[0];
+    const rect = sample.getBoundingClientRect();
+    const travel = translateY(sample);
+    const top = rect.top - travel - shift;
+    const bottom = rect.bottom - travel - shift;
+    const onScreen = bottom > 0 && top < vh;
+    const holdStill = onScreen && !held;
+    if (holdStill) held = true;
+    row.forEach((item) => item.classList.toggle(STAGGER_ITEM_CLASS, !holdStill));
   });
-  return sawBox;
+  return true;
 }
 
 /**
@@ -719,13 +784,16 @@ function placeRowsInView(list) {
  */
 function clearStagger(list) {
   [...list.children].forEach((item) => {
+    item.classList.remove(STAGGER_ITEM_CLASS);
     item.style.removeProperty('--content-grid-stagger-index');
     item.style.removeProperty('--content-grid-stagger-row');
   });
 }
 
 /**
- * Measure the grid once, then again when the column count changes.
+ * Measure which row is already in the viewport, and stagger every row below it.
+ * Column steps update when the grid wraps. After the page scrolls, the choice
+ * of which row stays still is left as it was.
  * Scroll progress stays in CSS. Reduced motion, or no view timeline, leaves
  * the cards in place.
  * @param {Element} block
@@ -738,18 +806,31 @@ function stageGridStagger(block) {
   if (!motion || motion.matches || !viewTimelineSupported()) return;
 
   const watch = {};
-  let placed = false;
+  let frozen = false;
+  let measured = false;
 
-  function settleVisibleRows() {
-    if (placed || document.documentElement.classList.contains('hero-intro')) return;
-    if (!placeRowsInView(list)) return;
-    placed = true;
+  function freezeAfterScroll() {
+    if ((window.scrollY || 0) <= 0) return;
+    frozen = true;
+    window.removeEventListener('scroll', freezeAfterScroll);
+  }
+
+  function armWhenReady() {
+    if (frozen) return;
+    const shift = restingShift();
+    if (shift == null) return;
+    if (!armOffscreenRows(list, shift)) return;
+    measured = true;
     watch.intro?.disconnect();
+    if ((window.scrollY || 0) > 0) freezeAfterScroll();
   }
 
   const apply = () => {
-    assignStagger(list);
-    settleVisibleRows();
+    if (frozen) {
+      assignStagger(list);
+      return;
+    }
+    armWhenReady();
   };
 
   function stopForReducedMotion() {
@@ -757,15 +838,22 @@ function stageGridStagger(block) {
     watch.resize?.disconnect();
     watch.intro?.disconnect();
     motion.removeEventListener('change', stopForReducedMotion);
+    window.removeEventListener('scroll', freezeAfterScroll);
     clearStagger(list);
   }
 
   motion.addEventListener('change', stopForReducedMotion);
+  window.addEventListener('scroll', freezeAfterScroll, { passive: true });
   apply();
 
-  watch.intro = new MutationObserver(settleVisibleRows);
-  watch.intro.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-  requestAnimationFrame(() => requestAnimationFrame(settleVisibleRows));
+  if (!measured) {
+    watch.intro = new MutationObserver(armWhenReady);
+    watch.intro.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    requestAnimationFrame(() => requestAnimationFrame(armWhenReady));
+  }
 
   if (typeof ResizeObserver !== 'function') return;
   watch.resize = new ResizeObserver(apply);

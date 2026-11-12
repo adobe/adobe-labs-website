@@ -224,9 +224,10 @@
 /*
  * Scroll-linked stagger, matching adobe.com `parallax-stagger-ltr`.
  * Each card rises across its own entry: the left card travels less,
- * and each card to the right starts further down. A row already in the
- * viewport when the grid is drawn, such as the homepage peek, is placed
- * immediately so it does not leave an empty band.
+ * and each card to the right starts further down. The class is opt-in.
+ * The first row already in the viewport, such as the homepage peek, never
+ * receives it. Later rows, including a second row that is also on screen,
+ * still stagger as they move through the viewport.
  * `@supports` stays at the root: nesting it breaks adjacent styles in
  * Safari 16.5 through 18.1.
  */
@@ -242,7 +243,7 @@
   }
 
   @media (prefers-reduced-motion: no-preference) and (width >= 48rem) {
-    .content-grid__list > .content-grid__item {
+    .content-grid__list > .content-grid__item--stagger {
       --content-grid-stagger-from: calc(
         var(--content-grid-stagger-index, 1.5) * var(--content-grid-stagger-drift, 48px)
       );
@@ -253,11 +254,6 @@
       animation-fill-mode: both;
       animation-timeline: view();
       animation-range: entry 0% entry 180%;
-    }
-
-    .content-grid__list > .content-grid__item--placed {
-      animation: none;
-      transform: none;
     }
   }
 }
