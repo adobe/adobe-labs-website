@@ -294,6 +294,85 @@ describe('table block', () => {
     wrapper.remove();
   });
 
+  it('makes the wrapper a named Tab stop only while the table overflows', () => {
+    const block = createBlock(WAGE_SUMMARY);
+    const wrapper = decorateInWrapper(block, { tableScrollWidth: 900, clientWidth: 400 });
+
+    expect(wrapper).toHaveAttribute('tabindex', '0');
+    expect(wrapper).toHaveAttribute('role', 'region');
+    expect(wrapper).toHaveAttribute('aria-label', 'Scrollable table');
+
+    block.querySelector('table').scrollWidth = 300;
+    wrapper.scrollWidth = 300;
+    triggerResize();
+
+    expect(wrapper).not.toHaveAttribute('tabindex');
+    expect(wrapper).not.toHaveAttribute('role');
+    expect(wrapper).not.toHaveAttribute('aria-label');
+
+    wrapper.remove();
+  });
+
+  it('turns a one-cell first row into a hidden caption and names the scroller with it', () => {
+    const block = createBlock([['<p>Wage summary, May 2025</p>'], ...WAGE_SUMMARY]);
+    const wrapper = decorateInWrapper(block, { tableScrollWidth: 900, clientWidth: 400 });
+    const table = block.querySelector('table');
+
+    expect(table.caption).toHaveTextContent('Wage summary, May 2025');
+    expect(table.caption).toHaveClass('visually-hidden');
+    expect(table.tHead.rows[0].cells[0]).toHaveTextContent('Occupation');
+    expect(table.tBodies[0].rows).toHaveLength(WAGE_SUMMARY.length - 1);
+    expect(wrapper).toHaveAttribute('aria-label', 'Wage summary, May 2025 (scrollable table)');
+
+    wrapper.remove();
+  });
+
+  it('keeps header-column headers detected below a caption row', () => {
+    const block = createBlock(
+      [['<p>Sources</p>'], ['<p><strong>Data Point</strong></p>', '<p><strong>Source</strong></p>'], ['<p>Wages</p>', '<p>BLS</p>']],
+      'table header-column',
+    );
+    decorate(block);
+    const table = block.querySelector('table');
+
+    expect(table.caption).toHaveTextContent('Sources');
+    expect(within(table.tHead).getAllByRole('columnheader')).toHaveLength(2);
+    expect(within(table.tBodies[0]).getByRole('rowheader')).toHaveTextContent('Wages');
+  });
+
+  it('names the scroller with the closest heading above when there is no caption', () => {
+    const content = document.createElement('div');
+    content.innerHTML = '<h2>Appendix</h2><h3>A1. Wage summary, May 2025</h3><p>Median and mean.</p>';
+    document.body.append(content);
+    const block = createBlock(WAGE_SUMMARY);
+    const wrapper = decorateInWrapper(block, { tableScrollWidth: 900, clientWidth: 400 });
+
+    expect(block.querySelector('caption')).toBeNull();
+    expect(wrapper).toHaveAttribute('aria-label', 'A1. Wage summary, May 2025 (scrollable table)');
+
+    wrapper.remove();
+  });
+
+  it('prefers the authored caption over the heading above', () => {
+    const heading = document.createElement('h3');
+    heading.textContent = 'A1. Wage summary, May 2025';
+    document.body.append(heading);
+    const block = createBlock([['<p>Custom name</p>'], ...WAGE_SUMMARY]);
+    const wrapper = decorateInWrapper(block, { tableScrollWidth: 900, clientWidth: 400 });
+
+    expect(wrapper).toHaveAttribute('aria-label', 'Custom name (scrollable table)');
+
+    wrapper.remove();
+  });
+
+  it('treats the first row of a one-column table as data, not a caption', () => {
+    const block = createBlock([['<p>Only</p>'], ['<p>Column</p>']]);
+    decorate(block);
+
+    expect(block.querySelector('caption')).toBeNull();
+    expect(block.querySelectorAll('tr')).toHaveLength(2);
+  });
+
   it('keeps a table fitted when it only fills the padded column', () => {
     const block = createBlock(WAGE_SUMMARY);
     const wrapper = decorateInWrapper(block, {
