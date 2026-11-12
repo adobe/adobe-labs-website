@@ -3,6 +3,7 @@ import {
   createExternalArrow,
   getCellText,
   isExternalLink,
+  setGhostText,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
@@ -107,13 +108,15 @@ function createHeadlineFlow(lead, last, ghost) {
   if (lead) {
     const headline = document.createElement('span');
     headline.className = 'hover-list__headline heading-6';
-    headline.textContent = lead;
+    if (ghost) setGhostText(headline, lead);
+    else headline.textContent = lead;
     flow.append(headline);
   }
 
   const lastWord = document.createElement('span');
   lastWord.className = 'hover-list__headline heading-6';
-  lastWord.textContent = last;
+  if (ghost) setGhostText(lastWord, last);
+  else lastWord.textContent = last;
 
   const arrow = document.createElement('span');
   arrow.className = 'hover-list__arrow heading-6';

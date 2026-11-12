@@ -84,7 +84,10 @@ describe('hover-list block', () => {
     const underlines = [...block.querySelectorAll('.hover-list__headline-underline')];
     expect(underlines).toHaveLength(3);
     underlines.forEach((el) => expect(el).toHaveAttribute('aria-hidden', 'true'));
-    expect(underlines[0]).toHaveTextContent('Adobe’s commitment to child safety');
+    expect(underlines[0]).toHaveTextContent(/^$/);
+    expect([...underlines[0].querySelectorAll('[data-ghost-text]')].map((el) => el.dataset.ghostText))
+      .toEqual(['Adobe’s commitment to child ', 'safety']);
+    expect(block.querySelector('.hover-list__link')).toHaveTextContent(/^1Adobe’s commitment to child safety$/);
     expect(arrows).toHaveLength(3);
     arrows.forEach((el) => {
       expect(el).toHaveAttribute('aria-hidden', 'true');
