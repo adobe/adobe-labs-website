@@ -664,35 +664,23 @@ function cardRows(items) {
   return rows.map((row) => row.items);
 }
 
-/** Opt-in for the scroll-linked stagger. In-view rows never receive it. */
+/** Opt-in for the scroll-linked stagger. Only the first in-view row stays without it. */
 const STAGGER_ITEM_CLASS = 'content-grid__item--stagger';
 
 /**
- * Write each card's column and row step. The view timeline in CSS turns
- * those steps into a scroll-linked translate across the card's entry.
+ * Write each card's column step. The view timeline in CSS turns that step
+ * into a scroll-linked translate across the card's entry.
  * @param {Element} list
  * @returns {Element[][]}
  */
 function assignStagger(list) {
   const rows = cardRows([...list.children]);
-  rows.forEach((row, rowIndex) => {
+  rows.forEach((row) => {
     row.forEach((item, colIndex) => {
       item.style.setProperty('--content-grid-stagger-index', String(staggerColumnIndex(colIndex)));
-      item.style.setProperty('--content-grid-stagger-row', String(rowIndex));
     });
   });
   return rows;
-}
-
-/**
- * @param {Element} list
- * @returns {boolean}
- */
-function listHasBox(list) {
-  return [...list.children].some((item) => {
-    const rect = item.getBoundingClientRect();
-    return rect.width !== 0 || rect.height !== 0;
-  });
 }
 
 /**
@@ -761,7 +749,11 @@ function restingShift() {
  * @returns {boolean} Whether the list had a layout box to measure
  */
 function armOffscreenRows(list, shift) {
-  if (!listHasBox(list)) return false;
+  const hasBox = [...list.children].some((item) => {
+    const rect = item.getBoundingClientRect();
+    return rect.width !== 0 || rect.height !== 0;
+  });
+  if (!hasBox) return false;
   const vh = window.innerHeight || document.documentElement.clientHeight;
   let held = false;
   assignStagger(list).forEach((row) => {
@@ -786,7 +778,6 @@ function clearStagger(list) {
   [...list.children].forEach((item) => {
     item.classList.remove(STAGGER_ITEM_CLASS);
     item.style.removeProperty('--content-grid-stagger-index');
-    item.style.removeProperty('--content-grid-stagger-row');
   });
 }
 

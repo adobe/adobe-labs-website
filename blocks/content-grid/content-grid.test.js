@@ -1671,10 +1671,6 @@ describe('content-grid block', () => {
       return item.style.getPropertyValue('--content-grid-stagger-index');
     }
 
-    function staggerRow(item) {
-      return item.style.getPropertyValue('--content-grid-stagger-row');
-    }
-
     /**
      * Place cards in visual rows. Each entry is `{ top, height, count }`.
      * @param {Element} block
@@ -1728,7 +1724,6 @@ describe('content-grid block', () => {
       expect(staggerIndex(items[0])).toBe('1.5');
       expect(staggerIndex(items[1])).toBe('3.25');
       expect(staggerIndex(items[2])).toBe('5.5');
-      expect(staggerRow(items[0])).toBe('0');
       expect(items[0]).toHaveClass('content-grid__item--stagger');
       expect(items[2]).toHaveClass('content-grid__item--stagger');
     });
@@ -1765,7 +1760,6 @@ describe('content-grid block', () => {
       expect(items[0]).not.toHaveClass('content-grid__item--stagger');
       expect(items[1]).not.toHaveClass('content-grid__item--stagger');
       expect(items[2]).toHaveClass('content-grid__item--stagger');
-      expect(staggerRow(items[2])).toBe('1');
     });
 
     it('uses the hero resting position so the second row still staggers', async () => {
@@ -1809,9 +1803,7 @@ describe('content-grid block', () => {
 
       expect(staggerIndex(items[0])).toBe('1.5');
       expect(staggerIndex(items[1])).toBe('3.25');
-      expect(staggerRow(items[0])).toBe('0');
       expect(staggerIndex(items[2])).toBe('1.5');
-      expect(staggerRow(items[2])).toBe('1');
     });
 
     it('puts a single wrapped row back on the first step', async () => {
@@ -1827,7 +1819,6 @@ describe('content-grid block', () => {
       stubRows(block, [{ top: 80, height: 360, count: items.length }]);
       resizes[0].callback();
 
-      expect(staggerRow(items[2])).toBe('0');
       expect(staggerIndex(items[2])).toBe('5.5');
     });
 
@@ -1856,7 +1847,6 @@ describe('content-grid block', () => {
       expect(resizes[0].disconnect).toHaveBeenCalled();
       expect(items[0]).not.toHaveClass('content-grid__item--stagger');
       expect(staggerIndex(items[0])).toBe('');
-      expect(staggerRow(items[0])).toBe('');
     });
 
     it('does not assign steps without a view timeline', async () => {
