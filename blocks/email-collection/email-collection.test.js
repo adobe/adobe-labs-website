@@ -1,49 +1,25 @@
-import { waitFor, within } from '@testing-library/dom';
-import decorate from './email-collection.js';
+import { loadCSS } from '../../scripts/aem.js';
+import decorate, {
+  bridgeDialogModal,
+  getMiloLibs,
+  rebuildSectionMetadata,
+  restoreMiloButtonMarkup,
+  setModuleImporter,
+} from './email-collection.js';
 
-const CONSENT_HTML = '<div><p>Emails about {{subscription-name}}.</p></div><div><p>cs4;ve1;en</p></div>';
+jest.mock('../../scripts/aem.js', () => ({
+  loadCSS: jest.fn(() => Promise.resolve()),
+}));
 
-function jsonResponse(data) {
-  return { ok: true, json: async () => data, text: async () => '' };
-}
-
-function textResponse(text) {
-  return { ok: true, json: async () => ({}), text: async () => text };
-}
-
-function mockFetch({ postOk = true, postBody, tokenPayload } = {}) {
-  window.fetch = jest.fn(async (url, options) => {
-    const href = String(url);
-    if (href.includes('/ims/check/v6/token')) {
-      return jsonResponse(tokenPayload || { access_token: 'guest-token' });
-    }
-    if (href.includes('sheet=placeholders')) {
-      return jsonResponse({
-        data: [
-          { key: 'required', value: 'This field is required.' },
-          { key: 'email', value: 'Enter a valid email.' },
-        ],
-      });
-    }
-    if (href.includes('/consents/')) return textResponse(CONSENT_HTML);
-    if (href.includes('sheet=countries')) {
-      return jsonResponse({ data: [{ key: 'US', value: 'United States' }] });
-    }
-    if (href.includes('/form-submit')) {
-      if (postBody) postBody.current = { url: href, options };
-      return { ok: postOk, json: async () => ({}), text: async () => '' };
-    }
-    return { ok: false, json: async () => ({}), text: async () => '' };
-  });
-}
+const DEFAULT_LIBS = 'https://main--milo--adobecom.aem.live/libs';
 
 function createBlock({
   email = 'Email address',
   country = 'Country',
   mpsSname = 'adbe_ml_ai_research',
   subscriptionName = 'AI Research',
-  submit = true,
-  showForm = false,
+  signIn = 'off',
+  withDialog = true,
 } = {}) {
   const section = document.createElement('div');
   section.className = 'section';
@@ -51,31 +27,40 @@ function createBlock({
   if (country) section.dataset.country = country;
   if (mpsSname) section.dataset.mpsSname = mpsSname;
   if (subscriptionName) section.dataset.subscriptionName = subscriptionName;
+  if (signIn) section.dataset.signIn = signIn;
 
+  const wrapper = document.createElement('div');
   const block = document.createElement('div');
   block.className = 'email-collection mailing-list';
-  const showFormLink = showForm ? '<p><a href="#show-form">Sign up with a separate email</a></p>' : '';
-  const submitLink = submit
-    ? '<p class="button-wrapper"><a class="button" href="#submit">Subscribe</a></p>'
-    : '';
   block.innerHTML = `
     <div><div>
       <h2 id="subscribe">Subscribe</h2>
-      <p>New AI research on creativity in your inbox as it publishes. No marketing, no hype.</p>
-      ${submitLink}
+      <p>New AI research on creativity in your inbox as it publishes.</p>
+      <p class="button-wrapper"><a class="button" href="#submit">Subscribe</a></p>
     </div></div>
     <div><div>
       <p>We’ve received your response.</p>
       <p class="button-wrapper"><a class="button" href="#close-form">Back to the website</a></p>
-      ${showFormLink}
     </div></div>
     <div><div>
       <p>Something went wrong</p>
-      <p class="button-wrapper"><a class="button" href="#close-form">Back to the website</a></p>
+      <p><a href="#close-form">Back to the website</a></p>
     </div></div>
   `;
-  section.append(block);
-  document.body.append(section);
+  wrapper.append(block);
+  section.append(wrapper);
+
+  if (withDialog) {
+    const dialog = document.createElement('dialog');
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    modalContent.append(section);
+    dialog.append(modalContent);
+    document.body.append(dialog);
+  } else {
+    document.body.append(section);
+  }
+
   return block;
 }
 
@@ -93,162 +78,139 @@ beforeEach(() => {
   jest.clearAllMocks();
   document.body.innerHTML = '';
   window.history.pushState({}, '', '/');
+  window.hlx = { codeBasePath: '' };
   delete window.adobeIMS;
-  mockFetch();
+  setModuleImporter((url) => import(url));
 });
 
-describe('email-collection', () => {
-  it('builds an email and country form with federal consent', async () => {
-    const block = createBlock();
-
-    await decorate(block);
-
-    const email = within(block).getByRole('textbox', { name: /email address/i });
-    expect(email).toBeRequired();
-    expect(email).toHaveAttribute('autofocus');
-    expect(within(block).getByRole('combobox', { name: /country/i })).toBeRequired();
-    expect(within(block).getByRole('option', { name: 'United States' })).toBeInTheDocument();
-    expect(block).toHaveTextContent('Emails about AI Research.');
-    expect(within(block).getByRole('button', { name: 'Subscribe' })).toHaveAttribute('type', 'submit');
-    expect(block.querySelector('.email-collection__panel--success')).toHaveAttribute('hidden');
+describe('getMiloLibs', () => {
+  it('returns the default Milo libs URL', () => {
+    expect(getMiloLibs('')).toBe(DEFAULT_LIBS);
+    expect(getMiloLibs('?milolibs=main')).toBe(DEFAULT_LIBS);
   });
 
-  it('does not build a form when email metadata or the Submit link is missing', async () => {
-    const missingEmail = createBlock({ email: '' });
-    await decorate(missingEmail);
-    expect(missingEmail.querySelector('form')).toBeNull();
-    expect(missingEmail.querySelector('.email-collection__panel--error')).not.toHaveAttribute('hidden');
-
-    document.body.innerHTML = '';
-    const missingSubmit = createBlock({ submit: false });
-    await decorate(missingSubmit);
-    expect(missingSubmit.querySelector('form')).toBeNull();
-  });
-
-  it('shows the federal email message after an invalid address is submitted', async () => {
-    const block = createBlock();
-    await decorate(block);
-
-    const email = within(block).getByRole('textbox', { name: /email address/i });
-    email.value = 'not-an-email';
-    email.closest('form').requestSubmit();
-
-    expect(email).toHaveAttribute('aria-invalid', 'true');
-    expect(email).toHaveAccessibleDescription('Enter a valid email.');
-    expect(block.querySelector(`#${email.getAttribute('aria-errormessage')}`)).toHaveAttribute('role', 'alert');
-    expect(window.fetch).not.toHaveBeenCalledWith(
-      expect.stringContaining('/form-submit'),
-      expect.anything(),
+  it('resolves local and branch milolibs query values', () => {
+    expect(getMiloLibs('?milolibs=local')).toBe('http://localhost:6456/libs');
+    expect(getMiloLibs('?milolibs=my-branch')).toBe(
+      'https://my-branch--milo--adobecom.aem.live/libs',
+    );
+    expect(getMiloLibs('?milolibs=foo--milo--adobecom')).toBe(
+      'https://foo--milo--adobecom.aem.live/libs',
     );
   });
 
-  it('shows the required message when email is empty', async () => {
-    const block = createBlock({ country: '' });
-    await decorate(block);
+  it('falls back to default for invalid milolibs values', () => {
+    expect(getMiloLibs('?milolibs=bad/value')).toBe(DEFAULT_LIBS);
+  });
+});
 
-    const email = within(block).getByRole('textbox', { name: /email address/i });
-    email.closest('form').requestSubmit();
+describe('rebuildSectionMetadata', () => {
+  it('rebuilds a section-metadata sibling from section dataset', () => {
+    const block = createBlock({ withDialog: false });
+    rebuildSectionMetadata(block);
 
-    expect(email).toHaveAccessibleDescription('This field is required.');
+    const meta = block.parentElement.querySelector('.section-metadata');
+    expect(meta).toBeTruthy();
+    expect(meta).toHaveAttribute('hidden');
+    const rows = [...meta.children].map((row) => [
+      row.firstElementChild.textContent,
+      row.lastElementChild.textContent,
+    ]);
+    expect(rows).toEqual(expect.arrayContaining([
+      ['email', 'Email address'],
+      ['country', 'Country'],
+      ['mps-sname', 'adbe_ml_ai_research'],
+      ['subscription-name', 'AI Research'],
+      ['sign-in', 'off'],
+    ]));
   });
 
-  it('posts a guest subscription and shows the success message', async () => {
-    window.adobeIMS = { getAccessToken: () => ({ token: 'guest-token' }) };
-    const postBody = {};
-    mockFetch({ postBody });
+  it('defaults sign-in to off when missing from dataset', () => {
+    const block = createBlock({ signIn: '', withDialog: false });
+    delete block.closest('.section').dataset.signIn;
+    rebuildSectionMetadata(block);
+
+    const signIn = [...block.parentElement.querySelectorAll('.section-metadata > div')]
+      .find((row) => row.firstElementChild.textContent === 'sign-in');
+    expect(signIn.lastElementChild.textContent).toBe('off');
+  });
+});
+
+describe('restoreMiloButtonMarkup', () => {
+  it('restores strong-wrapped hash links for Milo decorateButtons', () => {
+    const block = createBlock({ withDialog: false });
+    restoreMiloButtonMarkup(block);
+
+    expect(block.querySelector('strong a[href="#submit"]')).toHaveTextContent('Subscribe');
+    expect(block.querySelector('strong a[href="#close-form"]')).toBeTruthy();
+    expect(block.querySelector('.button-wrapper')).toBeNull();
+  });
+});
+
+describe('bridgeDialogModal', () => {
+  it('marks modal-content as dialog-modal and closes the Labs dialog on milo:modal:closed', () => {
     const block = createBlock();
-    await decorate(block);
-
-    const email = within(block).getByRole('textbox', { name: /email address/i });
-    const country = within(block).getByRole('combobox', { name: /country/i });
-    email.value = 'ada@adobe.com';
-    country.value = 'US';
-    email.closest('form').requestSubmit();
-
-    await waitFor(() => {
-      expect(block.querySelector('.email-collection__panel--success')).not.toHaveAttribute('hidden');
-    });
-    expect(postBody.current.url).toBe('https://www.stage.adobe.com/milo-email-collection-api/form-submit');
-    expect(postBody.current.options.headers.Authorization).toBe('Bearer guest-token');
-    expect(JSON.parse(postBody.current.options.body)).toEqual({
-      email: 'ada@adobe.com',
-      mpsSname: 'adbe_ml_ai_research',
-      consentId: 'cs4;ve1;en',
-      isGuest: true,
-      appClientId: 'adlabs',
-      aepCmp: null,
-      aepOtherConsents: null,
-      countryCode: 'US',
-    });
-    expect(within(block).getByText('We’ve received your response.')).toBeVisible();
-  });
-
-  it('requests a guest token without sending the Adobe session cookie', async () => {
-    const postBody = {};
-    mockFetch({ postBody });
-    const block = createBlock({ country: '' });
-    await decorate(block);
-
-    const email = within(block).getByRole('textbox', { name: /email address/i });
-    email.value = 'ada@adobe.com';
-    email.closest('form').requestSubmit();
-
-    await waitFor(() => {
-      expect(block.querySelector('.email-collection__panel--success')).not.toHaveAttribute('hidden');
-    });
-    const tokenCall = window.fetch.mock.calls.find(([url]) => String(url).includes('/ims/check/v6/token'));
-    expect(String(tokenCall[0])).toBe('https://adobeid-na1-stg1.services.adobe.com/ims/check/v6/token');
-    expect(tokenCall[1].credentials).toBe('omit');
-    expect(String(tokenCall[1].body)).toBe('guest_allowed=true&client_id=adlabs&scope=AdobeID%2Copenid');
-    expect(postBody.current.options.headers.Authorization).toBe('Bearer guest-token');
-  });
-
-  it('shows the error panel when IMS does not issue a guest token', async () => {
-    mockFetch({ tokenPayload: { error: 'invalid_credentials' } });
-    const block = createBlock({ country: '' });
-    await decorate(block);
-
-    const email = within(block).getByRole('textbox', { name: /email address/i });
-    email.value = 'ada@adobe.com';
-    email.closest('form').requestSubmit();
-
-    await waitFor(() => {
-      expect(block.querySelector('.email-collection__panel--error')).not.toHaveAttribute('hidden');
-    });
-    expect(window.fetch).not.toHaveBeenCalledWith(
-      expect.stringContaining('/form-submit'),
-      expect.anything(),
-    );
-  });
-
-  it('closes the dialog from Back to the website and returns to the form', async () => {
-    window.history.pushState({}, '', '/?email-collection-show=success');
-    const block = createBlock({ showForm: true });
-    const dialog = document.createElement('dialog');
-    dialog.append(block.parentElement);
-    document.body.append(dialog);
+    const dialog = block.closest('dialog');
     dialog.showModal();
 
+    const shell = bridgeDialogModal(block);
+
+    expect(shell).toHaveClass('dialog-modal');
+    expect(shell).toHaveAttribute('id', 'email-collection');
+
+    window.dispatchEvent(new CustomEvent('milo:modal:closed', {
+      detail: { id: 'email-collection', hash: '' },
+    }));
+    expect(dialog).not.toHaveAttribute('open');
+  });
+
+  it('returns undefined when the block is not inside a dialog', () => {
+    const block = createBlock({ withDialog: false });
+    expect(bridgeDialogModal(block)).toBeUndefined();
+  });
+});
+
+describe('email-collection shim', () => {
+  it('bootstraps Milo with adlabs, adapts the DOM, loads Milo assets, and calls init', async () => {
+    const setConfig = jest.fn();
+    const loadIms = jest.fn(async () => {
+      window.adobeIMS = { signIn: jest.fn() };
+    });
+    const init = jest.fn(() => Promise.resolve());
+
+    setModuleImporter(async (url) => {
+      if (url.endsWith('/utils/utils.js')) {
+        return { setConfig, loadIms };
+      }
+      if (url.endsWith('/blocks/email-collection/email-collection.js')) {
+        return { default: init };
+      }
+      throw new Error(`Unexpected import: ${url}`);
+    });
+
+    const block = createBlock();
     await decorate(block);
 
-    expect(block.querySelector('.email-collection__panel--success')).not.toHaveAttribute('hidden');
-    expect(document.activeElement).toHaveTextContent('We’ve received your response.');
-    within(block).getByRole('button', { name: 'Sign up with a separate email' }).click();
-    expect(dialog).toHaveAttribute('aria-labelledby', 'subscribe');
-    expect(dialog).toHaveAttribute('aria-describedby', 'email-collection-description');
-    expect(block.querySelector('.email-collection__panel--form')).not.toHaveAttribute('hidden');
-
-    window.history.pushState({}, '', '/?email-collection-show=error');
-    document.body.innerHTML = '';
-    const errorBlock = createBlock();
-    const errorDialog = document.createElement('dialog');
-    errorDialog.append(errorBlock.parentElement);
-    document.body.append(errorDialog);
-    errorDialog.showModal();
-    await decorate(errorBlock);
-
-    expect(errorDialog).toHaveAttribute('aria-label', 'Something went wrong');
-    within(errorBlock).getByRole('button', { name: 'Back to the website' }).click();
-    expect(errorDialog).not.toHaveAttribute('open');
+    expect(setConfig).toHaveBeenCalledWith(expect.objectContaining({
+      miloLibs: DEFAULT_LIBS,
+      imsClientId: 'adlabs',
+      imsScope: 'AdobeID,openid',
+      locales: { '': { ietf: 'en-US', tk: 'hah7vzn.css' } },
+      adobeid: expect.objectContaining({
+        enableGuestAccounts: true,
+        enableGuestTokenForceRefresh: true,
+        api_parameters: { check_token: { guest_allowed: true } },
+      }),
+    }));
+    expect(document.querySelector('meta[name="ims-guest-token"]')).toBeNull();
+    expect(loadIms).toHaveBeenCalled();
+    await expect(window.adobeIMS.signIn()).rejects.toThrow('Sign-in is disabled for this form');
+    expect(block.parentElement.querySelector('.section-metadata')).toBeTruthy();
+    expect(block.querySelector('strong a[href="#submit"]')).toBeTruthy();
+    expect(block.closest('.dialog-modal')).toBeTruthy();
+    expect(loadCSS).toHaveBeenCalledWith(
+      `${DEFAULT_LIBS}/blocks/email-collection/email-collection.css`,
+    );
+    expect(init).toHaveBeenCalledWith(block);
   });
 });
