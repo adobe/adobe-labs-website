@@ -290,6 +290,32 @@ body:has(main > .section:nth-last-child(1 of .section)) .footer {
   }
 }
 
+/* Touch: a per-frame JS translate trails native scroll, so the rise runs on a
+   view timeline. Root `@supports`: Safari nesting bug. */
+@supports ((animation-timeline: view()) and (animation-range: entry)) and ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
+  @keyframes footer-logo-rise {
+    from {
+      transform: translateY(50%);
+    }
+
+    to {
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (hover: none) and (pointer: coarse) {
+    .footer {
+      view-timeline: --footer-entry block;
+    }
+
+    .footer__logo-image {
+      animation: footer-logo-rise linear both;
+      animation-timeline: --footer-entry;
+      animation-range: entry-crossing calc(100% - var(--footer-logo-height, 0px)) entry-crossing 100%;
+    }
+  }
+}
+
 /* Accordion at smaller viewport. */
 @media (width < 64rem) {
   .footer__menu-column--nav {

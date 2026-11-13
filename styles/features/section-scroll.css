@@ -211,6 +211,17 @@
     }
   }
 
+  /* Same travel as the `--section-scroll-inner-progress` transform. */
+  @keyframes section-scroll-footer-rise {
+    from {
+      transform: translateY(-50%);
+    }
+
+    to {
+      transform: none;
+    }
+  }
+
   /* Half of scroll speed, matching `HERO_TEXT_SPEED`. The hero is covered
      before the range ends. */
   @keyframes section-scroll-hero-text-recede {
@@ -252,6 +263,15 @@
       main > .section.section-scroll-intro > .section-scroll-fade {
         animation-range: 0 40vh;
       }
+    }
+
+    /* Starts when the last card's bottom reaches the viewport floor. Timeline lives in `footer.css`. */
+    body > footer.section-scroll-under:not(.section-scroll-logo) .footer__content {
+      animation: section-scroll-footer-rise linear both;
+      animation-timeline: --footer-entry;
+      animation-range:
+        entry-crossing var(--footer-margin-offset)
+        entry-crossing calc(var(--footer-margin-offset) + var(--section-scroll-footer-cover, 50vh));
     }
   }
 }

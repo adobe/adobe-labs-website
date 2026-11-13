@@ -682,6 +682,7 @@ export function bindFocusReveal(options = {}) {
  * Uses no GSAP. One scroll frame writes both entry custom properties from the
  * shared math in `utils/entry-progress.js`: the menu's, and the logo's, which
  * `footer.js` otherwise drives on pages that never start section scroll.
+ * Touch runs both rises in CSS and only writes the garage-door distance.
  */
 
 /** Last card, raised above the footer. */
@@ -697,6 +698,9 @@ const CLASS_UNDER = 'section-scroll-under';
 const CLASS_LOGO = 'section-scroll-logo';
 
 const VAR_PROGRESS = '--section-scroll-inner-progress';
+
+/** Garage-door distance for the touch CSS rise. */
+const VAR_COVER = '--section-scroll-footer-cover';
 
 /** Same property `footer.js` writes for the logo rise. */
 const VAR_LOGO = '--footer-logo-entry-progress';
@@ -765,6 +769,7 @@ export function clearFooterReveal(root) {
   root.querySelectorAll('.footer__inner').forEach((el) => {
     if (!(el instanceof HTMLElement)) return;
     el.style.removeProperty(VAR_PROGRESS);
+    el.style.removeProperty(VAR_COVER);
   });
   root.querySelectorAll('.footer__logo').forEach((el) => {
     if (!(el instanceof HTMLElement)) return;
@@ -855,6 +860,7 @@ export function bindFooterReveal(main, root, options = {}) {
   if (!(card instanceof HTMLElement) || !(footer instanceof HTMLElement)) return;
 
   const scrollByDelta = options.scrollBy ?? ((delta) => window.scrollBy(0, delta));
+  const cssRise = usesCssCover();
 
   // Own both rises before the first measurement, so the footer's logo listener
   // does not read layout on the same frames. `sync` releases this when the
@@ -991,6 +997,10 @@ export function bindFooterReveal(main, root, options = {}) {
 
     const el = resolve();
     if (!el) return;
+    if (cssRise) {
+      if (innerHeight) el.style.setProperty(VAR_COVER, `${coverDistance || innerHeight}px`);
+      return;
+    }
     const progress = entryProgress(card, el, { height: coverDistance || innerHeight });
     if (progress !== menuProgress) {
       menuProgress = progress;
@@ -1070,14 +1080,16 @@ export function bindFooterReveal(main, root, options = {}) {
     sync();
   };
 
-  onScroll = () => {
-    if (raf) return;
-    raf = requestAnimationFrame(() => {
-      raf = 0;
-      sync();
-    });
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
+  if (!cssRise) {
+    onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        sync();
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
 
   boundFooter = footer;
   onKeyDown = (event) => {
