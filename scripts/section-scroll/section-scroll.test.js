@@ -23,6 +23,7 @@ import {
 import {
   classifySectionScroll,
   initSectionScroll,
+  refreshFooterReveal,
   teardownSectionScroll,
 } from './init.js';
 
@@ -66,6 +67,7 @@ jest.mock('../../deps/lenis/dist/index.js', () => {
     destroy: jest.fn(),
     raf: jest.fn(),
     scroll: 0,
+    actualScroll: 0,
     scrollTo: jest.fn(),
     stop: jest.fn(),
     start: jest.fn(),
@@ -1007,7 +1009,7 @@ describe('initSectionScroll', () => {
     const slow = main.children[0];
     const next = main.children[1];
     const instance = Lenis.mock.results[0].value;
-    instance.scroll = 2500;
+    instance.actualScroll = 2500;
     slow.style.position = 'sticky';
     slow.style.top = '-100px';
     slow.getBoundingClientRect = () => ({
@@ -1041,11 +1043,48 @@ describe('initSectionScroll', () => {
       expect(instance.scrollTo).toHaveBeenCalledWith(2368, { immediate: true });
       expect(link).not.toHaveAttribute('tabindex');
     } finally {
-      instance.scroll = 0;
+      instance.actualScroll = 0;
       document.elementsFromPoint = originalHitTest;
       document.documentElement.style.removeProperty('--nav-height');
       window.requestAnimationFrame = originalRaf;
       window.cancelAnimationFrame = originalCancel;
+    }
+  });
+
+  it('uncovers the footer from the live scroll when the browser scrolled before focusin', async () => {
+    mockMatchMedia(true);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const { main, footer } = mountPage(`
+      <div class="section section-rounded-blue"></div>
+      <div class="section section-rounded-default"></div>
+    `);
+    const inner = footer.querySelector('.footer__inner');
+    footer.querySelector('.footer__content').innerHTML = '<a href="/subscribe">Subscribe</a>';
+
+    await initSectionScroll();
+
+    const instance = Lenis.mock.results[0].value;
+    // Firefox has already scrolled to the link; Lenis has not synced yet.
+    instance.scroll = 2283;
+    instance.actualScroll = 3398;
+    Object.defineProperty(inner, 'offsetHeight', { configurable: true, value: 400 });
+    inner.getBoundingClientRect = () => ({
+      top: 400, bottom: 800, left: 0, right: 400, width: 400, height: 400, x: 0, y: 400,
+    });
+    main.children[1].getBoundingClientRect = () => ({
+      top: -500, bottom: 700, left: 0, right: 400, width: 400, height: 1200, x: 0, y: -500,
+    });
+    refreshFooterReveal();
+
+    try {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+      footer.querySelector('a').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+      // Card bottom 700 against the menu's fully-in line at 800 - 400.
+      expect(instance.scrollTo).toHaveBeenCalledWith(3398 + 300, { immediate: true });
+    } finally {
+      instance.scroll = 0;
+      instance.actualScroll = 0;
     }
   });
 
