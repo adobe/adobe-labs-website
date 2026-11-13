@@ -1476,7 +1476,7 @@ export function classifySectionScroll(root = document) {
      */
     const scrollBy = (delta) => {
       if (lenis) {
-        lenis.scrollTo(lenis.scroll + delta, { immediate: true });
+        lenis.scrollTo(lenis.actualScroll + delta, { immediate: true });
         return;
       }
       window.scrollBy(0, delta);
@@ -1485,7 +1485,7 @@ export function classifySectionScroll(root = document) {
     if (started) {
       bindFocusReveal({
         scrollBy,
-        getScroll: () => (lenis ? lenis.scroll : window.scrollY),
+        getScroll: () => (lenis ? lenis.actualScroll : window.scrollY),
       });
     }
   };
