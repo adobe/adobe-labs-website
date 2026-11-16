@@ -98,7 +98,7 @@ Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027
 
 Pick the Intro heading level that fits the page outline (Heading 2 on section landing pages such as Research). Heading 1, 2, 3, and 4 all display at the heading 4 size. For the smaller heading 6 style, keep the level and make the whole heading italic: the block removes the italics and adds `content-grid__intro-heading--small`. A heading with only some italic words keeps the default style. A `Related content: true` grid keeps its own fixed heading style.
 
-Standalone `grid-item` cards link when the Title cell is a link. Content-type labels on cards are off by default. Add `show-content-type` to the content-grid block header (`content-grid (show-content-type)`) to render each card’s `.grid-item__content-type` link. On a standalone `grid-item`, author a `Content Type` row (legacy `Category` still works).
+Standalone `grid-item` cards link when the Title cell is a link. Content-type labels on cards are off by default. Add `show-content-type` to the content-grid block header (`content-grid (show-content-type)`) to show each card’s content-type label inside the card link. It is not a separate link. On a standalone `grid-item`, author a `Content Type` row (legacy `Category` still works).
 
 Cards stay empty until indexed article pages exist. Index config lives at [tools.aem.live](https://www.aem.live/developer/indexing) (this repo does not contain `helix-query.yaml`).
 

@@ -51,10 +51,11 @@ describe('grid-item block', () => {
     expect(main).toHaveAttribute('href', 'https://labs.adobe.com/example');
     expect(block.querySelector('.grid-item__title')).toHaveTextContent('Lab project');
     expect(view.getByText('A short description')).toHaveClass('grid-item__subhead');
-    expect(view.getByRole('link', { name: 'Research' })).toHaveAttribute(
-      'href',
-      expect.stringMatching(/\/research\/?$/),
-    );
+    const contentType = view.getByText('Research');
+    expect(contentType).toHaveClass('grid-item__content-type-name');
+    expect(contentType.closest('a')).toBe(main);
+    expect(view.getAllByRole('link')).toHaveLength(1);
+    expect(main).toHaveAccessibleName(/Research[\s\S]*Lab project/);
     expect(block).toHaveAttribute('data-content-type', 'research');
     expect(block.querySelector('.grid-item__image picture')).toBeTruthy();
   });
@@ -67,10 +68,10 @@ describe('grid-item block', () => {
 
     decorate(block);
 
-    expect(within(block).getByRole('link', { name: 'Workflows' })).toHaveAttribute(
-      'href',
-      expect.stringMatching(/\/workflows\/?$/),
-    );
+    const contentType = within(block).getByText('Workflows');
+    expect(contentType).toHaveClass('grid-item__content-type-name');
+    expect(contentType.closest('.grid-item__main').tagName).toBe('DIV');
+    expect(within(block).queryByRole('link')).toBeNull();
     expect(block).toHaveAttribute('data-content-type', 'workflows');
   });
 
@@ -95,7 +96,7 @@ describe('grid-item block', () => {
     expect(block.querySelector('.grid-item__main')).not.toHaveAttribute('href');
   });
 
-  it('omits the content-type link for unknown values', () => {
+  it('omits the content-type label for unknown values', () => {
     const block = createBlock({
       Title: 'Lab project',
       'Content Type': 'Unknown',
@@ -201,10 +202,11 @@ describe('buildGridItem', () => {
     expect(main).toHaveClass('grid-item__main');
     expect(main).toHaveAttribute('href', 'https://labs.adobe.com/example');
     expect(view.getByText('A short description')).toHaveClass('grid-item__subhead');
-    expect(view.getByRole('link', { name: 'Research' })).toHaveAttribute(
-      'href',
-      expect.stringMatching(/\/research\/?$/),
-    );
+    const contentType = view.getByText('Research');
+    expect(contentType).toHaveClass('grid-item__content-type-name');
+    expect(contentType.closest('a')).toBe(main);
+    expect(view.getAllByRole('link')).toHaveLength(1);
+    expect(main).toHaveAccessibleName(/Video article[\s\S]*Research[\s\S]*Lab project/);
     expect(view.getByText('Video article')).toHaveClass('visually-hidden');
     expect(createOptimizedPicture).toHaveBeenCalledWith(
       'https://example.com/hero.jpg',
