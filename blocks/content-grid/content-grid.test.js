@@ -1536,13 +1536,39 @@ describe('content-grid block', () => {
       expect(titlesFromCards()).toEqual(['Picked sneak']);
     });
 
-    it('hides the grid when no pick resolves', async () => {
-      const block = createBlock({ Count: '8', Articles: '/research/does-not-exist' });
+    it.each([
+      ['a missing article', '/research/does-not-exist'],
+      ['site root URLs', 'https://google.com, https://adobe.com, https://labs.adobe.com'],
+      ['a root link', '<a href="https://labs.adobe.com/">Adobe Labs</a>'],
+      ['plain text that is not a path', 'Some article'],
+    ])('hides the grid instead of going automatic when the only pick is %s', async (_, articles) => {
+      const block = createBlock({ Count: '18', Articles: articles });
 
       await decorate(block);
 
       expect(buildGridItem).not.toHaveBeenCalled();
+      expect(block.children).toHaveLength(0);
       expect(block.parentElement.hidden).toBe(true);
+    });
+
+    it('shows only the resolvable picks when others are site roots', async () => {
+      const block = createBlock({ Count: '8', Articles: 'https://google.com, /research/older' });
+
+      await decorate(block);
+
+      expect(titlesFromCards()).toEqual(['Older research']);
+    });
+
+    it.each([
+      ['whitespace', '   '],
+      ['an empty paragraph', '<p></p>'],
+    ])('stays automatic when the Articles row holds only %s', async (_, articles) => {
+      const block = createBlock({ 'Content Type': 'Research', Count: '8', Articles: articles });
+
+      await decorate(block);
+
+      expect(dataStore.getData).toHaveBeenCalledWith('/research/content.json');
+      expect(titlesFromCards()).toEqual(['Newer research', 'Workflow video', 'Older research']);
     });
 
     it('does not treat the Articles row as a config filter', async () => {

@@ -466,11 +466,12 @@ function getRelatedArticlePaths() {
  * Paths from the block's `Articles` row, in authored order.
  * A link counts by its href, not its text; plain-text paths work too.
  * @param {Element} block
- * @returns {string[]}
+ * @returns {string[]|null} null when the row is missing or blank; empty when
+ *   it has content but nothing parses as an article path
  */
 function takeArticlePaths(block) {
   const cell = takeConfigCell(block, 'articles');
-  if (!cell) return [];
+  if (!cell) return null;
   const tokens = [];
   const walk = (node) => {
     if (node.nodeType === Node.TEXT_NODE) tokens.push(node.textContent);
@@ -479,7 +480,8 @@ function takeArticlePaths(block) {
   };
   walk(cell);
   // Joining with a space keeps list items and paragraphs apart.
-  return toPagePaths(tokens.join(' '));
+  const text = tokens.join(' ');
+  return text.trim() ? toPagePaths(text) : null;
 }
 
 /**
@@ -510,13 +512,13 @@ function selectPinnedItems(data, paths, { count, excludePath }) {
  * @property {string} endpoint Index to fetch
  * @property {string} [category]
  * @property {string} excludePath Path to omit, or ''
- * @property {string[]} pinnedPaths Paths the author chose; empty for automatic results
+ * @property {string[]|null} pinnedPaths Paths the author chose; null for automatic results
  */
 
 /**
  * Read a grid's source from its config, or from the current page in related mode.
  * @param {object} config Block config from {@link readBlockConfig}
- * @param {string[]} articlePaths Paths from the block's `Articles` row
+ * @param {string[]|null} articlePaths Paths from the block's `Articles` row
  * @returns {GridSource}
  */
 function getGridSource(config, articlePaths) {
@@ -528,7 +530,7 @@ function getGridSource(config, articlePaths) {
     return {
       isRelated: false,
       section,
-      endpoint: articlePaths.length ? allContent : endpointFor(section),
+      endpoint: articlePaths ? allContent : endpointFor(section),
       category: config.category,
       excludePath: '',
       pinnedPaths: articlePaths,
@@ -537,12 +539,13 @@ function getGridSource(config, articlePaths) {
 
   const currentPath = window.location.pathname;
   const section = getSectionFromPath(currentPath);
-  const pinnedPaths = getRelatedArticlePaths();
+  const relatedPaths = getRelatedArticlePaths();
+  const pinnedPaths = relatedPaths.length ? relatedPaths : null;
   return {
     isRelated: true,
     section,
     // Picks can be any content type, so they resolve against the all-content index.
-    endpoint: pinnedPaths.length ? allContent : endpointFor(section),
+    endpoint: pinnedPaths ? allContent : endpointFor(section),
     category: getMetadata('category'),
     excludePath: currentPath,
     pinnedPaths,
@@ -559,7 +562,7 @@ function getGridSource(config, articlePaths) {
 function selectGridItems(data, {
   isRelated, category, excludePath, pinnedPaths,
 }, count) {
-  if (pinnedPaths.length) return selectPinnedItems(data, pinnedPaths, { count, excludePath });
+  if (pinnedPaths) return selectPinnedItems(data, pinnedPaths, { count, excludePath });
 
   const items = selectItems(data, { category, count, excludePath });
   if (items.length || !isRelated || !category) return items;
@@ -577,7 +580,7 @@ function selectGridItems(data, {
  */
 function picksNeedContentType(items, { isRelated, section, pinnedPaths }) {
   return isRelated
-    && pinnedPaths.length > 0
+    && pinnedPaths !== null
     && items.some((item) => getSectionFromPath(item.path)?.slug !== section?.slug);
 }
 
