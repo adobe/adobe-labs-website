@@ -124,8 +124,13 @@ describe('page-header block', () => {
     expect(nav).toHaveClass('page-header__jump');
     expect(nav.querySelector('ul')).toHaveClass('page-header__jump-list', 'heading-6');
     expect(nav.querySelector('ul')).toHaveAttribute('role', 'list');
-    expect(within(nav).getByRole('link', { name: 'Future of Creative Work' }))
-      .toHaveAttribute('href', '#future');
+    const link = within(nav).getByRole('link', { name: 'Future of Creative Work' });
+    expect(link).toHaveAttribute('href', '#future');
+    const underline = link.querySelector('.page-header__jump-underline');
+    expect(underline).toHaveAttribute('data-ghost-text', 'Future of Creative Work');
+    expect(underline).toHaveTextContent(/^$/);
+    expect(underline).toHaveAttribute('aria-hidden', 'true');
+    expect(link.querySelector('.page-header__jump-text')).toHaveTextContent('Future of Creative Work');
     expect(nav.querySelectorAll('li')).toHaveLength(4);
   });
 
