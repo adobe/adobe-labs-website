@@ -659,12 +659,7 @@ main:focus-visible::after {
   border-radius: var(--play-icon-radius);
   color: var(--s2a-color-content-knockout);
   pointer-events: none;
-  background:
-    linear-gradient(
-      var(--s2a-color-transparent-white-16),
-      var(--s2a-color-transparent-white-16)
-    ),
-    var(--s2a-color-transparent-black-24);
+  background: rgb(0 0 0 / 25%);
   backdrop-filter: blur(var(--play-icon-blur));
 
   svg {
