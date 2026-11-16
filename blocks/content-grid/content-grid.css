@@ -7,6 +7,10 @@
   --content-grid-pager-background: var(--s2a-color-transparent-black-08);
   --content-grid-pager-background-hover: var(--s2a-color-transparent-black-16);
 
+  /* Step size for the scroll stagger. The left card travels 1.5 steps,
+     the next 3.25, then 5.5. */
+  --content-grid-stagger-drift: 48px;
+
   :root[data-theme="dark"] & {
     --content-grid-pager-background: var(--s2a-color-transparent-white-08);
     --content-grid-pager-background-hover: var(--s2a-color-transparent-white-24);
@@ -213,6 +217,43 @@
 
     &.content-grid--has-intro .content-grid__intro {
       padding-inline-end: var(--s2a-spacing-4xl);
+    }
+  }
+}
+
+/*
+ * Scroll-linked stagger, matching adobe.com `parallax-stagger-ltr`.
+ * Each card rises across its own entry: the left card travels less,
+ * and each card to the right starts further down. The class is opt-in.
+ * The first row already in the viewport, such as the homepage peek, never
+ * receives it. Later rows, including a second row that is also on screen,
+ * still stagger as they move through the viewport.
+ * `@supports` stays at the root: nesting it breaks adjacent styles in
+ * Safari 16.5 through 18.1.
+ */
+@supports ((animation-timeline: view()) and (animation-range: entry)) {
+  @keyframes content-grid-stagger {
+    from {
+      transform: translate3d(0, var(--content-grid-stagger-from, 0), 0);
+    }
+
+    to {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (width >= 48rem) {
+    .content-grid__list > .content-grid__item--stagger {
+      --content-grid-stagger-from: calc(
+        var(--content-grid-stagger-index, 1.5) * var(--content-grid-stagger-drift, 48px)
+      );
+
+      animation-name: content-grid-stagger;
+      animation-duration: auto;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
     }
   }
 }

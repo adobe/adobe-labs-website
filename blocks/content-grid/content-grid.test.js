@@ -1264,6 +1264,75 @@ describe('content-grid block', () => {
       });
     });
 
+    describe('Related Heading metadata', () => {
+      beforeEach(() => {
+        window.history.pushState({}, '', '/sneaks/current');
+        dataStore.getData.mockResolvedValue(RELATED_INDEX);
+      });
+
+      it('replaces the intro heading text and keeps its level and id', async () => {
+        getMetadata.mockImplementation((name) => (name === 'related-heading' ? ' Latest Sneaks ' : ''));
+        const block = createBlock({
+          'Related content:': 'true',
+          'Count:': '8',
+          Intro: '<h2 id="related-content">Related content</h2><p>More to explore.</p>',
+        });
+
+        await decorate(block);
+
+        const heading = block.querySelector('.content-grid__intro h2');
+        expect(heading).toHaveTextContent(/^Latest Sneaks$/);
+        expect(heading).toHaveAttribute('id', 'related-content');
+        expect(block.querySelector('.content-grid__intro p')).toHaveTextContent('More to explore.');
+      });
+
+      it('keeps the small heading style', async () => {
+        getMetadata.mockImplementation((name) => (name === 'related-heading' ? 'Latest Sneaks' : ''));
+        const block = createBlock({
+          'Related content:': 'true', 'Count:': '8', Intro: '<h3><em>Related content</em></h3>',
+        });
+
+        await decorate(block);
+
+        const heading = block.querySelector('.content-grid__intro h3');
+        expect(heading).toHaveClass('content-grid__intro-heading--small');
+        expect(heading).toHaveTextContent('Latest Sneaks');
+      });
+
+      it('keeps the authored heading when the metadata is empty', async () => {
+        const block = createBlock({
+          'Related content:': 'true', 'Count:': '8', Intro: '<h2>Related content</h2>',
+        });
+
+        await decorate(block);
+
+        expect(block.querySelector('.content-grid__intro h2')).toHaveTextContent('Related content');
+      });
+
+      it('leaves an intro without a heading unchanged', async () => {
+        getMetadata.mockImplementation((name) => (name === 'related-heading' ? 'Latest Sneaks' : ''));
+        const block = createBlock({
+          'Related content:': 'true', 'Count:': '8', Intro: '<p>More to explore.</p>',
+        });
+
+        await decorate(block);
+
+        const intro = block.querySelector('.content-grid__intro');
+        expect(intro).toHaveTextContent(/^More to explore\.$/);
+      });
+
+      it('ignores the metadata on a grid without Related content', async () => {
+        getMetadata.mockImplementation((name) => (name === 'related-heading' ? 'Latest Sneaks' : ''));
+        const block = createBlock({
+          'Content Type:': 'All', 'Count:': '8', Intro: '<h2>Explore Workflows</h2>',
+        });
+
+        await decorate(block);
+
+        expect(block.querySelector('.content-grid__intro h2')).toHaveTextContent('Explore Workflows');
+      });
+    });
+
     it('adds content-grid--related for the fixed intro heading style, and removes it otherwise', async () => {
       window.history.pushState({}, '', '/research/current');
       dataStore.getData.mockResolvedValue(RELATED_INDEX);
@@ -1771,6 +1840,236 @@ describe('content-grid block', () => {
       wireStackedGridPagers(blocks[1]);
 
       expect(within(blocks[0]).queryByRole('navigation')).toBeNull();
+    });
+  });
+
+  describe('card stagger', () => {
+    /** @type {Array<{ callback: Function, observe: jest.Mock, disconnect: jest.Mock }>} */
+    let resizes;
+    let reducedMotion;
+    let supportsView;
+
+    beforeEach(() => {
+      resizes = [];
+      reducedMotion = false;
+      supportsView = true;
+      window.matchMedia = jest.fn((query) => ({
+        get matches() {
+          return String(query).includes('prefers-reduced-motion') ? reducedMotion : false;
+        },
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+      }));
+      CSS.supports = jest.fn(() => supportsView);
+      global.ResizeObserver = jest.fn(function MockResizeObserver(callback) {
+        this.callback = callback;
+        this.observe = jest.fn();
+        this.disconnect = jest.fn();
+        resizes.push(this);
+      });
+    });
+
+    afterEach(() => {
+      delete window.matchMedia;
+      delete CSS.supports;
+      delete global.ResizeObserver;
+      document.documentElement.classList.remove('hero-intro', 'hero-intro--body');
+    });
+
+    function cards(block) {
+      return [...block.querySelectorAll('.content-grid__item')];
+    }
+
+    function staggerIndex(item) {
+      return item.style.getPropertyValue('--content-grid-stagger-index');
+    }
+
+    /**
+     * Place cards in visual rows. Each entry is `{ top, height, count }`.
+     * @param {Element} block
+     * @param {{ top: number, height: number, count: number }[]} rows
+     */
+    function stubRows(block, rows) {
+      const items = cards(block);
+      let index = 0;
+      rows.forEach((row) => {
+        for (let i = 0; i < row.count; i += 1) {
+          const item = items[index];
+          index += 1;
+          const { top, height } = row;
+          Object.defineProperty(item, 'offsetTop', { configurable: true, get: () => top });
+          item.getBoundingClientRect = () => ({
+            top,
+            bottom: top + height,
+            left: i * 100,
+            right: (i * 100) + 80,
+            width: 80,
+            height,
+            x: i * 100,
+            y: top,
+            toJSON() { return this; },
+          });
+        }
+      });
+    }
+
+    function viewportHeight() {
+      return window.innerHeight || document.documentElement.clientHeight || 768;
+    }
+
+    it('does not assign steps before the grid has a layout box', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+
+      expect(staggerIndex(cards(block)[0])).toBe('');
+      expect(cards(block)[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(resizes[0].observe).toHaveBeenCalled();
+    });
+
+    it('assigns a left-to-right column step to rows below the viewport', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [{ top: viewportHeight() + 80, height: 360, count: items.length }]);
+
+      resizes[0].callback();
+
+      expect(staggerIndex(items[0])).toBe('1.5');
+      expect(staggerIndex(items[1])).toBe('3.25');
+      expect(staggerIndex(items[2])).toBe('5.5');
+      expect(items[0]).toHaveClass('content-grid__item--stagger');
+      expect(items[2]).toHaveClass('content-grid__item--stagger');
+    });
+
+    it('leaves the first visible row still and staggers the rows below it', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [
+        { top: 40, height: 360, count: 2 },
+        { top: viewportHeight() + 80, height: 360, count: items.length - 2 },
+      ]);
+
+      resizes[0].callback();
+
+      expect(items[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(items[1]).not.toHaveClass('content-grid__item--stagger');
+      expect(staggerIndex(items[0])).toBe('1.5');
+      expect(items[2]).toHaveClass('content-grid__item--stagger');
+      expect(staggerIndex(items[2])).toBe('1.5');
+    });
+
+    it('staggers the second row even when it is also in the viewport', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [
+        { top: 40, height: 200, count: 2 },
+        { top: 280, height: 200, count: items.length - 2 },
+      ]);
+
+      resizes[0].callback();
+
+      expect(items[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(items[1]).not.toHaveClass('content-grid__item--stagger');
+      expect(items[2]).toHaveClass('content-grid__item--stagger');
+    });
+
+    it('uses the hero resting position so the second row still staggers', async () => {
+      const vh = viewportHeight();
+      const main = document.createElement('main');
+      main.innerHTML = `
+        <div class="section hero-container"><div class="hero hero-full-screen"></div></div>
+        <div class="section"></div>
+      `;
+      const parked = main.querySelectorAll('.section')[1];
+      parked.style.marginTop = `${vh + 200}px`;
+      parked.style.setProperty('--hero-margin-negative-offset', '0px');
+      document.body.append(main);
+      document.documentElement.classList.add('hero-intro');
+
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [
+        { top: vh + 80, height: 180, count: 2 },
+        { top: vh + 300, height: 180, count: items.length - 2 },
+      ]);
+      resizes[0].callback();
+
+      expect(items[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(items[2]).toHaveClass('content-grid__item--stagger');
+
+      main.remove();
+    });
+
+    it('restarts the column step on the next visual row', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [
+        { top: 80, height: 360, count: 2 },
+        { top: 900, height: 360, count: items.length - 2 },
+      ]);
+
+      resizes[0].callback();
+
+      expect(staggerIndex(items[0])).toBe('1.5');
+      expect(staggerIndex(items[1])).toBe('3.25');
+      expect(staggerIndex(items[2])).toBe('1.5');
+    });
+
+    it('puts a single wrapped row back on the first step', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [
+        { top: 80, height: 360, count: 2 },
+        { top: 900, height: 360, count: items.length - 2 },
+      ]);
+      resizes[0].callback();
+
+      stubRows(block, [{ top: 80, height: 360, count: items.length }]);
+      resizes[0].callback();
+
+      expect(staggerIndex(items[2])).toBe('5.5');
+    });
+
+    it('does not assign steps when reduced motion is preferred', async () => {
+      reducedMotion = true;
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+
+      expect(staggerIndex(cards(block)[0])).toBe('');
+      expect(global.ResizeObserver).not.toHaveBeenCalled();
+    });
+
+    it('clears the steps when reduced motion is turned on', async () => {
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+      const items = cards(block);
+      stubRows(block, [{ top: viewportHeight() + 80, height: 360, count: items.length }]);
+      resizes[0].callback();
+      expect(items[0]).toHaveClass('content-grid__item--stagger');
+
+      const motion = window.matchMedia.mock.results[0].value;
+      reducedMotion = true;
+      const change = motion.addEventListener.mock.calls.find(([event]) => event === 'change');
+      change[1]();
+
+      expect(resizes[0].disconnect).toHaveBeenCalled();
+      expect(items[0]).not.toHaveClass('content-grid__item--stagger');
+      expect(staggerIndex(items[0])).toBe('');
+    });
+
+    it('does not assign steps without a view timeline', async () => {
+      supportsView = false;
+      const block = createBlock({ 'Content Type:': 'All' });
+      await decorate(block);
+
+      expect(staggerIndex(cards(block)[0])).toBe('');
+      expect(global.ResizeObserver).not.toHaveBeenCalled();
     });
   });
 });
