@@ -28,7 +28,7 @@ export const GRID_ITEM_IMAGE_BREAKPOINTS = [{ width: '960' }];
  * @property {string} [href] Item URL; omit for a non-linked card
  * @property {string} [subhead]
  * @property {string} [contentType] Authored section label; resolved to a known
- *   path inside buildGridItem
+ *   section inside buildGridItem and shown inside the card, not as its own link
  * @property {Element} [mediaElement] `<picture>` or `<img>` from AEM
  * @property {string} [imageUrl] Image URL from JSON (Content Grid)
  * @property {string} [imageAlt]
@@ -81,11 +81,11 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
 
   const template = document.createElement('template');
   template.innerHTML = `
-    ${contentType ? `<a class="grid-item__content-type label" href="${contentType.path}">
-      <span class="grid-item__content-type-swatch" aria-hidden="true"></span>
-      <span class="grid-item__content-type-name"></span>
-    </a>` : ''}
     <${mainTag} class="grid-item__main">
+      ${contentType ? `<span class="grid-item__content-type label">
+        <span class="grid-item__content-type-swatch" aria-hidden="true"></span>
+        <span class="grid-item__content-type-name"></span>
+      </span>` : ''}
       <div class="grid-item__image"></div>
       <div class="grid-item__body">
         ${title ? '<p class="grid-item__title heading-6"><span class="grid-item__title-stack"><span class="grid-item__title-text"></span><span class="grid-item__title-underline" aria-hidden="true"></span></span></p>' : ''}
@@ -139,8 +139,9 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
 }
 
 /**
- * Decorates a grid-item block: key/value rows become a content-type link and a
- * card (image, title, optional subhead). The card links when the title is a link.
+ * Decorates a grid-item block: key/value rows become a card (content-type
+ * label, image, title, optional subhead). The card links when the title is a
+ * link. The content-type label sits inside that link and is not its own link.
  * Already-built cards (`.grid-item__main` present) are left as-is so nested
  * `loadBlock` from content-grid does not wipe `buildGridItem` output.
  *
