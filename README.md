@@ -91,6 +91,15 @@ The homepage **Latest Content** section uses `content-grid` with a key/value tab
 | Category | Optional. `All` or omitted means no filter. Otherwise matched against the index `category` field (array or comma-separated string) after trim + lowercase |
 | Count | How many cards to show (defaults to 8) |
 | Intro | Optional freeform first cell (heading, paragraph, links). Extra; does not count toward Count |
+| Articles | Optional. Links to the articles this grid should show, from any content type. See below |
+
+To choose exactly which articles a grid shows, add an **Articles** row with one link per line (a bulleted list) or comma-separated links. Site URLs (preview or live), paths with or without a leading `/`, and DA editor links (`da.live/edit#/...`) all work, and the link text does not matter. The grid then:
+
+- Shows only those articles, in the order listed, and ignores Content Type and Category
+- Shows at most Count articles, and never fills empty spots with other articles
+- Skips links to articles that are unpublished, `noindex`, duplicated, or section landing pages, and hides itself when none are left
+
+Leave the row out to keep the automatic, newest-first results. Content-type labels still follow `show-content-type`. A `Related content: true` grid ignores this row; articles choose their related content with the `Related Articles` metadata instead.
 
 The block fetches the Content Type endpoint via `dataStore`, filters by Category after the fetch, and renders each hit as a `grid-item`. If nothing matches, the block and its `.content-grid-wrapper` are hidden (including authored Intro). An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Card image frames follow the index `imageAspect` value (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). Missing or unknown values default to 1:1. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Card content-type labels (when `show-content-type` is set) come from the first path segment (Research, Workflows, Sneaks, Playground)—not the topic Category metadata.
 
