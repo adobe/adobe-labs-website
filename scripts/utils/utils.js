@@ -175,6 +175,16 @@ export function createExternalArrow() {
   return svg;
 }
 
+/**
+ * Gives a decorative underline copy its text through CSS (`[data-ghost-text]::before`),
+ * so headings and crawlers see the real text only once.
+ * @param {HTMLElement} el Copy to fill; existing children stay after the text
+ * @param {string} text
+ */
+export function setGhostText(el, text) {
+  el.dataset.ghostText = text;
+}
+
 /** Thin external-link arrow. The viewBox matches the ink so the arrow fills the icon box. */
 const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V7.296L7.28 8.288V1.792L1.056 8.016Z';
 

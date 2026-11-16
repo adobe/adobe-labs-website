@@ -8,6 +8,7 @@ import {
   getCellText,
   getSection,
   isAuthoredVideo,
+  setGhostText,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
@@ -121,7 +122,7 @@ export function buildGridItem(data = {}, root = document.createElement('div')) {
   if (title) {
     const titleEl = fragment.querySelector('.grid-item__title');
     titleEl.querySelector('.grid-item__title-text').textContent = title;
-    titleEl.querySelector('.grid-item__title-underline').textContent = title;
+    setGhostText(titleEl.querySelector('.grid-item__title-underline'), title);
   }
   if (subhead) fragment.querySelector('.grid-item__subhead').textContent = subhead;
 

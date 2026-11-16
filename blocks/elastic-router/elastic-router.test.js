@@ -41,7 +41,8 @@ describe('elastic-router block', () => {
     expect(view.getByRole('heading', { name: 'Research' })).toHaveClass('elastic-router__title');
     expect(link.querySelector('.elastic-router__title-text')).toHaveTextContent('Research');
     const underline = link.querySelector('.elastic-router__title-underline');
-    expect(underline).toHaveTextContent('Research');
+    expect(underline).toHaveAttribute('data-ghost-text', 'Research');
+    expect(underline).toHaveTextContent(/^$/);
     expect(underline).toHaveAttribute('aria-hidden', 'true');
     expect(view.getByText('Research the future of creative work')).toHaveClass('elastic-router__description');
     expect(link.querySelector('picture')).toBeTruthy();
