@@ -37,6 +37,7 @@ import {
   decorateSectionMetadata,
   decorateVisuallyHiddenHeadings,
   decorateBlockquotes,
+  decorateCodeBlocks,
   isArticleDetailPage,
   isReducedDataOff,
   watchExternalLinks,
@@ -201,6 +202,7 @@ export function decorateMain(main) {
   decorateBlocks(main);
   decorateButtons(main);
   decorateBlockquotes(main);
+  decorateCodeBlocks(main);
 }
 
 /**

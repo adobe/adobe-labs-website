@@ -15,6 +15,10 @@
     padding-inline: 0;
     padding-block-end: var(--s2a-spacing-xs);
 
+    &:focus-visible {
+      outline-offset: -2px;
+    }
+
     &::-webkit-scrollbar {
       height: var(--s2a-spacing-xs);
       background: var(--table-scrollbar-track);
