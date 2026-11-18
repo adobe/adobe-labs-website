@@ -500,6 +500,49 @@ describe('hero block', () => {
     }
   });
 
+  it('cuts underline descender gaps with one shared filter on Apple WebKit', async () => {
+    const vendor = jest.spyOn(navigator, 'vendor', 'get').mockReturnValue('Apple Computer, Inc.');
+    document.getElementById('underline-knockout')?.closest('svg').remove();
+    const first = createHeroBlock([['Research', '5.24.26', '<a href="/research/first">First</a>', 'Read']]);
+    const second = createHeroBlock([['Research', '5.24.26', '<a href="/research/second">Second</a>', 'Read']]);
+    first.classList.add('hero-full-screen');
+    second.classList.add('hero-full-screen');
+    const main = placeInMain(first);
+    main.append(second);
+
+    try {
+      await decorate(first);
+      await decorate(second);
+
+      const filters = document.querySelectorAll('#underline-knockout');
+      expect(filters).toHaveLength(1);
+      expect(filters[0].tagName).toBe('filter');
+      expect(filters[0].closest('svg')).toHaveAttribute('aria-hidden', 'true');
+      expect(first.querySelector('.hero__headline-underline')).toHaveClass('hero__headline-underline--knockout');
+    } finally {
+      main.remove();
+      vendor.mockRestore();
+    }
+  });
+
+  it('keeps the browser underline gaps outside Apple WebKit', async () => {
+    const vendor = jest.spyOn(navigator, 'vendor', 'get').mockReturnValue('Google Inc.');
+    document.getElementById('underline-knockout')?.closest('svg').remove();
+    const block = createHeroBlock([['Research', '5.24.26', '<a href="/research/example">Headline</a>', 'Read']]);
+    block.classList.add('hero-full-screen');
+    const main = placeInMain(block);
+
+    try {
+      await decorate(block);
+
+      expect(block.querySelector('.hero__headline-underline')).not.toHaveClass('hero__headline-underline--knockout');
+      expect(document.getElementById('underline-knockout')).toBeNull();
+    } finally {
+      main.remove();
+      vendor.mockRestore();
+    }
+  });
+
   it('names a full-screen video hero as a video article', async () => {
     const block = createHeroBlock([
       [

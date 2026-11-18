@@ -185,6 +185,53 @@ export function setGhostText(el, text) {
   el.dataset.ghostText = text;
 }
 
+export const UNDERLINE_KNOCKOUT_ID = 'underline-knockout';
+
+/** Gap around descenders, in CSS px. */
+const UNDERLINE_KNOCKOUT_GAP = 3;
+
+/**
+ * Adds the shared SVG filter that erases a ghost copy's red glyphs, widened,
+ * and the underline beneath them. Safe to call repeatedly.
+ */
+export function ensureUnderlineKnockout() {
+  if (document.getElementById(UNDERLINE_KNOCKOUT_ID)) return;
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  // Zero-size rather than display: none, which disables filters in Firefox.
+  svg.setAttribute('width', '0');
+  svg.setAttribute('height', '0');
+  svg.style.position = 'absolute';
+  const filter = document.createElementNS(ns, 'filter');
+  filter.id = UNDERLINE_KNOCKOUT_ID;
+  filter.setAttribute('x', '-5%');
+  filter.setAttribute('y', '-50%');
+  filter.setAttribute('width', '110%');
+  filter.setAttribute('height', '200%');
+  filter.setAttribute('color-interpolation-filters', 'sRGB');
+  // Red minus green, scaled so red shifted by a wide-gamut display still erases fully.
+  const glyphs = document.createElementNS(ns, 'feColorMatrix');
+  glyphs.setAttribute('in', 'SourceGraphic');
+  glyphs.setAttribute('type', 'matrix');
+  glyphs.setAttribute('values', '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  8 -8 0 0 0');
+  glyphs.setAttribute('result', 'glyphs');
+  // Mostly sideways, so baseline letters never reach the line; a zero y can disable it.
+  const halo = document.createElementNS(ns, 'feMorphology');
+  halo.setAttribute('in', 'glyphs');
+  halo.setAttribute('operator', 'dilate');
+  halo.setAttribute('radius', `${UNDERLINE_KNOCKOUT_GAP} 0.5`);
+  halo.setAttribute('result', 'halo');
+  const cut = document.createElementNS(ns, 'feComposite');
+  cut.setAttribute('in', 'SourceGraphic');
+  cut.setAttribute('in2', 'halo');
+  cut.setAttribute('operator', 'out');
+  filter.append(glyphs, halo, cut);
+  svg.append(filter);
+  document.body.append(svg);
+}
+
 /** Thin external-link arrow. The viewBox matches the ink so the arrow fills the icon box. */
 const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V7.296L7.28 8.288V1.792L1.056 8.016Z';
 

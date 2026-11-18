@@ -12,11 +12,6 @@
   --hero-underline-transition-duration: var(--underline-transition-duration-exit);
   --hero-underline-transition-easing: var(--underline-transition-easing);
 
-  /* Outline that cuts the underline around descenders. Should match the
-     background behind the title, which comes from the hero image. */
-  --hero-underline-gap-color: #6b584c;
-  --hero-underline-gap: 3px;
-
   position: relative;
   isolation: isolate;
   font-family: var(--heading-font-family);
@@ -158,13 +153,6 @@
     grid-area: 1 / 1;
   }
 
-  /* Above the underline copy so its outline (set while the underline shows)
-     covers the line around descenders. Safari's own skip-ink gap is too
-     tight, so the outline sets the gap instead. */
-  .hero__headline-text {
-    z-index: 1;
-  }
-
   .hero__headline-underline {
     /* With a tight line-height the last line's underline falls below
        the box, so the clip extends past the bottom edge. */
@@ -185,7 +173,6 @@
     text-decoration-line: underline;
     text-decoration-color: var(--s2a-color-gray-25, #fff);
     text-decoration-thickness: var(--hero-underline-thickness);
-    text-decoration-skip-ink: none;
     text-underline-offset: var(--hero-underline-offset);
     clip-path: inset(0 100% var(--hero-underline-overflow) 0);
     transition: clip-path var(--hero-underline-transition-duration) var(--hero-underline-transition-easing);
@@ -193,6 +180,13 @@
     :dir(rtl) & {
       clip-path: inset(0 0 var(--hero-underline-overflow) 100%);
     }
+  }
+
+  /* Red glyphs only mark the cut; the filter erases them. */
+  .hero__headline-underline--knockout {
+    color: #f00;
+    text-decoration-skip-ink: none;
+    filter: url("#underline-knockout");
   }
 
   .hero__link-wrap:focus-visible .hero__headline-underline {
@@ -203,12 +197,6 @@
     }
   }
 
-  .hero__link-wrap:focus-visible .hero__headline-text {
-    text-shadow:
-      var(--hero-underline-gap) 0 var(--hero-underline-gap-color),
-      calc(-1 * var(--hero-underline-gap)) 0 var(--hero-underline-gap-color);
-  }
-
   @media (hover: hover) {
     .hero__link-wrap:hover .hero__headline-underline {
       clip-path: inset(0 0 var(--hero-underline-overflow) 0);
@@ -216,12 +204,6 @@
       @media (prefers-reduced-motion: no-preference) {
         --hero-underline-transition-duration: var(--underline-transition-duration);
       }
-    }
-
-    .hero__link-wrap:hover .hero__headline-text {
-      text-shadow:
-        var(--hero-underline-gap) 0 var(--hero-underline-gap-color),
-        calc(-1 * var(--hero-underline-gap)) 0 var(--hero-underline-gap-color);
     }
   }
 

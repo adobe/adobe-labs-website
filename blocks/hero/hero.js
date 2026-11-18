@@ -2,6 +2,7 @@ import { getMetadata } from '../../scripts/aem.js';
 import {
   buildPlayIcon,
   createExternalArrow,
+  ensureUnderlineKnockout,
   getAuthoredCells,
   getAuthoredVideoCell,
   getCellLinkHref,
@@ -34,6 +35,10 @@ const FROST_DISPLACE = 18;
 const FROST_GRAIN_SIZE = 160; // higher = larger crystals
 const FROST_FREQ = 10 / FROST_GRAIN_SIZE;
 const FILTER_EPS = 0.01;
+
+function isAppleWebKit() {
+  return navigator.vendor === 'Apple Computer, Inc.';
+}
 
 /** @type {number[]} */
 let introTimers = [];
@@ -174,6 +179,10 @@ function createUnderlineStack(text, classNames, external = false) {
   underline.className = classNames.underline;
   underline.setAttribute('aria-hidden', 'true');
   fillStackCopy(underline, text, external, true);
+  if (isAppleWebKit()) {
+    ensureUnderlineKnockout();
+    underline.classList.add(`${classNames.underline}--knockout`);
+  }
   stack.append(textEl, underline);
   return stack;
 }
@@ -482,7 +491,7 @@ function bindIntroScroll() {
  * @returns {boolean}
  */
 function noFrostSVG() {
-  return navigator.vendor === 'Apple Computer, Inc.';
+  return isAppleWebKit();
 }
 
 /** Eases blur and displacement after the black hold. */
