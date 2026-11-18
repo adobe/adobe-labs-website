@@ -849,6 +849,8 @@ function needsMotion(main) {
  * @returns {void}
  */
 export function bindFooterReveal(main, root, options = {}) {
+  // A per-frame JS translate trails native touch scroll and jumps, so touch stacks the footer.
+  if (usesTouchScroll()) return;
   const card = footerCoverSection(main);
   const doc = root.nodeType === Node.DOCUMENT_NODE ? root : root.ownerDocument;
   const footer = doc?.querySelector('body > footer');
