@@ -172,7 +172,7 @@
     --hero-underline-thickness: 3px;
     --hero-underline-offset: 4px;
 
-    @media (width <= 48rem) {
+    @media (width < 64rem) {
       --hero-underline-thickness: 2px;
       --hero-underline-offset: 1px;
     }
