@@ -12,6 +12,8 @@
 
   --grid-item-underline-transition-duration: var(--underline-transition-duration-exit);
   --grid-item-underline-transition-easing: var(--underline-transition-easing);
+  --grid-item-underline-gap: 2px;
+  --grid-item-underline-gap-color: var(--section-surface, var(--s2a-color-background-default));
 
   &[data-content-type="research"] {
     --grid-item-content-type-color: var(--color-content-type-research);
@@ -157,6 +159,10 @@
     grid-area: 1 / 1;
   }
 
+  .grid-item__title-text {
+    z-index: 1;
+  }
+
   .grid-item__title-underline {
     /* Painted on top; without this it would intercept clicks and
        selection meant for the real text. */
@@ -166,6 +172,7 @@
     text-decoration-line: underline;
     text-decoration-color: var(--s2a-color-content-default);
     text-decoration-thickness: 1px;
+    text-decoration-skip-ink: none;
     text-underline-offset: 2px;
     mask-image: linear-gradient(to right, black, black);
     mask-repeat: no-repeat;
@@ -186,6 +193,12 @@
     }
   }
 
+  .grid-item__main:focus-visible .grid-item__title-text {
+    text-shadow:
+      var(--grid-item-underline-gap) 0 var(--grid-item-underline-gap-color),
+      calc(-1 * var(--grid-item-underline-gap)) 0 var(--grid-item-underline-gap-color);
+  }
+
   @media (hover: hover) {
     .grid-item__main:hover .grid-item__title-underline {
       mask-size: 100% 100%;
@@ -193,6 +206,12 @@
       @media (prefers-reduced-motion: no-preference) {
         --grid-item-underline-transition-duration: var(--underline-transition-duration);
       }
+    }
+
+    .grid-item__main:hover .grid-item__title-text {
+      text-shadow:
+        var(--grid-item-underline-gap) 0 var(--grid-item-underline-gap-color),
+        calc(-1 * var(--grid-item-underline-gap)) 0 var(--grid-item-underline-gap-color);
     }
   }
 

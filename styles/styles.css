@@ -1126,7 +1126,9 @@ main .section[class*="section-rounded-"] {
 
 main .section {
   &.section-rounded-default {
-    background: var(--color-section-surface-default);
+    --section-surface: var(--color-section-surface-default);
+
+    background: var(--section-surface);
 
     /* Adjacent default-color sections should appear as one continuous surface. */
     + .section-rounded-default {
@@ -1142,58 +1144,86 @@ main .section {
   }
 
   &.section-rounded-blue {
-    background: var(--color-section-surface-blue);
+    --section-surface: var(--color-section-surface-blue);
+
+    background: var(--section-surface);
   }
 
   &.section-rounded-pink {
-    background: var(--color-section-surface-pink);
+    --section-surface: var(--color-section-surface-pink);
+
+    background: var(--section-surface);
   }
 
   &.section-rounded-orange {
-    background: var(--color-section-surface-orange);
+    --section-surface: var(--color-section-surface-orange);
+
+    background: var(--section-surface);
   }
 
   &.section-rounded-gray {
-    background: var(--color-section-surface-gray);
+    --section-surface: var(--color-section-surface-gray);
+
+    background: var(--section-surface);
   }
 
   &.section-rounded-related {
-    background: var(--color-section-surface-related);
+    --section-surface: var(--color-section-surface-related);
+
+    background: var(--section-surface);
 
     &:has(.content-grid[data-content-type="research"]) {
-      background: var(--color-section-surface-related-research);
+      --section-surface: var(--color-section-surface-related-research);
+
+      background: var(--section-surface);
     }
 
     &:has(.content-grid[data-content-type="workflows"]) {
-      background: var(--color-section-surface-related-workflows);
+      --section-surface: var(--color-section-surface-related-workflows);
+
+      background: var(--section-surface);
     }
 
     &:has(.content-grid[data-content-type="sneaks"]) {
-      background: var(--color-section-surface-related-sneaks);
+      --section-surface: var(--color-section-surface-related-sneaks);
+
+      background: var(--section-surface);
     }
 
     &:has(.content-grid[data-content-type="playground"]) {
-      background: var(--color-section-surface-related-playground);
+      --section-surface: var(--color-section-surface-related-playground);
+
+      background: var(--section-surface);
     }
 
     &:has(.content-grid[data-content-type="research"][data-category="future-of-creative-work"]) {
-      background: var(--color-section-surface-related-category-future-of-creative-work);
+      --section-surface: var(--color-section-surface-related-category-future-of-creative-work);
+
+      background: var(--section-surface);
     }
 
     &:has(.content-grid[data-content-type="research"][data-category="economic-impact"]) {
-      background: var(--color-section-surface-related-category-economic-impact);
+      --section-surface: var(--color-section-surface-related-category-economic-impact);
+
+      background: var(--section-surface);
     }
 
     &:has(.content-grid[data-content-type="research"][data-category="research"]) {
-      background: var(--color-section-surface-related-category-research);
+      --section-surface: var(--color-section-surface-related-category-research);
+
+      background: var(--section-surface);
     }
 
     &:has(.content-grid[data-content-type="research"][data-category="human-side-of-ai"]) {
-      background: var(--color-section-surface-related-category-human-side-of-ai);
+      --section-surface: var(--color-section-surface-related-category-human-side-of-ai);
+
+      background: var(--section-surface);
     }
 
     &:has(.content-grid[data-content-type="research"][data-category="standards-and-practices"]) {
-      background: var(--color-section-surface-related-category-standards-practices);
+      --section-surface: var(--color-section-surface-related-category-standards-practices);
+
+      background: var(--section-surface);
     }
   }
 
@@ -1206,7 +1236,9 @@ main .section {
 
   /* Dark mode variant for Sneaks has a lighter surface color. */
   &.section-rounded-default-variant {
-    background: var(--color-section-surface-default-variant);
+    --section-surface: var(--color-section-surface-default-variant);
+
+    background: var(--section-surface);
   }
 }
 
