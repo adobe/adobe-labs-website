@@ -291,6 +291,43 @@ describe('bindFooterReveal', () => {
     expect(frames).toHaveLength(1);
   });
 
+  it('keeps a stacked menu\'s cover distance matched to the live viewport height mid-scroll', () => {
+    // A mobile browser's chrome (iOS Safari's toolbar) can resize the viewport
+    // while a scroll gesture is still running, well before the debounced
+    // `resize` handler would call `refreshFooterReveal`. The stacked menu's
+    // cover distance (half the viewport) must track that live height on every
+    // scroll frame rather than a value cached from an earlier one, or the
+    // reveal lurches to a value that matches neither the old nor the new height.
+    const { matchMedia } = window;
+    window.matchMedia = jest.fn((query) => ({
+      matches: query.includes('width < 64rem'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }));
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
+    const inner = footer.querySelector('.footer__inner');
+    menuHeight(inner, 700);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 1000 });
+    cardBottom(main.children[0], 600);
+
+    try {
+      bindFooterReveal(main, document);
+      // Cover distance is half the 1000px viewport (500): (1000 - 600) / 500 * 100 - 100.
+      expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-20');
+
+      // The toolbar reappears mid-gesture: viewport shrinks, no resize event fires.
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+      scroll();
+
+      // Matches a fresh calculation at 800px (cover distance 400), not the
+      // value a distance cached from the 1000px frame would have produced (-60).
+      expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-50');
+    } finally {
+      window.matchMedia = matchMedia;
+    }
+  });
+
   it('picks up a footer menu decorated after binding', () => {
     const { main, footer } = mountPage('<div class="section section-rounded-default"></div>', '');
     cardBottom(main.children[0], 680);
@@ -355,7 +392,11 @@ describe('bindFooterReveal', () => {
     expect(scrollBy).toHaveBeenCalledWith(240);
   });
 
-  it('uncovers a tall stacked menu when its top reaches mid-viewport', () => {
+  it('finishes the stacked menu\'s visual rise at mid-viewport without releasing its sticky yet', () => {
+    // Reaching the fast, capped line only finishes the transform. Letting go
+    // of the sticky (the logo swap) that early would drop the menu from the
+    // viewport floor to its real, still-lower static position — the glitch
+    // this capped distance must not cause.
     const { matchMedia } = window;
     window.matchMedia = jest.fn((query) => ({
       matches: query.includes('width < 64rem'),
@@ -373,18 +414,25 @@ describe('bindFooterReveal', () => {
       bindFooterReveal(main, document);
       expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('-100');
 
-      // Viewport 800: half is 400, so the menu is in once the card bottom is there.
+      // Viewport 800: half is 400, so the capped visual rise finishes there.
       cardBottom(card, 400);
       scroll();
 
       expect(inner.style.getPropertyValue('--section-scroll-inner-progress')).toBe('0');
+      expect(footer).not.toHaveClass('section-scroll-logo');
+
+      // Only once the card has actually cleared the menu's own 700px height
+      // is the static position a seamless match for the sticky one it replaces.
+      cardBottom(card, 100);
+      scroll();
+
       expect(footer).toHaveClass('section-scroll-logo');
     } finally {
       window.matchMedia = matchMedia;
     }
   });
 
-  it('scrolls a focused control to the stacked mid-viewport line', () => {
+  it('scrolls a focused control clear of a stacked menu by its real height', () => {
     const { matchMedia } = window;
     window.matchMedia = jest.fn((query) => ({
       matches: query.includes('width < 64rem'),
@@ -401,8 +449,10 @@ describe('bindFooterReveal', () => {
       bindFooterReveal(main, document, { scrollBy });
       focusFromPointer(footer.querySelector('a'));
 
-      // Viewport 800, cover capped at 400: fully in when the card bottom is at 400.
-      expect(scrollBy).toHaveBeenCalledWith(400);
+      // Viewport 800, menu's real height 700: fully clear once the card
+      // bottom is at 100 — not the capped mid-viewport line, which would
+      // leave the control still genuinely covered.
+      expect(scrollBy).toHaveBeenCalledWith(700);
     } finally {
       window.matchMedia = matchMedia;
     }

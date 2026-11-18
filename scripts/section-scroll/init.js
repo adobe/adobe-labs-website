@@ -871,8 +871,6 @@ export function bindFooterReveal(main, root, options = {}) {
   /** @type {HTMLElement | null} */
   let inner = null;
   let innerHeight = 0;
-  /** Garage-door distance. Half the viewport when the menu is a tall column. */
-  let coverDistance = 0;
   /** @type {HTMLElement | null} */
   let logo = null;
   let logoHeight = 0;
@@ -906,7 +904,6 @@ export function bindFooterReveal(main, root, options = {}) {
     coverFits = null;
     resting = false;
     innerHeight = 0;
-    coverDistance = 0;
     logoHeight = 0;
   };
 
@@ -916,6 +913,21 @@ export function bindFooterReveal(main, root, options = {}) {
    * @returns {boolean}
    */
   const menuStacks = () => window.matchMedia?.(FOOTER_STACKED_MQ)?.matches === true;
+
+  /**
+   * Garage-door distance, in px. Half the viewport when the menu is a tall
+   * column. Recomputed from the live viewport height on every call rather
+   * than cached alongside the menu's own height: a mobile browser's chrome
+   * can resize the viewport mid-scroll (iOS Safari's toolbar), and `resize`
+   * is debounced, so a cached distance would briefly disagree with the live
+   * viewport height `entryProgress` reads for its own clamp below, making
+   * the reveal lurch backward for a frame before the debounce caught up.
+   *
+   * @returns {number}
+   */
+  const coverDistance = () => (
+    innerHeight ? footerCoverDistance(innerHeight, window.innerHeight, menuStacks()) : 0
+  );
 
   /**
    * The footer menu element. `loadFooter` may not have built `.footer__inner`
@@ -929,10 +941,7 @@ export function bindFooterReveal(main, root, options = {}) {
       innerHeight = 0;
       menuProgress = null;
     }
-    if (inner && !innerHeight) {
-      innerHeight = inner.offsetHeight;
-      coverDistance = footerCoverDistance(innerHeight, window.innerHeight, menuStacks());
-    }
+    if (inner && !innerHeight) innerHeight = inner.offsetHeight;
     return inner;
   };
 
@@ -975,6 +984,17 @@ export function bindFooterReveal(main, root, options = {}) {
    * the menu has fully risen. When the viewport already shows the footer, the
    * rise is dropped once and later frames leave it alone.
    *
+   * The CSS var driving the transform can reach `ENTRY_END` well before the
+   * logo swap is safe: on a stacked menu, `coverDistance()` shortens the
+   * *visual* rise to half the viewport so it doesn't feel sluggish, but the
+   * handoff itself — dropping `.footer__inner`'s sticky for its static flow
+   * position — is only seamless once the real, uncapped scroll distance
+   * (the menu's own height) has been covered. Swapping early drops the menu
+   * from the sticky floor to a static position that is still further down
+   * the page, a visible jump back under the card that then climbs back into
+   * place as the remaining real scroll plays out. So the swap is gated on a
+   * second, uncapped progress rather than the one the transform uses.
+   *
    * @returns {void}
    */
   const sync = () => {
@@ -991,12 +1011,15 @@ export function bindFooterReveal(main, root, options = {}) {
 
     const el = resolve();
     if (!el) return;
-    const progress = entryProgress(card, el, { height: coverDistance || innerHeight });
+    const progress = entryProgress(card, el, { height: coverDistance() || innerHeight });
     if (progress !== menuProgress) {
       menuProgress = progress;
       el.style.setProperty(VAR_PROGRESS, String(progress));
-      footer.classList.toggle(CLASS_LOGO, progress >= ENTRY_END);
     }
+    const releaseProgress = innerHeight
+      ? entryProgress(card, el, { height: innerHeight })
+      : progress;
+    footer.classList.toggle(CLASS_LOGO, releaseProgress >= ENTRY_END);
 
     const logoEl = resolveLogo();
     const cover = logoEl?.previousElementSibling;
@@ -1020,6 +1043,11 @@ export function bindFooterReveal(main, root, options = {}) {
    * keeps going until the inner's bottom has risen by the logo's height.
    * That distance is the same shortfall as the entry progress: the viewport
    * floor while the box is stuck there, or the box itself on a tall screen.
+   *
+   * This uses the menu's real, uncapped height, not `coverDistance()`'s
+   * shortened stand-in for a stacked menu's visual rise: that shorter
+   * distance reaches `ENTRY_END` before the control is actually clear, which
+   * would stop the scroll short and leave it covered.
    */
   /**
    * Scrolls the last card off a focused menu control. Keyboard focus also
@@ -1033,11 +1061,10 @@ export function bindFooterReveal(main, root, options = {}) {
     const el = resolve();
     if (!el || !innerHeight) return;
 
-    const distance = coverDistance || innerHeight;
-    const progress = entryProgress(card, el, { height: distance });
+    const progress = entryProgress(card, el, { height: innerHeight });
     let delta = 0;
     if (progress < ENTRY_END) {
-      delta = entryShortfall(card, el, { height: distance });
+      delta = entryShortfall(card, el, { height: innerHeight });
     }
 
     const logoEl = footer.querySelector('.footer__logo');

@@ -143,6 +143,12 @@
        ring margin. The bleed sits behind the last card, so it never shows. */
     overflow: clip;
     overflow-clip-margin: 4px;
+
+    /* WebKit can let a sticky element combined with its own overflow clip
+       and a transformed child drift a frame behind the compositor's scroll
+       position, showing as a brief shimmer during momentum scroll. Promoting
+       it to its own layer keeps the two in step. */
+    will-change: transform;
   }
 
   body > footer.section-scroll-under:not(.section-scroll-logo) .footer__content {
