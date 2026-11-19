@@ -31,7 +31,7 @@
     "@contentauth/c2pa-web": "0.17.1",
     "@babel/preset-env": "7.29.14",
     "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/jest-dom": "8.0.0",
     "babel-jest": "30.5.1",
     "esbuild": "0.28.2",
     "eslint": "8.57.1",
