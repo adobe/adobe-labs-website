@@ -143,6 +143,12 @@
        ring margin. The bleed sits behind the last card, so it never shows. */
     overflow: clip;
     overflow-clip-margin: 4px;
+
+    /* Touch only: own layer so WebKit's sticky clip doesn't shimmer a frame
+       behind scroll. The extra layer costs compositing time on desktop. */
+    @media (hover: none) and (pointer: coarse) {
+      will-change: transform;
+    }
   }
 
   body > footer.section-scroll-under:not(.section-scroll-logo) .footer__content {

@@ -871,8 +871,6 @@ export function bindFooterReveal(main, root, options = {}) {
   /** @type {HTMLElement | null} */
   let inner = null;
   let innerHeight = 0;
-  /** Garage-door distance. Half the viewport when the menu is a tall column. */
-  let coverDistance = 0;
   /** @type {HTMLElement | null} */
   let logo = null;
   let logoHeight = 0;
@@ -906,7 +904,6 @@ export function bindFooterReveal(main, root, options = {}) {
     coverFits = null;
     resting = false;
     innerHeight = 0;
-    coverDistance = 0;
     logoHeight = 0;
   };
 
@@ -916,6 +913,17 @@ export function bindFooterReveal(main, root, options = {}) {
    * @returns {boolean}
    */
   const menuStacks = () => window.matchMedia?.(FOOTER_STACKED_MQ)?.matches === true;
+
+  /**
+   * Garage-door distance, in px. Half the viewport when the menu is a tall
+   * column. Read live each frame: the toolbar can resize the viewport
+   * mid-scroll, before the debounced `resize` handler catches up.
+   *
+   * @returns {number}
+   */
+  const coverDistance = () => (
+    innerHeight ? footerCoverDistance(innerHeight, window.innerHeight, menuStacks()) : 0
+  );
 
   /**
    * The footer menu element. `loadFooter` may not have built `.footer__inner`
@@ -929,10 +937,7 @@ export function bindFooterReveal(main, root, options = {}) {
       innerHeight = 0;
       menuProgress = null;
     }
-    if (inner && !innerHeight) {
-      innerHeight = inner.offsetHeight;
-      coverDistance = footerCoverDistance(innerHeight, window.innerHeight, menuStacks());
-    }
+    if (inner && !innerHeight) innerHeight = inner.offsetHeight;
     return inner;
   };
 
@@ -975,6 +980,9 @@ export function bindFooterReveal(main, root, options = {}) {
    * the menu has fully risen. When the viewport already shows the footer, the
    * rise is dropped once and later frames leave it alone.
    *
+   * On a stacked menu the visual rise caps at half the viewport, but the
+   * sticky handoff waits for the menu's real height so it doesn't drop.
+   *
    * @returns {void}
    */
   const sync = () => {
@@ -991,12 +999,15 @@ export function bindFooterReveal(main, root, options = {}) {
 
     const el = resolve();
     if (!el) return;
-    const progress = entryProgress(card, el, { height: coverDistance || innerHeight });
+    const progress = entryProgress(card, el, { height: coverDistance() || innerHeight });
     if (progress !== menuProgress) {
       menuProgress = progress;
       el.style.setProperty(VAR_PROGRESS, String(progress));
-      footer.classList.toggle(CLASS_LOGO, progress >= ENTRY_END);
     }
+    const releaseProgress = innerHeight
+      ? entryProgress(card, el, { height: innerHeight })
+      : progress;
+    footer.classList.toggle(CLASS_LOGO, releaseProgress >= ENTRY_END);
 
     const logoEl = resolveLogo();
     const cover = logoEl?.previousElementSibling;
@@ -1020,6 +1031,9 @@ export function bindFooterReveal(main, root, options = {}) {
    * keeps going until the inner's bottom has risen by the logo's height.
    * That distance is the same shortfall as the entry progress: the viewport
    * floor while the box is stuck there, or the box itself on a tall screen.
+   *
+   * Uses the menu's real height, not the capped visual rise, so focus scroll
+   * doesn't stop while the control is still covered.
    */
   /**
    * Scrolls the last card off a focused menu control. Keyboard focus also
@@ -1033,11 +1047,10 @@ export function bindFooterReveal(main, root, options = {}) {
     const el = resolve();
     if (!el || !innerHeight) return;
 
-    const distance = coverDistance || innerHeight;
-    const progress = entryProgress(card, el, { height: distance });
+    const progress = entryProgress(card, el, { height: innerHeight });
     let delta = 0;
     if (progress < ENTRY_END) {
-      delta = entryShortfall(card, el, { height: distance });
+      delta = entryShortfall(card, el, { height: innerHeight });
     }
 
     const logoEl = footer.querySelector('.footer__logo');
