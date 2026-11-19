@@ -916,12 +916,8 @@ export function bindFooterReveal(main, root, options = {}) {
 
   /**
    * Garage-door distance, in px. Half the viewport when the menu is a tall
-   * column. Recomputed from the live viewport height on every call rather
-   * than cached alongside the menu's own height: a mobile browser's chrome
-   * can resize the viewport mid-scroll (iOS Safari's toolbar), and `resize`
-   * is debounced, so a cached distance would briefly disagree with the live
-   * viewport height `entryProgress` reads for its own clamp below, making
-   * the reveal lurch backward for a frame before the debounce caught up.
+   * column. Read live each frame: the toolbar can resize the viewport
+   * mid-scroll, before the debounced `resize` handler catches up.
    *
    * @returns {number}
    */
@@ -984,16 +980,8 @@ export function bindFooterReveal(main, root, options = {}) {
    * the menu has fully risen. When the viewport already shows the footer, the
    * rise is dropped once and later frames leave it alone.
    *
-   * The CSS var driving the transform can reach `ENTRY_END` well before the
-   * logo swap is safe: on a stacked menu, `coverDistance()` shortens the
-   * *visual* rise to half the viewport so it doesn't feel sluggish, but the
-   * handoff itself — dropping `.footer__inner`'s sticky for its static flow
-   * position — is only seamless once the real, uncapped scroll distance
-   * (the menu's own height) has been covered. Swapping early drops the menu
-   * from the sticky floor to a static position that is still further down
-   * the page, a visible jump back under the card that then climbs back into
-   * place as the remaining real scroll plays out. So the swap is gated on a
-   * second, uncapped progress rather than the one the transform uses.
+   * On a stacked menu the visual rise caps at half the viewport, but the
+   * sticky handoff waits for the menu's real height so it doesn't drop.
    *
    * @returns {void}
    */
@@ -1044,10 +1032,8 @@ export function bindFooterReveal(main, root, options = {}) {
    * That distance is the same shortfall as the entry progress: the viewport
    * floor while the box is stuck there, or the box itself on a tall screen.
    *
-   * This uses the menu's real, uncapped height, not `coverDistance()`'s
-   * shortened stand-in for a stacked menu's visual rise: that shorter
-   * distance reaches `ENTRY_END` before the control is actually clear, which
-   * would stop the scroll short and leave it covered.
+   * Uses the menu's real height, not the capped visual rise, so focus scroll
+   * doesn't stop while the control is still covered.
    */
   /**
    * Scrolls the last card off a focused menu control. Keyboard focus also

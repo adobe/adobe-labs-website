@@ -144,12 +144,8 @@
     overflow: clip;
     overflow-clip-margin: 4px;
 
-    /* iOS WebKit can let a sticky element combined with its own overflow
-       clip and a transformed child drift a frame behind the compositor's
-       scroll position, showing as a brief shimmer during momentum scroll.
-       Promoting it to its own layer keeps the two in step. Scoped to touch:
-       desktop Blink doesn't have the bug, and the extra persisted layer
-       costs real compositing time there across the whole garage-door scroll. */
+    /* Touch only: own layer so WebKit's sticky clip doesn't shimmer a frame
+       behind scroll. The extra layer costs compositing time on desktop. */
     @media (hover: none) and (pointer: coarse) {
       will-change: transform;
     }
