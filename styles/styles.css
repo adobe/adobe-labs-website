@@ -420,6 +420,8 @@ p:has(br) {
   text-wrap: wrap;
 }
 
+/* Wrappers in a section are already spaced by the section gap.
+   An opening paragraph's top margin would stack on that gap (e.g. after an image). */
 .default-content-wrapper > p:first-child {
   margin-block-start: 0;
 }
@@ -1441,12 +1443,6 @@ body.article .default-content-wrapper blockquote :is(p, ul, ol) {
 
 body.article main [class*="section-rounded-"] > * > :is(p, ul, ol):last-child {
   margin-block-end: 0;
-}
-
-/* The section gap already separates an image from the copy that follows it.
-   The opening paragraph's top margin would stack on that gap. */
-.image-wrapper + .default-content-wrapper > p:first-child {
-  margin-block-start: 0;
 }
 
 /* First top byline in the article. A bottom-only page does not match. */
