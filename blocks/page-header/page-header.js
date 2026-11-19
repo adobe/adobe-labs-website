@@ -1,4 +1,4 @@
-import { getCellText } from '../../scripts/utils/utils.js';
+import { getCellText, setGhostText } from '../../scripts/utils/utils.js';
 
 /**
  * Promotes the title cell to a heading. Keeps an authored heading level, or
@@ -28,6 +28,32 @@ function decorateTitle(cell) {
 }
 
 /**
+ * Visible label, plus an aria-hidden copy whose underline wipes in.
+ * The two copies share wrapping, matching the hero and elastic-router treatment.
+ *
+ * @param {HTMLAnchorElement} link
+ */
+function decorateJumpLink(link) {
+  const label = link.textContent.trim();
+  if (!label) return;
+
+  const stack = document.createElement('span');
+  stack.className = 'page-header__jump-stack';
+
+  const text = document.createElement('span');
+  text.className = 'page-header__jump-text';
+  text.textContent = label;
+
+  const underline = document.createElement('span');
+  underline.className = 'page-header__jump-underline';
+  underline.setAttribute('aria-hidden', 'true');
+  setGhostText(underline, label);
+
+  stack.append(text, underline);
+  link.replaceChildren(stack);
+}
+
+/**
  * Turns a cell of in-page links into a labelled jump nav. A list qualifies when
  * every `li` contains an `a[href]`.
  *
@@ -44,6 +70,7 @@ function decorateJump(cell) {
   list.querySelectorAll(':scope > li > p').forEach((paragraph) => {
     paragraph.replaceWith(...paragraph.childNodes);
   });
+  list.querySelectorAll('a[href]').forEach(decorateJumpLink);
 
   const nav = document.createElement('nav');
   nav.className = 'page-header__jump';
