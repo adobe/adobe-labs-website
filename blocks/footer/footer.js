@@ -1,5 +1,6 @@
 import { getMetadata } from '../../scripts/aem.js';
 import { entryProgress, logoEntryHeld } from '../../scripts/utils/entry-progress.js';
+import { usesCssCover, usesTouchScroll } from '../../scripts/section-scroll/config-and-utils.js';
 import {
   createExternalIcon,
   escapeAttr,
@@ -497,6 +498,18 @@ function decorateLegal(legal) {
  */
 function animateLogo(logo) {
   if (!logo) return;
+  // A per-frame JS translate trails native touch scroll and jumps. Touch rests
+  // the logo; `footer.css` animates it where view timelines exist.
+  if (usesTouchScroll()) {
+    logo.style.setProperty('--footer-logo-entry-progress', '0');
+    if (usesCssCover() && typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => {
+        const height = logo.offsetHeight;
+        if (height) logo.style.setProperty('--footer-logo-height', `${height}px`);
+      }).observe(logo);
+    }
+    return;
+  }
 
   let scrollPending = false;
   let resizeRaf = null;
