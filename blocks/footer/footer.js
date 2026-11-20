@@ -1,5 +1,6 @@
 import { getMetadata } from '../../scripts/aem.js';
 import { entryProgress, logoEntryHeld } from '../../scripts/utils/entry-progress.js';
+import { usesTouchScroll } from '../../scripts/section-scroll/config-and-utils.js';
 import {
   createExternalIcon,
   escapeAttr,
@@ -490,13 +491,18 @@ function decorateLegal(legal) {
  * Drives `--footer-logo-entry-progress` so the image can rise from below the
  * clip as `.footer__inner` uncovers it. The rise itself is the transform in
  * `footer.css`, and that rule only applies when motion is allowed. Height is
- * cached across scroll frames and dropped on resize.
+ * cached across scroll frames and dropped on resize. Touch keeps the logo at rest.
  *
  * @param {Element|null} logo Footer logo element
  * @returns {void}
  */
 function animateLogo(logo) {
   if (!logo) return;
+  // A per-frame JS translate trails native touch scroll and jumps, so touch rests the logo.
+  if (usesTouchScroll()) {
+    logo.style.setProperty('--footer-logo-entry-progress', '0');
+    return;
+  }
 
   let scrollPending = false;
   let resizeRaf = null;

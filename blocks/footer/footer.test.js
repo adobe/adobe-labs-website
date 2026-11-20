@@ -245,6 +245,23 @@ describe('footer block', () => {
     addSpy.mockRestore();
   });
 
+  it('rests the logo on touch without a scroll listener', async () => {
+    window.matchMedia = jest.fn().mockImplementation((query) => ({
+      matches: query.includes('pointer: coarse'),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }));
+    const addSpy = jest.spyOn(window, 'addEventListener');
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    expect(addSpy).not.toHaveBeenCalledWith('scroll', expect.any(Function), { passive: true });
+    expect(block.querySelector('.footer__logo').style.getPropertyValue('--footer-logo-entry-progress')).toBe('0');
+    addSpy.mockRestore();
+  });
+
   it('sets logo entry progress from the footer inner', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
