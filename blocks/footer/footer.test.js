@@ -245,6 +245,39 @@ describe('footer block', () => {
     addSpy.mockRestore();
   });
 
+  it('leaves the touch logo rise to CSS and only writes its height', async () => {
+    const { CSS: css, ResizeObserver: RO } = window;
+    window.matchMedia = jest.fn().mockImplementation((query) => ({
+      matches: query.includes('pointer: coarse'),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }));
+    window.CSS = { supports: () => true };
+    /** @type {ResizeObserverCallback | null} */
+    let onResize = null;
+    window.ResizeObserver = jest.fn((cb) => {
+      onResize = cb;
+      return { observe: jest.fn() };
+    });
+    const addSpy = jest.spyOn(window, 'addEventListener');
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    try {
+      await decorate(block);
+
+      expect(addSpy).not.toHaveBeenCalledWith('scroll', expect.any(Function), { passive: true });
+      const logo = block.querySelector('.footer__logo');
+      Object.defineProperty(logo, 'offsetHeight', { configurable: true, value: 81 });
+      onResize([]);
+      expect(logo.style.getPropertyValue('--footer-logo-height')).toBe('81px');
+    } finally {
+      addSpy.mockRestore();
+      window.CSS = css;
+      window.ResizeObserver = RO;
+    }
+  });
+
   it('sets logo entry progress from the footer inner', async () => {
     const block = document.createElement('div');
     block.className = 'footer';
