@@ -161,7 +161,8 @@ describe('hero block', () => {
       expect(block.querySelector('.hero__cta-text')).toHaveTextContent('Read');
       expect(block.querySelector('.button')).toBeNull();
       const media = block.querySelector('.hero__media');
-      expect(media).toHaveAttribute('aria-hidden', 'true');
+      expect(media).not.toHaveAttribute('aria-hidden');
+      expect(media.querySelector('img')).toHaveAttribute('alt', '');
       expect(media.querySelector('picture img')).toHaveAttribute('src', expect.stringMatching(/hero\.jpg$/));
       expect(block.querySelector('.play-icon')).toBeNull();
     } finally {
@@ -483,7 +484,8 @@ describe('hero block', () => {
       expect(block.querySelector('.hero__headline-link')).toBeNull();
       expect(block.querySelector('.hero__headline').tagName).toBe('P');
       expect(block.querySelector('.hero__headline-underline')).toHaveAttribute('aria-hidden', 'true');
-      expect(block.querySelector('.hero__headline-underline')).toHaveTextContent('Headline');
+      expect(block.querySelector('.hero__headline-underline')).toHaveAttribute('data-ghost-text', 'Headline');
+      expect(block.querySelector('.hero__headline')).toHaveTextContent(/^Headline$/);
       const cta = block.querySelector('.hero__cta-text');
       expect(cta.tagName).toBe('P');
       expect(cta).toHaveTextContent('Read');
@@ -491,7 +493,7 @@ describe('hero block', () => {
       expect(block.querySelector('.hero__date').closest('a')).toBe(link);
       expect(block.querySelector('.hero__content-type').closest('a')).toBe(link);
       expect(block.querySelector('.hero__media').closest('a')).toBe(link);
-      expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
+      expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', '');
       expect(block.querySelector('canvas')).toBeNull();
     } finally {
       main.remove();
@@ -536,11 +538,41 @@ describe('hero block', () => {
     markExternalLink(link);
 
     expect(block.querySelector('.hero__headline-text')).toHaveTextContent(/^External link tests$/);
-    expect(block.querySelector('.hero__headline-underline')).toHaveTextContent(/^External link tests$/);
-    expect(link).toHaveAttribute('aria-label', 'External link tests • Read (opens in a new tab)');
+    const underline = block.querySelector('.hero__headline-underline');
+    expect(underline).toHaveAttribute('data-ghost-text', 'External link ');
+    expect(underline.querySelector('.hero__headline-end')).toHaveAttribute('data-ghost-text', 'tests');
+    expect(underline).toHaveTextContent(/^$/);
+    expect(link).toHaveAttribute('aria-label', 'External link tests, Read (opens in a new tab)');
     expect(link.querySelector('.visually-hidden')).toBeNull();
-    expect(within(block).getByRole('link', { name: 'External link tests • Read (opens in a new tab)' }))
+    expect(within(block).getByRole('link', { name: 'External link tests, Read (opens in a new tab)' }))
       .toBe(link);
+  });
+
+  it('keeps the external-link arrow with the last headline word only for off-site links', async () => {
+    const external = createHeroBlock([
+      [
+        '',
+        'Exp. 1',
+        '<a href="https://projectcustomfilters.adobelabs.com/">Project Custom Filters</a>',
+        'Try now',
+      ],
+    ]);
+    const internal = createHeroBlock([
+      ['<a href="/research/story">Internal story</a>', 'Read'],
+    ]);
+
+    await decorate(external);
+    await decorate(internal);
+
+    const end = external.querySelector('.hero__headline-text .hero__headline-end');
+    expect(end).toHaveTextContent(/^Filters$/);
+    expect(end.querySelector('.hero__external-icon')).toHaveAttribute('aria-hidden', 'true');
+    expect(external.querySelector('.hero__headline-text')).toHaveTextContent(/^Project Custom Filters$/);
+    expect(external.querySelector('.hero__headline-underline .hero__headline-end .hero__external-icon'))
+      .toBeTruthy();
+    expect(external.querySelector('.hero__link-wrap'))
+      .toHaveAttribute('aria-label', 'Project Custom Filters, Try now');
+    expect(internal.querySelector('.hero__external-icon')).toBeNull();
   });
 
   it('does not link the headline or CTA when the URL is not http(s)', async () => {
@@ -554,6 +586,18 @@ describe('hero block', () => {
     expect(block.querySelector('.hero__headline').tagName).toBe('P');
     expect(block.querySelector('.hero__headline')).toHaveTextContent('Unsafe headline');
     expect(block.querySelector('.hero__cta-text')).toBeNull();
+  });
+
+  it('keeps the authored image alt when the hero is not linked', async () => {
+    const block = createHeroBlock([
+      ['Unlinked headline'],
+      ['<picture><img src="hero.jpg" alt="hero"></picture>'],
+    ]);
+
+    await decorate(block);
+
+    expect(block.querySelector('a')).toBeNull();
+    expect(block.querySelector('.hero__media img')).toHaveAttribute('alt', 'hero');
   });
 
   describe('full-screen loading intro', () => {

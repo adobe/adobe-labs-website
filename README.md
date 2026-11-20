@@ -91,6 +91,15 @@ The homepage **Latest Content** section uses `content-grid` with a key/value tab
 | Category | Optional. `All` or omitted means no filter. Otherwise matched against the index `category` field (array or comma-separated string) after trim + lowercase |
 | Count | How many cards to show (defaults to 8) |
 | Intro | Optional freeform first cell (heading, paragraph, links). Extra; does not count toward Count |
+| Articles | Optional. Links to the articles this grid should show, from any content type. See below |
+
+To choose exactly which articles a grid shows, add an **Articles** row with one link per line (a bulleted list) or comma-separated links. Site URLs (preview or live), paths with or without a leading `/`, and DA editor links (`da.live/edit#/...`) all work, and the link text does not matter. The grid then:
+
+- Shows only those articles, in the order listed, and ignores Content Type and Category
+- Shows at most Count articles, and never fills empty spots with other articles
+- Skips links to articles that are unpublished, `noindex`, duplicated, or section landing pages, and hides itself when none are left
+
+Leave the row out to keep the automatic, newest-first results. Content-type labels still follow `show-content-type`. A `Related content: true` grid ignores this row; articles choose their related content with the `Related Articles` metadata instead.
 
 The block fetches the Content Type endpoint via `dataStore`, filters by Category after the fetch, and renders each hit as a `grid-item`. If nothing matches, the block and its `.content-grid-wrapper` are hidden (including authored Intro). An Intro cell, when authored, sits in column 1 at four columns and stacks full-width above the cards at three columns and one. Card image frames follow the index `imageAspect` value (`1:1`, `4:5`, `3:2`, `2:3`; separators `:`, `/`, or `-` are fine). Missing or unknown values default to 1:1. Video cards get the play icon when the index has `isVideo` true, `contentType` is `video`, or the page lives under `/sneaks/` (Sneaks are video unless `isVideo` is explicitly false). Card content-type labels (when `show-content-type` is set) come from the first path segment (Research, Workflows, Sneaks, Playground)—not the topic Category metadata.
 
@@ -98,7 +107,7 @@ Card subheads default to the publication date (`Oct 21` this year, `Oct 21, 2027
 
 Pick the Intro heading level that fits the page outline (Heading 2 on section landing pages such as Research). Heading 1, 2, 3, and 4 all display at the heading 4 size. For the smaller heading 6 style, keep the level and make the whole heading italic: the block removes the italics and adds `content-grid__intro-heading--small`. A heading with only some italic words keeps the default style. A `Related content: true` grid keeps its own fixed heading style.
 
-Standalone `grid-item` cards link when the Title cell is a link. Content-type labels on cards are off by default. Add `show-content-type` to the content-grid block header (`content-grid (show-content-type)`) to render each card’s `.grid-item__content-type` link. On a standalone `grid-item`, author a `Content Type` row (legacy `Category` still works).
+Standalone `grid-item` cards link when the Title cell is a link. Content-type labels on cards are off by default. Add `show-content-type` to the content-grid block header (`content-grid (show-content-type)`) to show each card’s content-type label inside the card link. It is not a separate link. On a standalone `grid-item`, author a `Content Type` row (legacy `Category` still works).
 
 Cards stay empty until indexed article pages exist. Index config lives at [tools.aem.live](https://www.aem.live/developer/indexing) (this repo does not contain `helix-query.yaml`).
 
@@ -201,6 +210,57 @@ Native nesting can be used for this project. When doing so, keep the following i
 2. If using `@supports`, keep this as a root selector and not nested within other selectors, to avoid a Webkit 
    bug that breaks all the other adjacent styles and CSS custom properties. Safari versions 16.5 through 18.1 were affected by this CSS nesting hoisting bug.
 
+### Animated underlines
+
+Linked titles in the hero, elastic-router, hover-list, linkbox, and grid-item blocks show an underline that wipes in on hover or keyboard focus. The block's JS builds the markup, and two pieces of shared code fill in the decorative copy.
+
+#### How it works
+
+Each title is a stack of two copies in the same grid cell:
+
+```html
+<span class="hero__headline-stack">
+  <span class="hero__headline-text">Headline</span>
+  <span class="hero__headline-underline" aria-hidden="true" data-ghost-text="Headline"></span>
+</span>
+```
+
+- The text copy is the visible title.
+- The underline copy sits on top of it. Its text is `color: transparent` and has `text-decoration: underline`, so only the underline shows. A `clip-path: inset()` hides it, then reveals it from the inline start.
+
+Because both copies hold the same text, they wrap the same way. Each wrapped line gets its own underline, with the font's skip-ink and underline position.
+
+The underline copy has no text in the DOM. `setGhostText(el, text)` in `scripts/utils/utils.js` stores the text in `data-ghost-text`. A global rule in `styles/styles.css` draws it:
+
+```css
+[data-ghost-text]::before {
+  content: attr(data-ghost-text);
+  content: attr(data-ghost-text) / "";
+}
+```
+
+This keeps headings from repeating their text for crawlers, SEO tools, and `textContent`. `aria-hidden="true"` and the empty alt text (`/ ""`) keep the copy out of the accessibility tree. The alt text syntax needs Safari 17.4 or later; older browsers use the first declaration.
+
+#### Where it lives
+
+| Block | Stack | Underline copy | Shown on |
+| --- | --- | --- | --- |
+| hero | `.hero__headline-stack` | `.hero__headline-underline` | `.hero__link-wrap` hover and focus |
+| elastic-router | `.elastic-router__title-stack` | `.elastic-router__title-underline` | `.elastic-router__item` hover and `:focus-within` |
+| hover-list | `.hover-list__headline-stack` | `.hover-list__headline-underline` | `.hover-list__link` hover and focus |
+| linkbox | `.linkbox__stack` | `.linkbox__underline` | `a.linkbox__surface` hover, focus, and press |
+| grid-item | `.grid-item__title-stack` | `.grid-item__title-underline` | `.grid-item__main` hover and focus |
+
+Timing comes from `--underline-transition-duration` (enter), `--underline-transition-duration-exit`, and `--underline-transition-easing` on `:root`. Each block maps these to its own duration property and turns the wipe off when the user prefers reduced motion.
+
+#### Adding the effect to a block
+
+1. Build the text copy with real text. Build the underline copy with `aria-hidden="true"` and fill it with `setGhostText()`, never `textContent`.
+2. Give both copies the same structure. When the last word is kept with an arrow, as in hero and hover-list, the underline copy needs the same wrapper and arrow. Call `setGhostText()` on each part. The `::before` text renders before the element's children, so the arrow stays after the word.
+3. In CSS, place both copies in one cell (`display: inline-grid`, `grid-area: 1 / 1`). On the underline copy, set `color: transparent`, `pointer-events: none`, and `user-select: none`, then animate `clip-path`. Flip the inset for `:dir(rtl)`.
+4. With a tight line height, the last line's underline can fall outside the box. Extend the clip below the box, as hero does with `--hero-underline-overflow`.
+5. In tests, assert the underline copy has `data-ghost-text` and no text, and that the title's text appears once.
+
 ### JS
 
 Make sure all code is documented with JSDOC style comments. Including functions, their parameters, and return values.
@@ -299,6 +359,8 @@ See [AEM bulk metadata docs](https://www.aem.live/docs/bulk-metadata) for more i
 Article detail pages (`/research/*`, `/workflows/*`, `/sneaks/*`, `/playground/*`) get `template: article` from that spreadsheet. The article pre-footer autoblock keys off this metadata, not a hardcoded path list. A page-level metadata block can still add or omit `article` for an exception.
 
 The pre-footer's related content grid shows articles of the same content type, filtered by the page's `Category`. To choose them instead, add a `Related Articles` row to the article's metadata block with one or more links (site URLs, paths, or DA editor links) as a bulleted list or separated by commas. The grid then shows only those articles, up to its `Count`, with no automatic results added: listing two shows two cards. Picks can be any content type and appear in the order listed. Cards show their content-type label when a pick is from a different content type than the article. Picks must be published and indexable to appear, and any that aren't are skipped. If none of them can be shown, the whole section is hidden. Paste the URL or path itself: AEM keeps only a link's visible text in metadata, so a link with custom text (e.g. "Beyond the prompt") won't resolve and is skipped. Articles without the row keep the automatic results.
+
+To change the related grid's heading (authored as "Related content" in the pre-footer fragment), add a `Related Heading` value. Set it per folder in the bulk metadata spreadsheet (e.g. `/sneaks/**` → `Latest Sneaks`), or per article in its metadata block, which wins over the spreadsheet. Use a page-level value when its `Related Articles` picks are from other content types (e.g. `Related content`). The text replaces the first heading in the grid's `Intro`, keeping its heading level. Pages without a value show the fragment's heading.
 
 Article headings keep the site `h1`–`h6` / `heading-*` tokens (s2a heading-1 through heading-6). Default-content paragraphs and lists use Adobe Clean Spectrum Serif at 16px/20px below 64rem (1024px), then 20px/27px. Font stacks and grayscale smoothing rules are in [Typography](#typography).
 

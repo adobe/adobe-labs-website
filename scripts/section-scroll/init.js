@@ -877,8 +877,6 @@ export function bindFooterReveal(main, root, options = {}) {
   /** @type {HTMLElement | null} */
   let inner = null;
   let innerHeight = 0;
-  /** Garage-door distance. Half the viewport when the menu is a tall column. */
-  let coverDistance = 0;
   /** @type {HTMLElement | null} */
   let logo = null;
   let logoHeight = 0;
@@ -912,7 +910,6 @@ export function bindFooterReveal(main, root, options = {}) {
     coverFits = null;
     resting = false;
     innerHeight = 0;
-    coverDistance = 0;
     logoHeight = 0;
   };
 
@@ -922,6 +919,17 @@ export function bindFooterReveal(main, root, options = {}) {
    * @returns {boolean}
    */
   const menuStacks = () => window.matchMedia?.(FOOTER_STACKED_MQ)?.matches === true;
+
+  /**
+   * Garage-door distance, in px. Half the viewport when the menu is a tall
+   * column. Read live each frame: the toolbar can resize the viewport
+   * mid-scroll, before the debounced `resize` handler catches up.
+   *
+   * @returns {number}
+   */
+  const coverDistance = () => (
+    innerHeight ? footerCoverDistance(innerHeight, window.innerHeight, menuStacks()) : 0
+  );
 
   /**
    * The footer menu element. `loadFooter` may not have built `.footer__inner`
@@ -935,10 +943,7 @@ export function bindFooterReveal(main, root, options = {}) {
       innerHeight = 0;
       menuProgress = null;
     }
-    if (inner && !innerHeight) {
-      innerHeight = inner.offsetHeight;
-      coverDistance = footerCoverDistance(innerHeight, window.innerHeight, menuStacks());
-    }
+    if (inner && !innerHeight) innerHeight = inner.offsetHeight;
     return inner;
   };
 
@@ -981,6 +986,9 @@ export function bindFooterReveal(main, root, options = {}) {
    * the menu has fully risen. When the viewport already shows the footer, the
    * rise is dropped once and later frames leave it alone.
    *
+   * On a stacked menu the visual rise caps at half the viewport, but the
+   * sticky handoff waits for the menu's real height so it doesn't drop.
+   *
    * @returns {void}
    */
   const sync = () => {
@@ -998,15 +1006,18 @@ export function bindFooterReveal(main, root, options = {}) {
     const el = resolve();
     if (!el) return;
     if (cssRise) {
-      if (innerHeight) el.style.setProperty(VAR_COVER, `${coverDistance || innerHeight}px`);
+      if (innerHeight) el.style.setProperty(VAR_COVER, `${coverDistance() || innerHeight}px`);
       return;
     }
-    const progress = entryProgress(card, el, { height: coverDistance || innerHeight });
+    const progress = entryProgress(card, el, { height: coverDistance() || innerHeight });
     if (progress !== menuProgress) {
       menuProgress = progress;
       el.style.setProperty(VAR_PROGRESS, String(progress));
-      footer.classList.toggle(CLASS_LOGO, progress >= ENTRY_END);
     }
+    const releaseProgress = innerHeight
+      ? entryProgress(card, el, { height: innerHeight })
+      : progress;
+    footer.classList.toggle(CLASS_LOGO, releaseProgress >= ENTRY_END);
 
     const logoEl = resolveLogo();
     const cover = logoEl?.previousElementSibling;
@@ -1030,6 +1041,9 @@ export function bindFooterReveal(main, root, options = {}) {
    * keeps going until the inner's bottom has risen by the logo's height.
    * That distance is the same shortfall as the entry progress: the viewport
    * floor while the box is stuck there, or the box itself on a tall screen.
+   *
+   * Uses the menu's real height, not the capped visual rise, so focus scroll
+   * doesn't stop while the control is still covered.
    */
   /**
    * Scrolls the last card off a focused menu control. Keyboard focus also
@@ -1043,11 +1057,10 @@ export function bindFooterReveal(main, root, options = {}) {
     const el = resolve();
     if (!el || !innerHeight) return;
 
-    const distance = coverDistance || innerHeight;
-    const progress = entryProgress(card, el, { height: distance });
+    const progress = entryProgress(card, el, { height: innerHeight });
     let delta = 0;
     if (progress < ENTRY_END) {
-      delta = entryShortfall(card, el, { height: distance });
+      delta = entryShortfall(card, el, { height: innerHeight });
     }
 
     const logoEl = footer.querySelector('.footer__logo');
@@ -1138,11 +1151,18 @@ const MOTION_MQ = '(prefers-reduced-motion: no-preference)';
 /** Sticky offset for a pinned rounded card. */
 const VAR_PIN_TOP = '--section-scroll-slow-top';
 
-/** Touch-only intro lag distance, consumed by a CSS view timeline. */
-const VAR_INTRO_LAG = '--section-scroll-intro-lag';
+/**
+ * How far an intro hero lags, in px, while the next card covers it.
+ * The gap plus the lag, spread across the cover. Never the whole cover:
+ * matching the scroll distance holds the hero still.
+ */
+const VAR_INTRO_SHIFT = '--section-scroll-intro-shift';
 
-/** Touch-only scroll the intro holds still before it lags, consumed by CSS. */
-const VAR_INTRO_HOLD = '--section-scroll-intro-hold';
+/** Document scroll where the incoming card reaches the cover line. */
+const VAR_INTRO_FROM = '--section-scroll-intro-from';
+
+/** Document scroll where the incoming card reaches the top of the viewport. */
+const VAR_INTRO_TO = '--section-scroll-intro-to';
 
 /** View-timeline `cover` offset where a touch cover starts to dim. */
 const VAR_DIM_START = '--section-scroll-dim-start';
@@ -1211,6 +1231,43 @@ function prefersMotion() {
 }
 
 /**
+ * Drops the touch intro overlap. A fine pointer runs that motion in GSAP.
+ *
+ * @param {HTMLElement} section
+ * @returns {void}
+ */
+function clearIntroCover(section) {
+  section.style.removeProperty(VAR_INTRO_SHIFT);
+  section.style.removeProperty(VAR_INTRO_FROM);
+  section.style.removeProperty(VAR_INTRO_TO);
+}
+
+/**
+ * Lag for an intro hero while `next` covers it. The shift closes the gap and
+ * then overlaps, but it stays under half the cover so the hero keeps moving.
+ *
+ * @param {HTMLElement} section Intro section
+ * @param {HTMLElement} next Incoming section
+ * @returns {void}
+ */
+function applyIntroCover(section, next) {
+  const span = coverStartPx(section);
+  const nextTop = layoutTop(next);
+  const from = Math.max(0, Math.round(nextTop - span));
+  const to = Math.round(Math.max(nextTop, from + span));
+  const distance = to - from;
+  const desired = introHoldPx(section) + introLagPx(section);
+  const shift = Math.min(desired, distance / 2);
+  if (!(shift > 0) || !(distance > 0)) {
+    clearIntroCover(section);
+    return;
+  }
+  section.style.setProperty(VAR_INTRO_SHIFT, `${Math.round(shift)}px`);
+  section.style.setProperty(VAR_INTRO_FROM, `${from}px`);
+  section.style.setProperty(VAR_INTRO_TO, `${to}px`);
+}
+
+/**
  * Geometry that CSS reads. Recomputed on resize without rebuilding tweens.
  *
  * @param {Element} section Classified outgoing section
@@ -1221,14 +1278,9 @@ function applySectionVars(section) {
   const next = section.nextElementSibling;
   if (section.classList.contains(CLASS_INTRO)) {
     section.style.removeProperty(VAR_PIN_TOP);
-    if (usesTouchScroll()) {
-      section.style.setProperty(VAR_INTRO_LAG, `${introLagPx(section)}px`);
-      section.style.setProperty(VAR_INTRO_HOLD, `${introHoldPx(section)}px`);
-    } else {
-      section.style.removeProperty(VAR_INTRO_LAG);
-      section.style.removeProperty(VAR_INTRO_HOLD);
-    }
     if (next instanceof HTMLElement) next.classList.remove(CLASS_SEAM);
+    if (usesCssCover() && next instanceof HTMLElement) applyIntroCover(section, next);
+    else clearIntroCover(section);
     return;
   }
   section.style.setProperty(VAR_PIN_TOP, `${pinTopPx(section)}px`);
@@ -1351,8 +1403,7 @@ function clear(root = document) {
       el.classList.remove(CLASS_SLOW, CLASS_NEXT, CLASS_INTRO, CLASS_FADE, CLASS_SEAM);
       if (el instanceof HTMLElement) {
         el.style.removeProperty(VAR_PIN_TOP);
-        el.style.removeProperty(VAR_INTRO_LAG);
-        el.style.removeProperty(VAR_INTRO_HOLD);
+        clearIntroCover(el);
         el.style.removeProperty(VAR_DIM_START);
         el.style.removeProperty(VAR_DIM_END);
         el.style.removeProperty(VAR_DIM_TIMELINE);
@@ -1450,7 +1501,7 @@ export function classifySectionScroll(root = document) {
      */
     const scrollBy = (delta) => {
       if (lenis) {
-        lenis.scrollTo(lenis.scroll + delta, { immediate: true });
+        lenis.scrollTo(lenis.actualScroll + delta, { immediate: true });
         return;
       }
       window.scrollBy(0, delta);
@@ -1459,7 +1510,7 @@ export function classifySectionScroll(root = document) {
     if (started) {
       bindFocusReveal({
         scrollBy,
-        getScroll: () => (lenis ? lenis.scroll : window.scrollY),
+        getScroll: () => (lenis ? lenis.actualScroll : window.scrollY),
       });
     }
   };

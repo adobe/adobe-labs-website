@@ -206,6 +206,35 @@ describe('addStructuredData', () => {
     expect(article.author).toEqual({ '@id': ORG_ID });
   });
 
+  it('points Article author at the Organization when the author is Adobe Labs', () => {
+    articlePage();
+    document.head.querySelector('meta[name="author"]').content = 'Adobe Labs';
+    addStructuredData();
+
+    const { '@graph': graph } = readGraph();
+    const article = graph.find((node) => node['@type'] === 'Article');
+
+    expect(graph.some((node) => node['@type'] === 'Person')).toBe(false);
+    expect(graph.filter((node) => node['@type'] === 'Organization')).toHaveLength(1);
+    expect(article.author).toEqual({ '@id': ORG_ID });
+  });
+
+  it('keeps authored order when Adobe Labs is listed with a person', () => {
+    articlePage();
+    document.head.querySelector('meta[name="author"]').content = 'Jane Doe, adobe labs';
+    addStructuredData();
+
+    const { '@graph': graph } = readGraph();
+    const people = graph.filter((node) => node['@type'] === 'Person');
+    const article = graph.find((node) => node['@type'] === 'Article');
+
+    expect(people.map((person) => person.name)).toEqual(['Jane Doe']);
+    expect(article.author).toEqual([
+      { '@id': 'https://labs.adobe.com/#person-jane-doe' },
+      { '@id': ORG_ID },
+    ]);
+  });
+
   it('omits description, image, and datePublished when those meta values are missing', () => {
     addMeta('name', 'template', 'article');
     addMeta('property', 'og:title', 'Article title');

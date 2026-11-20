@@ -1,8 +1,14 @@
 .page-header {
+  --page-header-underline-duration: 0s;
+
   display: flex;
   flex-direction: column;
   gap: var(--s2a-spacing-xs);
   inline-size: 100%;
+
+  @media (prefers-reduced-motion: no-preference) {
+    --page-header-underline-duration: var(--underline-transition-duration-exit);
+  }
 }
 
 .page-header__title {
@@ -64,15 +70,57 @@
     color: var(--s2a-color-content-default);
     text-decoration: none;
 
-    &:is(:hover, :focus-visible) {
-      text-decoration: underline;
-      text-decoration-thickness: 1px;
-    }
-
     &:focus-visible {
       outline: 0.125rem solid var(--s2a-color-focus-ring-default);
       outline-offset: 0.125rem;
       border-radius: var(--s2a-border-radius-3xs);
+    }
+  }
+}
+
+/* Two stacked copies share wrapping. The ghost's underline is clipped
+   and wipes in from the inline start, same as the hero and elastic cards. */
+.page-header__jump-stack {
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.page-header__jump-text,
+.page-header__jump-underline {
+  grid-area: 1 / 1;
+}
+
+.page-header__jump-underline {
+  pointer-events: none;
+  user-select: none;
+  color: transparent;
+  text-decoration-line: underline;
+  text-decoration-color: var(--s2a-color-content-default);
+  text-decoration-thickness: 1px;
+
+  /* A 0% mask is dropped for a frame in Chrome and the underline flashes. */
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--page-header-underline-duration) var(--underline-transition-easing);
+
+  :dir(rtl) & {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
+.page-header__jump-list a:focus-visible .page-header__jump-underline {
+  clip-path: inset(0 0 0 0);
+
+  @media (prefers-reduced-motion: no-preference) {
+    --page-header-underline-duration: var(--underline-transition-duration);
+  }
+}
+
+@media (hover: hover) {
+  .page-header__jump-list a:hover .page-header__jump-underline {
+    clip-path: inset(0 0 0 0);
+
+    @media (prefers-reduced-motion: no-preference) {
+      --page-header-underline-duration: var(--underline-transition-duration);
     }
   }
 }

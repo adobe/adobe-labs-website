@@ -37,7 +37,9 @@ import {
   decorateSectionMetadata,
   decorateVisuallyHiddenHeadings,
   decorateBlockquotes,
+  decorateCodeBlocks,
   isArticleDetailPage,
+  isReducedDataOff,
   watchExternalLinks,
 } from './utils/utils.js';
 
@@ -143,7 +145,6 @@ function bindModalLinks(doc) {
  */
 function decorateButtons(main) {
   main.querySelectorAll('p a[href]').forEach((a) => {
-    a.title = a.title || a.textContent;
     const p = a.closest('p');
     const text = a.textContent.trim();
 
@@ -200,6 +201,7 @@ export function decorateMain(main) {
   decorateBlocks(main);
   decorateButtons(main);
   decorateBlockquotes(main);
+  decorateCodeBlocks(main);
 }
 
 /**
@@ -385,29 +387,28 @@ async function loadLazy(doc) {
  * without impacting the user experience.
  */
 function loadDelayed() {
-  // Adobe Privacy Library and the additional scripts it loads that are tied to cookie consent.
-  import('./features/consent-check.js')
-    .then(({ default: initPrivacyLibrary }) => initPrivacyLibrary())
-    .catch((error) => {
-      /* eslint-disable-next-line no-console */
-      console.error('The Adobe Privacy library encountered an error:', error);
-    });
+  window.setTimeout(() => {
+    // Adobe Privacy Library and the additional scripts it loads that are tied to cookie consent.
+    import('./features/consent-check.js')
+      .then(({ default: initPrivacyLibrary }) => initPrivacyLibrary())
+      .catch((error) => {
+        /* eslint-disable-next-line no-console */
+        console.error('The Adobe Privacy library encountered an error:', error);
+      });
 
-  // Adobe Experience Platform "marketingtech" scripts. Loaded after the Privacy library has
-  // started, since this reads cookie consent from its events.
-  import('./features/marketing-tech.js')
-    .then(({ default: loadMarketingTech }) => loadMarketingTech())
-    .catch((error) => {
-      /* eslint-disable-next-line no-console */
-      console.error('Adobe marketingtech encountered an error:', error);
-    });
+    // Adobe Experience Platform "marketingtech" scripts. Loaded after the Privacy library has
+    // started, since this reads cookie consent from its events.
+    import('./features/marketing-tech.js')
+      .then(({ default: loadMarketingTech }) => loadMarketingTech())
+      .catch((error) => {
+        /* eslint-disable-next-line no-console */
+        console.error('Adobe marketingtech encountered an error:', error);
+      });
 
-  // Content Credentials (CR Pin): Read images to look for content credentials,
-  // and add CR pins to any that have them. Only article pages show CR pins, and the
-  // c2pa library is large, so this waits out the window where the visitor first
-  // interacts rather than running the moment lazy loading resolves.
-  if (isArticleDetailPage()) {
-    window.setTimeout(() => {
+    // Content Credentials (CR Pin): Read images to look for content credentials,
+    // and add CR pins to any that have them. Only article pages show CR pins.
+    // Since the c2pa library is large, loading is skipped when the visitor has asked to save data.
+    if (isArticleDetailPage() && isReducedDataOff()) {
       loadCSS(`${window.hlx.codeBasePath}/styles/features/content-credentials.css`);
       import('./features/content-credentials/content-credentials.js')
         .then(({ default: initContentCredentials }) => initContentCredentials())
@@ -415,8 +416,8 @@ function loadDelayed() {
           /* eslint-disable-next-line no-console */
           console.error('The Content Credentials library encountered an error:', error);
         });
-    }, 3000);
-  }
+    }
+  }, 3000);
 }
 
 async function loadPage() {

@@ -1,5 +1,5 @@
 import { toClassName } from '../../scripts/aem.js';
-import { getSectionFromPath, toSafeHttpUrl } from '../../scripts/utils/utils.js';
+import { getSectionFromPath, setGhostText, toSafeHttpUrl } from '../../scripts/utils/utils.js';
 
 /**
  * One authored elastic-router entry.
@@ -108,7 +108,7 @@ function createTitleStack(title) {
   const underline = document.createElement('span');
   underline.className = 'elastic-router__title-underline';
   underline.setAttribute('aria-hidden', 'true');
-  underline.textContent = title;
+  setGhostText(underline, title);
 
   stack.append(text, underline);
   return stack;

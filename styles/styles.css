@@ -149,6 +149,7 @@
     --color-section-surface-default-variant: #1C1C1C;
     --color-section-surface-gray: #2e2b2b;
     --color-button-background-primary-hover: var(--s2a-color-gray-75);
+    --link-hover-color: var(--s2a-color-blue-500);
     --color-section-surface-related: #111F2F;
     --color-section-surface-related-research: #111F2F;
     --color-section-surface-related-workflows: #312b27;
@@ -419,6 +420,12 @@ p:has(br) {
   text-wrap: wrap;
 }
 
+/* Wrappers in a section are already spaced by the section gap.
+   An opening paragraph's top margin would stack on that gap (e.g. after an image). */
+.default-content-wrapper > p:first-child {
+  margin-block-start: 0;
+}
+
 /* Authored quote. The user agent indents blockquote. */
 blockquote {
   display: flex;
@@ -509,12 +516,21 @@ img {
   height: auto;
 }
 
+/* Citation and code samples. The surface follows the page theme, including
+   pages that force dark mode. color is set with color-scheme so the text
+   and scrollbar stay on that surface. */
 pre {
   padding: 1.0rem;
   border-radius: 0.5rem;
-  background-color: var(--light-color);
+  background-color: var(--s2a-color-background-subtle);
+  color: var(--s2a-color-content-default);
+  color-scheme: light;
   overflow-x: auto;
   white-space: pre;
+}
+
+:root[data-theme="dark"] pre {
+  color-scheme: dark;
 }
 
 /* --- Main / containers --- */
@@ -634,6 +650,12 @@ main:focus-visible::after {
   white-space: nowrap !important;
 }
 
+/* Decorative underline copies draw their text here so it is not repeated in the DOM. */
+[data-ghost-text]::before {
+  content: attr(data-ghost-text);
+  content: attr(data-ghost-text) / "";
+}
+
 /* --- Play icon ---
    Decorative overlay for video articles. Blocks override size, svg size,
    radius, and blur via custom properties; they keep placement to themselves. */
@@ -650,12 +672,7 @@ main:focus-visible::after {
   border-radius: var(--play-icon-radius);
   color: var(--s2a-color-content-knockout);
   pointer-events: none;
-  background:
-    linear-gradient(
-      var(--s2a-color-transparent-white-16),
-      var(--s2a-color-transparent-white-16)
-    ),
-    var(--s2a-color-transparent-black-24);
+  background: rgb(0 0 0 / 25%);
   backdrop-filter: blur(var(--play-icon-blur));
 
   svg {
@@ -1396,6 +1413,15 @@ body.article main {
   font-family: var(--serif-font-family);
   font-size: var(--serif-body-font-size);
   line-height: var(--serif-body-line-height);
+}
+
+body.article .default-content-wrapper a:not(.button) {
+  transition: color var(--underline-transition-duration-exit) ease-out;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--link-hover-color);
+  }
 }
 
 /* Quote copy stays heading-3. The serif rule above would otherwise win on inner paragraphs. */

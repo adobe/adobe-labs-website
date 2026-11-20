@@ -176,6 +176,37 @@ export function createExternalArrow() {
 }
 
 /**
+ * Gives a decorative underline copy its text through CSS (`[data-ghost-text]::before`),
+ * so headings and crawlers see the real text only once.
+ * @param {HTMLElement} el Copy to fill; existing children stay after the text
+ * @param {string} text
+ */
+export function setGhostText(el, text) {
+  el.dataset.ghostText = text;
+}
+
+/** Thin external-link arrow. The viewBox matches the ink so the arrow fills the icon box. */
+const EXTERNAL_ICON_PATH = 'M1.056 8.016L0.272 7.216L6.48 1.008H0L0.992 0H8.256V7.296L7.28 8.288V1.792L1.056 8.016Z';
+
+/**
+ * Decorative thin external-link arrow for inline text links. `currentColor` tracks the text.
+ * @param {string} className Class for the block's sizing rule
+ * @returns {SVGSVGElement}
+ */
+export function createExternalIcon(className) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', className);
+  svg.setAttribute('viewBox', '0 0 8.288 8.288');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', EXTERNAL_ICON_PATH);
+  path.setAttribute('fill', 'currentColor');
+  svg.append(path);
+  return svg;
+}
+
+/**
  * Marks one external link so it opens in a new tab.
  * @param {Element} link Anchor element
  * @returns {void}
@@ -532,6 +563,18 @@ export function isArticleDetailPage(doc = document) {
 }
 
 /**
+ * Whether the visitor has not asked to reduce data.
+ * False when the browser's Save-Data setting is on or the visitor prefers
+ * reduced data (`prefers-reduced-data`, where supported).
+ *
+ * @returns {boolean}
+ */
+export function isReducedDataOff() {
+  if (navigator.connection?.saveData) return false;
+  return !window.matchMedia?.('(prefers-reduced-data: reduce)').matches;
+}
+
+/**
  * Appends a synthetic fragment block for the shared article pre-footer.
  * The block is wrapped in a `div` so `decorateSections` treats it as its own
  * section (a bare block as a `main` child would be misread as the section).
@@ -627,10 +670,11 @@ function buildAuthorImage(name) {
  * Author information is not a link.
  *
  * @param {string} name Author name
- * @returns {HTMLLIElement}
+ * @param {string} tagName `li` inside a list, `div` for a lone author
+ * @returns {HTMLElement}
  */
-function buildAuthorItem(name) {
-  const item = document.createElement('li');
+function buildAuthorItem(name, tagName) {
+  const item = document.createElement(tagName);
   item.className = 'article-meta__author';
   item.append(buildAuthorImage(name));
 
@@ -661,9 +705,11 @@ export function buildAuthorByline() {
   label.textContent = 'Words by:';
   byline.append(label);
 
-  const list = document.createElement('ul');
+  // A one-item list makes screen readers announce "list, 1 item".
+  const isList = names.length > 1;
+  const list = document.createElement(isList ? 'ul' : 'div');
   list.className = 'article-meta__author-list';
-  names.forEach((name) => list.append(buildAuthorItem(name)));
+  names.forEach((name) => list.append(buildAuthorItem(name, isList ? 'li' : 'div')));
   byline.append(list);
 
   return byline;
@@ -1568,6 +1614,57 @@ export function decorateBlockquotes(main) {
 }
 
 /**
+ * Name for a code sample from the closest heading or paragraph above it,
+ * e.g. "BibTeX (scrollable code sample)". Long intros are cut at a word.
+ * @param {Element} pre
+ * @returns {string}
+ */
+function codeBlockLabel(pre) {
+  let sibling = pre.previousElementSibling;
+  while (sibling) {
+    const text = sibling.matches('p, h2, h3, h4, h5, h6')
+      ? sibling.textContent.replace(/\s+/g, ' ').trim().replace(/:$/, '')
+      : '';
+    if (text) {
+      const name = text.length > 60 ? `${text.slice(0, 60).replace(/\s+\S*$/, '')}…` : text;
+      return `${name} (scrollable code sample)`;
+    }
+    sibling = sibling.previousElementSibling;
+  }
+  return 'Scrollable code sample';
+}
+
+/**
+ * Makes overflowing code samples Tab stops. Safari won't Tab into a scroll box
+ * on its own.
+ * @param {Element} main The container element
+ */
+export function decorateCodeBlocks(main) {
+  const blocks = [...main.querySelectorAll('pre')];
+  if (!blocks.length) return;
+
+  const update = (pre) => {
+    if (pre.scrollWidth > pre.clientWidth) {
+      pre.tabIndex = 0;
+      pre.setAttribute('role', 'region');
+      pre.setAttribute('aria-label', codeBlockLabel(pre));
+    } else {
+      pre.removeAttribute('tabindex');
+      pre.removeAttribute('role');
+      pre.removeAttribute('aria-label');
+    }
+  };
+
+  const resizeObserver = new ResizeObserver((entries) => {
+    entries.forEach(({ target }) => update(target));
+  });
+  blocks.forEach((pre) => {
+    update(pre);
+    resizeObserver.observe(pre);
+  });
+}
+
+/**
  * Authored cell that flags a video article.
  * Canonical authoring name is **Is Video**; **Show Video Icon** is an alias.
  *
@@ -1724,6 +1821,7 @@ export function ensureArticleBackToTop(doc = document) {
 
 const SITE_ORIGIN = 'https://labs.adobe.com';
 const ORG_ID = `${SITE_ORIGIN}/#organization`;
+const ORG_NAME = 'Adobe Labs';
 
 /**
  * Absolute http(s) image URL. A relative path on localhost or an AEM preview
@@ -1827,7 +1925,7 @@ function buildOrganization() {
   return {
     '@type': 'Organization',
     '@id': ORG_ID,
-    name: 'Adobe Labs',
+    name: ORG_NAME,
     url: `${SITE_ORIGIN}/`,
     parentOrganization: {
       '@type': 'Organization',
@@ -1838,13 +1936,17 @@ function buildOrganization() {
 }
 
 /**
- * One Person per authored name. An empty author field yields an empty list.
+ * One Person per authored name, plus author ids in authored order. An author
+ * named "Adobe Labs" is the Organization, not a Person. An empty author field
+ * yields empty lists.
  * @param {Document} doc
- * @returns {object[]}
+ * @returns {{ people: object[], refs: object[] }}
  */
-function buildPeople(doc) {
+function buildAuthors(doc) {
+  const orgSlug = toClassName(ORG_NAME);
   const seen = new Set();
   const people = [];
+  const refs = [];
   getMetadata('author', doc)
     .split(',')
     .map((name) => name.trim())
@@ -1853,23 +1955,29 @@ function buildPeople(doc) {
       const slug = toClassName(name);
       if (!slug || seen.has(slug)) return;
       seen.add(slug);
-      people.push({
+      if (slug === orgSlug) {
+        refs.push({ '@id': ORG_ID });
+        return;
+      }
+      const person = {
         '@type': 'Person',
         '@id': `${SITE_ORIGIN}/#person-${slug}`,
         name,
-      });
+      };
+      people.push(person);
+      refs.push({ '@id': person['@id'] });
     });
-  return people;
+  return { people, refs };
 }
 
 /**
- * Article author: one person id, a list of person ids, or the Organization.
- * @param {object[]} people
+ * Article author: one id, a list of ids, or the Organization when no author
+ * is authored.
+ * @param {object[]} refs
  * @returns {object|object[]}
  */
-function authorReference(people) {
-  if (!people.length) return { '@id': ORG_ID };
-  const refs = people.map((person) => ({ '@id': person['@id'] }));
+function authorReference(refs) {
+  if (!refs.length) return { '@id': ORG_ID };
   return refs.length === 1 ? refs[0] : refs;
 }
 
@@ -1907,7 +2015,7 @@ function buildArticleGraph(doc) {
   if (!headline) return [];
 
   const url = getShareUrl();
-  const people = buildPeople(doc);
+  const { people, refs } = buildAuthors(doc);
   const article = {
     '@type': 'Article',
     headline,
@@ -1929,7 +2037,7 @@ function buildArticleGraph(doc) {
   article.mainEntityOfPage = { '@type': 'WebPage', '@id': url };
   article.publisher = { '@id': ORG_ID };
   article.inLanguage = 'en';
-  article.author = authorReference(people);
+  article.author = authorReference(refs);
 
   return [...people, article];
 }

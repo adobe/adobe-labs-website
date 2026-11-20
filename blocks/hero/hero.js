@@ -1,6 +1,7 @@
 import { getMetadata } from '../../scripts/aem.js';
 import {
   buildPlayIcon,
+  createExternalArrow,
   getAuthoredCells,
   getAuthoredVideoCell,
   getCellLinkHref,
@@ -9,6 +10,7 @@ import {
   isArticleDetailPage,
   isAuthoredTrue,
   isExternalLink,
+  setGhostText,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
@@ -124,23 +126,54 @@ function getHeadlineTag(cell) {
 }
 
 /**
+ * Fills one copy of the stack. The external arrow is kept with the last
+ * word so it cannot wrap onto its own line.
+ *
+ * @param {HTMLElement} el Copy to fill
+ * @param {string} text
+ * @param {boolean} external Append the external-link arrow
+ * @param {boolean} [ghost] Decorative copy; text is drawn by CSS
+ */
+function fillStackCopy(el, text, external, ghost = false) {
+  const fill = (target, value) => {
+    if (ghost) setGhostText(target, value);
+    else target.prepend(value);
+  };
+  if (!external) {
+    fill(el, text);
+    return;
+  }
+  const trimmed = text.trim();
+  const i = trimmed.lastIndexOf(' ');
+  const end = document.createElement('span');
+  end.className = 'hero__headline-end';
+  const arrow = createExternalArrow();
+  arrow.classList.add('hero__external-icon');
+  end.append(arrow);
+  fill(end, trimmed.slice(i + 1));
+  el.append(end);
+  fill(el, trimmed.slice(0, i + 1));
+}
+
+/**
  * Visible text stacked with an aria-hidden underline copy so both wrap
- * the same way. The underline is revealed in CSS.
+ * the same way. The copy's text and underline reveal live in CSS.
  *
  * @param {string} text
  * @param {{ stack: string, text: string, underline: string }} classNames
+ * @param {boolean} [external] Append the external-link arrow to both copies
  * @returns {HTMLSpanElement}
  */
-function createUnderlineStack(text, classNames) {
+function createUnderlineStack(text, classNames, external = false) {
   const stack = document.createElement('span');
   stack.className = classNames.stack;
   const textEl = document.createElement('span');
   textEl.className = classNames.text;
-  textEl.textContent = text;
+  fillStackCopy(textEl, text, external);
   const underline = document.createElement('span');
   underline.className = classNames.underline;
   underline.setAttribute('aria-hidden', 'true');
-  underline.textContent = text;
+  fillStackCopy(underline, text, external, true);
   stack.append(textEl, underline);
   return stack;
 }
@@ -151,16 +184,17 @@ function createUnderlineStack(text, classNames) {
  *
  * @param {string} tag `h1`–`h6` or `p`
  * @param {string} text Headline text
+ * @param {boolean} [external] Headline links off-site
  * @returns {HTMLElement}
  */
-function createHeadline(tag, text) {
+function createHeadline(tag, text, external = false) {
   const el = document.createElement(HEADLINE_TAGS.has(tag) ? tag : 'p');
   el.className = 'hero__headline';
   el.append(createUnderlineStack(text, {
     stack: 'hero__headline-stack',
     text: 'hero__headline-text',
     underline: 'hero__headline-underline',
-  }));
+  }, external));
   return el;
 }
 
@@ -227,7 +261,7 @@ export function buildHero(data = {}, root = document.createElement('div')) {
 
   const template = document.createElement('template');
   template.innerHTML = `
-    <div class="hero__media" aria-hidden="true"></div>
+    <div class="hero__media"></div>
     <div class="hero__content">
       <div class="hero__top-row">
         <div class="hero__eyebrow">
@@ -280,8 +314,12 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   if (pageCategory) pageCategoryEl.textContent = pageCategory;
   else pageCategoryEl.remove();
 
+  const wrapperLink = href ? document.createElement('a') : null;
+  if (wrapperLink) wrapperLink.href = href;
+  const external = isExternalLink(wrapperLink);
+
   const copy = fragment.querySelector('.hero__copy');
-  if (headline) copy.append(createHeadline(headlineTag, headline));
+  if (headline) copy.append(createHeadline(headlineTag, headline, external));
   if (!copy.querySelector('.hero__category, .hero__headline')) copy.remove();
 
   const ctaText = fragment.querySelector('.hero__cta-text');
@@ -291,21 +329,22 @@ export function buildHero(data = {}, root = document.createElement('div')) {
   const blockChildren = [...fragment.children];
 
   let wrappedContent;
-  if (href) {
-    const wrapperLink = document.createElement('a');
-    wrapperLink.href = href;
+  if (wrapperLink) {
     wrapperLink.classList.add('hero__link-wrap');
     blockChildren.forEach((child) => wrapperLink.appendChild(child));
+    // The link is named by its text, so the image inside it is decorative.
+    // Avoids overly verbose and confusing link text for screen reader users.
+    wrapperLink.querySelectorAll('.hero__media img').forEach((img) => { img.alt = ''; });
     // A visually-hidden hint inside this card is clipped out of the
     // accessibility tree. The name is the visible text, once, so the
     // external-link pass can append "(opens in a new tab)" to it.
-    if (isExternalLink(wrapperLink)) {
+    if (external) {
       const name = [
         isVideo ? 'Video article' : '',
         pageCategory,
         headline,
         linkLabel,
-      ].filter(Boolean).join(' • ');
+      ].filter(Boolean).join(', ');
       if (name) wrapperLink.setAttribute('aria-label', name);
     }
     wrappedContent = wrapperLink;

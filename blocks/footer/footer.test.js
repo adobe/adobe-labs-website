@@ -23,6 +23,7 @@ const FOOTER_FRAGMENT = `
       <h2>Connect</h2>
       <p><a href="/collaborate">Collaborate</a></p>
       <p><a href="/reuse" title="Reuse it responsibly">Reuse</a></p>
+      <p><a href="mailto:labs@adobe.com">Email us</a></p>
     </div></div>
     <div><div>
       <h2>Explore</h2>
@@ -146,11 +147,22 @@ describe('footer block', () => {
     const external = within(block).getByRole('link', { name: 'Adobe Research (opens in a new tab)' });
     expect(external.querySelector('.footer__external-icon')).toBeTruthy();
     expect(external.querySelector('.visually-hidden')).toHaveTextContent('(opens in a new tab)');
-    expect(block.querySelectorAll('.footer__external-icon')).toHaveLength(1);
+    expect(block.querySelectorAll('.footer__external-icon')).toHaveLength(2);
     expect(within(block).getByRole('link', { name: 'Research' }).querySelector('.footer__external-icon')).toBeNull();
     expect(within(block).getByRole('link', { name: 'Labs' }).querySelector('.footer__external-icon')).toBeNull();
     expect(within(block).getByRole('link', { name: 'Preview' }).querySelector('.footer__external-icon')).toBeNull();
     expect(within(block).getByRole('link', { name: 'Subscribe' }).querySelector('.footer__external-icon')).toBeNull();
+  });
+
+  it('adds the external-link icon to mailto links without a new-tab hint', async () => {
+    const block = document.createElement('div');
+    block.className = 'footer';
+
+    await decorate(block);
+
+    const mail = within(block).getByRole('link', { name: 'Email us' });
+    expect(mail.querySelector('.footer__external-icon')).toHaveAttribute('aria-hidden', 'true');
+    expect(mail.querySelector('.visually-hidden')).toBeNull();
   });
 
   it('strips redundant title attributes that just repeat the link text', async () => {

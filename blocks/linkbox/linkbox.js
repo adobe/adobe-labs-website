@@ -6,6 +6,7 @@ import {
   getCellText,
   isExternalLink,
   markExternalLink,
+  setGhostText,
   toSafeHttpUrl,
 } from '../../scripts/utils/utils.js';
 
@@ -55,7 +56,7 @@ function createLabel(label, linked) {
   const underline = document.createElement('span');
   underline.className = 'linkbox__underline';
   underline.setAttribute('aria-hidden', 'true');
-  underline.textContent = label;
+  setGhostText(underline, label);
 
   stack.append(textEl, underline);
   labelEl.append(stack);
