@@ -420,6 +420,12 @@ p:has(br) {
   text-wrap: wrap;
 }
 
+/* Wrappers in a section are already spaced by the section gap.
+   An opening paragraph's top margin would stack on that gap (e.g. after an image). */
+.default-content-wrapper > p:first-child {
+  margin-block-start: 0;
+}
+
 /* Authored quote. The user agent indents blockquote. */
 blockquote {
   display: flex;
