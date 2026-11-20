@@ -458,7 +458,7 @@ describe('bindFooterReveal', () => {
       window.CSS = css;
     }
   });
-  
+
   it('scrolls a focused control clear of a stacked menu by its real height', () => {
     const { matchMedia } = window;
     window.matchMedia = jest.fn((query) => ({
