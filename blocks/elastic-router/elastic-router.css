@@ -135,11 +135,13 @@
   font-size: var(--s2a-typography-font-size-heading-5);
   line-height: var(--s2a-typography-line-height-heading-5);
 
-  /* Fixed per Figma, unlike the heading-5 utility class: letter-spacing
-     stays constant across breakpoints instead of following the responsive
-     heading-5 alias (font-family/weight-900 already come from the site's
-     global h1-h6 rule). */
+  /* Fixed value per Figma, instead of following the heading-5 utility class. */
   letter-spacing: var(--s2a-font-letter-spacing-4xl);
+
+  /* Regular DPI adjustment for readability */
+  @media (resolution <= 1x) {
+    letter-spacing: var(--s2a-font-letter-spacing-6xl);
+  }
 
   @media (width < 90rem) {
     font-size: var(--s2a-font-size-md);
