@@ -13,25 +13,25 @@ When prompted to create a Jira ticket, output the following:
 
 Output results in the chat window in a way that can be copied and pasted into Jira.
 
-## Jira syntax formatting rules
+## Markdown formatting rules
 
-Use these syntax rules when writing Jira tickets:
+Write Jira tickets in Markdown, not Jira wiki markup (`h2.`, `{{code}}`, `[text|url]`). The Jira editor converts pasted Markdown.
 
-- `h2.` through `h6.` - Headings (use `h2.` for main, `h3.` for secondary, etc. - avoid `h1.` in descriptions)
-- `*text*` - Bold text (see **Bold usage** below; do not pepper bold across the description)
-- `{{code}}` - Inline code
-- `{code:language}{code}` - Language-specific code blocks, as in `{code:js}{code}` for JavaScript and Typescript code blocks (JIRA doesn't support `{code:typescript}`)
-- `[text|url]` - Links
+- `##` through `######` - Headings (use `##` for main, `###` for secondary, etc. - avoid `#` in descriptions)
+- `**text**` - Bold text (see **Bold usage** below; do not pepper bold across the description)
+- `` `code` `` - Inline code
+- ` ```language ` fenced blocks - Language-specific code blocks, as in ` ```js ` for JavaScript and TypeScript code blocks
+- `[text](url)` - Links
 - `-` - Bullet points
-- `#` - Numbered list items
+- `1.` - Numbered list items
 
 ### Bold usage
 
-- Default to **no** bold in Overview, Technical notes, Open questions, QA, Source, and other sections. Keep those sections plain text (plus `{{code}}` and links as needed).
-- In the **Acceptance criteria** section **only**, use `*text*` to bold the three BDD keywords **Given**, **When**, and **Then** at the start of each clause. Do not bold the rest of the sentence, random nouns, or every other word.
-- Use consistent casing in the written criteria (e.g. sentence case after each keyword; match your team’s style). In Jira, only wrap the three keywords: `*Given*`, `*When*`, `*Then*`.
-- **Bad:** `*Given* *light* *mode* *and* *dark* *mode*, *when* a *page* *loads*...` (over-bold)
-- **Good:** `*Given* light and dark site themes are available, *when* a page loads in each theme, *then* background gradients match the spec without harsh banding.`
+- Default to **no** bold in Overview, Technical notes, Open questions, QA, Source, and other sections. Keep those sections plain text (plus inline code and links as needed).
+- In the **Acceptance criteria** section **only**, use `**text**` to bold the three BDD keywords **Given**, **When**, and **Then** at the start of each clause. Do not bold the rest of the sentence, random nouns, or every other word.
+- Use consistent casing in the written criteria (e.g. sentence case after each keyword; match your team’s style). Only wrap the three keywords: `**Given**`, `**When**`, `**Then**`.
+- **Bad:** `**Given** **light** **mode** **and** **dark** **mode**, **when** a **page** **loads**...` (over-bold)
+- **Good:** `**Given** light and dark site themes are available, **when** a page loads in each theme, **then** background gradients match the spec without harsh banding.`
 
 ## Title format
 
@@ -65,50 +65,50 @@ Examples:
 
 ### General issue/ticket template
 
-```
-h2. Overview
+```markdown
+## Overview
 (plain language explaining the ticket)
 
-h2. Acceptance criteria
+## Acceptance criteria
 (how we ensure that the work is complete)
 
-h2. Technical notes/resources
+## Technical notes/resources
 (any technical notes/links/etc)
 
-h2. QA
+## QA
 (steps someone will use to be sure that the work fulfills the ticket's request and that everything's working properly)
 
-h2. Design specs
+## Design specs
 (are there any design specs/files/mock-ups we can include here? Any other design notes?)
 ```
 
 ### Bug reporting template
 
-```
-{*}Link to original issue:{*} (Add a link to the original issue if applicable)
+```markdown
+**Link to original issue:** (Add a link to the original issue if applicable)
 
-h2. Expected behavior
+## Expected behavior
 (Description of what the user would expect to happen)
 
-h2. Actual behavior
+## Actual behavior
 (The actual behavior observed by the user)
 
-h2. Screenshots
+## Screenshots
 (Screenshots of the problem if applicable)
 
-h2. How can we reproduce the issue?
+## How can we reproduce the issue?
 
-# Go to '...'
-# Click on '....'
-# Scroll to '....'
-# Check console
-# See error
+1. Go to '...'
+2. Click on '....'
+3. Scroll to '....'
+4. Check console
+5. See error
 <!-- add more reproduction steps if applicable-->
 
-h2. Sample code or abstract reproduction which illustrates the problem
+## Sample code or abstract reproduction which illustrates the problem
 (are there any design specs/files/mock-ups we can include here? Any other design notes?)
 
-h2. Severity
+## Severity
 (The severity of the issue according to the classification below)
 ```
 
@@ -131,7 +131,7 @@ h2. Severity
 ## Agent criteria for writing tickets/issues
 
 - Write the overviews in plain language as user stories (i.e. "As a user, I want to...")
-- Write acceptance criteria in "Given/When/Then" format, and in Jira bold **only** those three keywords in each criterion (see **Bold usage** under Jira syntax formatting rules).
+- Write acceptance criteria in "Given/When/Then" format, and bold **only** those three keywords in each criterion (see **Bold usage** under Markdown formatting rules).
 - Make acceptance criteria specific and testable
 - Include edge cases and error scenarios
 - Document accessibility requirements and testing steps
