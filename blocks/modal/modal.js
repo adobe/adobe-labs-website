@@ -77,16 +77,8 @@ export async function createModal(contentNodes) {
 
   dialog.querySelector('.close-button').addEventListener('click', () => dialog.close());
 
-  // Close on click outside the dialog's own box (the ::backdrop isn't a
-  // real hit-testable element, so this checks the dialog's own bounds).
   dialog.addEventListener('click', (event) => {
-    const {
-      left, right, top, bottom,
-    } = dialog.getBoundingClientRect();
-    const { clientX, clientY } = event;
-    if (clientX < left || clientX > right || clientY < top || clientY > bottom) {
-      dialog.close();
-    }
+    if (event.target === dialog) dialog.close();
   });
 
   // decorateBlock() tags the block's own parent with `modal-wrapper`, so it
