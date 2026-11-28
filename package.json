@@ -26,7 +26,7 @@
   },
   "homepage": "https://labs.adobe.com",
   "devDependencies": {
-    "@babel/core": "7.29.13",
+    "@babel/core": "7.29.16",
     "@babel/eslint-parser": "7.29.13",
     "@contentauth/c2pa-web": "0.17.2",
     "@babel/preset-env": "7.29.14",
