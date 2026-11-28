@@ -594,6 +594,30 @@ describe('bindFooterReveal', () => {
 
     expect(main).not.toHaveClass('section-scroll-reveal-main');
   });
+
+  it('stacks the footer on touch instead of garage-dooring it', () => {
+    const { matchMedia } = window;
+    window.matchMedia = jest.fn((query) => ({
+      matches: query.includes('pointer: coarse'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }));
+    const { main, footer } = mountPage('<div class="section section-rounded-default"></div>');
+    cardBottom(main.children[0], 800);
+    menuHeight(footer.querySelector('.footer__inner'), 240);
+
+    try {
+      bindFooterReveal(main, document);
+      scroll();
+
+      expect(main.children[0]).not.toHaveClass('section-scroll-reveal');
+      expect(footer).not.toHaveClass('section-scroll-under');
+      expect(footer.querySelector('.footer__inner').style.getPropertyValue('--section-scroll-inner-progress')).toBe('');
+    } finally {
+      window.matchMedia = matchMedia;
+    }
+  });
 });
 
 describe('refreshFooterReveal', () => {
